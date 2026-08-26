@@ -1,11 +1,12 @@
-const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
+// Auto-ensure Expo assets
+try {
+  require('./scripts/setup-expo.js');
+} catch (e) {
+  // Ignore if script fails
+}
 
-/**
- * Metro configuration
- * https://reactnative.dev/docs/metro
- *
- * @type {import('@react-native/metro-config').MetroConfig}
- */
-const config = {};
+const { getDefaultConfig } = require('expo/metro-config');
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+const config = getDefaultConfig(__dirname);
+
+module.exports = config;

@@ -22,7 +22,7 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
 }) => {
   const { user, logout } = useAuthContext();
   const statusBarHeight = StatusBar.currentHeight || 36;
-  const patientName = user?.fullName || user?.full_name || 'bulbul';
+  const patientName = user?.fullName || user?.full_name || 'Patient';
   const initial = patientName.charAt(0).toUpperCase();
 
   return (

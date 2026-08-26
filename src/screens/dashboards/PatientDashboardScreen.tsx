@@ -31,7 +31,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
   const { user, token } = useAuthContext();
   const { dashboardData, loading, refreshing, onRefresh } = usePatientDashboard(token);
 
-  const patientName = user?.fullName || user?.full_name || 'bulbul';
+  const patientName = user?.fullName || user?.full_name || 'Patient';
 
   const upcomingCount = dashboardData?.upcoming_appointments?.length || 0;
   const labReportsCount = dashboardData?.recent_lab_reports?.length || 0;
@@ -63,7 +63,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
           <Text style={styles.greetingText}>Welcome back, <Text style={styles.greetingName}>{patientName}</Text></Text>
         </View>
 
-        {/* ─── BANNER: BOOK AN APPOINTMENT ─── */}
+        {/* Book Appointment Banner */}
         <View style={styles.appointmentBannerCard}>
           <View style={styles.bannerTextSection}>
             <View style={styles.bannerTitleRow}>
@@ -79,7 +79,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* ─── KPI SUMMARY STAT CARDS ─── */}
+        {/* Summary Stat Cards */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -152,7 +152,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
 
         </ScrollView>
 
-        {/* ─── CARE OVERVIEW SECTION ─── */}
+        {/* Care Overview Section */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
             <View>
@@ -195,7 +195,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* ─── BILLING OVERVIEW SECTION ─── */}
+        {/* Billing Overview Section */}
         <View style={[styles.sectionCard, styles.sectionCardAmber]}>
           <View style={styles.sectionHeaderRow}>
             <View>

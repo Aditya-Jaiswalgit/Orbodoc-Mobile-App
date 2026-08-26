@@ -28,7 +28,7 @@ import BookAppointmentScreen from '../screens/patient/BookAppointmentScreen';
 import LabTestsScreen from '../screens/patient/LabTestsScreen';
 import MedicineBillingScreen from '../screens/patient/MedicineBillingScreen';
 import NotificationsScreen from '../screens/patient/NotificationsScreen';
-import PatientsProfileScreen from '../screens/patient/PatientsProfileScreen';
+import PatientsScreen from '../screens/patient/PatientsScreen';
 import TreatmentBillingScreen from '../screens/patient/TreatmentBillingScreen';
 import VideoServicesScreen from '../screens/patient/VideoServicesScreen';
 
@@ -90,7 +90,7 @@ export const PatientMainContainer = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { user, logout } = useAuthContext();
 
-  const patientName = user?.fullName || user?.full_name || 'bulbul';
+  const patientName = user?.fullName || user?.full_name || 'Patient';
   const initial = patientName.charAt(0).toUpperCase();
 
   const openDrawer = () => setDrawerOpen(true);
@@ -108,7 +108,7 @@ export const PatientMainContainer = () => {
       case 'book_appointment':
         return <BookAppointmentScreen onOpenDrawer={openDrawer} />;
       case 'patients':
-        return <PatientsProfileScreen onOpenDrawer={openDrawer} />;
+        return <PatientsScreen onOpenDrawer={openDrawer} />;
       case 'appointments':
         return <AppointmentsScreen onOpenDrawer={openDrawer} />;
       case 'treatment_billing':
@@ -136,7 +136,7 @@ export const PatientMainContainer = () => {
       {/* Dynamic Screen Content */}
       <View style={styles.screenContainer}>{renderActiveScreen()}</View>
 
-      {/* ─── BOTTOM TAB BAR ─── */}
+      {/* Bottom Tab Bar */}
       <View style={styles.bottomTabBar}>
         <TouchableOpacity
           style={styles.tabItem}
@@ -215,7 +215,7 @@ export const PatientMainContainer = () => {
         </TouchableOpacity>
       </View>
 
-      {/* ─── SIDE DRAWER MENU MODAL (DARK NAVY THEME) ─── */}
+      {/* Side Drawer Menu Modal */}
       <Modal
         visible={drawerOpen}
         animationType="fade"

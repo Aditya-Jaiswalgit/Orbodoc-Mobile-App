@@ -123,6 +123,146 @@ export const BellNotificationIcon: React.FC<IconProps> = ({ color = '#0d9488', s
   );
 };
 
+// 9. Eye / View Details Outline Vector Icon
+export const ViewDetailsIcon: React.FC<IconProps> = ({ color = '#334155', size = 18 }) => {
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        style={{
+          width: size,
+          height: size * 0.58,
+          borderRadius: size * 0.29,
+          borderWidth: 1.8,
+          borderColor: color,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+        <View
+          style={{
+            width: size * 0.26,
+            height: size * 0.26,
+            borderRadius: size * 0.13,
+            backgroundColor: color,
+          }}
+        />
+      </View>
+    </View>
+  );
+};
+
+// 10. Edit / Pen Outline Vector Icon
+export const EditPenIcon: React.FC<IconProps> = ({ color = '#334155', size = 18 }) => {
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          width: size * 0.75,
+          height: size * 0.75,
+          borderWidth: 1.8,
+          borderColor: color,
+          borderRadius: 4,
+          position: 'relative',
+        }}>
+        <View
+          style={{
+            position: 'absolute',
+            top: -2,
+            right: -2,
+            width: 3,
+            height: 10,
+            backgroundColor: color,
+            transform: [{ rotate: '45deg' }],
+          }}
+        />
+      </View>
+    </View>
+  );
+};
+
+// 11. Stethoscope Consultation Outline Vector Icon
+export const StethoscopeIcon: React.FC<IconProps> = ({ color = '#334155', size = 18 }) => {
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        style={{
+          width: size * 0.65,
+          height: size * 0.55,
+          borderWidth: 1.8,
+          borderColor: color,
+          borderTopWidth: 0,
+          borderBottomLeftRadius: size * 0.3,
+          borderBottomRightRadius: size * 0.3,
+        }}
+      />
+      <View
+        style={{
+          width: size * 0.25,
+          height: size * 0.25,
+          borderRadius: size * 0.125,
+          borderWidth: 1.8,
+          borderColor: color,
+          marginTop: 1,
+        }}
+      />
+    </View>
+  );
+};
+
+// 12. Prescription / Document Outline Vector Icon
+export const PrescriptionIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 18 }) => {
+  return (
+    <View
+      style={{
+        width: size * 0.75,
+        height: size,
+        borderWidth: 1.8,
+        borderColor: color,
+        borderRadius: 4,
+        padding: 2,
+        justifyContent: 'space-around',
+      }}>
+      <View style={{ width: '80%', height: 1.8, backgroundColor: color }} />
+      <View style={{ width: '60%', height: 1.8, backgroundColor: color }} />
+      <View style={{ width: '75%', height: 1.8, backgroundColor: color }} />
+    </View>
+  );
+};
+
+// 13. Medical History Clock Outline Vector Icon
+export const MedicalHistoryIcon: React.FC<IconProps> = ({ color = '#334155', size = 18 }) => {
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        borderWidth: 1.8,
+        borderColor: color,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+      <View
+        style={{
+          width: 1.8,
+          height: size * 0.3,
+          backgroundColor: color,
+          position: 'absolute',
+          top: 3,
+        }}
+      />
+      <View
+        style={{
+          width: size * 0.25,
+          height: 1.8,
+          backgroundColor: color,
+          position: 'absolute',
+          right: 3,
+        }}
+      />
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   gridContainer: {
     justifyContent: 'space-between',
