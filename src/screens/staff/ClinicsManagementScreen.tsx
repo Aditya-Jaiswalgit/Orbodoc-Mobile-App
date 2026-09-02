@@ -14,9 +14,10 @@ import { Clinic } from '../../types/clinicTypes';
 
 interface Props {
   onOpenDrawer: () => void;
+  onOpenNotifications?: () => void;
 }
 
-export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer }) => {
+export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotifications }) => {
   const [clinics, setClinics] = useState<Clinic[]>([
     {
       id: 1,

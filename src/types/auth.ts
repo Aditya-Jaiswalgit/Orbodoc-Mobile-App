@@ -1,5 +1,3 @@
-// Authentication Types & Interfaces
-
 export type UserRoleType = 'staff' | 'patient';
 
 export interface StaffLoginPayload {

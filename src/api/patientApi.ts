@@ -10,8 +10,29 @@ export async function getPatientsApi(token: string, queryParams?: string): Promi
   });
 }
 
+export interface PatientDashboardData {
+  upcoming_appointments?: Array<{
+    id?: number;
+    doctor_name?: string;
+    specialization?: string;
+    appointment_date?: string;
+    appointment_time?: string;
+    clinic_name?: string;
+  }>;
+  recent_lab_reports?: Array<any>;
+  recent_bills?: Array<any>;
+  [key: string]: any;
+}
+
 export async function getPatientsDashboardStatsApi(token: string): Promise<ApiResponse<any>> {
   return apiFetch<any>('/patients/dashboard', {
+    method: 'GET',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+}
+
+export async function getPatientDashboardApi(token: string): Promise<ApiResponse<PatientDashboardData>> {
+  return apiFetch<PatientDashboardData>('/patients/dashboard', {
     method: 'GET',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });

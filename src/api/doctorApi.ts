@@ -6,7 +6,6 @@ export async function getDoctorsByClinicApi(
   token: string,
   clinicId: number
 ): Promise<ApiResponse<StaffMember[]>> {
-  // 1. Fetch from Public Providers endpoint
   try {
     const publicRes = await apiFetch<any>('/public/providers?category=clinic', {
       method: 'GET',
@@ -40,7 +39,6 @@ export async function getDoctorsByClinicApi(
     }
   } catch (err: any) {}
 
-  // 2. Try GET /staff/doctors/clinic/:clinicId
   try {
     const res = await apiFetch<any>(`/staff/doctors/clinic/${clinicId}`, {
       method: 'GET',
@@ -67,7 +65,6 @@ export async function getDoctorsByClinicApi(
     }
   } catch (err: any) {}
 
-  // 3. Try GET /staff/doctors?clinic_id=:clinicId
   try {
     const res = await apiFetch<any>(`/staff/doctors?clinic_id=${clinicId}`, {
       method: 'GET',

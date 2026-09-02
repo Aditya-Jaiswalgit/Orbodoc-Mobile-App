@@ -2,7 +2,6 @@ import { apiFetch } from './apiConfig';
 import { ApiResponse } from '../types/auth';
 import { MedicineBill, TreatmentBill } from '../types/clinicTypes';
 
-// Medicine Bills
 export async function getMedicineBillsApi(token: string): Promise<ApiResponse<MedicineBill[]>> {
   return apiFetch<MedicineBill[]>('/medicine-bills', {
     method: 'GET',
@@ -40,7 +39,6 @@ export async function cancelMedicineBillApi(token: string, id: number): Promise<
   });
 }
 
-// Treatment Bills
 export async function getTreatmentBillsApi(token: string): Promise<ApiResponse<TreatmentBill[]>> {
   return apiFetch<TreatmentBill[]>('/treatment-bills', {
     method: 'GET',

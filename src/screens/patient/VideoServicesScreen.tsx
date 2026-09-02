@@ -121,7 +121,7 @@ export const VideoServicesScreen: React.FC<VideoServicesScreenProps> = ({
                         <StethoscopeIcon color="#0d9488" size={20} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.docName}>{item.doctor_name || 'Dr. Ritesh Agrawal'}</Text>
+                        <Text style={styles.docName}>{item.doctor_name || 'Doctor'}</Text>
                         <Text style={styles.docSub}>{item.specialization || 'Video Consultation'}</Text>
                       </View>
                       <View style={styles.approvedBadgePill}>
@@ -155,7 +155,7 @@ export const VideoServicesScreen: React.FC<VideoServicesScreenProps> = ({
                         <StethoscopeIcon color="#64748b" size={20} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.docName}>{item.doctor_name || 'Dr. Ritesh Agrawal'}</Text>
+                        <Text style={styles.docName}>{item.doctor_name || 'Doctor'}</Text>
                         <Text style={styles.docSub}>{item.appointment_date} · {item.appointment_time}</Text>
                       </View>
                       <View style={[styles.approvedBadgePill, { backgroundColor: '#e2e8f0' }]}>

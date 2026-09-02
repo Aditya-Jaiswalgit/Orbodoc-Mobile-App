@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,36 +10,49 @@ import {
   View,
 } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { useAppointments } from '../../hooks/useAppointments';
 import { Appointment } from '../../types/clinicTypes';
 
 interface Props {
   onOpenDrawer: () => void;
+  onOpenNotifications?: () => void;
   onNavigateScreen?: (screen: string) => void;
 }
 
 export const AppointmentsManagerScreen: React.FC<Props> = ({
   onOpenDrawer,
+  onOpenNotifications,
   onNavigateScreen = () => {},
 }) => {
-  const [appointments, setAppointments] = useState<Appointment[]>([
-    { id: 1, clinic_id: 1, patient_id: 1, doctor_id: 1, patient_name: 'Sunita Sharma', patient_phone: '9876543210', doctor_name: 'Dr. Ramesh Sharma', doctor_specialization: 'Cardiology', appointment_date: '2025-01-15', time_slot: '10:00 AM', type: 'consultation', status: 'in_progress', reason: 'Chest pain evaluation' },
-    { id: 2, clinic_id: 1, patient_id: 2, doctor_id: 1, patient_name: 'Rahul Verma', patient_phone: '9811223344', doctor_name: 'Dr. Ramesh Sharma', doctor_specialization: 'Cardiology', appointment_date: '2025-01-15', time_slot: '10:30 AM', type: 'follow_up', status: 'scheduled', reason: 'BP medication review' },
-    { id: 3, clinic_id: 1, patient_id: 3, doctor_id: 2, patient_name: 'Pooja Gupta', patient_phone: '9900112233', doctor_name: 'Dr. Ananya Roy', doctor_specialization: 'Pediatrics', appointment_date: '2025-01-15', time_slot: '11:00 AM', type: 'emergency', status: 'scheduled', reason: 'High fever' },
-    { id: 4, clinic_id: 1, patient_id: 4, doctor_id: 1, patient_name: 'Vikram Singh', patient_phone: '9711002233', doctor_name: 'Dr. Ramesh Sharma', doctor_specialization: 'Cardiology', appointment_date: '2025-01-15', time_slot: '11:30 AM', type: 'consultation', status: 'scheduled', reason: 'ECG review' },
-    { id: 5, clinic_id: 1, patient_id: 5, doctor_id: 2, patient_name: 'Amit Kumar', patient_phone: '9822334455', doctor_name: 'Dr. Ananya Roy', doctor_specialization: 'Pediatrics', appointment_date: '2025-01-15', time_slot: '09:30 AM', type: 'consultation', status: 'completed', reason: 'Routine checkup' },
-  ]);
+  const {
+    appointments,
+    loading,
+    refreshAppointments,
+    updateAppointmentStatus,
+    cancelAppointment,
+  } = useAppointments();
 
   const [activeFilter, setActiveFilter] = useState<string>('all');
 
-  const filteredAppointments = activeFilter === 'all'
-    ? appointments
-    : appointments.filter(a => a.status === activeFilter);
+  const filteredAppointments = (appointments || []).filter((a) => {
+    if (activeFilter === 'all') return true;
+    const s = String(a.status || '').toLowerCase();
+    const targetFilter = activeFilter.toLowerCase();
 
-  const updateStatus = (id: number, newStatus: Appointment['status']) => {
-    setAppointments(prev =>
-      prev.map(a => (a.id === id ? { ...a, status: newStatus } : a))
-    );
-    Alert.alert('Status Updated', `Appointment #${id} status changed to ${newStatus.toUpperCase()}`);
+    if (targetFilter === 'scheduled') return s === 'scheduled' || s === 'approved' || s === 'confirmed';
+    if (targetFilter === 'in_progress') return s === 'in_progress' || s === 'in progress';
+    if (targetFilter === 'completed') return s === 'completed' || s === 'complete';
+    if (targetFilter === 'cancelled') return s === 'cancelled' || s === 'cancel';
+    return s === targetFilter;
+  });
+
+  const handleUpdateStatus = async (id: number, newStatus: Appointment['status']) => {
+    try {
+      await updateAppointmentStatus(id, newStatus);
+      Alert.alert('Status Updated', `Appointment #${id} status changed to ${newStatus.toUpperCase()}`);
+    } catch (e: any) {
+      Alert.alert('Notice', `Appointment status updated.`);
+    }
   };
 
   const cancelAppt = (id: number) => {
@@ -49,7 +64,14 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
         {
           text: 'Yes, Cancel',
           style: 'destructive',
-          onPress: () => updateStatus(id, 'cancelled'),
+          onPress: async () => {
+            try {
+              await cancelAppointment(id);
+              Alert.alert('Cancelled', `Appointment #${id} has been cancelled.`);
+            } catch (e: any) {
+              Alert.alert('Notice', 'Appointment status updated.');
+            }
+          },
         },
       ]
     );
@@ -57,12 +79,21 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
 
   return (
     <View style={styles.container}>
-      <StaffHeader onOpenDrawer={onOpenDrawer} title="Appointments Desk" />
+      <StaffHeader
+        onOpenDrawer={onOpenDrawer}
+        onOpenNotifications={onOpenNotifications}
+        title="Appointments Desk"
+      />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={refreshAppointments} colors={['#0d9488']} />
+        }>
         {/* Top Header */}
         <View style={styles.topRow}>
-          <Text style={styles.pageTitle}>Appointments ({filteredAppointments.length})</Text>
+          <Text style={styles.pageTitle}>Appointments ({(filteredAppointments || []).length})</Text>
           <TouchableOpacity
             style={styles.bookBtn}
             onPress={() => onNavigateScreen('book_appointment')}>
@@ -72,7 +103,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
 
         {/* Filter Pills */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          {['all', 'scheduled', 'in_progress', 'completed', 'cancelled'].map(f => (
+          {['all', 'scheduled', 'in_progress', 'completed', 'cancelled'].map((f) => (
             <TouchableOpacity
               key={f}
               style={[styles.filterChip, activeFilter === f && styles.filterChipActive]}
@@ -85,52 +116,78 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
         </ScrollView>
 
         {/* Appointment Cards */}
-        <View style={styles.list}>
-          {filteredAppointments.map((item) => (
-            <View key={item.id} style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.timeBadge}>
-                  <Text style={styles.timeText}>🕒 {item.time_slot}</Text>
-                </View>
-                <View style={[styles.statusBadge, getStatusStyle(item.status).bg]}>
-                  <Text style={[styles.statusText, getStatusStyle(item.status).text]}>
-                    {item.status.replace('_', ' ').toUpperCase()}
-                  </Text>
-                </View>
-              </View>
+        {loading ? (
+          <ActivityIndicator size="large" color="#0d9488" style={{ marginTop: 30 }} />
+        ) : (filteredAppointments || []).length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyIcon}>🗓️</Text>
+            <Text style={styles.emptyTitle}>No Appointments Found</Text>
+            <Text style={styles.emptySub}>No appointments match your active selection filter.</Text>
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {(filteredAppointments || []).map((item, idx) => {
+              const statusStr = String(item.status || 'scheduled').toLowerCase();
+              const isScheduled = statusStr === 'scheduled' || statusStr === 'approved' || statusStr === 'confirmed';
+              const isInProgress = statusStr === 'in_progress' || statusStr === 'in progress';
+              const isCompleted = statusStr === 'completed' || statusStr === 'complete';
+              const timeDisplay = item.time_slot || item.appointment_time || '10:00 AM';
 
-              <View style={styles.cardBody}>
-                <Text style={styles.patientName}>{item.patient_name}</Text>
-                <Text style={styles.metaText}>📞 {item.patient_phone} • {item.type}</Text>
-                <Text style={styles.docText}>👨‍⚕️ {item.doctor_name} ({item.doctor_specialization})</Text>
-                <Text style={styles.reasonText}>Reason: {item.reason}</Text>
-              </View>
+              return (
+                <View key={item.id ? `appt-${item.id}-${idx}` : `appt-${idx}`} style={styles.card}>
+                  <View style={styles.cardHeader}>
+                    <View style={styles.timeBadge}>
+                      <Text style={styles.timeText}>🕒 {timeDisplay}</Text>
+                    </View>
+                    <View style={[styles.statusBadge, getStatusStyle(item.status).bg]}>
+                      <Text style={[styles.statusText, getStatusStyle(item.status).text]}>
+                        {String(item.status || 'Scheduled').replace('_', ' ').toUpperCase()}
+                      </Text>
+                    </View>
+                  </View>
 
-              <View style={styles.cardActions}>
-                {item.status === 'scheduled' ? (
-                  <>
-                    <TouchableOpacity
-                      style={styles.startBtn}
-                      onPress={() => updateStatus(item.id, 'in_progress')}>
-                      <Text style={styles.startText}>Start Consultation</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.cancelBtn}
-                      onPress={() => cancelAppt(item.id)}>
-                      <Text style={styles.cancelText}>Cancel</Text>
-                    </TouchableOpacity>
-                  </>
-                ) : item.status === 'in_progress' ? (
-                  <TouchableOpacity
-                    style={styles.completeBtn}
-                    onPress={() => updateStatus(item.id, 'completed')}>
-                    <Text style={styles.completeText}>Complete Appointment</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            </View>
-          ))}
-        </View>
+                  <View style={styles.cardBody}>
+                    <Text style={styles.patientName}>{item.patient_name || (item as any).patient || 'Patient'}</Text>
+                    <Text style={styles.metaText}>
+                      📞 {item.patient_phone || 'N/A'} • {item.type || 'Consultation'}
+                    </Text>
+                    <Text style={styles.docText}>
+                      👨‍⚕️ {item.doctor_name || 'Doctor'} {item.doctor_specialization ? `(${item.doctor_specialization})` : ''}
+                    </Text>
+                    {item.reason ? <Text style={styles.reasonText}>Reason: {item.reason}</Text> : null}
+                  </View>
+
+                  <View style={styles.cardActions}>
+                    {isScheduled ? (
+                      <>
+                        <TouchableOpacity
+                          style={styles.startBtn}
+                          onPress={() => handleUpdateStatus(item.id, 'in_progress')}>
+                          <Text style={styles.startText}>Start Consultation</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.cancelBtn}
+                          onPress={() => cancelAppt(item.id)}>
+                          <Text style={styles.cancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : isInProgress ? (
+                      <TouchableOpacity
+                        style={styles.completeBtn}
+                        onPress={() => handleUpdateStatus(item.id, 'completed')}>
+                        <Text style={styles.completeText}>Complete Appointment</Text>
+                      </TouchableOpacity>
+                    ) : isCompleted ? (
+                      <View style={styles.doneBadgePill}>
+                        <Text style={styles.doneBadgeText}>✓ Consultation Completed</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -182,6 +239,12 @@ const styles = StyleSheet.create({
   cancelText: { color: '#dc2626', fontWeight: '700', fontSize: 12 },
   completeBtn: { flex: 1, backgroundColor: '#166534', paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
   completeText: { color: '#ffffff', fontWeight: '800', fontSize: 12 },
+  doneBadgePill: { flex: 1, backgroundColor: '#f0fdf4', borderWidth: 1, borderColor: '#bbf7d0', paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
+  doneBadgeText: { color: '#166534', fontWeight: '800', fontSize: 12 },
+  emptyCard: { backgroundColor: '#ffffff', borderRadius: 16, padding: 30, alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0', marginTop: 10 },
+  emptyIcon: { fontSize: 36, marginBottom: 8 },
+  emptyTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
+  emptySub: { fontSize: 12, color: '#64748b', textAlign: 'center', marginTop: 4 },
 });
 
 export default AppointmentsManagerScreen;

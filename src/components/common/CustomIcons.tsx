@@ -6,7 +6,6 @@ interface IconProps {
   size?: number;
 }
 
-// 1. Dashboard Grid Icon (2x2 rounded squares)
 export const DashboardIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 20 }) => {
   const boxSize = size * 0.42;
   return (
@@ -23,7 +22,6 @@ export const DashboardIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 2
   );
 };
 
-// 2. Calendar / Book Appointment Icon
 export const CalendarIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 20 }) => {
   return (
     <View style={[styles.calendarOuter, { width: size, height: size, borderColor: color }]}>
@@ -40,7 +38,6 @@ export const CalendarIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 20
   );
 };
 
-// 3. Patients / User Profile Icon
 export const PatientUserIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 20 }) => {
   const headSize = size * 0.38;
   return (
@@ -67,7 +64,6 @@ export const PatientUserIcon: React.FC<IconProps> = ({ color = '#0d9488', size =
   );
 };
 
-// 4. Billing / Card Icon
 export const BillingCardIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 20 }) => {
   return (
     <View style={[styles.cardOuter, { width: size, height: size * 0.75, borderColor: color }]}>
@@ -77,7 +73,6 @@ export const BillingCardIcon: React.FC<IconProps> = ({ color = '#0d9488', size =
   );
 };
 
-// 5. Medicine / Pharmacy Pill Icon
 export const MedicinePillIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 20 }) => {
   return (
     <View
@@ -90,7 +85,6 @@ export const MedicinePillIcon: React.FC<IconProps> = ({ color = '#0d9488', size 
   );
 };
 
-// 6. Video Services Icon
 export const VideoCamIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 20 }) => {
   return (
     <View style={[styles.videoContainer, { width: size, height: size }]}>
@@ -100,7 +94,6 @@ export const VideoCamIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 20
   );
 };
 
-// 7. Lab Tests Icon
 export const LabTubeIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 20 }) => {
   return (
     <View style={[styles.tubeContainer, { width: size, height: size }]}>
@@ -112,7 +105,6 @@ export const LabTubeIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 20 
   );
 };
 
-// 8. Notifications Bell Icon
 export const BellNotificationIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 20 }) => {
   return (
     <View style={[styles.bellContainer, { width: size, height: size }]}>
@@ -123,7 +115,6 @@ export const BellNotificationIcon: React.FC<IconProps> = ({ color = '#0d9488', s
   );
 };
 
-// 9. Eye / View Details Outline Vector Icon
 export const ViewDetailsIcon: React.FC<IconProps> = ({ color = '#334155', size = 18 }) => {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -150,7 +141,6 @@ export const ViewDetailsIcon: React.FC<IconProps> = ({ color = '#334155', size =
   );
 };
 
-// 10. Edit / Pen Outline Vector Icon
 export const EditPenIcon: React.FC<IconProps> = ({ color = '#334155', size = 18 }) => {
   return (
     <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
@@ -179,7 +169,6 @@ export const EditPenIcon: React.FC<IconProps> = ({ color = '#334155', size = 18 
   );
 };
 
-// 11. Stethoscope Consultation Outline Vector Icon
 export const StethoscopeIcon: React.FC<IconProps> = ({ color = '#334155', size = 18 }) => {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
@@ -208,7 +197,6 @@ export const StethoscopeIcon: React.FC<IconProps> = ({ color = '#334155', size =
   );
 };
 
-// 12. Prescription / Document Outline Vector Icon
 export const PrescriptionIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 18 }) => {
   return (
     <View
@@ -228,7 +216,6 @@ export const PrescriptionIcon: React.FC<IconProps> = ({ color = '#0d9488', size 
   );
 };
 
-// 13. Medical History Clock Outline Vector Icon
 export const MedicalHistoryIcon: React.FC<IconProps> = ({ color = '#334155', size = 18 }) => {
   return (
     <View

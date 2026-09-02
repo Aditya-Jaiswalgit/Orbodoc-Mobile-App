@@ -1,5 +1,3 @@
-// TypeScript Interfaces for Clinic SaaS System
-
 export type StaffRole =
   | 'super_admin'
   | 'clinic_admin'
@@ -11,7 +9,6 @@ export type StaffRole =
   | 'nurse'
   | 'patient';
 
-// Clinic Model
 export interface Clinic {
   id: number;
   name: string;
@@ -31,7 +28,6 @@ export interface Clinic {
   patients_count?: number;
 }
 
-// Staff Member Model
 export interface StaffMember {
   id: number;
   clinic_id: number;
@@ -50,53 +46,63 @@ export interface StaffMember {
   created_at?: string;
 }
 
-// Patient Model
 export interface PatientModel {
   id: number;
-  clinic_id: number;
+  clinic_id?: number;
   full_name: string;
   phone: string;
   email?: string;
-  gender: 'male' | 'female' | 'other';
+  gender?: 'male' | 'female' | 'other' | string;
   date_of_birth?: string;
-  age?: number;
+  dob?: string;
+  age?: number | string;
   blood_group?: string;
   address?: string;
+  city?: string;
+  state?: string;
+  patient_code?: string;
   emergency_contact?: string;
+  emergency_contact_name?: string;
+  emergency_contact_relation?: string;
   allergies?: string;
+  chronic_conditions?: string;
   medical_history?: string;
+  current_medications?: string;
   registered_at?: string;
+  created_at?: string;
   last_visit?: string;
+  is_active?: boolean;
 }
 
-// Appointment Model
 export interface Appointment {
   id: number;
-  clinic_id: number;
+  clinic_id?: number;
   patient_id: number;
-  doctor_id: number;
-  patient_name: string;
+  doctor_id?: number;
+  patient_name?: string;
   patient_phone?: string;
-  doctor_name: string;
+  doctor_name?: string;
   doctor_specialization?: string;
+  clinic_name?: string;
   appointment_date: string;
-  time_slot: string;
-  type: 'consultation' | 'follow_up' | 'emergency' | 'teleconsultation';
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+  appointment_time?: string;
+  time_slot?: string;
+  consultation_mode?: string;
+  type?: 'consultation' | 'follow_up' | 'emergency' | 'teleconsultation' | string;
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'no_show' | 'approved' | 'complete' | 'cancel' | string;
   reason?: string;
   notes?: string;
   created_at?: string;
 }
 
-// Prescription Model
 export interface PrescriptionItem {
   id?: number;
   prescription_id?: number;
   medicine_id?: number;
   medicine_name: string;
-  dosage: string; // e.g. "500mg"
-  frequency: string; // e.g. "1-0-1 (After meals)"
-  duration: string; // e.g. "5 days"
+  dosage: string;
+  frequency: string;
+  duration: string;
   instructions?: string;
   quantity: number;
 }
@@ -122,7 +128,6 @@ export interface Prescription {
   items: PrescriptionItem[];
 }
 
-// Medicine & Inventory Model
 export interface Medicine {
   id: number;
   clinic_id: number;
@@ -140,7 +145,6 @@ export interface Medicine {
   is_active: boolean;
 }
 
-// Billing Models
 export interface MedicineBillItem {
   id?: number;
   medicine_id: number;
@@ -198,41 +202,54 @@ export interface TreatmentBill {
   items: TreatmentBillItem[];
 }
 
-// Lab Model
 export interface LabTestOrder {
   id: number;
   clinic_id: number;
   patient_id: number;
-  patient_name: string;
+  patient_name?: string;
+  patient_phone?: string;
+  patient_code?: string;
   doctor_id?: number;
   doctor_name?: string;
   test_name: string;
-  category: string;
-  cost: number;
-  status: 'ordered' | 'sample_collected' | 'processing' | 'completed' | 'cancelled';
-  ordered_date: string;
+  test_code?: string;
+  category?: string;
+  cost?: number;
+  price?: number;
+  urgency?: string;
+  status: 'ordered' | 'sample_collected' | 'processing' | 'in_progress' | 'completed' | 'verified' | 'cancelled' | string;
+  ordered_date?: string;
+  created_at?: string;
   sample_collected_at?: string;
   report_id?: number;
+  report_ready?: number | boolean;
+  report_uploaded_at?: string;
 }
 
 export interface LabReport {
   id: number;
-  clinic_id: number;
-  test_order_id: number;
-  patient_id: number;
-  patient_name: string;
-  test_name: string;
-  technician_name: string;
-  result_summary: string;
+  clinic_id?: number;
+  test_order_id?: number;
+  lab_test_id?: number;
+  patient_id?: number;
+  patient_name?: string;
+  test_name?: string;
+  technician_name?: string;
+  lab_technician_id?: number;
+  result_summary?: string;
+  report_data?: any;
   findings?: string;
+  remarks?: string;
   reference_range?: string;
-  status: 'draft' | 'final' | 'verified';
+  is_abnormal?: number | boolean;
+  status?: 'draft' | 'final' | 'verified' | string;
   file_url?: string;
+  report_file_url?: string;
   file_name?: string;
-  created_at: string;
+  created_at?: string;
+  uploaded_at?: string;
 }
 
-// Notification Model
 export interface NotificationItem {
   id: number;
   user_id: number;
@@ -243,7 +260,6 @@ export interface NotificationItem {
   created_at: string;
 }
 
-// Audit Log Model
 export interface AuditLog {
   id: number;
   clinic_id?: number;
@@ -259,7 +275,6 @@ export interface AuditLog {
   created_at: string;
 }
 
-// Dashboard KPIs
 export interface ClinicDashboardStats {
   todayAppointmentsCount: number;
   todayRevenue: number;
@@ -280,4 +295,10 @@ export interface SuperAdminStats {
   totalPatients: number;
   subscriptionBreakdown: { plan: string; count: number }[];
   recentClinics: Clinic[];
+}
+
+export interface DoctorDashboardStats {
+  todayQueueCount: number;
+  inProgressCount: number;
+  completedCount: number;
 }

@@ -38,6 +38,9 @@ const deduplicateSubscriptions = (items: NotificationSubscription[]): Notificati
   return Array.from(map.values());
 };
 
+const locallyReadNotificationIds = new Set<number>();
+let globallyAllMarkedRead = false;
+
 export const useNotifications = () => {
   const { token, user } = useAuthContext();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -60,45 +63,15 @@ export const useNotifications = () => {
           : (res.data as any).notifications || (res.data as any).data || (res.data as any).rows || [];
       }
 
-      if (rawList.length === 0) {
-        rawList = [
-          {
-            id: 101,
-            title: 'Welcome to OrboDoc Health',
-            message: 'Your patient account registration and profile setup have been successfully completed.',
-            is_read: true,
-            created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-          },
-          {
-            id: 102,
-            title: 'Appointment Scheduled',
-            message: 'Your consultation appointment with Dr. Ritesh Agrawal is confirmed.',
-            is_read: false,
-            created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-          },
-          {
-            id: 103,
-            title: 'Billing Receipt Generated',
-            message: 'A new treatment billing invoice has been generated for your recent clinic visit.',
-            is_read: false,
-            created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-          },
-        ];
-      }
+      const processedList = rawList.map((n) => {
+        const isRead = Boolean(
+          n.is_read || locallyReadNotificationIds.has(n.id) || globallyAllMarkedRead
+        );
+        return { ...n, is_read: isRead };
+      });
 
-      setNotifications(rawList);
-
-      try {
-        const countRes = await getUnreadCountApi(token);
-        if (countRes.success && countRes.data) {
-          const apiCount = Number(countRes.data.unread_count || 0);
-          setUnreadCount(apiCount > 0 ? apiCount : rawList.filter((n) => !n.is_read).length);
-        } else {
-          setUnreadCount(rawList.filter((n) => !n.is_read).length);
-        }
-      } catch (e) {
-        setUnreadCount(rawList.filter((n) => !n.is_read).length);
-      }
+      setNotifications(processedList);
+      setUnreadCount(processedList.filter((n) => !n.is_read).length);
 
       try {
         const subRes = await getNotificationSubscriptionsApi(token);
@@ -111,9 +84,9 @@ export const useNotifications = () => {
           setSubscriptions(deduped.length > 0 ? deduped : [
             {
               user_id: Number(user?.userId || user?.id || 1),
-              user_name: user?.fullName || user?.full_name || 'bulbul',
+              user_name: user?.fullName || user?.full_name || 'Patient',
               role: 'Patient',
-              clinic_name: "Maihar City Dental Care",
+              clinic_name: user?.clinicName || user?.clinic_name || 'Clinic',
               categories: [
                 'User Registration',
                 'User Update',
@@ -129,9 +102,9 @@ export const useNotifications = () => {
           setSubscriptions([
             {
               user_id: Number(user?.userId || user?.id || 1),
-              user_name: user?.fullName || user?.full_name || 'bulbul',
+              user_name: user?.fullName || user?.full_name || 'Patient',
               role: 'Patient',
-              clinic_name: "Maihar City Dental Care",
+              clinic_name: user?.clinicName || user?.clinic_name || 'Clinic',
               categories: [
                 'User Registration',
                 'User Update',
@@ -148,9 +121,9 @@ export const useNotifications = () => {
         setSubscriptions([
           {
             user_id: Number(user?.userId || user?.id || 1),
-            user_name: user?.fullName || user?.full_name || 'bulbul',
+            user_name: user?.fullName || user?.full_name || 'Patient',
             role: 'Patient',
-            clinic_name: "Maihar City Dental Care",
+            clinic_name: user?.clinicName || user?.clinic_name || 'Clinic',
             categories: [
               'User Registration',
               'User Update',
@@ -172,6 +145,7 @@ export const useNotifications = () => {
   }, [token, user]);
 
   const markRead = async (id: number) => {
+    locallyReadNotificationIds.add(id);
     if (!token) return;
     try {
       await markNotificationReadApi(token, id);
@@ -183,6 +157,7 @@ export const useNotifications = () => {
   };
 
   const markAllRead = async () => {
+    globallyAllMarkedRead = true;
     if (!token) return;
     try {
       await markAllNotificationsReadApi(token);
@@ -202,7 +177,6 @@ export const useNotifications = () => {
   useEffect(() => {
     fetchNotificationData();
 
-    // Auto-polling interval: Fetch real-time notifications every 15 seconds
     const interval = setInterval(() => {
       fetchNotificationData();
     }, 15000);

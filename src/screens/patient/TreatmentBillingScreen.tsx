@@ -43,12 +43,13 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
     const matchesSearch =
       q === '' || billNo.includes(q) || name.includes(q) || phone.includes(q);
 
-    const s = (b.status || '').toLowerCase();
+    const s = (b.status || (b as any).payment_status || '').toLowerCase();
     const matchesStatus =
       statusFilter === 'All Status' ||
+      (statusFilter === 'Pending' && (s === 'pending' || s === 'unpaid')) ||
       (statusFilter === 'Paid' && s === 'paid') ||
-      (statusFilter === 'Unpaid' && s === 'unpaid') ||
-      (statusFilter === 'Partially Paid' && (s === 'partially_paid' || s === 'partial'));
+      (statusFilter === 'Partially Paid' && (s === 'partially_paid' || s === 'partial')) ||
+      (statusFilter === 'Cancelled' && (s === 'cancelled' || s === 'canceled'));
 
     return matchesSearch && matchesStatus;
   });
@@ -68,7 +69,8 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
     const s = (status || '').toLowerCase();
     if (s === 'paid') return { bg: '#dcfce7', text: '#15803d', label: 'Paid' };
     if (s === 'partially_paid' || s === 'partial') return { bg: '#ffedd5', text: '#c2410c', label: 'Partially Paid' };
-    if (s === 'unpaid') return { bg: '#fee2e2', text: '#b91c1c', label: 'Unpaid' };
+    if (s === 'pending' || s === 'unpaid') return { bg: '#fef3c7', text: '#d97706', label: 'Pending' };
+    if (s === 'cancelled' || s === 'canceled') return { bg: '#fee2e2', text: '#b91c1c', label: 'Cancelled' };
     return { bg: '#f1f5f9', text: '#475569', label: status || 'Pending' };
   };
 
@@ -252,17 +254,25 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowStatusPicker(false)}>
           <View style={styles.pickerModalContent}>
             <Text style={styles.pickerModalTitle}>Filter by Status</Text>
-            {['All Status', 'Paid', 'Unpaid', 'Partially Paid'].map((s) => (
-              <TouchableOpacity
-                key={s}
-                style={styles.pickerOptionRow}
-                onPress={() => {
-                  setStatusFilter(s);
-                  setShowStatusPicker(false);
-                }}>
-                <Text style={[styles.pickerOptionText, statusFilter === s && styles.pickerOptionSelected]}>{s}</Text>
-              </TouchableOpacity>
-            ))}
+            {['All Status', 'Pending', 'Paid', 'Partially Paid', 'Cancelled'].map((s) => {
+              const isSelected = statusFilter === s;
+              return (
+                <TouchableOpacity
+                  key={s}
+                  style={[styles.pickerOptionRow, isSelected && styles.pickerOptionRowSelected]}
+                  onPress={() => {
+                    setStatusFilter(s);
+                    setShowStatusPicker(false);
+                  }}>
+                  <View style={styles.pickerOptionLeftRow}>
+                    {isSelected && <Text style={styles.checkmarkIcon}>✓ </Text>}
+                    <Text style={[styles.pickerOptionText, isSelected && styles.pickerOptionSelectedText]}>
+                      {s}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -390,12 +400,15 @@ const styles = StyleSheet.create({
   closeInvoiceBtn: { backgroundColor: '#0d9488', paddingHorizontal: 18, paddingVertical: 9, borderRadius: 10 },
   closeInvoiceBtnText: { color: '#ffffff', fontSize: 13, fontWeight: '800' },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  pickerModalContent: { backgroundColor: '#ffffff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 320 },
-  pickerModalTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginBottom: 14, textAlign: 'center' },
-  pickerOptionRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  pickerOptionText: { fontSize: 14, color: '#334155', fontWeight: '600', textAlign: 'center' },
-  pickerOptionSelected: { color: '#0d9488', fontWeight: '800' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  pickerModalContent: { backgroundColor: '#ffffff', borderRadius: 16, padding: 14, width: '100%', maxWidth: 300, elevation: 8, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 10 },
+  pickerModalTitle: { fontSize: 15, fontWeight: '800', color: '#0f172a', marginBottom: 10, textAlign: 'center' },
+  pickerOptionRow: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, marginVertical: 2 },
+  pickerOptionRowSelected: { backgroundColor: '#e6fffa' },
+  pickerOptionLeftRow: { flexDirection: 'row', alignItems: 'center' },
+  checkmarkIcon: { fontSize: 13, fontWeight: '800', color: '#0d9488', marginRight: 6 },
+  pickerOptionText: { fontSize: 14, color: '#334155', fontWeight: '600' },
+  pickerOptionSelectedText: { color: '#0d9488', fontWeight: '800' },
 });
 
 export default TreatmentBillingScreen;

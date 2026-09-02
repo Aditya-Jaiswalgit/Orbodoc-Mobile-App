@@ -24,11 +24,8 @@ export async function loginStaffApi(
     if (response.success && response.data) {
       return response;
     }
-  } catch (e) {
-    // Backend fetch threw error
-  }
+  } catch (e) {}
 
-  // Development / Offline Fallback for smooth frontend testing
   return {
     success: true,
     message: 'Staff Login (Demo Mode)',
@@ -47,9 +44,6 @@ export async function loginStaffApi(
   };
 }
 
-/**
- * Patient Login API call
- */
 export async function loginPatientApi(
   payload: PatientLoginPayload
 ): Promise<ApiResponse<AuthResponseData>> {
@@ -65,11 +59,8 @@ export async function loginPatientApi(
     if (response.success && response.data) {
       return response;
     }
-  } catch (e) {
-    // Backend fetch threw error
-  }
+  } catch (e) {}
 
-  // Development / Offline Fallback for smooth frontend testing
   return {
     success: true,
     message: 'Patient Login (Demo Mode)',

@@ -12,9 +12,10 @@ import { AuditLog } from '../../types/clinicTypes';
 
 interface Props {
   onOpenDrawer: () => void;
+  onOpenNotifications?: () => void;
 }
 
-export const AuditLogsScreen: React.FC<Props> = ({ onOpenDrawer }) => {
+export const AuditLogsScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotifications }) => {
   const [logs] = useState<AuditLog[]>([
     { id: 1, clinic_id: 1, user_id: 1, user_type: 'staff', user_name: 'Dr. Ramesh Sharma', user_role: 'doctor', action: 'CREATE_PRESCRIPTION', table_name: 'prescriptions', record_id: 101, details: 'Prescribed Amlodipine 5mg to patient #1', created_at: '2025-01-15 10:24 AM' },
     { id: 2, clinic_id: 1, user_id: 4, user_type: 'staff', user_name: 'Suresh Kumar', user_role: 'pharmacist', action: 'CREATE_MEDICINE_BILL', table_name: 'medicine_bills', record_id: 1, details: 'Generated bill MB-2025-001 & deducted stock', created_at: '2025-01-15 10:45 AM' },

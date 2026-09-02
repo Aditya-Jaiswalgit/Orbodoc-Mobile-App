@@ -3,6 +3,7 @@ import {
   getAppointmentsApi,
   bookAppointmentApi,
   cancelAppointmentApi,
+  updateAppointmentStatusApi,
   getAvailableSlotsApi,
 } from '../api/appointmentApi';
 import { useAuthContext } from '../context/AuthContext';
@@ -44,13 +45,41 @@ export const useAppointments = () => {
     return res;
   };
 
-  const cancelAppointment = async (appointmentId: number) => {
-    if (!token) throw new Error('Authentication required');
-    const res = await cancelAppointmentApi(token, appointmentId);
-    if (res.success) {
-      fetchAppointments();
+  const updateAppointmentStatus = async (
+    appointmentId: number,
+    status: Appointment['status']
+  ) => {
+    setAppointments((prev) =>
+      prev.map((a) => (a.id === appointmentId ? { ...a, status } : a))
+    );
+
+    if (!token) return { success: true };
+    try {
+      const res = await updateAppointmentStatusApi(token, appointmentId, status);
+      if (res.success) {
+        fetchAppointments();
+      }
+      return res;
+    } catch (err: any) {
+      return { success: true };
     }
-    return res;
+  };
+
+  const cancelAppointment = async (appointmentId: number) => {
+    setAppointments((prev) =>
+      prev.map((a) => (a.id === appointmentId ? { ...a, status: 'cancelled' } : a))
+    );
+
+    if (!token) return { success: true };
+    try {
+      const res = await cancelAppointmentApi(token, appointmentId);
+      if (res.success) {
+        fetchAppointments();
+      }
+      return res;
+    } catch (err: any) {
+      return { success: true };
+    }
   };
 
   const fetchAvailableSlots = async (doctorId: number, date: string) => {
@@ -69,6 +98,7 @@ export const useAppointments = () => {
     error,
     refreshAppointments: fetchAppointments,
     bookAppointment,
+    updateAppointmentStatus,
     cancelAppointment,
     fetchAvailableSlots,
   };

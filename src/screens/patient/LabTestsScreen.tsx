@@ -38,7 +38,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedClinicName, setSelectedClinicName] = useState<string>(
-    clinics[0]?.name || "Dr Agrawal's healthcare clinic"
+    clinics[0]?.name || "All Clinics"
   );
   const [showClinicPicker, setShowClinicPicker] = useState<boolean>(false);
 

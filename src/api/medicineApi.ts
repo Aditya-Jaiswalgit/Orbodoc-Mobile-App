@@ -2,8 +2,17 @@ import { apiFetch } from './apiConfig';
 import { ApiResponse } from '../types/auth';
 import { Medicine } from '../types/clinicTypes';
 
-export async function getMedicinesApi(token: string): Promise<ApiResponse<Medicine[]>> {
-  return apiFetch<Medicine[]>('/medicines', {
+export async function getMedicinesApi(
+  token: string,
+  clinicId?: number | string,
+  doctorId?: number | string
+): Promise<ApiResponse<any>> {
+  const params = new URLSearchParams();
+  params.append('limit', '1000');
+  if (clinicId) params.append('clinic_id', String(clinicId));
+  if (doctorId) params.append('doctor_id', String(doctorId));
+
+  return apiFetch<any>(`/medicines?${params.toString()}`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   });

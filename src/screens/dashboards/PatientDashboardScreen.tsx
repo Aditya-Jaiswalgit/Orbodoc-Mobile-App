@@ -18,37 +18,60 @@ import {
 import { PatientHeader } from '../../components/common/PatientHeader';
 import { useAuthContext } from '../../context/AuthContext';
 import { usePatientDashboard } from '../../hooks/usePatientDashboard';
+import { useTreatmentBills } from '../../hooks/useTreatmentBills';
 
 interface PatientDashboardScreenProps {
   onOpenDrawer?: () => void;
   onOpenNotifications?: () => void;
+  onNavigateProfile?: () => void;
+  onNavigateTab?: (tab: string) => void;
 }
 
 export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
   onOpenDrawer = () => {},
   onOpenNotifications = () => {},
+  onNavigateProfile = () => {},
+  onNavigateTab = () => {},
 }) => {
   const { user, token } = useAuthContext();
   const { dashboardData, loading, refreshing, onRefresh } = usePatientDashboard(token);
+  const { bills: treatmentBills } = useTreatmentBills();
 
   const patientName = user?.fullName || user?.full_name || 'Patient';
 
   const upcomingCount = dashboardData?.upcoming_appointments?.length || 0;
   const labReportsCount = dashboardData?.recent_lab_reports?.length || 0;
-  const recentBills = dashboardData?.recent_bills || [];
-  const billsCount = recentBills.length > 0 ? recentBills.length : 1;
-  const paidBillsCount = recentBills.filter(b => b.status === 'paid').length || 1;
+  
+  const allBills = treatmentBills.length > 0 ? treatmentBills : (dashboardData?.recent_bills || []);
+  const billsCount = allBills.length;
+  
+  const paidBillsCount = allBills.filter(b => {
+    const s = (b.payment_status || b.status || '').toLowerCase();
+    return s === 'paid';
+  }).length;
 
-  // Total Billed calculation or default ₹799 matching reference
-  const totalBilled = recentBills.length > 0
-    ? recentBills.reduce((acc, b) => acc + Number(b.total_amount || 0), 0)
-    : 799;
+  const totalBilled = allBills.reduce((acc, b) => {
+    return acc + Number(b.net_amount ?? (b as any).total_amount ?? 0);
+  }, 0);
+
+  const totalPaid = allBills.reduce((acc, b) => {
+    const s = (b.payment_status || b.status || '').toLowerCase();
+    if (s === 'paid') {
+      return acc + Number(b.net_amount ?? (b as any).total_amount ?? 0);
+    }
+    return acc + Number((b as any).paid_amount ?? 0);
+  }, 0);
+
+  const outstanding = Math.max(0, totalBilled - totalPaid);
+  const paidAmount = totalPaid;
+  const progressPercent = totalBilled > 0 ? Math.round((paidAmount / totalBilled) * 100) : 0;
 
   return (
     <View style={styles.container}>
       <PatientHeader
         onOpenDrawer={onOpenDrawer}
         onOpenNotifications={onOpenNotifications}
+        onNavigateProfile={onNavigateProfile}
       />
 
       <ScrollView
@@ -74,7 +97,10 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
               Choose from all available clinics and doctors in the system.
             </Text>
           </View>
-          <TouchableOpacity style={styles.findDoctorBtn} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.findDoctorBtn}
+            activeOpacity={0.85}
+            onPress={() => onNavigateTab('book_appointment')}>
             <Text style={styles.findDoctorBtnText}>Find Clinic & Doctor</Text>
           </TouchableOpacity>
         </View>
@@ -97,7 +123,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
                 <CalendarIcon color="#0d9488" size={18} />
               </View>
             </View>
-            <TouchableOpacity style={styles.kpiLinkRow}>
+            <TouchableOpacity style={styles.kpiLinkRow} onPress={() => onNavigateTab('appointments')}>
               <Text style={styles.kpiLinkText}>View details ↗</Text>
             </TouchableOpacity>
           </View>
@@ -113,7 +139,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
                 <LabTubeIcon color="#0d9488" size={18} />
               </View>
             </View>
-            <TouchableOpacity style={styles.kpiLinkRow}>
+            <TouchableOpacity style={styles.kpiLinkRow} onPress={() => onNavigateTab('lab_tests')}>
               <Text style={styles.kpiLinkText}>View details ↗</Text>
             </TouchableOpacity>
           </View>
@@ -129,7 +155,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
                 <BillingCardIcon color="#d97706" size={18} />
               </View>
             </View>
-            <TouchableOpacity style={styles.kpiLinkRow}>
+            <TouchableOpacity style={styles.kpiLinkRow} onPress={() => onNavigateTab('treatment_billing')}>
               <Text style={styles.kpiLinkText}>View details ↗</Text>
             </TouchableOpacity>
           </View>
@@ -145,7 +171,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
                 <BillingCardIcon color="#16a34a" size={18} />
               </View>
             </View>
-            <TouchableOpacity style={styles.kpiLinkRow}>
+            <TouchableOpacity style={styles.kpiLinkRow} onPress={() => onNavigateTab('treatment_billing')}>
               <Text style={styles.kpiLinkText}>View details ↗</Text>
             </TouchableOpacity>
           </View>
@@ -167,12 +193,27 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
             </View>
           </View>
 
-          {/* Empty State Box */}
-          <View style={styles.emptyStateBox}>
-            <CalendarIcon color="#94a3b8" size={32} />
-            <Text style={styles.emptyTitle}>No upcoming appointment</Text>
-            <Text style={styles.emptySubtext}>Book a consultation whenever you need care.</Text>
-          </View>
+          {/* Dynamic Next Visit Card or Empty State Box */}
+          {dashboardData?.upcoming_appointments && dashboardData.upcoming_appointments.length > 0 ? (
+            <View style={styles.nextVisitCard}>
+              <View style={styles.nextVisitHeader}>
+                <Text style={styles.nextVisitDoctor}>{dashboardData.upcoming_appointments[0].doctor_name || 'Doctor'}</Text>
+                <Text style={styles.nextVisitSpec}>{dashboardData.upcoming_appointments[0].specialization || 'General Physician'}</Text>
+              </View>
+              <Text style={styles.nextVisitMetaText}>
+                📅 {dashboardData.upcoming_appointments[0].appointment_date} · ⏰ {dashboardData.upcoming_appointments[0].appointment_time}
+              </Text>
+              {dashboardData.upcoming_appointments[0].clinic_name && (
+                <Text style={styles.nextVisitClinic}>🏥 {dashboardData.upcoming_appointments[0].clinic_name}</Text>
+              )}
+            </View>
+          ) : (
+            <View style={styles.emptyStateBox}>
+              <CalendarIcon color="#94a3b8" size={32} />
+              <Text style={styles.emptyTitle}>No upcoming appointment</Text>
+              <Text style={styles.emptySubtext}>Book a consultation whenever you need care.</Text>
+            </View>
+          )}
 
           {/* Bottom Mini Metrics Bar */}
           <View style={styles.miniMetricsRow}>
@@ -190,7 +231,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
             </View>
           </View>
 
-          <TouchableOpacity style={styles.sectionFooterLink}>
+          <TouchableOpacity style={styles.sectionFooterLink} onPress={() => onNavigateTab('appointments')}>
             <Text style={styles.footerLinkTextEmerald}>View appointments ↗</Text>
           </TouchableOpacity>
         </View>
@@ -215,13 +256,13 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
             <View style={styles.billingStatBox}>
               <Text style={styles.billingStatLabel}>TOTAL BILLED</Text>
               <Text style={styles.billingStatValue}>₹{totalBilled}</Text>
-              <Text style={styles.billingStatSub}>Across 1 recent bills</Text>
+              <Text style={styles.billingStatSub}>Across {billsCount} recent bill{billsCount === 1 ? '' : 's'}</Text>
             </View>
 
             <View style={styles.billingStatBox}>
               <Text style={styles.billingStatLabel}>OUTSTANDING</Text>
-              <Text style={styles.billingStatValue}>₹0</Text>
-              <Text style={styles.billingStatSub}>1 bills fully paid</Text>
+              <Text style={styles.billingStatValue}>₹{outstanding}</Text>
+              <Text style={styles.billingStatSub}>{paidBillsCount} bill{paidBillsCount === 1 ? '' : 's'} fully paid</Text>
             </View>
           </View>
 
@@ -229,18 +270,18 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
           <View style={styles.progressContainer}>
             <View style={styles.progressTitleRow}>
               <Text style={styles.progressCheckText}>✓ Payment progress</Text>
-              <Text style={styles.progressPercentText}>100%</Text>
+              <Text style={styles.progressPercentText}>{progressPercent}%</Text>
             </View>
             <View style={styles.progressBarTrack}>
-              <View style={[styles.progressBarFill, { width: '100%' }]} />
+              <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
             </View>
             <View style={styles.progressFooterRow}>
-              <Text style={styles.progressSubLeft}>Paid ₹{totalBilled}</Text>
-              <Text style={styles.progressSubRight}>0 pending</Text>
+              <Text style={styles.progressSubLeft}>Paid ₹{paidAmount}</Text>
+              <Text style={styles.progressSubRight}>₹{outstanding} pending</Text>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.sectionFooterLink}>
+          <TouchableOpacity style={styles.sectionFooterLink} onPress={() => onNavigateTab('treatment_billing')}>
             <Text style={styles.footerLinkTextAmber}>View billing history ↗</Text>
           </TouchableOpacity>
         </View>
@@ -680,6 +721,39 @@ const styles = StyleSheet.create({
   progressSubRight: {
     fontSize: 11,
     color: '#64748b',
+  },
+  nextVisitCard: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    padding: 14,
+    marginVertical: 14,
+    gap: 6,
+  },
+  nextVisitHeader: {
+    gap: 2,
+  },
+  nextVisitDoctor: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  nextVisitSpec: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  nextVisitMetaText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0d9488',
+    marginTop: 2,
+  },
+  nextVisitClinic: {
+    fontSize: 12,
+    color: '#334155',
+    fontWeight: '600',
   },
 });
 

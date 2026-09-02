@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { useAuthContext } from '../../context/AuthContext';
+import { useDoctorDashboard } from '../../hooks/useDoctorDashboard';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -17,19 +18,7 @@ export const DoctorDashboardScreen: React.FC<Props> = ({
   const { user } = useAuthContext();
   const doctorName = user?.fullName || user?.full_name || 'Dr. Ramesh Sharma';
 
-  const [appointments, setAppointments] = useState([
-    { id: 1, patient: 'Sunita Sharma', age: 34, gender: 'Female', time: '10:00 AM', type: 'Consultation', status: 'in_progress', reason: 'Chest pain & hypertension checkup' },
-    { id: 2, patient: 'Rahul Verma', age: 45, gender: 'Male', time: '10:30 AM', type: 'Follow Up', status: 'scheduled', reason: 'Blood pressure review' },
-    { id: 3, patient: 'Pooja Gupta', age: 29, gender: 'Female', time: '11:00 AM', type: 'Emergency', status: 'scheduled', reason: 'Acute migraine' },
-    { id: 4, patient: 'Vikram Singh', age: 52, gender: 'Male', time: '11:30 AM', type: 'Consultation', status: 'scheduled', reason: 'ECG report evaluation' },
-    { id: 5, patient: 'Amit Kumar', age: 38, gender: 'Male', time: '09:30 AM', type: 'Consultation', status: 'completed', reason: 'Routine health checkup' },
-  ]);
-
-  const markStatus = (id: number, newStatus: string) => {
-    setAppointments(prev =>
-      prev.map(a => (a.id === id ? { ...a, status: newStatus as any } : a))
-    );
-  };
+  const { appointments, stats, loading, refreshing, onRefresh, updateStatus } = useDoctorDashboard();
 
   return (
     <View style={styles.container}>
@@ -39,26 +28,31 @@ export const DoctorDashboardScreen: React.FC<Props> = ({
         title="Doctor Workspace"
       />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0d9488']} />
+        }>
         {/* Welcome Card */}
         <View style={styles.heroCard}>
           <Text style={styles.heroGreeting}>Welcome back,</Text>
           <Text style={styles.heroName}>{doctorName}</Text>
-          <Text style={styles.heroSub}>Cardiology & General Medicine Specialist</Text>
+          <Text style={styles.heroSub}>{user?.specialization || 'Cardiology & General Medicine Specialist'}</Text>
         </View>
 
         {/* Quick KPI Stats */}
         <View style={styles.kpiRow}>
           <View style={[styles.kpiBox, { backgroundColor: '#f0fdf4' }]}>
-            <Text style={styles.kpiNum}>5</Text>
+            <Text style={styles.kpiNum}>{stats.todayQueueCount}</Text>
             <Text style={styles.kpiText}>Today's Queue</Text>
           </View>
           <View style={[styles.kpiBox, { backgroundColor: '#eff6ff' }]}>
-            <Text style={styles.kpiNum}>1</Text>
+            <Text style={styles.kpiNum}>{stats.inProgressCount}</Text>
             <Text style={styles.kpiText}>In Progress</Text>
           </View>
           <View style={[styles.kpiBox, { backgroundColor: '#faf5ff' }]}>
-            <Text style={styles.kpiNum}>1</Text>
+            <Text style={styles.kpiNum}>{stats.completedCount}</Text>
             <Text style={styles.kpiText}>Completed</Text>
           </View>
         </View>
@@ -80,44 +74,56 @@ export const DoctorDashboardScreen: React.FC<Props> = ({
           </TouchableOpacity>
         </View>
 
-        <View style={styles.apptList}>
-          {appointments.map((item) => (
-            <View key={item.id} style={styles.apptCard}>
-              <View style={styles.timeCol}>
-                <Text style={styles.timeText}>{item.time}</Text>
-                <View style={styles.typeBadge}>
-                  <Text style={styles.typeText}>{item.type}</Text>
-                </View>
-              </View>
+        {loading ? (
+          <ActivityIndicator size="large" color="#0d9488" style={{ marginTop: 20 }} />
+        ) : (
+          <View style={styles.apptList}>
+            {appointments.map((item) => {
+              const statusStr = String(item.status || '').toLowerCase();
+              const pName = item.patient_name || (item as any).patient || 'Patient';
+              const pPhone = item.patient_phone || '';
+              const timeStr = item.time_slot || item.appointment_time || '10:00 AM';
+              const typeStr = item.type || 'Consultation';
 
-              <View style={styles.patientCol}>
-                <Text style={styles.patientName}>{item.patient}</Text>
-                <Text style={styles.patientSub}>{item.age} yrs • {item.gender}</Text>
-                <Text style={styles.reasonText}>Reason: {item.reason}</Text>
-              </View>
-
-              <View style={styles.actionCol}>
-                {item.status === 'in_progress' ? (
-                  <TouchableOpacity
-                    style={styles.inProgressBtn}
-                    onPress={() => onNavigateScreen('prescriptions')}>
-                    <Text style={styles.inProgressText}>✍️ Write Rx</Text>
-                  </TouchableOpacity>
-                ) : item.status === 'scheduled' ? (
-                  <TouchableOpacity
-                    style={styles.startBtn}
-                    onPress={() => markStatus(item.id, 'in_progress')}>
-                    <Text style={styles.startText}>▶ Start</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={styles.completedBadge}>
-                    <Text style={styles.completedText}>✓ Done</Text>
+              return (
+                <View key={item.id} style={styles.apptCard}>
+                  <View style={styles.timeCol}>
+                    <Text style={styles.timeText}>{timeStr}</Text>
+                    <View style={styles.typeBadge}>
+                      <Text style={styles.typeText}>{typeStr}</Text>
+                    </View>
                   </View>
-                )}
-              </View>
-            </View>
-          ))}
-        </View>
+
+                  <View style={styles.patientCol}>
+                    <Text style={styles.patientName}>{pName}</Text>
+                    {pPhone ? <Text style={styles.patientSub}>📞 {pPhone}</Text> : null}
+                    {item.reason ? <Text style={styles.reasonText}>Reason: {item.reason}</Text> : null}
+                  </View>
+
+                  <View style={styles.actionCol}>
+                    {statusStr === 'in_progress' ? (
+                      <TouchableOpacity
+                        style={styles.inProgressBtn}
+                        onPress={() => onNavigateScreen('prescriptions')}>
+                        <Text style={styles.inProgressText}>✍️ Write Rx</Text>
+                      </TouchableOpacity>
+                    ) : statusStr === 'scheduled' || statusStr === 'approved' ? (
+                      <TouchableOpacity
+                        style={styles.startBtn}
+                        onPress={() => updateStatus(item.id, 'in_progress')}>
+                        <Text style={styles.startText}>▶ Start</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={styles.completedBadge}>
+                        <Text style={styles.completedText}>✓ Done</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
     </View>
   );

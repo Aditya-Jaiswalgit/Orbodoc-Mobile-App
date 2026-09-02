@@ -293,7 +293,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
             </View>
           ) : (
             <View style={styles.patientsList}>
-              {filteredPatients.map((item) => {
+              {filteredPatients.map((item, idx) => {
                 const patientCode = (item as any).patient_code || `PT-${String(item.id).padStart(5, '0')}`;
                 const regDate = item.registered_at || (item as any).created_at ? new Date(item.registered_at || (item as any).created_at).toLocaleDateString() : '-';
 

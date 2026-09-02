@@ -22,7 +22,6 @@ import {
 } from '../components/common/CustomIcons';
 import { useAuthContext } from '../context/AuthContext';
 
-// Role Dashboards
 import AccountantDashboardScreen from '../screens/dashboards/AccountantDashboardScreen';
 import ClinicAdminDashboardScreen from '../screens/dashboards/ClinicAdminDashboardScreen';
 import DoctorDashboardScreen from '../screens/dashboards/DoctorDashboardScreen';
@@ -32,7 +31,6 @@ import PharmacistDashboardScreen from '../screens/dashboards/PharmacistDashboard
 import ReceptionistDashboardScreen from '../screens/dashboards/ReceptionistDashboardScreen';
 import SuperAdminDashboardScreen from '../screens/dashboards/SuperAdminDashboardScreen';
 
-// Feature Screens
 import BookAppointmentScreen from '../screens/patient/BookAppointmentScreen';
 import AppointmentsManagerScreen from '../screens/staff/AppointmentsManagerScreen';
 import AuditLogsScreen from '../screens/staff/AuditLogsScreen';
@@ -45,6 +43,7 @@ import PharmacyInventoryScreen from '../screens/staff/PharmacyInventoryScreen';
 import PrescriptionsScreen from '../screens/staff/PrescriptionsScreen';
 import StaffManagementScreen from '../screens/staff/StaffManagementScreen';
 import TreatmentBillingScreen from '../screens/staff/TreatmentBillingScreen';
+import VideoServicesScreen from '../screens/staff/VideoServicesScreen';
 
 export type StaffTabType =
   | 'dashboard'
@@ -53,11 +52,13 @@ export type StaffTabType =
   | 'patients'
   | 'appointments'
   | 'book_appointment'
+  | 'video_services'
   | 'prescriptions'
   | 'pharmacy_inventory'
   | 'medicine_billing'
   | 'treatment_billing'
   | 'lab_management'
+  | 'lab_inventory'
   | 'audit_logs'
   | 'notifications';
 
@@ -67,9 +68,73 @@ interface MenuItem {
   badge?: number;
 }
 
+const resolveStaffRole = (user: any): string => {
+  if (!user) return 'clinic_admin';
+
+  const rawRole = String(
+    user.roleName ||
+    user.role_name ||
+    user.role ||
+    ''
+  ).toLowerCase().trim();
+
+  const isDocFlag =
+    user.is_doctor === 1 ||
+    user.is_doctor === '1' ||
+    user.is_doctor === true ||
+    user.isDoctor === true ||
+    (user.fullName && user.fullName.trim().toLowerCase().startsWith('dr')) ||
+    (user.full_name && user.full_name.trim().toLowerCase().startsWith('dr')) ||
+    Boolean(user.specialization || user.qualification);
+
+  const isAdminFlag =
+    rawRole.includes('clinic_admin') ||
+    rawRole.includes('clinicadmin') ||
+    rawRole.includes('admin') ||
+    rawRole.includes('owner');
+
+  if (rawRole.includes('super_admin') || rawRole.includes('superadmin')) {
+    return 'super_admin';
+  }
+
+  if (isAdminFlag && isDocFlag) {
+    return 'admin_doctor';
+  }
+
+  if (rawRole.includes('doctor') || rawRole.includes('physician') || isDocFlag) {
+    return 'doctor';
+  }
+
+  if (isAdminFlag) {
+    return 'clinic_admin';
+  }
+
+  if (rawRole.includes('reception')) {
+    return 'receptionist';
+  }
+
+  if (rawRole.includes('pharm')) {
+    return 'pharmacist';
+  }
+
+  if (rawRole.includes('lab')) {
+    return 'lab_technician';
+  }
+
+  if (rawRole.includes('account') || rawRole.includes('finance')) {
+    return 'accountant';
+  }
+
+  if (rawRole.includes('nurse')) {
+    return 'nurse';
+  }
+
+  return rawRole || 'clinic_admin';
+};
+
 export const StaffMainContainer = () => {
   const { user, logout } = useAuthContext();
-  const staffRole = (user?.roleName || (user as any)?.role_name || (user as any)?.role || 'clinic_admin').toLowerCase();
+  const staffRole = resolveStaffRole(user);
 
   const [activeTab, setActiveTab] = useState<StaffTabType>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -80,7 +145,6 @@ export const StaffMainContainer = () => {
   const openDrawer = () => setDrawerOpen(true);
   const openNotifications = () => setActiveTab('notifications');
 
-  // Define Menu items allowed for each role
   const getMenuItemsForRole = (role: string): MenuItem[] => {
     switch (role) {
       case 'super_admin':
@@ -90,6 +154,20 @@ export const StaffMainContainer = () => {
           { id: 'staff', label: 'Staff Management' },
           { id: 'patients', label: 'Patients Directory' },
           { id: 'audit_logs', label: 'Audit Trail Logs' },
+          { id: 'notifications', label: 'Notifications', badge: 3 },
+        ];
+      case 'admin_doctor':
+        return [
+          { id: 'dashboard', label: 'Doctor Workspace' },
+          { id: 'appointments', label: 'Patient Consultations' },
+          { id: 'prescriptions', label: 'Prescription Creator' },
+          { id: 'staff', label: 'Manage Staff' },
+          { id: 'patients', label: 'Patients Directory' },
+          { id: 'treatment_billing', label: 'Treatment Billing' },
+          { id: 'medicine_billing', label: 'Medicine Billing' },
+          { id: 'pharmacy_inventory', label: 'Pharmacy Inventory' },
+          { id: 'lab_management', label: 'Lab Reports' },
+          { id: 'audit_logs', label: 'Audit Trail' },
           { id: 'notifications', label: 'Notifications', badge: 3 },
         ];
       case 'clinic_admin':
@@ -107,10 +185,14 @@ export const StaffMainContainer = () => {
       case 'doctor':
         return [
           { id: 'dashboard', label: 'Doctor Dashboard' },
-          { id: 'appointments', label: 'Patient Consultations' },
-          { id: 'prescriptions', label: 'Prescription Creator' },
-          { id: 'patients', label: 'Patient Medical History' },
-          { id: 'lab_management', label: 'Lab Reports' },
+          { id: 'patients', label: 'Patients' },
+          { id: 'appointments', label: 'Appointments' },
+          { id: 'video_services', label: 'Video Services' },
+          { id: 'treatment_billing', label: 'Treatment Billing' },
+          { id: 'pharmacy_inventory', label: 'Medicines' },
+          { id: 'prescriptions', label: 'Prescriptions (Rx)' },
+          { id: 'lab_management', label: 'Lab Tests' },
+          { id: 'lab_inventory', label: 'Lab Inventory' },
           { id: 'notifications', label: 'Notifications', badge: 3 },
         ];
       case 'receptionist':
@@ -168,6 +250,7 @@ export const StaffMainContainer = () => {
             return <SuperAdminDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
           case 'clinic_admin':
             return <ClinicAdminDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+          case 'admin_doctor':
           case 'doctor':
             return <DoctorDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
           case 'receptionist':
@@ -184,29 +267,32 @@ export const StaffMainContainer = () => {
             return <ClinicAdminDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
         }
       case 'clinics':
-        return <ClinicsManagementScreen onOpenDrawer={openDrawer} />;
+        return <ClinicsManagementScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'staff':
-        return <StaffManagementScreen onOpenDrawer={openDrawer} />;
+        return <StaffManagementScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'patients':
-        return <PatientsManagementScreen onOpenDrawer={openDrawer} />;
+        return <PatientsManagementScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'appointments':
-        return <AppointmentsManagerScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+        return <AppointmentsManagerScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
       case 'book_appointment':
         return <BookAppointmentScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+      case 'video_services':
+        return <VideoServicesScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
       case 'prescriptions':
-        return <PrescriptionsScreen onOpenDrawer={openDrawer} />;
+        return <PrescriptionsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'pharmacy_inventory':
-        return <PharmacyInventoryScreen onOpenDrawer={openDrawer} />;
+        return <PharmacyInventoryScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'medicine_billing':
-        return <MedicineBillingScreen onOpenDrawer={openDrawer} />;
+        return <MedicineBillingScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'treatment_billing':
-        return <TreatmentBillingScreen onOpenDrawer={openDrawer} />;
+        return <TreatmentBillingScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'lab_management':
-        return <LabManagementScreen onOpenDrawer={openDrawer} />;
+      case 'lab_inventory':
+        return <LabManagementScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'audit_logs':
-        return <AuditLogsScreen onOpenDrawer={openDrawer} />;
+        return <AuditLogsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'notifications':
-        return <NotificationsCenterScreen onOpenDrawer={openDrawer} />;
+        return <NotificationsCenterScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       default:
         return <ClinicAdminDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
     }
@@ -218,6 +304,7 @@ export const StaffMainContainer = () => {
         return <DashboardIcon color={color} size={size} />;
       case 'book_appointment':
       case 'appointments':
+      case 'video_services':
         return <CalendarIcon color={color} size={size} />;
       case 'clinics':
       case 'staff':
@@ -230,6 +317,7 @@ export const StaffMainContainer = () => {
       case 'prescriptions':
         return <MedicinePillIcon color={color} size={size} />;
       case 'lab_management':
+      case 'lab_inventory':
         return <LabTubeIcon color={color} size={size} />;
       case 'notifications':
         return <BellNotificationIcon color={color} size={size} />;

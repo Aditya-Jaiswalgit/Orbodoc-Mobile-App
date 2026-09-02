@@ -29,7 +29,6 @@ export const StaffManagementScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Form State
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');

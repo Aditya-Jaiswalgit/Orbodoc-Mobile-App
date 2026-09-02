@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Modal,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,58 +12,21 @@ import {
   View,
 } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { usePrescriptions } from '../../hooks/usePrescriptions';
 import { Prescription, PrescriptionItem } from '../../types/clinicTypes';
 
 interface Props {
   onOpenDrawer: () => void;
+  onOpenNotifications?: () => void;
 }
 
-export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer }) => {
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([
-    {
-      id: 101,
-      clinic_id: 1,
-      patient_id: 1,
-      patient_name: 'Sunita Sharma',
-      patient_age: 34,
-      patient_gender: 'Female',
-      doctor_id: 1,
-      doctor_name: 'Dr. Ramesh Sharma',
-      diagnosis: 'Hypertension & Angina Peculia',
-      symptoms: 'Chest tightness, elevated BP',
-      vital_bp: '140/90',
-      vital_pulse: '78 bpm',
-      vital_temp: '98.4 F',
-      vital_weight: '62 kg',
-      created_at: '2025-01-15',
-      items: [
-        { id: 1, medicine_name: 'Amlodipine 5mg', dosage: '5mg', frequency: '1-0-0 (Morning)', duration: '30 Days', quantity: 30 },
-        { id: 2, medicine_name: 'Atorvastatin 10mg', dosage: '10mg', frequency: '0-0-1 (Night)', duration: '30 Days', quantity: 30 },
-      ],
-    },
-    {
-      id: 102,
-      clinic_id: 1,
-      patient_id: 2,
-      patient_name: 'Rahul Verma',
-      patient_age: 45,
-      patient_gender: 'Male',
-      doctor_id: 1,
-      doctor_name: 'Dr. Ramesh Sharma',
-      diagnosis: 'Type 2 Diabetes Mellitus',
-      vital_bp: '128/82',
-      created_at: '2025-01-14',
-      items: [
-        { id: 3, medicine_name: 'Metformin 500mg', dosage: '500mg', frequency: '1-0-1 (After meals)', duration: '15 Days', quantity: 30 },
-      ],
-    },
-  ]);
+export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotifications }) => {
+  const { prescriptions, loading, refreshing, onRefresh, addPrescription } = usePrescriptions();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
 
-  // Form state
   const [patientName, setPatientName] = useState('');
   const [diagnosis, setDiagnosis] = useState('');
   const [bp, setBp] = useState('');
@@ -69,7 +34,6 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   const [temp, setTemp] = useState('');
   const [weight, setWeight] = useState('');
 
-  // Line Items
   const [items, setItems] = useState<PrescriptionItem[]>([
     { medicine_name: 'Paracetamol 650mg', dosage: '650mg', frequency: '1-0-1 (After meals)', duration: '5 days', quantity: 10 },
   ]);
@@ -92,31 +56,23 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer }) => {
     setItems(items.filter((_, i) => i !== index));
   };
 
-  const handleCreatePrescription = () => {
+  const handleCreatePrescription = async () => {
     if (!patientName.trim() || !diagnosis.trim()) {
       Alert.alert('Validation Error', 'Patient name and diagnosis are required.');
       return;
     }
 
-    const newRx: Prescription = {
-      id: Date.now(),
-      clinic_id: 1,
-      patient_id: Date.now(),
+    const payload: Partial<Prescription> = {
       patient_name: patientName,
-      patient_age: 35,
-      patient_gender: 'Male',
-      doctor_id: 1,
-      doctor_name: 'Dr. Ramesh Sharma',
       diagnosis,
       vital_bp: bp || '120/80',
       vital_pulse: pulse || '72 bpm',
       vital_temp: temp || '98.6 F',
       vital_weight: weight || '65 kg',
-      created_at: new Date().toISOString().split('T')[0],
-      items: items.filter(i => i.medicine_name.trim() !== ''),
+      items: items.filter((i) => i.medicine_name.trim() !== ''),
     };
 
-    setPrescriptions([newRx, ...prescriptions]);
+    await addPrescription(payload);
     setModalVisible(false);
     setPatientName('');
     setDiagnosis('');
@@ -129,60 +85,72 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer }) => {
 
   return (
     <View style={styles.container}>
-      <StaffHeader onOpenDrawer={onOpenDrawer} title="Prescription Manager" />
+      <StaffHeader
+        onOpenDrawer={onOpenDrawer}
+        onOpenNotifications={onOpenNotifications}
+        title="Prescription Manager"
+      />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0d9488']} />
+        }>
         {/* Top Header */}
         <View style={styles.topRow}>
-          <Text style={styles.pageTitle}>Prescriptions ({prescriptions.length})</Text>
+          <Text style={styles.pageTitle}>Prescriptions ({(prescriptions || []).length})</Text>
           <TouchableOpacity style={styles.createBtn} onPress={() => setModalVisible(true)}>
             <Text style={styles.createBtnText}>+ Write Prescription</Text>
           </TouchableOpacity>
         </View>
 
-        {/* List of Prescriptions */}
-        <View style={styles.rxList}>
-          {prescriptions.map((rx) => (
-            <View key={rx.id} style={styles.rxCard}>
-              <View style={styles.cardHeader}>
-                <View>
-                  <Text style={styles.rxId}>RX #{rx.id}</Text>
-                  <Text style={styles.patientName}>{rx.patient_name}</Text>
-                </View>
-                <Text style={styles.dateText}>{rx.created_at}</Text>
-              </View>
-
-              <Text style={styles.diagText}>Diagnosis: <Text style={styles.diagValue}>{rx.diagnosis}</Text></Text>
-              <Text style={styles.docText}>Prescribed by: {rx.doctor_name}</Text>
-
-              {/* Vitals Summary Row */}
-              <View style={styles.vitalsRow}>
-                {rx.vital_bp ? <View style={styles.vitalBadge}><Text style={styles.vitalText}>BP: {rx.vital_bp}</Text></View> : null}
-                {rx.vital_pulse ? <View style={styles.vitalBadge}><Text style={styles.vitalText}>Pulse: {rx.vital_pulse}</Text></View> : null}
-                {rx.vital_weight ? <View style={styles.vitalBadge}><Text style={styles.vitalText}>Weight: {rx.vital_weight}</Text></View> : null}
-              </View>
-
-              {/* Items Summary */}
-              <View style={styles.itemList}>
-                {rx.items.map((it, idx) => (
-                  <View key={idx} style={styles.itemRow}>
-                    <Text style={styles.medBullet}>💊 {it.medicine_name}</Text>
-                    <Text style={styles.dosageText}>{it.frequency} • {it.duration}</Text>
+        {loading ? (
+          <ActivityIndicator size="large" color="#0d9488" style={{ marginTop: 30 }} />
+        ) : (
+          <View style={styles.rxList}>
+            {(prescriptions || []).map((rx) => (
+              <View key={rx.id} style={styles.rxCard}>
+                <View style={styles.cardHeader}>
+                  <View>
+                    <Text style={styles.rxId}>RX #{rx.id}</Text>
+                    <Text style={styles.patientName}>{rx.patient_name || 'Patient'}</Text>
                   </View>
-                ))}
-              </View>
+                  <Text style={styles.dateText}>{rx.created_at || ''}</Text>
+                </View>
 
-              <TouchableOpacity
-                style={styles.printBtn}
-                onPress={() => {
-                  setSelectedPrescription(rx);
-                  setViewModalVisible(true);
-                }}>
-                <Text style={styles.printBtnText}>📄 View & Print PDF</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
+                <Text style={styles.diagText}>Diagnosis: <Text style={styles.diagValue}>{rx.diagnosis || 'General'}</Text></Text>
+                <Text style={styles.docText}>Prescribed by: {rx.doctor_name || 'Doctor'}</Text>
+
+                {/* Vitals Summary Row */}
+                <View style={styles.vitalsRow}>
+                  {rx.vital_bp ? <View style={styles.vitalBadge}><Text style={styles.vitalText}>BP: {rx.vital_bp}</Text></View> : null}
+                  {rx.vital_pulse ? <View style={styles.vitalBadge}><Text style={styles.vitalText}>Pulse: {rx.vital_pulse}</Text></View> : null}
+                  {rx.vital_weight ? <View style={styles.vitalBadge}><Text style={styles.vitalText}>Weight: {rx.vital_weight}</Text></View> : null}
+                </View>
+
+                {/* Items Summary */}
+                <View style={styles.itemList}>
+                  {(rx.items || []).map((it, idx) => (
+                    <View key={idx} style={styles.itemRow}>
+                      <Text style={styles.medBullet}>💊 {it.medicine_name}</Text>
+                      <Text style={styles.dosageText}>{it.frequency || ''} • {it.duration || ''}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <TouchableOpacity
+                  style={styles.printBtn}
+                  onPress={() => {
+                    setSelectedPrescription(rx);
+                    setViewModalVisible(true);
+                  }}>
+                  <Text style={styles.printBtnText}>📄 View & Print PDF</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       {/* Write Prescription Modal */}
@@ -284,7 +252,7 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                 <View style={styles.divider} />
 
                 <Text style={styles.rxHeaderLabel}>Rx Medicines:</Text>
-                {selectedPrescription.items.map((m, i) => (
+                {(selectedPrescription.items || []).map((m, i) => (
                   <View key={i} style={styles.rxLine}>
                     <Text style={styles.rxMedName}>{i + 1}. {m.medicine_name}</Text>
                     <Text style={styles.rxMedMeta}>Dosage: {m.dosage} | {m.frequency} for {m.duration}</Text>

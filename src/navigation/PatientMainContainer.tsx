@@ -22,12 +22,14 @@ import {
   VideoCamIcon,
 } from '../components/common/CustomIcons';
 import { useAuthContext } from '../context/AuthContext';
+import { useNotifications } from '../hooks/useNotifications';
 import { PatientDashboardScreen } from '../screens/dashboards/PatientDashboardScreen';
 import AppointmentsScreen from '../screens/patient/AppointmentsScreen';
 import BookAppointmentScreen from '../screens/patient/BookAppointmentScreen';
 import LabTestsScreen from '../screens/patient/LabTestsScreen';
 import MedicineBillingScreen from '../screens/patient/MedicineBillingScreen';
 import NotificationsScreen from '../screens/patient/NotificationsScreen';
+import PatientsProfileScreen from '../screens/patient/PatientsProfileScreen';
 import PatientsScreen from '../screens/patient/PatientsScreen';
 import TreatmentBillingScreen from '../screens/patient/TreatmentBillingScreen';
 import VideoServicesScreen from '../screens/patient/VideoServicesScreen';
@@ -41,25 +43,14 @@ export type PatientTabType =
   | 'medicine_billing'
   | 'video_services'
   | 'lab_tests'
-  | 'notifications';
+  | 'notifications'
+  | 'profile';
 
 interface MenuItem {
   id: PatientTabType;
   label: string;
   badge?: number;
 }
-
-const MENU_ITEMS: MenuItem[] = [
-  { id: 'dashboard', label: 'Patient Dashboard' },
-  { id: 'book_appointment', label: 'Book Appointment' },
-  { id: 'patients', label: 'Patients' },
-  { id: 'appointments', label: 'Appointments' },
-  { id: 'treatment_billing', label: 'Treatment Billing' },
-  { id: 'medicine_billing', label: 'Medicine Billing' },
-  { id: 'video_services', label: 'Video Services' },
-  { id: 'lab_tests', label: 'Lab Tests' },
-  { id: 'notifications', label: 'Notifications', badge: 4 },
-];
 
 const renderTabVectorIcon = (tab: PatientTabType, color: string, size: number = 20) => {
   switch (tab) {
@@ -69,6 +60,7 @@ const renderTabVectorIcon = (tab: PatientTabType, color: string, size: number = 
     case 'appointments':
       return <CalendarIcon color={color} size={size} />;
     case 'patients':
+    case 'profile':
       return <PatientUserIcon color={color} size={size} />;
     case 'treatment_billing':
       return <BillingCardIcon color={color} size={size} />;
@@ -89,12 +81,27 @@ export const PatientMainContainer = () => {
   const [activeTab, setActiveTab] = useState<PatientTabType>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { user, logout } = useAuthContext();
+  const { unreadCount } = useNotifications();
 
   const patientName = user?.fullName || user?.full_name || 'Patient';
   const initial = patientName.charAt(0).toUpperCase();
 
+  const MENU_ITEMS: MenuItem[] = [
+    { id: 'dashboard', label: 'Patient Dashboard' },
+    { id: 'book_appointment', label: 'Book Appointment' },
+    { id: 'patients', label: 'Patients' },
+    { id: 'appointments', label: 'Appointments' },
+    { id: 'treatment_billing', label: 'Treatment Billing' },
+    { id: 'medicine_billing', label: 'Medicine Billing' },
+    { id: 'video_services', label: 'Video Services' },
+    { id: 'lab_tests', label: 'Lab Tests' },
+    { id: 'notifications', label: 'Notifications', badge: unreadCount },
+    { id: 'profile', label: 'My Profile' },
+  ];
+
   const openDrawer = () => setDrawerOpen(true);
   const openNotifications = () => setActiveTab('notifications');
+  const openProfile = () => setActiveTab('profile');
 
   const renderActiveScreen = () => {
     switch (activeTab) {
@@ -103,24 +110,28 @@ export const PatientMainContainer = () => {
           <PatientDashboardScreen
             onOpenDrawer={openDrawer}
             onOpenNotifications={openNotifications}
+            onNavigateProfile={openProfile}
+            onNavigateTab={(tab) => setActiveTab(tab as any)}
           />
         );
       case 'book_appointment':
-        return <BookAppointmentScreen onOpenDrawer={openDrawer} />;
+        return <BookAppointmentScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'patients':
-        return <PatientsScreen onOpenDrawer={openDrawer} />;
+        return <PatientsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'appointments':
-        return <AppointmentsScreen onOpenDrawer={openDrawer} />;
+        return <AppointmentsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'treatment_billing':
-        return <TreatmentBillingScreen onOpenDrawer={openDrawer} />;
+        return <TreatmentBillingScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'medicine_billing':
-        return <MedicineBillingScreen onOpenDrawer={openDrawer} />;
+        return <MedicineBillingScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'video_services':
-        return <VideoServicesScreen onOpenDrawer={openDrawer} />;
+        return <VideoServicesScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'lab_tests':
-        return <LabTestsScreen onOpenDrawer={openDrawer} />;
+        return <LabTestsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'notifications':
-        return <NotificationsScreen onOpenDrawer={openDrawer} />;
+        return <NotificationsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+      case 'profile':
+        return <PatientsProfileScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       default:
         return (
           <PatientDashboardScreen
@@ -201,9 +212,11 @@ export const PatientMainContainer = () => {
           onPress={() => setActiveTab('notifications')}>
           <View style={styles.tabIconWrapper}>
             {renderTabVectorIcon('notifications', activeTab === 'notifications' ? '#0d9488' : '#94a3b8', 21)}
-            <View style={styles.smallBadge}>
-              <Text style={styles.smallBadgeText}>4</Text>
-            </View>
+            {unreadCount > 0 && (
+              <View style={styles.smallBadge}>
+                <Text style={styles.smallBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              </View>
+            )}
           </View>
           <Text
             style={[
