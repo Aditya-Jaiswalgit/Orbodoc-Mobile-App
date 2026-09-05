@@ -16,13 +16,13 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { BellNotificationIcon } from './CustomIcons';
 
 interface PatientHeaderProps {
-  onOpenDrawer: () => void;
+  onOpenDrawer?: () => void;
   onOpenNotifications?: () => void;
   onNavigateProfile?: () => void;
 }
 
 export const PatientHeader: React.FC<PatientHeaderProps> = ({
-  onOpenDrawer,
+  onOpenDrawer = () => {},
   onOpenNotifications,
   onNavigateProfile,
 }) => {

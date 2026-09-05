@@ -16,15 +16,14 @@ import {
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { useNotifications } from '../../hooks/useNotifications';
 import { NotificationSubscription } from '../../api/notificationApi';
-import { NotificationItem } from '../../types/clinicTypes';
 
 interface Props {
-  onOpenDrawer: () => void;
+  onOpenDrawer?: () => void;
   onOpenNotifications?: () => void;
   onToggleTabBar?: (hide: boolean) => void;
 }
 
-export const NotificationsCenterScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotifications, onToggleTabBar }) => {
+export const NotificationsCenterScreen: React.FC<Props> = ({ onOpenDrawer = () => {}, onOpenNotifications, onToggleTabBar }) => {
   const {
     notifications,
     unreadCount,
@@ -99,17 +98,19 @@ export const NotificationsCenterScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
     Alert.alert('Success', 'Notification subscriptions updated successfully!');
   };
 
-  const displayedSubscriptions = (subscriptions && subscriptions.length > 0 ? subscriptions : [
-    {
-      user_id: 1,
-      user_name: 'Dr Verma',
-      role: 'Staff',
-      clinic_name: 'Aarogya Care Clinic',
-      categories: ['User Registration', 'User Update', 'Password Change', 'Appointment', 'Billing'],
-      system_channels: 5,
-      bell_channels: 5,
-    },
-  ]).filter((sub) => {
+  const defaultSubscription: NotificationSubscription = {
+    user_id: 1,
+    user_name: 'Dr Verma',
+    role: 'Staff',
+    clinic_name: 'Aarogya Care Clinic',
+    categories: ['User Registration', 'User Update', 'Password Change', 'Appointment', 'Billing'],
+    system_channels: 5,
+    bell_channels: 5,
+  };
+
+  const displayedSubscriptions: NotificationSubscription[] = (
+    subscriptions && subscriptions.length > 0 ? subscriptions : [defaultSubscription]
+  ).filter((sub) => {
     const q = searchSubQuery.toLowerCase().trim();
     if (!q) return true;
     return (
@@ -488,7 +489,7 @@ const styles = StyleSheet.create({
   },
   subUserHeader: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 12,
   },
@@ -543,7 +544,7 @@ const styles = StyleSheet.create({
   },
   subFooterRow: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
@@ -650,7 +651,7 @@ const styles = StyleSheet.create({
   sheetModalBg: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    justify: 'flex-end',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     paddingBottom: 0,
   },
@@ -676,7 +677,7 @@ const styles = StyleSheet.create({
   sheetHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     backgroundColor: '#f0fdfa',
     paddingHorizontal: 18,
     paddingVertical: 14,
@@ -702,7 +703,7 @@ const styles = StyleSheet.create({
   },
   subTableHeader: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#f8fafc',
     paddingHorizontal: 14,
@@ -725,7 +726,7 @@ const styles = StyleSheet.create({
   },
   subTableRow: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -746,7 +747,7 @@ const styles = StyleSheet.create({
   subPaginationRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 12,
     gap: 8,
@@ -780,7 +781,7 @@ const styles = StyleSheet.create({
   },
   sheetFooterRow: {
     flexDirection: 'row',
-    justify: 'flex-end',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 16,

@@ -19,6 +19,7 @@ import { useTreatmentBilling } from '../../hooks/useTreatmentBilling';
 import { TreatmentBill } from '../../api/treatmentBillApi';
 import { LOCAL_BASE_URLS, PRIMARY_BASE_URL } from '../../api/apiConfig';
 import { getPatientsApi, getPatientPrescriptionsApi } from '../../api/patientApi';
+import { generateInvoiceHtml, printOrDownloadPdf } from '../../utils/pdfGenerator';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -311,8 +312,31 @@ export const TreatmentBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNo
   };
 
   const handlePrintReceipt = () => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.print();
+    if (selectedBill) {
+      const net = Number(selectedBill.total_amount || 0);
+      const paid = Number(selectedBill.paid_amount || 0);
+      const due = Math.max(0, net - paid);
+      const html = generateInvoiceHtml({
+        invoiceNumber: selectedBill.bill_number || `TB-${selectedBill.id}`,
+        invoiceDate: selectedBill.created_at ? String(selectedBill.created_at).split('T')[0] : new Date().toLocaleDateString(),
+        clinicName: selectedBill.clinic_name || 'Aarogya Care Dental Clinic',
+        patientName: selectedBill.patient_name || 'Patient',
+        patientPhone: selectedBill.patient_phone || '',
+        paymentStatus: selectedBill.status || 'paid',
+        items: (selectedBill.items || []).map((it) => ({
+          name: it.service_name,
+          qty: it.quantity,
+          unitPrice: Number(it.unit_price || 0),
+          totalPrice: Number(it.total_price || 0),
+        })),
+        subtotal: Number(selectedBill.total_amount || 0),
+        discount: Number(selectedBill.discount_amount || 0),
+        tax: Number(selectedBill.tax_amount || 0),
+        grandTotal: net,
+        paidAmount: paid,
+        dueAmount: due,
+      });
+      printOrDownloadPdf(html, `Treatment_Invoice_${selectedBill.bill_number || selectedBill.id}`);
     } else {
       setPrintModalVisible(true);
     }
@@ -2160,7 +2184,7 @@ const styles = StyleSheet.create({
   },
   dropdownMenuItem: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -2249,7 +2273,7 @@ const styles = StyleSheet.create({
   },
   createModalFooter: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 18,
     paddingVertical: 14,

@@ -15,6 +15,8 @@ import {
 } from '../api/videoServicesApi';
 import { useAuthContext } from '../context/AuthContext';
 import { getTreatmentBillsApi } from '../api/treatmentBillApi';
+import { getAppointmentsApi } from '../api/appointmentApi';
+import { getPatientDashboardApi } from '../api/patientApi';
 
 export const useVideoServices = () => {
   const { token, user } = useAuthContext();
@@ -34,13 +36,15 @@ export const useVideoServices = () => {
   const [error, setError] = useState<string | null>(null);
 
   const isVideoMode = (item: any): boolean => {
-    const mode = String(item.consultation_mode || item.type || item.mode || 'video').toLowerCase();
+    if (!item) return false;
+    const mode = String(item.consultation_mode || '').trim().toLowerCase();
+    const type = String(item.type || '').trim().toLowerCase();
     return (
       mode === 'video' ||
       mode === 'video_call' ||
       mode === 'video call' ||
       mode === 'online' ||
-      mode === ''
+      type === 'teleconsultation'
     );
   };
 
@@ -83,22 +87,79 @@ export const useVideoServices = () => {
             .includes('doctor') ||
           Number((user as any)?.roleId || (user as any)?.role_id) === 3 ||
           Number((user as any)?.is_doctor) === 1;
-        const doctorId = (user as any)?.id || (user as any)?.userId;
+        const doctorId = isDoc ? ((user as any)?.id || (user as any)?.userId) : undefined;
+        const patientId = !isDoc ? ((user as any)?.patient_id || (user as any)?.id || (user as any)?.userId) : undefined;
 
-        const apptRes = await getVideoAppointmentsApi(token, doctorId);
-        if (apptRes.success && apptRes.data) {
-          const rawList = Array.isArray(apptRes.data)
-            ? apptRes.data
-            : (apptRes.data as any).appointments || (apptRes.data as any).data || [];
+        const apptRes = await getVideoAppointmentsApi(token, doctorId, patientId);
+        let rawList: any[] = apptRes.success && apptRes.data
+          ? (Array.isArray(apptRes.data) ? apptRes.data : (apptRes.data as any).appointments || (apptRes.data as any).data || [])
+          : [];
+        rawList = rawList.filter(isVideoMode);
 
-          videoOnly = rawList.filter(isVideoMode);
-          if (isDoc && doctorId) {
-            videoOnly = videoOnly.filter(
-              (a: any) => !a.doctor_id || Number(a.doctor_id) === Number(doctorId)
-            );
-          }
-          setVideoAppointments(videoOnly);
+        // Fallback 1: If empty for patient, try fetching general appointments
+        if (rawList.length === 0 && !isDoc) {
+          try {
+            const fallbackRes = await getAppointmentsApi(token, patientId ? `patient_id=${patientId}` : '');
+            if (fallbackRes.success && fallbackRes.data) {
+              const allAppts = Array.isArray(fallbackRes.data)
+                ? fallbackRes.data
+                : (fallbackRes.data as any).appointments || (fallbackRes.data as any).data || [];
+              rawList = allAppts.filter(isVideoMode);
+            }
+          } catch (e) {}
         }
+
+        // Fallback 2: If still empty for patient, try patient dashboard
+        if (rawList.length === 0 && !isDoc) {
+          try {
+            const dashRes = await getPatientDashboardApi(token);
+            if (dashRes.success && dashRes.data && Array.isArray(dashRes.data.upcoming_appointments)) {
+              rawList = dashRes.data.upcoming_appointments
+                .filter(isVideoMode)
+                .map((a: any, idx: number) => ({
+                  id: a.id || idx + 1,
+                  patient_id: patientId || 1,
+                  doctor_name: a.doctor_name || a.doctorName || 'Doctor',
+                  specialization: a.specialization || 'Video Consultation',
+                  clinic_name: a.clinic_name || 'Aarogya Care Clinic',
+                  appointment_date: a.appointment_date || a.date || new Date().toISOString().split('T')[0],
+                  appointment_time: a.appointment_time || a.time || '10:00 AM',
+                  status: a.status || 'approved',
+                  consultation_mode: 'video',
+                  reason: a.reason || 'Video Consultation',
+                }));
+            }
+          } catch (e) {}
+        }
+
+        videoOnly = rawList;
+        if (isDoc && doctorId) {
+          videoOnly = videoOnly.filter(
+            (a: any) => !a.doctor_id || Number(a.doctor_id) === Number(doctorId)
+          );
+        } else if (!isDoc) {
+          const patientPhone = String((user as any)?.phone || (user as any)?.phoneNumber || '').trim();
+          const patientName = String((user as any)?.full_name || (user as any)?.fullName || (user as any)?.name || '').trim().toLowerCase();
+
+          videoOnly = videoOnly.filter((a: any) => {
+            const aPatientId = Number(a.patient_id || a.user_id || a.patient?.id || a.patient?.user_id);
+            if (aPatientId && patientId && Number(aPatientId) === Number(patientId)) return true;
+
+            if (patientPhone && a.patient_phone) {
+              const apptPhone = String(a.patient_phone).trim();
+              if (apptPhone && apptPhone === patientPhone) return true;
+            }
+
+            if (patientName && a.patient_name) {
+              const apptName = String(a.patient_name).trim().toLowerCase();
+              if (apptName && (apptName === patientName || apptName.includes(patientName) || patientName.includes(apptName))) return true;
+            }
+
+            return false;
+          });
+        }
+
+        setVideoAppointments(videoOnly);
       } catch (e) {}
 
       const todayAppts = videoOnly.filter((a) => isTodayDate(a.appointment_date || (a as any).date));
@@ -247,17 +308,15 @@ export const useVideoServices = () => {
     fetchVideoServicesData();
   }, [fetchVideoServicesData]);
 
-  const activeCalls = (videoAppointments || []).filter(
-    (a) =>
-      a.status &&
-      !['complete', 'completed', 'cancel', 'cancelled'].includes(String(a.status).toLowerCase())
-  );
+  const activeCalls = (videoAppointments || []).filter((a) => {
+    const s = String(a.status || '').toLowerCase();
+    return !['complete', 'completed', 'cancel', 'cancelled'].includes(s);
+  });
 
-  const completedCalls = (videoAppointments || []).filter(
-    (a) =>
-      a.status &&
-      ['complete', 'completed'].includes(String(a.status).toLowerCase())
-  );
+  const completedCalls = (videoAppointments || []).filter((a) => {
+    const s = String(a.status || '').toLowerCase();
+    return ['complete', 'completed'].includes(s);
+  });
 
   return {
     walletBalance,

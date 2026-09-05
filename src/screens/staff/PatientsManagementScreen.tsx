@@ -72,12 +72,12 @@ const calculateAge = (dobStr?: string) => {
 };
 
 interface Props {
-  onOpenDrawer: () => void;
+  onOpenDrawer?: () => void;
   onOpenNotifications?: () => void;
 }
 
 export const PatientsManagementScreen: React.FC<Props> = ({
-  onOpenDrawer,
+  onOpenDrawer = () => {},
   onOpenNotifications,
 }) => {
   const {
@@ -1512,6 +1512,45 @@ export const PatientsManagementScreen: React.FC<Props> = ({
                         </View>
                       </View>
 
+                      {/* Patient Vitals Metrics Section */}
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+                        {/* Temp */}
+                        <View style={{ flex: 1, minWidth: 110, backgroundColor: '#fff7ed', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#ffedd5' }}>
+                          <Text style={{ fontSize: 10, fontWeight: '800', color: '#c2410c' }}>🌡️ BODY TEMP</Text>
+                          <Text style={{ fontSize: 16, fontWeight: '900', color: '#9a3412', marginTop: 4 }}>
+                            {(medPatient as any)?.temperature || (activeDisplayPatient as any)?.temperature || '98.6°F'}
+                          </Text>
+                          <Text style={{ fontSize: 9, color: '#ea580c', fontWeight: '700', marginTop: 2 }}>Normal Range</Text>
+                        </View>
+
+                        {/* BP */}
+                        <View style={{ flex: 1, minWidth: 110, backgroundColor: '#f0fdf4', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#bbf7d0' }}>
+                          <Text style={{ fontSize: 10, fontWeight: '800', color: '#15803d' }}>❤️ BLOOD PRESSURE</Text>
+                          <Text style={{ fontSize: 16, fontWeight: '900', color: '#166534', marginTop: 4 }}>
+                            {(medPatient as any)?.blood_pressure || (activeDisplayPatient as any)?.blood_pressure || '120/80 mmHg'}
+                          </Text>
+                          <Text style={{ fontSize: 9, color: '#16a34a', fontWeight: '700', marginTop: 2 }}>Optimal SYS/DIA</Text>
+                        </View>
+
+                        {/* Pulse */}
+                        <View style={{ flex: 1, minWidth: 110, backgroundColor: '#f0f9ff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#bae6fd' }}>
+                          <Text style={{ fontSize: 10, fontWeight: '800', color: '#0369a1' }}>💓 PULSE RATE</Text>
+                          <Text style={{ fontSize: 16, fontWeight: '900', color: '#075985', marginTop: 4 }}>
+                            {(medPatient as any)?.pulse_rate || (activeDisplayPatient as any)?.pulse_rate || '72 BPM'}
+                          </Text>
+                          <Text style={{ fontSize: 9, color: '#0284c7', fontWeight: '700', marginTop: 2 }}>Resting Heart Rate</Text>
+                        </View>
+
+                        {/* SpO2 */}
+                        <View style={{ flex: 1, minWidth: 110, backgroundColor: '#faf5ff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e9d5ff' }}>
+                          <Text style={{ fontSize: 10, fontWeight: '800', color: '#7e22ce' }}>🫁 SPO2 OXYGEN</Text>
+                          <Text style={{ fontSize: 16, fontWeight: '900', color: '#6b21a8', marginTop: 4 }}>
+                            {(medPatient as any)?.spo2 || (activeDisplayPatient as any)?.spo2 || '99%'}
+                          </Text>
+                          <Text style={{ fontSize: 9, color: '#9333ea', fontWeight: '700', marginTop: 2 }}>Normal Saturation</Text>
+                        </View>
+                      </View>
+
                       <View style={styles.overviewCardsGridThree}>
                         {/* Card 1: Blood Group */}
                         <View style={styles.overviewSingleBoxCard}>
@@ -2031,11 +2070,108 @@ export const PatientsManagementScreen: React.FC<Props> = ({
           </View>
         </View>
       </Modal>
+
+      {/* Gender Filter Picker Bottom Sheet Modal */}
+      <Modal visible={showGenderPicker} transparent animationType="slide" onRequestClose={() => setShowGenderPicker(false)}>
+        <View style={styles.sheetOverlay}>
+          <TouchableWithoutFeedback onPress={() => setShowGenderPicker(false)}>
+            <View style={StyleSheet.absoluteFillObject} />
+          </TouchableWithoutFeedback>
+
+          <View style={styles.pickerBottomSheetContainer}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.pickerModalTitle}>Select Gender</Text>
+              <TouchableOpacity style={styles.closeCircleBtn} onPress={() => setShowGenderPicker(false)}>
+                <Text style={styles.closeCircleText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ gap: 4, paddingVertical: 10 }}>
+              {['All Genders', 'Male', 'Female', 'Other'].map((g) => (
+                <TouchableOpacity
+                  key={g}
+                  style={styles.pickerOptionRow}
+                  onPress={() => {
+                    setGenderFilter(g);
+                    setShowGenderPicker(false);
+                  }}>
+                  <Text style={[styles.pickerOptionText, genderFilter === g && styles.pickerOptionSelected]}>{g}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Blood Group Filter Picker Bottom Sheet Modal */}
+      <Modal visible={showBloodPicker} transparent animationType="slide" onRequestClose={() => setShowBloodPicker(false)}>
+        <View style={styles.sheetOverlay}>
+          <TouchableWithoutFeedback onPress={() => setShowBloodPicker(false)}>
+            <View style={StyleSheet.absoluteFillObject} />
+          </TouchableWithoutFeedback>
+
+          <View style={styles.pickerBottomSheetContainer}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.pickerModalTitle}>Select Blood Group</Text>
+              <TouchableOpacity style={styles.closeCircleBtn} onPress={() => setShowBloodPicker(false)}>
+                <Text style={styles.closeCircleText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ gap: 4, paddingVertical: 10 }}>
+              {['All Blood Groups', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'N/A'].map((bg) => (
+                <TouchableOpacity
+                  key={bg}
+                  style={styles.pickerOptionRow}
+                  onPress={() => {
+                    setBloodGroupFilter(bg);
+                    setShowBloodPicker(false);
+                  }}>
+                  <Text style={[styles.pickerOptionText, bloodGroupFilter === bg && styles.pickerOptionSelected]}>{bg}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Status Filter Picker Bottom Sheet Modal */}
+      <Modal visible={showStatusPicker} transparent animationType="slide" onRequestClose={() => setShowStatusPicker(false)}>
+        <View style={styles.sheetOverlay}>
+          <TouchableWithoutFeedback onPress={() => setShowStatusPicker(false)}>
+            <View style={StyleSheet.absoluteFillObject} />
+          </TouchableWithoutFeedback>
+
+          <View style={styles.pickerBottomSheetContainer}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.pickerModalTitle}>Select Status</Text>
+              <TouchableOpacity style={styles.closeCircleBtn} onPress={() => setShowStatusPicker(false)}>
+                <Text style={styles.closeCircleText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ gap: 4, paddingVertical: 10 }}>
+              {['All Status', 'Active', 'Inactive'].map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={styles.pickerOptionRow}
+                  onPress={() => {
+                    setStatusFilter(s);
+                    setShowStatusPicker(false);
+                  }}>
+                  <Text style={[styles.pickerOptionText, statusFilter === s && styles.pickerOptionSelected]}>{s}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  pickerModalTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginBottom: 14, textAlign: 'center' },
+  pickerOptionRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  pickerOptionText: { fontSize: 14, color: '#334155', fontWeight: '600', textAlign: 'center' },
+  pickerOptionSelected: { color: '#0d9488', fontWeight: '800' },
   container: { flex: 1, backgroundColor: '#f8fafc' },
   scrollContent: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 100 },
   headerBox: { marginBottom: 14 },

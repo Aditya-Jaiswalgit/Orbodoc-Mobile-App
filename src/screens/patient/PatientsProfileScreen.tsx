@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -18,13 +18,17 @@ interface PatientsProfileScreenProps {
 }
 
 export const PatientsProfileScreen: React.FC<PatientsProfileScreenProps> = ({
-  onOpenDrawer,
-  onOpenNotifications,
+  onOpenDrawer = () => {},
+  onOpenNotifications = () => {},
 }) => {
   const { profile, updateProfile } = usePatientProfile();
   const [showEditModal, setShowEditModal] = useState(false);
 
   const [formData, setFormData] = useState({ ...profile });
+
+  useEffect(() => {
+    setFormData({ ...profile });
+  }, [profile]);
 
   const handleSaveProfile = async () => {
     await updateProfile(formData);

@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Modal,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,8 +9,12 @@ import {
   View,
 } from 'react-native';
 import { PatientHeader } from '../../components/common/PatientHeader';
-import { PatientUserIcon, StethoscopeIcon } from '../../components/common/CustomIcons';
+import { StethoscopeIcon } from '../../components/common/CustomIcons';
 import { useVideoServices } from '../../hooks/useVideoServices';
+import { useVideoCall } from '../../hooks/useVideoCall';
+import { usePaymentCheckout } from '../../hooks/usePaymentCheckout';
+import { VideoCallModal } from '../../components/video/VideoCallModal';
+import { PaymentCheckoutModal } from '../../components/payment/PaymentCheckoutModal';
 
 interface VideoServicesScreenProps {
   onOpenDrawer?: () => void;
@@ -25,7 +27,6 @@ export const VideoServicesScreen: React.FC<VideoServicesScreenProps> = ({
 }) => {
   const {
     walletBalance,
-    videoAppointments,
     activeCalls,
     completedCalls,
     transactions,
@@ -33,14 +34,55 @@ export const VideoServicesScreen: React.FC<VideoServicesScreenProps> = ({
     refreshVideoServices,
   } = useVideoServices();
 
+  const {
+    activeAppointment,
+    isCallActive,
+    isConnecting,
+    callDurationStr,
+    isMuted,
+    isCameraOff,
+    isSpeakerOn,
+    doctorNotes,
+    setDoctorNotes,
+    connectVideoCall,
+    endVideoCall,
+    toggleMute,
+    toggleCamera,
+    toggleSpeaker,
+  } = useVideoCall();
+
+  const {
+    visible: checkoutVisible,
+    amount: checkoutAmount,
+    selectedMethod: checkoutMethod,
+    step: checkoutStep,
+    loading: checkoutLoading,
+    newBalance: checkoutNewBalance,
+    orderDetails: checkoutOrderDetails,
+    setAmount: setCheckoutAmount,
+    setSelectedMethod: setCheckoutMethod,
+    openCheckout,
+    closeCheckout,
+    startPayment,
+    confirmPayment,
+  } = usePaymentCheckout();
+
   const [activeTab, setActiveTab] = useState<'calls' | 'history' | 'wallet'>('calls');
 
   const handleJoinVideoCall = (callItem: any) => {
-    Alert.alert(
-      'Video Call Room',
-      `Connecting to video consultation room with ${callItem.doctor_name || 'Doctor'}...`,
-      [{ text: 'OK' }]
-    );
+    connectVideoCall(callItem);
+  };
+
+  const handleEndCall = () => {
+    endVideoCall(() => {
+      refreshVideoServices();
+    });
+  };
+
+  const handleConfirmPayment = () => {
+    confirmPayment(walletBalance, (updatedBal) => {
+      refreshVideoServices();
+    });
   };
 
   return (
@@ -174,7 +216,7 @@ export const VideoServicesScreen: React.FC<VideoServicesScreenProps> = ({
 
                 <TouchableOpacity
                   style={styles.rechargeWalletBtn}
-                  onPress={() => Alert.alert('Recharge Wallet', 'Redirecting to Razorpay payment gateway...')}>
+                  onPress={() => openCheckout(500)}>
                   <Text style={styles.rechargeWalletBtnText}>💳 Recharge Wallet</Text>
                 </TouchableOpacity>
               </View>
@@ -199,6 +241,42 @@ export const VideoServicesScreen: React.FC<VideoServicesScreenProps> = ({
           )}
         </View>
       </ScrollView>
+
+      {/* Real-Time Video Call Room View Modal */}
+      <VideoCallModal
+        visible={isCallActive || isConnecting}
+        appointment={activeAppointment}
+        callDurationStr={callDurationStr}
+        isConnecting={isConnecting}
+        isMuted={isMuted}
+        isCameraOff={isCameraOff}
+        isSpeakerOn={isSpeakerOn}
+        doctorNotes={doctorNotes}
+        isDoctor={false}
+        onSetDoctorNotes={setDoctorNotes}
+        onToggleMute={toggleMute}
+        onToggleCamera={toggleCamera}
+        onToggleSpeaker={toggleSpeaker}
+        onEndCall={handleEndCall}
+      />
+
+      {/* Real Online Payment Gateway (Razorpay/UPI) Checkout Modal */}
+      <PaymentCheckoutModal
+        visible={checkoutVisible}
+        amount={checkoutAmount}
+        selectedMethod={checkoutMethod}
+        step={checkoutStep}
+        loading={checkoutLoading}
+        newBalance={checkoutNewBalance}
+        currentBalance={walletBalance}
+        keyId={checkoutOrderDetails?.key_id}
+        orderId={checkoutOrderDetails?.order_id}
+        onSetAmount={setCheckoutAmount}
+        onSetSelectedMethod={setCheckoutMethod}
+        onStartPayment={startPayment}
+        onConfirmPayment={handleConfirmPayment}
+        onClose={closeCheckout}
+      />
     </View>
   );
 };

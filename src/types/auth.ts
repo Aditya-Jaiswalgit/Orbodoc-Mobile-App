@@ -28,12 +28,23 @@ export interface AuthUser {
   role?: string;
   clinicId?: number;
   clinic_id?: number;
+  clinicName?: string;
+  clinic_name?: string;
   activeClinicId?: number;
   clinics?: UserClinic[];
   isMultiClinic?: boolean;
   department?: string;
   specialization?: string;
+  qualification?: string;
   profilePhoto?: string;
+  userId?: number;
+  patient_id?: number;
+  is_doctor?: number | boolean | string;
+  isDoctor?: boolean;
+  gender?: string;
+  dob?: string;
+  age?: number | string;
+  blood_group?: string;
 }
 
 export interface AuthResponseData {

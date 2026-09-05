@@ -177,8 +177,8 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
       const res = await bookAppointment(payload as any);
       setSubmitting(false);
 
-      if (res && (res.id || (res as any).appointment_id || (res as any).data?.id)) {
-        const newId = res.id || (res as any).appointment_id || (res as any).data?.id;
+      if (res && ((res as any).id || (res as any).appointment_id || (res as any).data?.id)) {
+        const newId = (res as any).id || (res as any).appointment_id || (res as any).data?.id;
         setBookedAppointmentId(newId);
         setShowSuccessModal(true);
       } else {

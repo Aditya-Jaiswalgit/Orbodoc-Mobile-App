@@ -16,14 +16,14 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { BellNotificationIcon } from './CustomIcons';
 
 interface StaffHeaderProps {
-  onOpenDrawer: () => void;
+  onOpenDrawer?: () => void;
   onOpenNotifications?: () => void;
   title?: string;
   onNavigateProfile?: () => void;
 }
 
 export const StaffHeader: React.FC<StaffHeaderProps> = ({
-  onOpenDrawer,
+  onOpenDrawer = () => {},
   onOpenNotifications,
   title,
   onNavigateProfile,

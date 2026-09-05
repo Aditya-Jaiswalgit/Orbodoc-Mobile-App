@@ -17,6 +17,7 @@ import { usePatients } from '../../hooks/usePatients';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useAuthContext } from '../../context/AuthContext';
 import { Prescription, PrescriptionItem, PatientModel, Appointment } from '../../types/clinicTypes';
+import { generatePrescriptionHtml, printOrDownloadPdf } from '../../utils/pdfGenerator';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -484,8 +485,23 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotif
             <TouchableOpacity
               style={styles.downloadPdfBtn}
               onPress={() => {
-                setViewModalVisible(false);
-                Alert.alert('PDF Ready', 'Prescription PDF generated successfully.');
+                if (selectedPrescription) {
+                  const html = generatePrescriptionHtml({
+                    rxNumber: `RX-${selectedPrescription.id}`,
+                    patientName: selectedPrescription.patient_name || 'Patient',
+                    patientAge: selectedPrescription.patient_age || 30,
+                    patientGender: selectedPrescription.patient_gender || 'Male',
+                    patientPhone: selectedPrescription.patient_phone || '',
+                    doctorName: selectedPrescription.doctor_name || 'Dr. Sharma',
+                    doctorSpecialization: selectedPrescription.doctor_specialization || 'General Physician',
+                    date: selectedPrescription.created_at ? new Date(selectedPrescription.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+                    diagnosis: selectedPrescription.diagnosis,
+                    symptoms: selectedPrescription.symptoms,
+                    advice: selectedPrescription.advice,
+                    medicines: selectedPrescription.items || [],
+                  });
+                  printOrDownloadPdf(html, `Prescription_${selectedPrescription.patient_name}`);
+                }
               }}>
               <Text style={styles.downloadPdfText}>📥 Print / Download PDF</Text>
             </TouchableOpacity>

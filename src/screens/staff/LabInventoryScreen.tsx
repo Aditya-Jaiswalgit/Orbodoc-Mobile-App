@@ -1031,7 +1031,7 @@ const styles = StyleSheet.create({
   content: { padding: 14, paddingBottom: 100 },
   pageHeaderRow: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 14,
     gap: 10,
@@ -1072,7 +1072,7 @@ const styles = StyleSheet.create({
   },
   statCardTop: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   statCardLabel: { fontSize: 11, fontWeight: '700', color: '#64748b' },
@@ -1081,7 +1081,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    justify: 'center',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   filterBarBox: {
@@ -1225,7 +1225,7 @@ const styles = StyleSheet.create({
   toggleBtnTextActive: { color: '#0d9488', fontWeight: '800' },
   modalBtnRow: {
     flexDirection: 'row',
-    justify: 'flex-end',
+    justifyContent: 'flex-end',
     gap: 10,
     marginTop: 16,
     paddingTop: 12,
@@ -1272,7 +1272,7 @@ const styles = StyleSheet.create({
   },
   webEditHeader: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#f0fdfa',
     paddingHorizontal: 18,
@@ -1316,7 +1316,7 @@ const styles = StyleSheet.create({
   },
   webDropdownSelector: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#cbd5e1',
@@ -1337,7 +1337,7 @@ const styles = StyleSheet.create({
   },
   webEditFooter: {
     flexDirection: 'row',
-    justify: 'flex-end',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 18,
@@ -1384,7 +1384,7 @@ const styles = StyleSheet.create({
   },
   webMasterHeader: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#f0fdfa',
     paddingHorizontal: 18,
@@ -1397,7 +1397,7 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     backgroundColor: '#0d9488',
-    justify: 'center',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   webMasterTitle: {
@@ -1468,7 +1468,7 @@ const styles = StyleSheet.create({
   },
   webMasterInfoBar: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 8,
     borderTopWidth: 1,
@@ -1576,7 +1576,7 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 12,
     backgroundColor: '#0d9488',
-    justify: 'center',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   mapMasterTitle: {
@@ -1657,7 +1657,7 @@ const styles = StyleSheet.create({
   },
   mapDropdownSelector: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#cbd5e1',
@@ -1678,7 +1678,7 @@ const styles = StyleSheet.create({
   },
   mapMasterFooter: {
     flexDirection: 'row',
-    justify: 'flex-end',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 16,
@@ -1726,7 +1726,7 @@ const styles = StyleSheet.create({
   },
   webMasterPaginationTopLine: {
     flexDirection: 'row',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   webMasterPaginationText: {
@@ -1777,7 +1777,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e2e8f0',
     alignItems: 'center',
-    justify: 'center',
+    justifyContent: 'center',
     backgroundColor: '#ffffff',
   },
   webMasterPageNumBtnActive: {
