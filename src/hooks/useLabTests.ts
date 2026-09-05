@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   createLabTestOrderApi,
+  getLabReportByTestIdApi,
   getLabReportsApi,
   getLabTestOrdersApi,
+  updateLabReportApi,
+  updateLabTestOrderApi,
   updateLabTestStatusApi,
   uploadLabReportApi,
 } from '../api/labApi';

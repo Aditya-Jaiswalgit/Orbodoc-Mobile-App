@@ -97,28 +97,30 @@ export const useDoctorDashboard = () => {
 
     setError(null);
     try {
-      const res = await getAppointmentsApi(token);
+      const doctorId = (user as any)?.id || (user as any)?.userId;
+      const query = doctorId ? `doctor_id=${doctorId}` : '';
+      const res = await getAppointmentsApi(token, query);
       if (res.success && res.data) {
         const rawList = Array.isArray(res.data)
           ? res.data
           : (res.data as any).appointments || (res.data as any).data || [];
 
-        if (rawList.length > 0) {
-          setAppointments(rawList);
-        } else {
-          setAppointments(FALLBACK_DOCTOR_APPOINTMENTS);
-        }
+        const doctorAppts = doctorId
+          ? rawList.filter((a: any) => !a.doctor_id || Number(a.doctor_id) === Number(doctorId))
+          : rawList;
+
+        setAppointments(doctorAppts);
       } else {
-        setAppointments(FALLBACK_DOCTOR_APPOINTMENTS);
+        setAppointments([]);
       }
     } catch (err: any) {
-      setAppointments(FALLBACK_DOCTOR_APPOINTMENTS);
+      setAppointments([]);
       setError(err.message || 'Unable to fetch doctor schedule');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [token]);
+  }, [token, user]);
 
   useEffect(() => {
     fetchDoctorAppointments();

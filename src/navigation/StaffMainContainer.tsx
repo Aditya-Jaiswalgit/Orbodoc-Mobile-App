@@ -31,10 +31,11 @@ import PharmacistDashboardScreen from '../screens/dashboards/PharmacistDashboard
 import ReceptionistDashboardScreen from '../screens/dashboards/ReceptionistDashboardScreen';
 import SuperAdminDashboardScreen from '../screens/dashboards/SuperAdminDashboardScreen';
 
-import BookAppointmentScreen from '../screens/patient/BookAppointmentScreen';
 import AppointmentsManagerScreen from '../screens/staff/AppointmentsManagerScreen';
 import AuditLogsScreen from '../screens/staff/AuditLogsScreen';
+import BookAppointmentScreen from '../screens/patient/BookAppointmentScreen';
 import ClinicsManagementScreen from '../screens/staff/ClinicsManagementScreen';
+import LabInventoryScreen from '../screens/staff/LabInventoryScreen';
 import LabManagementScreen from '../screens/staff/LabManagementScreen';
 import MedicineBillingScreen from '../screens/staff/MedicineBillingScreen';
 import NotificationsCenterScreen from '../screens/staff/NotificationsCenterScreen';
@@ -138,6 +139,7 @@ export const StaffMainContainer = () => {
 
   const [activeTab, setActiveTab] = useState<StaffTabType>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [hideBottomBar, setHideBottomBar] = useState(false);
 
   const staffName = user?.fullName || user?.full_name || 'Staff User';
   const initial = staffName.charAt(0).toUpperCase();
@@ -287,12 +289,13 @@ export const StaffMainContainer = () => {
       case 'treatment_billing':
         return <TreatmentBillingScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'lab_management':
+        return <LabManagementScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'lab_inventory':
-        return <LabManagementScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <LabInventoryScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'audit_logs':
         return <AuditLogsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'notifications':
-        return <NotificationsCenterScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <NotificationsCenterScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       default:
         return <ClinicAdminDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
     }
@@ -331,7 +334,8 @@ export const StaffMainContainer = () => {
       <View style={styles.screenContainer}>{renderActiveScreen()}</View>
 
       {/* ─── STAFF BOTTOM TAB BAR ─── */}
-      <View style={styles.bottomTabBar}>
+      {!hideBottomBar && (
+        <View style={styles.bottomTabBar}>
         <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('dashboard')}>
           <View style={styles.tabIconWrapper}>
             {renderTabVectorIcon('dashboard', activeTab === 'dashboard' ? '#0d9488' : '#94a3b8', 21)}
@@ -390,6 +394,7 @@ export const StaffMainContainer = () => {
           </Text>
         </TouchableOpacity>
       </View>
+      )}
 
       {/* ─── SIDE DRAWER MODAL (DARK NAVY THEME) ─── */}
       <Modal visible={drawerOpen} animationType="fade" transparent={true} onRequestClose={() => setDrawerOpen(false)}>

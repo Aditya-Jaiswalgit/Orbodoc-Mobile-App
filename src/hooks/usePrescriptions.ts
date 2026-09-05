@@ -49,33 +49,69 @@ const INITIAL_FALLBACK_PRESCRIPTIONS: Prescription[] = [
 
 export const usePrescriptions = (patientId?: number) => {
   const { token, user } = useAuthContext();
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>(INITIAL_FALLBACK_PRESCRIPTIONS);
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPrescriptions = useCallback(async () => {
     if (!token) {
-      setPrescriptions(INITIAL_FALLBACK_PRESCRIPTIONS);
+      setPrescriptions([]);
       setLoading(false);
       return;
     }
 
     setError(null);
     try {
+      const isDoc =
+        String((user as any)?.roleName || (user as any)?.role_name || (user as any)?.role || '')
+          .toLowerCase()
+          .includes('doctor') ||
+        Number((user as any)?.roleId || (user as any)?.role_id) === 3 ||
+        Number((user as any)?.is_doctor) === 1;
+      const doctorId = (user as any)?.id || (user as any)?.userId;
+
       const res = await getPrescriptionsApi(token, patientId);
       if (res.success && res.data) {
         const rawList = Array.isArray(res.data)
           ? res.data
           : (res.data as any).prescriptions || (res.data as any).data || [];
 
-        if (Array.isArray(rawList) && rawList.length > 0) {
-          const sanitized = rawList.map((rx: any) => ({
-            ...rx,
-            items: Array.isArray(rx.items) ? rx.items : [],
-          }));
+        if (Array.isArray(rawList)) {
+          const detailedList = await Promise.all(
+            rawList.map(async (rx: any) => {
+              try {
+                if (rx.id) {
+                  const detailRes = await getPrescriptionByIdApi(token, rx.id);
+                  if (detailRes.success && detailRes.data) {
+                    const detailObj = (detailRes.data as any).prescription || detailRes.data;
+                    return {
+                      ...rx,
+                      ...detailObj,
+                      items: Array.isArray(detailObj.items) ? detailObj.items : rx.items || [],
+                    };
+                  }
+                }
+              } catch (e) {
+                // Fallback to basic rx
+              }
+              return {
+                ...rx,
+                items: Array.isArray(rx.items) ? rx.items : [],
+              };
+            })
+          );
+
+          let sanitized = detailedList;
+          if (isDoc && doctorId && !patientId) {
+            sanitized = sanitized.filter(
+              (rx: any) => !rx.doctor_id || Number(rx.doctor_id) === Number(doctorId)
+            );
+          }
           setPrescriptions(sanitized);
         }
+      } else {
+        setPrescriptions([]);
       }
     } catch (err: any) {
       setError(err.message || 'Unable to load prescriptions');
@@ -83,7 +119,7 @@ export const usePrescriptions = (patientId?: number) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [token, patientId]);
+  }, [token, user, patientId]);
 
   useEffect(() => {
     fetchPrescriptions();
@@ -95,37 +131,27 @@ export const usePrescriptions = (patientId?: number) => {
   };
 
   const addPrescription = async (prescriptionData: Partial<Prescription>) => {
-    const newRx: Prescription = {
-      id: Math.floor(100 + Math.random() * 900),
-      clinic_id: Number(user?.clinicId || user?.clinic_id || 1),
-      patient_id: Number(prescriptionData.patient_id || 1),
-      patient_name: prescriptionData.patient_name || 'Patient',
-      patient_age: prescriptionData.patient_age || 30,
-      patient_gender: prescriptionData.patient_gender || 'General',
-      doctor_id: Number(user?.userId || user?.id || 1),
-      doctor_name: user?.fullName || user?.full_name || 'Dr. Ramesh Sharma',
-      diagnosis: prescriptionData.diagnosis || 'General Consultation',
-      symptoms: prescriptionData.symptoms || '',
-      vital_bp: prescriptionData.vital_bp || '',
-      vital_pulse: prescriptionData.vital_pulse || '',
-      vital_temp: prescriptionData.vital_temp || '',
-      vital_weight: prescriptionData.vital_weight || '',
-      created_at: new Date().toISOString().split('T')[0],
-      items: prescriptionData.items || [],
-    };
-
-    setPrescriptions((prev) => [newRx, ...prev]);
-
-    if (!token) return { success: true, data: newRx };
+    if (!token) {
+      return { success: false, message: 'Authentication required' };
+    }
 
     try {
       const res = await createPrescriptionApi(token, prescriptionData);
       if (res.success) {
-        fetchPrescriptions();
+        await fetchPrescriptions();
+        return res;
+      } else {
+        return {
+          success: false,
+          message: res.message || 'Failed to create prescription',
+          errors: (res as any).errors,
+        };
       }
-      return res;
     } catch (err: any) {
-      return { success: true, data: newRx };
+      return {
+        success: false,
+        message: err.message || 'Error occurred while saving prescription',
+      };
     }
   };
 

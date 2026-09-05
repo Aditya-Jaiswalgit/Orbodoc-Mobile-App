@@ -57,3 +57,21 @@ export async function updateNotificationSubscriptionsApi(
     body: JSON.stringify({ categories }),
   });
 }
+
+export async function clearNotificationsApi(token: string): Promise<ApiResponse<any>> {
+  return apiFetch<any>('/notifications/clear', {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function broadcastNotificationApi(
+  token: string,
+  payload: { title: string; message: string; target_role?: string; category?: string }
+): Promise<ApiResponse<any>> {
+  return apiFetch<any>('/notifications/broadcast', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+}

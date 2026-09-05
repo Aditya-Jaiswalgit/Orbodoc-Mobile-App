@@ -82,8 +82,9 @@ export const useTreatmentBilling = () => {
     try {
       const res = await getTreatmentBillByIdApi(token, id);
       if (res.success && res.data) {
-        setSelectedBill(res.data);
-        return res.data;
+        const billObj = (res.data as any).bill || (res.data as any).data || res.data;
+        setSelectedBill(billObj);
+        return billObj;
       }
       return null;
     } catch (err: any) {

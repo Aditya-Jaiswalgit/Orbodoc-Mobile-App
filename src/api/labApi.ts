@@ -127,13 +127,71 @@ export async function updateLabReportApi(
   });
 }
 
+export interface LabCatalogItem {
+  id: number;
+  clinic_id?: number;
+  test_name: string;
+  test_code?: string;
+  description?: string;
+  price: number;
+  discount_price?: number;
+  home_collection_available?: number | boolean;
+  is_available?: number | boolean;
+  status?: number | boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export async function getLabCatalogApi(
   token: string,
   clinicId?: number | string
-): Promise<ApiResponse<any>> {
+): Promise<ApiResponse<{ catalog: LabCatalogItem[] }>> {
   const query = clinicId ? `?clinic_id=${clinicId}&limit=1000` : `?limit=1000`;
-  return apiFetch<any>(`/labs/catalog${query}`, {
+  return apiFetch<{ catalog: LabCatalogItem[] }>(`/labs/catalog${query}`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getMasterLabTestsApi(
+  token: string
+): Promise<ApiResponse<{ tests: any[] }>> {
+  return apiFetch<{ tests: any[] }>('/labs/master-tests', {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function createLabCatalogItemApi(
+  token: string,
+  data: Partial<LabCatalogItem>
+): Promise<ApiResponse<{ catalogItem: LabCatalogItem }>> {
+  return apiFetch<{ catalogItem: LabCatalogItem }>('/labs/catalog', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function mapMasterLabTestApi(
+  token: string,
+  data: { lab_test_id: number; price: number; discount_price?: number; home_collection_available?: number }
+): Promise<ApiResponse<{ catalogItem: LabCatalogItem }>> {
+  return apiFetch<{ catalogItem: LabCatalogItem }>('/labs/catalog/map-master', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateLabCatalogItemApi(
+  token: string,
+  id: number,
+  data: Partial<LabCatalogItem>
+): Promise<ApiResponse<{ catalogItem: LabCatalogItem }>> {
+  return apiFetch<{ catalogItem: LabCatalogItem }>(`/labs/catalog/${id}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(data),
   });
 }

@@ -57,6 +57,13 @@ export async function updatePatientApi(
   });
 }
 
+export async function getPatientBillingSummaryApi(token: string, id: number): Promise<ApiResponse<any>> {
+  return apiFetch<any>(`/patients/${id}/billing-summary`, {
+    method: 'GET',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+}
+
 export async function getPatientConsultationsApi(token: string, id: number): Promise<ApiResponse<any[]>> {
   return apiFetch<any[]>(`/patients/${id}/consultations`, {
     method: 'GET',

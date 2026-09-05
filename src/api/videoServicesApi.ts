@@ -77,8 +77,12 @@ export async function getWalletTransactionsApi(token: string): Promise<ApiRespon
   });
 }
 
-export async function getVideoAppointmentsApi(token: string): Promise<ApiResponse<VideoAppointmentItem[]>> {
-  return apiFetch<VideoAppointmentItem[]>('/appointments?consultation_mode=video', {
+export async function getVideoAppointmentsApi(
+  token: string,
+  doctorId?: number | string
+): Promise<ApiResponse<VideoAppointmentItem[]>> {
+  const query = doctorId ? `&doctor_id=${doctorId}` : '';
+  return apiFetch<VideoAppointmentItem[]>(`/appointments?consultation_mode=video${query}`, {
     method: 'GET',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });

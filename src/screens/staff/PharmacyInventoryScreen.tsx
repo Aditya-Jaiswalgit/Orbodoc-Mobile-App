@@ -45,6 +45,9 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, onOpenN
   const [stock, setStock] = useState('');
   const [reorder, setReorder] = useState('30');
 
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 5;
+
   const formatExpiryDate = (d?: string) => {
     if (!d) return 'N/A';
     try {
@@ -56,26 +59,63 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, onOpenN
     }
   };
 
-  const filteredMedicines = (medicines || []).filter((m) => {
+  const isLowStockItem = (m: Medicine) => {
+    const qty = Number(m.stock_quantity || m.quantity || 0);
+    const minQty = Number(m.reorder_level || m.min_stock || 10);
+    return qty > 0 && qty <= minQty;
+  };
+
+  const isInStockItem = (m: Medicine) => {
+    const qty = Number(m.stock_quantity || m.quantity || 0);
+    const minQty = Number(m.reorder_level || m.min_stock || 10);
+    return qty > minQty; // Normal stock ONLY - excludes low stock
+  };
+
+  const allFilteredMedicines = (medicines || []).filter((m) => {
     const q = searchQuery.toLowerCase().trim();
     const mName = String(m.name || '').toLowerCase();
     const gName = String(m.generic_name || '').toLowerCase();
     const matchesSearch = !q || mName.includes(q) || gName.includes(q);
-    const qty = Number(m.stock_quantity || m.quantity || 0);
-    const minQty = Number(m.reorder_level || m.min_stock || 10);
 
     let matchesStatus = true;
     if (statusFilter === 'in_stock') {
-      matchesStatus = qty > 0;
+      matchesStatus = isInStockItem(m); // Excludes low stock
     } else if (statusFilter === 'low_stock') {
-      matchesStatus = qty > 0 && qty <= minQty;
+      matchesStatus = isLowStockItem(m);
     }
 
     return matchesSearch && matchesStatus;
   });
 
+  const totalItems = allFilteredMedicines.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = totalItems > 0 ? (safeCurrentPage - 1) * pageSize : 0;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+
+  // Active 5 medicines for current page
+  const currentPageMedicines = allFilteredMedicines.slice(startIndex, endIndex);
+
+  // Calculated stock value for ONLY the 5 medicines showing on current active page
+  const currentPageStockValue = currentPageMedicines.reduce((sum, m) => {
+    const qty = Number(m.stock_quantity || m.quantity || 0);
+    const price = Number(m.selling_price || m.unit_price || m.price || 0);
+    return sum + qty * price;
+  }, 0);
+
+  // In Stock count on current page (normal stock > minQty ONLY)
+  const currentPageInStockCount = currentPageMedicines.filter(isInStockItem).length;
+
+  // Low Stock count on current page (qty > 0 && qty <= minQty)
+  const currentPageLowStockCount = currentPageMedicines.filter(isLowStockItem).length;
+
+  // Total catalog counts
+  const totalInStockCatalogCount = (medicines || []).filter(isInStockItem).length;
+  const totalLowStockCatalogCount = (medicines || []).filter(isLowStockItem).length;
+
   const handleSearchChange = (text: string) => {
     setSearchQuery(text);
+    setCurrentPage(1);
     searchMedicines(text);
   };
 
@@ -146,9 +186,6 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, onOpenN
               <Text style={styles.pageTitle}>Medicine Inventory</Text>
               <Text style={styles.pageSub}>Aarogya Care Clinic • Stock Management</Text>
             </View>
-            <TouchableOpacity style={styles.addBtn} onPress={() => setAddModalVisible(true)}>
-              <Text style={styles.addBtnText}>+ Add Medicine</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -156,21 +193,21 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, onOpenN
         <View style={styles.statsGrid}>
           <TouchableOpacity
             style={[styles.statCard, statusFilter === 'all' && styles.statCardActive]}
-            onPress={() => setStatusFilter('all')}>
+            onPress={() => { setStatusFilter('all'); setCurrentPage(1); }}>
             <View style={styles.statHeader}>
               <Text style={styles.statIcon}>💊</Text>
-              <Text style={styles.statVal}>{stats.total_medicines}</Text>
+              <Text style={styles.statVal}>{stats.total_medicines || (medicines || []).length || totalItems}</Text>
             </View>
             <Text style={styles.statLabel}>Total Medicines</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.statCard, statusFilter === 'in_stock' && styles.statCardActive]}
-            onPress={() => setStatusFilter('in_stock')}>
+            onPress={() => { setStatusFilter('in_stock'); setCurrentPage(1); }}>
             <View style={styles.statHeader}>
               <Text style={styles.statIcon}>📦</Text>
               <Text style={[styles.statVal, { color: '#166534' }]}>
-                {stats.in_stock_count}
+                {currentPageInStockCount}
               </Text>
             </View>
             <Text style={styles.statLabel}>In Stock</Text>
@@ -178,10 +215,10 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, onOpenN
 
           <TouchableOpacity
             style={[styles.statCard, statusFilter === 'low_stock' && styles.statCardActive]}
-            onPress={() => setStatusFilter('low_stock')}>
+            onPress={() => { setStatusFilter('low_stock'); setCurrentPage(1); }}>
             <View style={styles.statHeader}>
               <Text style={styles.statIcon}>⚠️</Text>
-              <Text style={[styles.statVal, { color: '#b45309' }]}>{stats.low_stock_count}</Text>
+              <Text style={[styles.statVal, { color: '#b45309' }]}>{currentPageLowStockCount}</Text>
             </View>
             <Text style={styles.statLabel}>Low Stock</Text>
           </TouchableOpacity>
@@ -189,8 +226,8 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, onOpenN
           <View style={styles.statCard}>
             <View style={styles.statHeader}>
               <Text style={styles.statIcon}>₹</Text>
-              <Text style={[styles.statVal, { color: '#0d9488', fontSize: 15 }]}>
-                ₹{Number(stats.stock_value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              <Text style={[styles.statVal, { color: '#0d9488', fontSize: 14 }]}>
+                ₹{Number(currentPageStockValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </Text>
             </View>
             <Text style={styles.statLabel}>Stock Value</Text>
@@ -210,25 +247,25 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, onOpenN
           <View style={styles.filterPillsRow}>
             <TouchableOpacity
               style={[styles.filterPill, statusFilter === 'all' && styles.filterPillActive]}
-              onPress={() => setStatusFilter('all')}>
+              onPress={() => { setStatusFilter('all'); setCurrentPage(1); }}>
               <Text style={[styles.filterPillText, statusFilter === 'all' && styles.filterPillTextActive]}>
-                All ({medicines.length})
+                All ({(medicines || []).length})
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.filterPill, statusFilter === 'in_stock' && styles.filterPillActive]}
-              onPress={() => setStatusFilter('in_stock')}>
+              onPress={() => { setStatusFilter('in_stock'); setCurrentPage(1); }}>
               <Text style={[styles.filterPillText, statusFilter === 'in_stock' && styles.filterPillTextActive]}>
-                In Stock ({stats.in_stock_count})
+                In Stock ({totalInStockCatalogCount})
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.filterPill, statusFilter === 'low_stock' && styles.filterPillActive]}
-              onPress={() => setStatusFilter('low_stock')}>
+              onPress={() => { setStatusFilter('low_stock'); setCurrentPage(1); }}>
               <Text style={[styles.filterPillText, statusFilter === 'low_stock' && styles.filterPillTextActive]}>
-                Low Stock ({stats.low_stock_count})
+                Low Stock ({totalLowStockCatalogCount})
               </Text>
             </TouchableOpacity>
           </View>
@@ -236,23 +273,23 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, onOpenN
 
         {/* Medicines List Header */}
         <Text style={styles.sectionHeader}>
-          {statusFilter === 'in_stock' ? 'In Stock Medicines' : statusFilter === 'low_stock' ? 'Low Stock Medicines' : 'All Medicines'} ({filteredMedicines.length})
+          All Medicines ({currentPageMedicines.length})
         </Text>
 
-        {/* Medicines Cards */}
+        {/* Medicines Cards (Showing 5 per page) */}
         {loading && medicines.length === 0 ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator size="large" color="#0d9488" />
             <Text style={styles.loadingText}>Loading medicines from DB...</Text>
           </View>
-        ) : filteredMedicines.length === 0 ? (
+        ) : currentPageMedicines.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>No Medicines Found</Text>
             <Text style={styles.emptySub}>No medicine records match the current filter.</Text>
           </View>
         ) : (
           <View style={styles.medList}>
-            {filteredMedicines.map((med) => {
+            {currentPageMedicines.map((med) => {
               const qty = Number(med.stock_quantity || med.quantity || 0);
               const minQty = Number(med.reorder_level || med.min_stock || 10);
               const isLow = qty > 0 && qty <= minQty;
@@ -289,53 +326,73 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, onOpenN
                       <Text style={styles.metaVal}>{formatExpiryDate(med.expiry_date)}</Text>
                     </View>
                   </View>
-
-                  <TouchableOpacity
-                    style={styles.adjustBtn}
-                    onPress={() => {
-                      setSelectedMedicine(med);
-                      setNewStockQty(String(qty));
-                      setAdjustModalVisible(true);
-                    }}>
-                    <Text style={styles.adjustBtnText}>✏️ Update Stock Quantity</Text>
-                  </TouchableOpacity>
                 </View>
               );
             })}
           </View>
         )}
-      </ScrollView>
 
-      {/* Adjust Stock Modal */}
-      <Modal visible={adjustModalVisible} animationType="fade" transparent={true}>
-        <View style={styles.modalBg}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Update Stock Quantity</Text>
-            {selectedMedicine ? (
-              <Text style={styles.medSubTitle}>
-                {selectedMedicine.name} (Current: {selectedMedicine.stock_quantity || 0})
-              </Text>
-            ) : null}
+        {/* Web Portal Style Pagination Component */}
+        {totalItems > 0 && (
+          <View style={styles.paginationCard}>
+            <Text style={styles.paginationSummaryText}>
+              Showing {totalItems > 0 ? startIndex + 1 : 0} to {endIndex} of {totalItems} medicines
+            </Text>
 
-            <Text style={styles.label}>New Available Units *</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={newStockQty}
-              onChangeText={setNewStockQty}
-            />
+            <View style={styles.paginationRow}>
+              {/* Page Limit Badge */}
+              <View style={styles.limitChip}>
+                <Text style={styles.limitChipText}>5 / page ▾</Text>
+              </View>
 
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setAdjustModalVisible(false)}>
-                <Text style={styles.cancelText}>Cancel</Text>
+              {/* Previous Button */}
+              <TouchableOpacity
+                style={[styles.navPillBtn, safeCurrentPage <= 1 && styles.navPillBtnDisabled]}
+                disabled={safeCurrentPage <= 1}
+                onPress={() => setCurrentPage((p) => Math.max(1, p - 1))}>
+                <Text style={[styles.navPillBtnText, safeCurrentPage <= 1 && styles.navPillBtnTextDisabled]}>
+                  ‹ Previous
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleAdjustStock}>
-                <Text style={styles.saveText}>Update Stock</Text>
+
+              {/* Page Number Buttons */}
+              <View style={styles.pageNumbersGroup}>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => {
+                    if (totalPages <= 5) return true;
+                    if (p === 1 || p === totalPages) return true;
+                    return Math.abs(p - safeCurrentPage) <= 1;
+                  })
+                  .map((p, idx, arr) => {
+                    const showEllipsisBefore = idx > 0 && p - arr[idx - 1] > 1;
+                    return (
+                      <React.Fragment key={p}>
+                        {showEllipsisBefore && <Text style={styles.ellipsisDot}>...</Text>}
+                        <TouchableOpacity
+                          style={[styles.numBtn, safeCurrentPage === p && styles.numBtnActive]}
+                          onPress={() => setCurrentPage(p)}>
+                          <Text style={[styles.numBtnText, safeCurrentPage === p && styles.numBtnTextActive]}>
+                            {p}
+                          </Text>
+                        </TouchableOpacity>
+                      </React.Fragment>
+                    );
+                  })}
+              </View>
+
+              {/* Next Button */}
+              <TouchableOpacity
+                style={[styles.navPillBtn, safeCurrentPage >= totalPages && styles.navPillBtnDisabled]}
+                disabled={safeCurrentPage >= totalPages}
+                onPress={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}>
+                <Text style={[styles.navPillBtnText, safeCurrentPage >= totalPages && styles.navPillBtnTextDisabled]}>
+                  Next ›
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
-        </View>
-      </Modal>
+        )}
+      </ScrollView>
 
       {/* Add Medicine Modal */}
       <Modal visible={addModalVisible} animationType="slide" transparent={true}>
@@ -352,7 +409,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, onOpenN
               onChangeText={setName}
             />
 
-            <Text style={styles.label}>Dosage Type / Category</Text>
+            <Text style={styles.label}>Form / Category</Text>
             <TextInput
               style={styles.input}
               placeholder="Capsule / Tablet / Syrup"
@@ -363,7 +420,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, onOpenN
 
             <View style={styles.rowTwo}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Unit Price (₹) *</Text>
+                <Text style={styles.label}>Selling Price (Rs) *</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="155.24"
@@ -498,7 +555,96 @@ const styles = StyleSheet.create({
   cancelText: { color: '#475569', fontWeight: '700' },
   saveBtn: { flex: 1, backgroundColor: '#0d9488', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
   saveText: { color: '#ffffff', fontWeight: '800' },
+  paginationCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+    gap: 12,
+  },
+  paginationSummaryText: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  paginationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  limitChip: {
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    marginRight: 4,
+  },
+  limitChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  navPillBtn: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  navPillBtnDisabled: {
+    opacity: 0.4,
+    backgroundColor: '#f8fafc',
+  },
+  navPillBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  navPillBtnTextDisabled: {
+    color: '#94a3b8',
+  },
+  pageNumbersGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  numBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  numBtnActive: {
+    backgroundColor: '#f1f5f9',
+    borderColor: '#0d9488',
+    borderWidth: 1.5,
+  },
+  numBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  numBtnTextActive: {
+    color: '#0d9488',
+    fontWeight: '800',
+  },
+  ellipsisDot: {
+    fontSize: 12,
+    color: '#94a3b8',
+    paddingHorizontal: 2,
+  },
 });
 
 export default PharmacyInventoryScreen;
-

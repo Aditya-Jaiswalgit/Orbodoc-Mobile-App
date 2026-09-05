@@ -10,7 +10,7 @@ import { useAuthContext } from '../context/AuthContext';
 import { Appointment } from '../types/clinicTypes';
 
 export const useAppointments = () => {
-  const { token } = useAuthContext();
+  const { token, user } = useAuthContext();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,12 +20,26 @@ export const useAppointments = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await getAppointmentsApi(token);
+      const isDoc =
+        String((user as any)?.roleName || (user as any)?.role_name || (user as any)?.role || '')
+          .toLowerCase()
+          .includes('doctor') ||
+        Number((user as any)?.roleId || (user as any)?.role_id) === 3 ||
+        Number((user as any)?.is_doctor) === 1 ||
+        Boolean((user as any)?.specialization);
+      const doctorId = (user as any)?.id || (user as any)?.userId;
+      const query = doctorId ? `doctor_id=${doctorId}` : '';
+      const res = await getAppointmentsApi(token, query);
       if (res.success && res.data) {
         const list = Array.isArray(res.data)
           ? res.data
           : (res.data as any)?.appointments || (res.data as any)?.data || [];
-        setAppointments(list);
+
+        const filteredList = (isDoc || doctorId) && doctorId
+          ? list.filter((a: any) => !a.doctor_id || Number(a.doctor_id) === Number(doctorId))
+          : list;
+
+        setAppointments(filteredList);
       } else {
         setError(res.message || 'Failed to fetch appointments');
       }
@@ -34,7 +48,7 @@ export const useAppointments = () => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, user]);
 
   const bookAppointment = async (appointmentData: Partial<Appointment>) => {
     if (!token) throw new Error('Authentication required');

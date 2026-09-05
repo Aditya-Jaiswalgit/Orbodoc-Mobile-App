@@ -77,13 +77,26 @@ export const useVideoServices = () => {
       } catch (e) {}
 
       try {
-        const apptRes = await getVideoAppointmentsApi(token);
+        const isDoc =
+          String((user as any)?.roleName || (user as any)?.role_name || (user as any)?.role || '')
+            .toLowerCase()
+            .includes('doctor') ||
+          Number((user as any)?.roleId || (user as any)?.role_id) === 3 ||
+          Number((user as any)?.is_doctor) === 1;
+        const doctorId = (user as any)?.id || (user as any)?.userId;
+
+        const apptRes = await getVideoAppointmentsApi(token, doctorId);
         if (apptRes.success && apptRes.data) {
           const rawList = Array.isArray(apptRes.data)
             ? apptRes.data
             : (apptRes.data as any).appointments || (apptRes.data as any).data || [];
 
           videoOnly = rawList.filter(isVideoMode);
+          if (isDoc && doctorId) {
+            videoOnly = videoOnly.filter(
+              (a: any) => !a.doctor_id || Number(a.doctor_id) === Number(doctorId)
+            );
+          }
           setVideoAppointments(videoOnly);
         }
       } catch (e) {}
