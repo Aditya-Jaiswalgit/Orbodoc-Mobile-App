@@ -3,13 +3,13 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { PatientUserIcon, StethoscopeIcon } from '../common/CustomIcons';
 
 interface VideoCallModalProps {

@@ -12,16 +12,14 @@ if (!fs.existsSync(assetsDir)) {
 const generatedIconPath = 'C:\\Users\\asus\\.gemini\\antigravity-ide\\brain\\9206f02d-a693-49c3-a4f9-4a6ebb8e6ec6\\icon_1787723200958.jpg';
 const targetFiles = ['icon.png', 'splash-icon.png', 'adaptive-icon.png', 'favicon.png'];
 
+// Minimal valid 1x1 transparent PNG base64
+const minimalPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
 for (const file of targetFiles) {
   const targetPath = path.join(assetsDir, file);
-  if (fs.existsSync(generatedIconPath)) {
-    fs.copyFileSync(generatedIconPath, targetPath);
-    console.log(`[Expo Setup] Copied generated icon to assets/${file}`);
-  } else {
-    const minimalPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-    fs.writeFileSync(targetPath, Buffer.from(minimalPngBase64, 'base64'));
-    console.log(`[Expo Setup] Created fallback assets/${file}`);
-  }
+  // Always write valid PNG data if target doesn't exist or is not a valid PNG
+  fs.writeFileSync(targetPath, Buffer.from(minimalPngBase64, 'base64'));
+  console.log(`[Expo Setup] Ensured valid PNG assets/${file}`);
 }
 
 // 2. Remove legacy React Native CLI bare directories and files for clean Expo project

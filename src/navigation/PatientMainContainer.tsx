@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Modal,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BellNotificationIcon,
   BillingCardIcon,

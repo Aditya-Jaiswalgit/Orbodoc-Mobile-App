@@ -21,41 +21,79 @@ export const useAppointments = () => {
     setLoading(true);
     setError(null);
     try {
-      const roleStr = String((user as any)?.roleName || (user as any)?.role_name || (user as any)?.role || '').toLowerCase();
+      const roleStr = String(
+        (user as any)?.roleName ||
+        (user as any)?.role_name ||
+        (user as any)?.role ||
+        (user as any)?.userType ||
+        (user as any)?.user_type ||
+        ''
+      ).toLowerCase();
+
       const isDoc =
         roleStr.includes('doctor') ||
         Number((user as any)?.roleId || (user as any)?.role_id) === 3 ||
         Number((user as any)?.is_doctor) === 1 ||
         Boolean((user as any)?.specialization);
 
+      const isStaffRole =
+        roleStr.includes('nurse') ||
+        roleStr.includes('reception') ||
+        roleStr.includes('admin') ||
+        roleStr.includes('staff') ||
+        roleStr.includes('pharmacist') ||
+        roleStr.includes('lab') ||
+        (user as any)?.userType === 'staff' ||
+        (user as any)?.user_type === 'staff';
+
+      const isStaff = isDoc || isStaffRole;
+
       let list: any[] = [];
 
-      if (isDoc) {
-        const doctorId = (user as any)?.id || (user as any)?.userId;
-        const query = doctorId ? `doctor_id=${doctorId}` : '';
-        const res = await getAppointmentsApi(token, query);
-        if (res.success && res.data) {
-          const raw = Array.isArray(res.data)
-            ? res.data
-            : (res.data as any)?.appointments || (res.data as any)?.data || [];
+      if (isStaff) {
+        if (isDoc) {
+          const doctorId = (user as any)?.id || (user as any)?.userId;
+          const query = doctorId ? `doctor_id=${doctorId}&per_page=500&limit=500` : 'per_page=500&limit=500';
+          const res = await getAppointmentsApi(token, query);
+          if (res.success && res.data) {
+            const raw = Array.isArray(res.data)
+              ? res.data
+              : (res.data as any)?.appointments || (res.data as any)?.data || [];
 
-          list = doctorId
-            ? raw.filter((a: any) => !a.doctor_id || Number(a.doctor_id) === Number(doctorId))
-            : raw;
+            list = doctorId
+              ? raw.filter((a: any) => !a.doctor_id || Number(a.doctor_id) === Number(doctorId))
+              : raw;
+          }
+          if (list.length === 0) {
+            const resAll = await getAppointmentsApi(token, 'per_page=500&limit=500');
+            if (resAll.success && resAll.data) {
+              list = Array.isArray(resAll.data)
+                ? resAll.data
+                : (resAll.data as any)?.appointments || (resAll.data as any)?.data || [];
+            }
+          }
+        } else {
+          // Nurse, Receptionist, Admin, etc. -> Fetch all clinic appointments
+          const res = await getAppointmentsApi(token, 'per_page=500&limit=500');
+          if (res.success && res.data) {
+            list = Array.isArray(res.data)
+              ? res.data
+              : (res.data as any)?.appointments || (res.data as any)?.data || [];
+          }
         }
       } else {
         // Patient flow
         const patientId = (user as any)?.patient_id || (user as any)?.id || (user as any)?.userId;
 
         // 1. Try fetching with patient_id filter
-        let res = await getAppointmentsApi(token, patientId ? `patient_id=${patientId}` : '');
+        let res = await getAppointmentsApi(token, patientId ? `patient_id=${patientId}&per_page=500&limit=500` : 'per_page=500&limit=500');
         let raw = res.success && res.data
           ? (Array.isArray(res.data) ? res.data : (res.data as any)?.appointments || (res.data as any)?.data || [])
           : [];
 
         // 2. If empty, try without query params (token identifies patient)
         if (raw.length === 0) {
-          res = await getAppointmentsApi(token, '');
+          res = await getAppointmentsApi(token, 'per_page=500&limit=500');
           if (res.success && res.data) {
             raw = Array.isArray(res.data)
               ? res.data
@@ -86,7 +124,7 @@ export const useAppointments = () => {
         }
 
         // Filter strictly for logged-in patient
-        if (raw.length > 0 && !isDoc) {
+        if (raw.length > 0) {
           const patientPhone = String((user as any)?.phone || (user as any)?.phoneNumber || '').trim();
           const patientName = String((user as any)?.full_name || (user as any)?.fullName || (user as any)?.name || '').trim().toLowerCase();
 

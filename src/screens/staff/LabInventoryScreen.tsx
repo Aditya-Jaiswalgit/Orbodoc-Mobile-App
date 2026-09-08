@@ -15,6 +15,7 @@ import {
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { useLabInventory } from '../../hooks/useLabInventory';
 import { LabCatalogItem } from '../../api/labApi';
+import { useAuthContext } from '../../context/AuthContext';
 
 interface LabInventoryScreenProps {
   onOpenDrawer?: () => void;
@@ -39,6 +40,11 @@ export const LabInventoryScreen: React.FC<LabInventoryScreenProps> = ({
     mapMasterTest,
     updateCatalogItem,
   } = useLabInventory();
+
+  const { user } = useAuthContext();
+  const userRoleStr = String(user?.roleName || user?.role_name || user?.role || '').toLowerCase().trim();
+  const userRoleId = Number((user as any)?.roleId || (user as any)?.role_id || 0);
+  const isNurse = userRoleStr.includes('nurse') || userRoleId === 8;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -379,9 +385,11 @@ export const LabInventoryScreen: React.FC<LabInventoryScreenProps> = ({
               <Text style={styles.refreshBtnText}>🔄 Refresh</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.addMasterBtn} onPress={() => setAddMasterModalVisible(true)}>
-              <Text style={styles.addMasterBtnText}>🔍 + Add From Master</Text>
-            </TouchableOpacity>
+            {!isNurse && (
+              <TouchableOpacity style={styles.addMasterBtn} onPress={() => setAddMasterModalVisible(true)}>
+                <Text style={styles.addMasterBtnText}>🔍 + Add From Master</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -526,11 +534,13 @@ export const LabInventoryScreen: React.FC<LabInventoryScreenProps> = ({
                         {item.description || '-'}
                       </Text>
 
-                      {/* Actions */}
+                      {/* Actions - hidden for Nurse role */}
                       <View style={{ width: 70, alignItems: 'flex-end' }}>
-                        <TouchableOpacity style={styles.editActionBtn} onPress={() => handleOpenEdit(item)}>
-                          <Text style={styles.editActionText}>✏️ Edit</Text>
-                        </TouchableOpacity>
+                        {!isNurse && (
+                          <TouchableOpacity style={styles.editActionBtn} onPress={() => handleOpenEdit(item)}>
+                            <Text style={styles.editActionText}>✏️ Edit</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     </View>
                   );

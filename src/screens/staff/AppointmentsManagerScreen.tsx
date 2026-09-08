@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -33,18 +34,41 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
   } = useAppointments();
 
   const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [visibleCount, setVisibleCount] = useState<number>(10);
+
+  const handleFilterChange = (filter: string) => {
+    setActiveFilter(filter);
+    setVisibleCount(10);
+  };
+
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
+    setVisibleCount(10);
+  };
 
   const filteredAppointments = (appointments || []).filter((a) => {
-    if (activeFilter === 'all') return true;
     const s = String(a.status || '').toLowerCase();
     const targetFilter = activeFilter.toLowerCase();
 
-    if (targetFilter === 'scheduled') return s === 'scheduled' || s === 'approved' || s === 'confirmed';
-    if (targetFilter === 'in_progress') return s === 'in_progress' || s === 'in progress';
-    if (targetFilter === 'completed') return s === 'completed' || s === 'complete';
-    if (targetFilter === 'cancelled') return s === 'cancelled' || s === 'cancel';
-    return s === targetFilter;
+    let matchesFilter = true;
+    if (targetFilter === 'scheduled') matchesFilter = s === 'scheduled' || s === 'approved' || s === 'confirmed';
+    else if (targetFilter === 'in_progress') matchesFilter = s === 'in_progress' || s === 'in progress';
+    else if (targetFilter === 'completed') matchesFilter = s === 'completed' || s === 'complete';
+    else if (targetFilter === 'cancelled') matchesFilter = s === 'cancelled' || s === 'cancel';
+
+    if (!matchesFilter) return false;
+
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.trim().toLowerCase();
+    const pName = String(a.patient_name || (a as any).patient || '').toLowerCase();
+    const pPhone = String(a.patient_phone || '').toLowerCase();
+    const docName = String(a.doctor_name || '').toLowerCase();
+
+    return pName.includes(q) || pPhone.includes(q) || docName.includes(q);
   });
+
+  const visibleAppointments = filteredAppointments.slice(0, visibleCount);
 
   const handleUpdateStatus = async (id: number, newStatus: Appointment['status']) => {
     try {
@@ -93,12 +117,23 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
         }>
         {/* Top Header */}
         <View style={styles.topRow}>
-          <Text style={styles.pageTitle}>Appointments ({(filteredAppointments || []).length})</Text>
+          <Text style={styles.pageTitle}>Appointments ({filteredAppointments.length})</Text>
           <TouchableOpacity
             style={styles.bookBtn}
             onPress={() => onNavigateScreen('book_appointment')}>
             <Text style={styles.bookBtnText}>+ Book Appointment</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchBox}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="🔍 Search patient name, phone or doctor..."
+            placeholderTextColor="#94a3b8"
+            value={searchQuery}
+            onChangeText={handleSearchChange}
+          />
         </View>
 
         {/* Filter Pills */}
@@ -107,7 +142,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
             <TouchableOpacity
               key={f}
               style={[styles.filterChip, activeFilter === f && styles.filterChipActive]}
-              onPress={() => setActiveFilter(f)}>
+              onPress={() => handleFilterChange(f)}>
               <Text style={[styles.filterText, activeFilter === f && styles.filterTextActive]}>
                 {f.replace('_', ' ').toUpperCase()}
               </Text>
@@ -118,15 +153,15 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
         {/* Appointment Cards */}
         {loading ? (
           <ActivityIndicator size="large" color="#0d9488" style={{ marginTop: 30 }} />
-        ) : (filteredAppointments || []).length === 0 ? (
+        ) : filteredAppointments.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyIcon}>🗓️</Text>
             <Text style={styles.emptyTitle}>No Appointments Found</Text>
-            <Text style={styles.emptySub}>No appointments match your active selection filter.</Text>
+            <Text style={styles.emptySub}>No appointments match your active selection filter or search.</Text>
           </View>
         ) : (
           <View style={styles.list}>
-            {(filteredAppointments || []).map((item, idx) => {
+            {visibleAppointments.map((item, idx) => {
               const statusStr = String(item.status || 'scheduled').toLowerCase();
               const isScheduled = statusStr === 'scheduled' || statusStr === 'approved' || statusStr === 'confirmed';
               const isInProgress = statusStr === 'in_progress' || statusStr === 'in progress';
@@ -186,6 +221,16 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                 </View>
               );
             })}
+
+            {visibleCount < filteredAppointments.length && (
+              <TouchableOpacity
+                style={styles.loadMoreBtn}
+                onPress={() => setVisibleCount((prev) => prev + 10)}>
+                <Text style={styles.loadMoreText}>
+                  Load More Appointments ({visibleAppointments.length} of {filteredAppointments.length})
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </ScrollView>
@@ -211,10 +256,12 @@ const getStatusStyle = (status: Appointment['status']) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   content: { padding: 16, paddingBottom: 80 },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   pageTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
   bookBtn: { backgroundColor: '#0d9488', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   bookBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 13 },
+  searchBox: { marginBottom: 12 },
+  searchInput: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: '#0f172a' },
   filterScroll: { marginBottom: 16 },
   filterChip: { backgroundColor: '#ffffff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#cbd5e1', marginRight: 8 },
   filterChipActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
@@ -245,6 +292,8 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 36, marginBottom: 8 },
   emptyTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
   emptySub: { fontSize: 12, color: '#64748b', textAlign: 'center', marginTop: 4 },
+  loadMoreBtn: { backgroundColor: '#e0f2fe', borderWidth: 1, borderColor: '#bae6fd', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
+  loadMoreText: { color: '#0369a1', fontWeight: '800', fontSize: 13 },
 });
 
 export default AppointmentsManagerScreen;

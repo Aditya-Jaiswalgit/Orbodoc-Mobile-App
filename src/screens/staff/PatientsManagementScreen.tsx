@@ -108,11 +108,21 @@ export const PatientsManagementScreen: React.FC<Props> = ({
   const [genderFilter, setGenderFilter] = useState<string>('All Genders');
   const [bloodGroupFilter, setBloodGroupFilter] = useState<string>('All Blood Groups');
   const [statusFilter, setStatusFilter] = useState<string>('All Status');
+  const [visibleCount, setVisibleCount] = useState<number>(10);
 
   const [selectedPatient, setSelectedPatient] = useState<PatientModel | null>(null);
   const [selectedPrescription, setSelectedPrescription] = useState<any | null>(null);
 
   const { token, user } = useAuthContext();
+
+  const userRoleStr = String(
+    user?.roleName ||
+    user?.role_name ||
+    user?.role ||
+    ''
+  ).toLowerCase().trim();
+  const userRoleId = Number(user?.roleId || user?.role_id || 0);
+  const isNurse = userRoleStr.includes('nurse') || userRoleId === 8;
 
   const [showAddPatientModal, setShowAddPatientModal] = useState<boolean>(false);
   const [showActionMenuModal, setShowActionMenuModal] = useState<boolean>(false);
@@ -413,12 +423,14 @@ export const PatientsManagementScreen: React.FC<Props> = ({
               <Text style={styles.pageSub}>Manage patient records and medical history</Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.addPatientBtn}
-              activeOpacity={0.8}
-              onPress={() => setShowAddPatientModal(true)}>
-              <Text style={styles.addPatientBtnText}>+ Add Patient</Text>
-            </TouchableOpacity>
+            {!isNurse && (
+              <TouchableOpacity
+                style={styles.addPatientBtn}
+                activeOpacity={0.8}
+                onPress={() => setShowAddPatientModal(true)}>
+                <Text style={styles.addPatientBtnText}>+ Add Patient</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -481,7 +493,7 @@ export const PatientsManagementScreen: React.FC<Props> = ({
               placeholder="Search by patient code, name, or phone..."
               placeholderTextColor="#94a3b8"
               value={searchQuery}
-              onChangeText={setSearchQuery}
+              onChangeText={(text) => { setSearchQuery(text); setVisibleCount(10); }}
             />
           </View>
 
@@ -536,7 +548,7 @@ export const PatientsManagementScreen: React.FC<Props> = ({
             </View>
           ) : (
             <View style={styles.patientsList}>
-              {filteredPatients.map((item, idx) => {
+              {filteredPatients.slice(0, visibleCount).map((item, idx) => {
                 const patientCode =
                   (item as any).patient_code || `PT-${String(item.id).padStart(5, '0')}`;
                 const regDate =
@@ -611,6 +623,15 @@ export const PatientsManagementScreen: React.FC<Props> = ({
                   </View>
                 );
               })}
+              {visibleCount < filteredPatients.length && (
+                <TouchableOpacity
+                  style={styles.loadMoreBtn}
+                  onPress={() => setVisibleCount((prev) => prev + 10)}>
+                  <Text style={styles.loadMoreBtnText}>
+                    Load More Patients ({Math.min(visibleCount, filteredPatients.length)} of {filteredPatients.length})
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
@@ -2092,6 +2113,7 @@ export const PatientsManagementScreen: React.FC<Props> = ({
                   style={styles.pickerOptionRow}
                   onPress={() => {
                     setGenderFilter(g);
+                    setVisibleCount(10);
                     setShowGenderPicker(false);
                   }}>
                   <Text style={[styles.pickerOptionText, genderFilter === g && styles.pickerOptionSelected]}>{g}</Text>
@@ -2123,6 +2145,7 @@ export const PatientsManagementScreen: React.FC<Props> = ({
                   style={styles.pickerOptionRow}
                   onPress={() => {
                     setBloodGroupFilter(bg);
+                    setVisibleCount(10);
                     setShowBloodPicker(false);
                   }}>
                   <Text style={[styles.pickerOptionText, bloodGroupFilter === bg && styles.pickerOptionSelected]}>{bg}</Text>
@@ -2154,6 +2177,7 @@ export const PatientsManagementScreen: React.FC<Props> = ({
                   style={styles.pickerOptionRow}
                   onPress={() => {
                     setStatusFilter(s);
+                    setVisibleCount(10);
                     setShowStatusPicker(false);
                   }}>
                   <Text style={[styles.pickerOptionText, statusFilter === s && styles.pickerOptionSelected]}>{s}</Text>
@@ -2234,6 +2258,8 @@ const styles = StyleSheet.create({
   emptyCard: { alignItems: 'center', padding: 30 },
   emptyTitle: { fontSize: 15, fontWeight: '800', color: '#0f172a', marginTop: 8 },
   emptySub: { fontSize: 12, color: '#64748b', textAlign: 'center', marginTop: 2 },
+  loadMoreBtn: { backgroundColor: '#e0f2fe', borderWidth: 1, borderColor: '#bae6fd', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center', marginTop: 12 },
+  loadMoreBtnText: { color: '#0369a1', fontWeight: '800', fontSize: 13 },
   modalOverlayDark: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', justifyContent: 'center', padding: 20 },
   modalCardContainer: { backgroundColor: '#ffffff', borderRadius: 20, padding: 20, maxHeight: '80%' },
   modalTitleHeader: { fontSize: 18, fontWeight: '800', color: '#0f172a', marginBottom: 12 },
