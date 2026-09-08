@@ -15,6 +15,7 @@ import { StaffHeader } from '../../components/common/StaffHeader';
 import { useMedicineBills } from '../../hooks/useMedicineBills';
 import { MedicineBill, MedicineBillItem } from '../../api/medicineBillApi';
 import { generateInvoiceHtml, printOrDownloadPdf } from '../../utils/pdfGenerator';
+import { InvoiceModal } from '../../components/billing/InvoiceModal';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -522,108 +523,36 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
         </View>
       </Modal>
 
-      {/* INVOICE DETAILS PRINTABLE MODAL */}
-      <Modal visible={detailsModalVisible} animationType="slide" transparent={true} onRequestClose={() => setDetailsModalVisible(false)}>
-        <View style={styles.modalBg}>
-          <View style={styles.modalCardWide}>
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Medicine Invoice Receipt</Text>
-              <TouchableOpacity onPress={() => setDetailsModalVisible(false)} style={styles.closeBtn}>
-                <Text style={styles.closeBtnText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {selectedBill ? (
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
-                {/* Invoice Receipt Header */}
-                <View style={styles.receiptPrintHeader}>
-                  <View>
-                    <Text style={styles.clinicTitleText}>{selectedBill.clinic_name || 'Aarogya Care Pharmacy'}</Text>
-                    <Text style={styles.receiptSubtitleText}>Invoice #{selectedBill.bill_number || `MB-${selectedBill.id}`}</Text>
-                  </View>
-                  <View style={[styles.statusBadgePill, selectedBill.payment_status === 'paid' ? styles.paidBg : styles.pendingBg]}>
-                    <Text style={[styles.statusText, selectedBill.payment_status === 'paid' ? styles.paidText : styles.pendingText]}>
-                      {String(selectedBill.payment_status || 'PAID').toUpperCase()}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Patient Details */}
-                <View style={styles.receiptPatientInfoCard}>
-                  <Text style={styles.infoLine}>👤 <Text style={styles.bold}>Patient Name:</Text> {selectedBill.patient_name}</Text>
-                  <Text style={styles.infoLine}>📞 <Text style={styles.bold}>Mobile:</Text> {selectedBill.patient_phone || 'N/A'}</Text>
-                  <Text style={styles.infoLine}>📅 <Text style={styles.bold}>Invoice Date:</Text> {selectedBill.created_at ? String(selectedBill.created_at).split('T')[0] : 'N/A'}</Text>
-                </View>
-
-                {/* Itemized Table */}
-                <Text style={styles.sectionHeading}>Prescribed Medicine Items</Text>
-                <View style={styles.itemsTableCard}>
-                  {Array.isArray(selectedBill.items) && selectedBill.items.length > 0 ? (
-                    selectedBill.items.map((it, idx) => (
-                      <View key={idx} style={styles.itemTableRow}>
-                        <Text style={[styles.itemTableTitle, { flex: 2 }]}>{it.medicine_name}</Text>
-                        <Text style={styles.itemTableQty}>Qty: {it.quantity}</Text>
-                        <Text style={styles.itemTablePrice}>₹{Number(it.unit_price || 0).toFixed(2)}</Text>
-                        <Text style={styles.itemTableTotal}>₹{Number(it.total_price || 0).toFixed(2)}</Text>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={{ color: '#64748b', fontSize: 12 }}>No itemized records available.</Text>
-                  )}
-                </View>
-
-                {/* Summary Table */}
-                <View style={styles.totalsBoxCard}>
-                  <View style={styles.totalRowLine}>
-                    <Text style={styles.totalRowLabel}>Subtotal:</Text>
-                    <Text style={styles.totalRowVal}>₹{Number(selectedBill.subtotal || selectedBill.total_amount || 0).toFixed(2)}</Text>
-                  </View>
-                  <View style={styles.totalRowLine}>
-                    <Text style={styles.totalRowLabel}>Discount:</Text>
-                    <Text style={styles.totalRowVal}>₹{Number(selectedBill.discount_amount || 0).toFixed(2)}</Text>
-                  </View>
-                  <View style={[styles.totalRowLine, { borderTopWidth: 1, borderTopColor: '#cbd5e1', paddingTop: 6, marginTop: 4 }]}>
-                    <Text style={[styles.totalRowLabel, { fontWeight: '800' }]}>Grand Total Paid:</Text>
-                    <Text style={styles.grandTotalVal}>₹{Number(selectedBill.net_amount || selectedBill.total_amount || 0).toFixed(2)}</Text>
-                  </View>
-                </View>
-
-                {/* PDF Print Action Button */}
-                <TouchableOpacity
-                  style={{ backgroundColor: '#0d9488', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 10 }}
-                  onPress={() => {
-                    const netAmt = Number(selectedBill.net_amount || selectedBill.total_amount || 0);
-                    const paidAmt = Number(selectedBill.paid_amount || netAmt);
-                    const dueAmt = Math.max(0, netAmt - paidAmt);
-                    const html = generateInvoiceHtml({
-                      invoiceNumber: selectedBill.bill_number || `MB-${selectedBill.id}`,
-                      invoiceDate: selectedBill.created_at ? String(selectedBill.created_at).split('T')[0] : new Date().toLocaleDateString(),
-                      clinicName: selectedBill.clinic_name || 'Aarogya Care Pharmacy',
-                      patientName: selectedBill.patient_name || 'Patient',
-                      patientPhone: selectedBill.patient_phone || '',
-                      paymentStatus: selectedBill.payment_status || 'paid',
-                      items: (selectedBill.items || []).map((it) => ({
-                        name: it.medicine_name,
-                        qty: it.quantity,
-                        unitPrice: Number(it.unit_price || 0),
-                        totalPrice: Number(it.total_price || 0),
-                      })),
-                      subtotal: Number(selectedBill.subtotal || netAmt),
-                      discount: Number(selectedBill.discount_amount || 0),
-                      tax: 0,
-                      grandTotal: netAmt,
-                      paidAmount: paidAmt,
-                      dueAmount: dueAmt,
-                    });
-                    printOrDownloadPdf(html, `Invoice_${selectedBill.bill_number || selectedBill.id}`);
-                  }}>
-                  <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>📥 Print / Download Invoice PDF</Text>
-                </TouchableOpacity>
-              </ScrollView>
-            ) : null}
-          </View>
-        </View>
-      </Modal>
+      {/* INVOICE DETAILS REUSABLE MODAL */}
+      {selectedBill && (
+        <InvoiceModal
+          visible={detailsModalVisible}
+          title="Medicine Invoice"
+          invoiceType="medicine"
+          invoiceNumber={selectedBill.bill_number || `MB-${selectedBill.id}`}
+          invoiceDate={selectedBill.created_at ? String(selectedBill.created_at).split('T')[0] : undefined}
+          clinicName={selectedBill.clinic_name || 'Aarogya Care Clinic'}
+          patientName={selectedBill.patient_name || 'Patient'}
+          patientPhone={selectedBill.patient_phone || '9876534927'}
+          doctorName={selectedBill.doctor_name || (selectedBill as any).doctor_name || 'Dr. Rahul Sharma'}
+          prescriptionId={selectedBill.prescription_id || selectedBill.id}
+          paymentMethod={String((selectedBill as any).payment_mode || (selectedBill as any).payment_method || 'UPI')}
+          paymentStatus={selectedBill.payment_status || 'paid'}
+          items={(selectedBill.items || []).map((it) => ({
+            name: it.medicine_name,
+            quantity: it.quantity,
+            unitPrice: Number(it.unit_price || 0),
+            totalPrice: Number(it.total_price || 0),
+          }))}
+          subtotal={Number(selectedBill.subtotal || selectedBill.total_amount || 0)}
+          discount={Number(selectedBill.discount_amount || 0)}
+          tax={0}
+          grandTotal={Number(selectedBill.net_amount || selectedBill.total_amount || 0)}
+          paidAmount={Number(selectedBill.paid_amount || (selectedBill.payment_status === 'paid' ? (selectedBill.net_amount || selectedBill.total_amount || 0) : 0))}
+          dueAmount={selectedBill.due_amount}
+          onClose={() => setDetailsModalVisible(false)}
+        />
+      )}
     </View>
   );
 };

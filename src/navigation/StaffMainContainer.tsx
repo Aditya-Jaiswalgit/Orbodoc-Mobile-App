@@ -46,6 +46,9 @@ import StaffManagementScreen from '../screens/staff/StaffManagementScreen';
 import TreatmentBillingScreen from '../screens/staff/TreatmentBillingScreen';
 import VideoServicesScreen from '../screens/staff/VideoServicesScreen';
 
+import PatientMedicineBillingScreen from '../screens/patient/MedicineBillingScreen';
+import PatientTreatmentBillingScreen from '../screens/patient/TreatmentBillingScreen';
+
 export type StaffTabType =
   | 'dashboard'
   | 'clinics'
@@ -79,55 +82,63 @@ const resolveStaffRole = (user: any): string => {
     ''
   ).toLowerCase().trim();
 
+  const roleId = Number(user.roleId || user.role_id || 0);
+
+  // 1. Check Super Admin
+  if (rawRole.includes('super_admin') || rawRole.includes('superadmin') || roleId === 1) {
+    return 'super_admin';
+  }
+
+  // 2. Check Nurse (Priority over generic qualification/isDoc flags)
+  if (rawRole.includes('nurse') || roleId === 8) {
+    return 'nurse';
+  }
+
+  // 3. Check Receptionist
+  if (rawRole.includes('reception') || roleId === 4) {
+    return 'receptionist';
+  }
+
+  // 4. Check Pharmacist
+  if (rawRole.includes('pharm') || roleId === 5) {
+    return 'pharmacist';
+  }
+
+  // 5. Check Lab Technician
+  if (rawRole.includes('lab') || roleId === 6) {
+    return 'lab_technician';
+  }
+
+  // 6. Check Accountant
+  if (rawRole.includes('account') || rawRole.includes('finance') || roleId === 7) {
+    return 'accountant';
+  }
+
   const isDocFlag =
     user.is_doctor === 1 ||
     user.is_doctor === '1' ||
     user.is_doctor === true ||
     user.isDoctor === true ||
     (user.fullName && user.fullName.trim().toLowerCase().startsWith('dr')) ||
-    (user.full_name && user.full_name.trim().toLowerCase().startsWith('dr')) ||
-    Boolean(user.specialization || user.qualification);
+    (user.full_name && user.full_name.trim().toLowerCase().startsWith('dr'));
 
   const isAdminFlag =
     rawRole.includes('clinic_admin') ||
     rawRole.includes('clinicadmin') ||
     rawRole.includes('admin') ||
-    rawRole.includes('owner');
-
-  if (rawRole.includes('super_admin') || rawRole.includes('superadmin')) {
-    return 'super_admin';
-  }
+    rawRole.includes('owner') ||
+    roleId === 2;
 
   if (isAdminFlag && isDocFlag) {
     return 'admin_doctor';
   }
 
-  if (rawRole.includes('doctor') || rawRole.includes('physician') || isDocFlag) {
+  if (rawRole.includes('doctor') || rawRole.includes('physician') || isDocFlag || roleId === 3) {
     return 'doctor';
   }
 
   if (isAdminFlag) {
     return 'clinic_admin';
-  }
-
-  if (rawRole.includes('reception')) {
-    return 'receptionist';
-  }
-
-  if (rawRole.includes('pharm')) {
-    return 'pharmacist';
-  }
-
-  if (rawRole.includes('lab')) {
-    return 'lab_technician';
-  }
-
-  if (rawRole.includes('account') || rawRole.includes('finance')) {
-    return 'accountant';
-  }
-
-  if (rawRole.includes('nurse')) {
-    return 'nurse';
   }
 
   return rawRole || 'clinic_admin';
@@ -227,10 +238,15 @@ export const StaffMainContainer = () => {
         ];
       case 'nurse':
         return [
-          { id: 'dashboard', label: 'Nurse Station' },
-          { id: 'patients', label: 'Vitals Check-in' },
-          { id: 'appointments', label: 'Appointments Queue' },
+          { id: 'dashboard', label: 'Dashboard' },
+          { id: 'patients', label: 'Patients' },
+          { id: 'appointments', label: 'Appointments' },
+          { id: 'treatment_billing', label: 'Treatment Billing' },
+          { id: 'medicine_billing', label: 'Medicine Billing' },
+          { id: 'lab_management', label: 'Lab Tests' },
+          { id: 'lab_inventory', label: 'Lab Inventory' },
           { id: 'notifications', label: 'Notifications', badge: 3 },
+          { id: 'book_appointment', label: 'Book Appointment' },
         ];
       default:
         return [

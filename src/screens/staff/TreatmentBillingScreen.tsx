@@ -20,6 +20,7 @@ import { TreatmentBill } from '../../api/treatmentBillApi';
 import { LOCAL_BASE_URLS, PRIMARY_BASE_URL } from '../../api/apiConfig';
 import { getPatientsApi, getPatientPrescriptionsApi } from '../../api/patientApi';
 import { generateInvoiceHtml, printOrDownloadPdf } from '../../utils/pdfGenerator';
+import { InvoiceModal } from '../../components/billing/InvoiceModal';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -951,234 +952,48 @@ export const TreatmentBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNo
         </View>
       </Modal>
 
-      {/* Invoice Details / Web Receipt Modal */}
-      <Modal visible={detailsModalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalBg}>
-          <View style={styles.receiptContainer}>
-            {detailsLoading ? (
-              <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#0d9488" />
-                <Text style={{ marginTop: 10, color: '#64748b', fontWeight: '600' }}>
-                  Loading Invoice Details...
-                </Text>
-              </View>
-            ) : selectedBill ? (() => {
-              const normStatus = String(selectedBill.status || '').toLowerCase();
-              const isPaid = normStatus === 'paid' || normStatus === 'completed';
-              const isPartial = normStatus === 'partial' || normStatus === 'partially_paid';
-
-              const billNum = selectedBill.bill_number || (selectedBill.id ? `TB-C71-2026-0000${selectedBill.id}` : 'TB-C71-2026');
-              const patientName = selectedBill.patient_name || 'Patient';
-              const patientPhone = selectedBill.patient_phone || (selectedBill as any).phone || 'N/A';
-              const doctorName = (selectedBill as any).doctor_name || user?.fullName || 'Dr Verma';
-
-              const totalAmt = Number(selectedBill.total_amount || (selectedBill as any).subtotal || 0);
-              const paidAmt = Number(selectedBill.paid_amount ?? (isPaid ? totalAmt : 0));
-              const dueAmt = isPaid ? 0 : Number(selectedBill.due_amount ?? Math.max(0, totalAmt - paidAmt));
-              const subtotalAmt = Number((selectedBill as any).subtotal || totalAmt);
-              const discountAmt = Number(selectedBill.discount_amount || 0);
-              const taxAmt = Number(selectedBill.tax_amount || 0);
-
-              const paymentMethod = String((selectedBill as any).payment_method || 'Cash').toUpperCase();
-              const createdDateStr = selectedBill.created_at ? String(selectedBill.created_at).split('T')[0] : 'N/A';
-              const apptDateStr = (selectedBill as any).appointment_date
-                ? String((selectedBill as any).appointment_date).split('T')[0]
-                : createdDateStr;
-
-              const itemsList = Array.isArray(selectedBill.items) && selectedBill.items.length > 0
-                ? selectedBill.items
-                : [
-                    {
-                      id: 1,
-                      service_name: (selectedBill as any).description || 'Consultant Fees',
-                      quantity: 1,
-                      unit_price: totalAmt,
-                      total_price: totalAmt,
-                    },
-                  ];
-
-              return (
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
-                  {/* Header Row */}
-                  <View style={styles.receiptHeaderRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.clinicTitle}>
-                        {(selectedBill as any).clinic_name || 'Aarogya Care Clinic'}
-                      </Text>
-                      <Text style={styles.clinicSubtitle}>PATIENT CARE & TREATMENT SERVICES</Text>
-                      <Text style={styles.clinicMeta}>
-                        {(selectedBill as any).clinic_address || '102, Shree Heights, AB Road, 43, 3'}
-                      </Text>
-                      <Text style={styles.clinicMeta}>
-                        {(selectedBill as any).clinic_phone || '9876543210'} | {(selectedBill as any).clinic_email || 'contact@aarogyacare.com'}
-                      </Text>
-                    </View>
-
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={styles.invoiceBadgeTitle}>TREATMENT INVOICE</Text>
-                      <Text style={styles.invoiceNumberText}>{billNum}</Text>
-                      <Text style={styles.invoiceDateText}>Issued {createdDateStr}</Text>
-                    </View>
-                  </View>
-
-                  {/* Accent Teal Divider Bar */}
-                  <View style={styles.tealDivider} />
-
-                  {/* Bill To & Doctor Row */}
-                  <View style={styles.infoMetaGrid}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.infoMetaHeader}>BILL TO</Text>
-                      <Text style={styles.patientNameVal}>{patientName}</Text>
-                      <Text style={styles.infoMetaSub}>Phone: {patientPhone}</Text>
-                    </View>
-
-                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                      <Text style={styles.infoMetaHeader}>DOCTOR & APPOINTMENT</Text>
-                      <Text style={styles.doctorNameVal}>{doctorName}</Text>
-                      <Text style={styles.infoMetaSub}>Appointment: {apptDateStr}</Text>
-                    </View>
-                  </View>
-
-                  {/* Payment Method & Status Banner */}
-                  <View style={styles.paymentBannerRow}>
-                    <Text style={styles.paymentMethodText}>
-                      Payment Method: <Text style={{ fontWeight: '800' }}>{paymentMethod}</Text>
-                    </Text>
-
-                    <View
-                      style={[
-                        styles.statusBadgePill,
-                        isPaid ? styles.paidPillBg : isPartial ? styles.partiallyPaidPillBg : styles.pendingPillBg,
-                      ]}>
-                      <Text
-                        style={[
-                          styles.statusBadgePillText,
-                          isPaid ? styles.paidPillText : isPartial ? styles.partiallyPaidPillText : styles.pendingPillText,
-                        ]}>
-                        {isPaid ? '✓ Paid' : isPartial ? '🕒 Partially Paid' : '⚠️ Pending'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Treatment & Service Items Table */}
-                  <Text style={styles.itemsTableSectionTitle}>TREATMENT & SERVICE ITEMS</Text>
-                  <View style={styles.itemsTableContainer}>
-                    {/* Table Header Row */}
-                    <View style={styles.tableHeaderRow}>
-                      <Text style={[styles.thCell, { width: 24 }]}>#</Text>
-                      <Text style={[styles.thCell, { flex: 2 }]}>Item</Text>
-                      <Text style={[styles.thCell, { flex: 0.8, textAlign: 'center' }]}>Qty</Text>
-                      <Text style={[styles.thCell, { flex: 1.2, textAlign: 'right' }]}>Rate</Text>
-                      <Text style={[styles.thCell, { flex: 0.9, textAlign: 'right' }]}>Disc.</Text>
-                      <Text style={[styles.thCell, { flex: 1.2, textAlign: 'right' }]}>Total</Text>
-                    </View>
-
-                    {/* Table Body Rows */}
-                    {itemsList.map((item: any, idx: number) => {
-                      const q = Number(item.quantity || 1);
-                      const r = Number(item.unit_price || item.total_price || 0);
-                      const tot = Number(item.total_price || q * r || 0);
-                      return (
-                        <View key={idx} style={styles.tableBodyRow}>
-                          <Text style={[styles.tdCell, { width: 24, color: '#94a3b8' }]}>{idx + 1}</Text>
-                          <Text style={[styles.tdCell, { flex: 2, fontWeight: '700', color: '#0f172a' }]}>
-                            {item.service_name}
-                          </Text>
-                          <Text style={[styles.tdCell, { flex: 0.8, textAlign: 'center' }]}>{q}</Text>
-                          <Text style={[styles.tdCell, { flex: 1.2, textAlign: 'right' }]}>₹{r.toFixed(2)}</Text>
-                          <Text style={[styles.tdCell, { flex: 0.9, textAlign: 'right' }]}>{item.discount_pct || 0}%</Text>
-                          <Text style={[styles.tdCell, { flex: 1.2, textAlign: 'right', fontWeight: '800' }]}>
-                            ₹{tot.toFixed(2)}
-                          </Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-
-                  {/* Breakdown & Footer Notes */}
-                  <View style={styles.breakdownRow}>
-                    {/* Notes Side */}
-                    <View style={{ flex: 1, paddingRight: 10 }}>
-                      <Text style={styles.notesTitle}>NOTES</Text>
-                      <Text style={styles.notesText}>Thank you for choosing us for your care.</Text>
-                      <Text style={styles.preparedByText}>
-                        Prepared by: <Text style={{ fontWeight: '700' }}>{(selectedBill as any).accountant_name || doctorName}</Text>
-                      </Text>
-                    </View>
-
-                    {/* Calculations Side */}
-                    <View style={{ flex: 1, gap: 4 }}>
-                      <View style={styles.calcLine}>
-                        <Text style={styles.calcLabel}>Subtotal</Text>
-                        <Text style={styles.calcVal}>₹{subtotalAmt.toFixed(2)}</Text>
-                      </View>
-                      <View style={styles.calcLine}>
-                        <Text style={styles.calcLabel}>Discount</Text>
-                        <Text style={styles.calcVal}>-₹{discountAmt.toFixed(2)}</Text>
-                      </View>
-                      <View style={styles.calcLine}>
-                        <Text style={styles.calcLabel}>Tax</Text>
-                        <Text style={styles.calcVal}>+₹{taxAmt.toFixed(2)}</Text>
-                      </View>
-                      <View style={[styles.calcLine, { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 6, marginTop: 4 }]}>
-                        <Text style={[styles.calcLabel, { fontWeight: '800', color: '#0f172a', fontSize: 15 }]}>Total</Text>
-                        <Text style={[styles.calcVal, { fontWeight: '800', color: '#0f172a', fontSize: 16 }]}>
-                          ₹{totalAmt.toFixed(2)}
-                        </Text>
-                      </View>
-                      <View style={styles.calcLine}>
-                        <Text style={[styles.calcLabel, { color: '#166534', fontWeight: '700' }]}>Amount Paid</Text>
-                        <Text style={[styles.calcVal, { color: '#166534', fontWeight: '800' }]}>
-                          ₹{paidAmt.toFixed(2)}
-                        </Text>
-                      </View>
-                      <View style={styles.calcLine}>
-                        <Text style={[styles.calcLabel, { color: '#991b1b', fontWeight: '700' }]}>Balance Due</Text>
-                        <Text style={[styles.calcVal, { color: '#991b1b', fontWeight: '800' }]}>
-                          ₹{dueAmt.toFixed(2)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* System Generated Footer Banner */}
-                  <View style={styles.systemFooterBanner}>
-                    <Text style={styles.systemFooterText}>
-                      This is a system-generated treatment invoice. Thank you for your visit.
-                    </Text>
-                  </View>
-
-                  {/* Receipt Action Buttons Row: Download PDF, Print, Close */}
-                  <View style={styles.receiptActionBtnRow}>
-                    <TouchableOpacity
-                      style={styles.downloadReceiptBtn}
-                      disabled={pdfDownloading}
-                      onPress={() => handleDownloadPdf(selectedBill.id)}>
-                      {pdfDownloading ? (
-                        <ActivityIndicator size="small" color="#ffffff" />
-                      ) : (
-                        <Text style={styles.downloadReceiptBtnText}>📥 Download PDF</Text>
-                      )}
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.printReceiptBtn}
-                      onPress={handlePrintReceipt}>
-                      <Text style={styles.printReceiptBtnText}>🖨 Print</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.closeReceiptBtn}
-                      onPress={() => setDetailsModalVisible(false)}>
-                      <Text style={styles.closeReceiptBtnText}>Close</Text>
-                    </TouchableOpacity>
-                  </View>
-                </ScrollView>
-              );
-            })() : null}
-          </View>
-        </View>
-      </Modal>
+      {/* Invoice Details Reusable Modal */}
+      {selectedBill && (
+        <InvoiceModal
+          visible={detailsModalVisible}
+          title="Treatment Invoice"
+          invoiceType="treatment"
+          invoiceNumber={selectedBill.bill_number || `TB-C71-2026-0000${selectedBill.id}`}
+          invoiceDate={selectedBill.created_at ? String(selectedBill.created_at).split('T')[0] : undefined}
+          clinicName={(selectedBill as any).clinic_name || 'Aarogya Care Clinic'}
+          patientName={selectedBill.patient_name || 'Patient'}
+          patientPhone={selectedBill.patient_phone || (selectedBill as any).phone || 'N/A'}
+          doctorName={(selectedBill as any).doctor_name || user?.fullName || 'Dr. Rahul Sharma'}
+          prescriptionId={(selectedBill as any).prescription_id || selectedBill.appointment_id}
+          paymentMethod={String((selectedBill as any).payment_method || 'Cash')}
+          paymentStatus={selectedBill.status || 'paid'}
+          items={(selectedBill.items && selectedBill.items.length > 0
+            ? selectedBill.items
+            : [
+                {
+                  id: 1,
+                  service_name: (selectedBill as any).description || 'Consultation Fee',
+                  quantity: 1,
+                  unit_price: Number(selectedBill.total_amount || 0),
+                  total_price: Number(selectedBill.total_amount || 0),
+                },
+              ]
+          ).map((it: any) => ({
+            name: it.service_name,
+            quantity: Number(it.quantity || 1),
+            unitPrice: Number(it.unit_price || 0),
+            totalPrice: Number(it.total_price || 0),
+          }))}
+          subtotal={Number((selectedBill as any).subtotal || selectedBill.total_amount || 0)}
+          discount={Number(selectedBill.discount_amount || 0)}
+          tax={Number(selectedBill.tax_amount || 0)}
+          grandTotal={Number(selectedBill.total_amount || 0)}
+          paidAmount={Number(selectedBill.paid_amount ?? (selectedBill.status === 'paid' ? selectedBill.total_amount : 0))}
+          dueAmount={selectedBill.due_amount}
+          preparedBy={(selectedBill as any).accountant_name || (selectedBill as any).doctor_name || user?.fullName || 'Dr. Rahul Sharma'}
+          onClose={() => setDetailsModalVisible(false)}
+        />
+      )}
 
       {/* Full Screen Printable Invoice Sheet Modal (Mobile & Tablet) */}
       <Modal visible={printModalVisible} animationType="slide" transparent={false}>

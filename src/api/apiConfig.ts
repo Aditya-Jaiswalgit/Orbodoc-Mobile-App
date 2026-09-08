@@ -7,17 +7,26 @@ export const LOCAL_BASE_URLS = [
   'http://localhost:5000/api',
 ];
 
-export const API_TIMEOUT = 15000;
+export const API_TIMEOUT = 10000;
+export const FALLBACK_TIMEOUT = 3000;
+
+let activeBaseUrl: string | null = null;
 
 export async function apiFetch<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const targetUrls = [PRIMARY_BASE_URL, ...LOCAL_BASE_URLS];
+  
+  const allUrls = [PRIMARY_BASE_URL, ...LOCAL_BASE_URLS];
+  const targetUrls = activeBaseUrl
+    ? [activeBaseUrl, ...allUrls.filter((u) => u !== activeBaseUrl)]
+    : allUrls;
+
   let lastErrorMessage = '';
 
-  for (const baseUrl of targetUrls) {
+  for (let i = 0; i < targetUrls.length; i++) {
+    const baseUrl = targetUrls[i];
     const url = `${baseUrl}${cleanEndpoint}`;
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -25,8 +34,9 @@ export async function apiFetch<T>(
       ...(options.headers || {}),
     };
 
+    const currentTimeout = i === 0 && baseUrl === PRIMARY_BASE_URL ? API_TIMEOUT : FALLBACK_TIMEOUT;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+    const timeoutId = setTimeout(() => controller.abort(), currentTimeout);
 
     try {
       const response = await fetch(url, {
@@ -36,6 +46,7 @@ export async function apiFetch<T>(
       });
 
       clearTimeout(timeoutId);
+      activeBaseUrl = baseUrl;
       let json: any = {};
       try {
         json = await response.json();

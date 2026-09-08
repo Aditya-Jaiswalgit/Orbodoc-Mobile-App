@@ -14,6 +14,7 @@ import { PatientHeader } from '../../components/common/PatientHeader';
 import { BillingCardIcon } from '../../components/common/CustomIcons';
 import { useTreatmentBills } from '../../hooks/useTreatmentBills';
 import { TreatmentBill } from '../../api/treatmentBillApi';
+import { InvoiceModal } from '../../components/billing/InvoiceModal';
 
 interface TreatmentBillingScreenProps {
   onOpenDrawer?: () => void;
@@ -180,75 +181,46 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
         </View>
       </ScrollView>
 
-      <Modal visible={showBillDetailModal} transparent animationType="slide" onRequestClose={() => setShowBillDetailModal(false)}>
-        <View style={styles.modalOverlayDark}>
-          <View style={styles.invoiceModalCard}>
-            <View style={styles.invoiceHeader}>
-              <View style={styles.headerLeftRow}>
-                <BillingCardIcon color="#ffffff" size={20} />
-                <Text style={styles.invoiceTitle}>Treatment Bill {selectedBill?.bill_number || `#${selectedBill?.id}`}</Text>
-              </View>
-              <TouchableOpacity onPress={() => setShowBillDetailModal(false)}>
-                <Text style={styles.closeBtnText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {detailLoading ? (
-              <ActivityIndicator size="large" color="#0d9488" style={{ marginVertical: 40 }} />
-            ) : (
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.invoiceBody}>
-                <View style={styles.invoiceMetaCard}>
-                  <Text style={styles.patientMetaName}>{selectedBill?.patient_name || 'Patient'}</Text>
-                  <Text style={styles.patientMetaPhone}>Phone: {selectedBill?.patient_phone || '-'}</Text>
-                  <Text style={styles.patientMetaPhone}>Date: {selectedBill?.created_at ? new Date(selectedBill.created_at).toLocaleDateString() : '-'}</Text>
-                </View>
-
-                <Text style={styles.lineItemsTitle}>Line Items & Services</Text>
-
-                {!selectedBill?.items || selectedBill.items.length === 0 ? (
-                  <View style={styles.noItemsBox}>
-                    <Text style={styles.noItemsText}>General Treatment & Consultation Service</Text>
-                    <Text style={styles.noItemsPrice}>₹{selectedBill?.total_amount || 0}.00</Text>
-                  </View>
-                ) : (
-                  selectedBill.items.map((item, idx) => (
-                    <View key={idx} style={styles.lineItemRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.serviceName}>{item.service_name}</Text>
-                        <Text style={styles.serviceSub}>Qty: {item.quantity} × ₹{item.unit_price}</Text>
-                      </View>
-                      <Text style={styles.serviceTotal}>₹{item.total_price}.00</Text>
-                    </View>
-                  ))
-                )}
-
-                <View style={styles.invoiceSummaryBox}>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Total Billed Amount:</Text>
-                    <Text style={styles.summaryVal}>₹{selectedBill?.total_amount || 0}.00</Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Amount Paid:</Text>
-                    <Text style={[styles.summaryVal, { color: '#16a34a' }]}>₹{selectedBill?.paid_amount || 0}.00</Text>
-                  </View>
-                  <View style={[styles.summaryRow, { borderTopWidth: 1, borderTopColor: '#cbd5e1', paddingTop: 6, marginTop: 4 }]}>
-                    <Text style={[styles.summaryLabel, { fontWeight: '800' }]}>Balance Due:</Text>
-                    <Text style={[styles.summaryVal, { color: '#dc2626', fontWeight: '800' }]}>
-                      ₹{selectedBill?.due_amount !== undefined ? selectedBill.due_amount : Math.max(0, (selectedBill?.total_amount || 0) - (selectedBill?.paid_amount || 0))}.00
-                    </Text>
-                  </View>
-                </View>
-              </ScrollView>
-            )}
-
-            <View style={styles.invoiceFooter}>
-              <TouchableOpacity style={styles.closeInvoiceBtn} onPress={() => setShowBillDetailModal(false)}>
-                <Text style={styles.closeInvoiceBtnText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {selectedBill && (
+        <InvoiceModal
+          visible={showBillDetailModal}
+          title="Treatment Invoice"
+          invoiceType="treatment"
+          invoiceNumber={selectedBill.bill_number || `TB-${String(selectedBill.id).padStart(5, '0')}`}
+          invoiceDate={selectedBill.created_at ? String(selectedBill.created_at).split('T')[0] : undefined}
+          clinicName={(selectedBill as any).clinic_name || 'Aarogya Care Clinic'}
+          patientName={selectedBill.patient_name || 'Patient'}
+          patientPhone={selectedBill.patient_phone || '-'}
+          doctorName={(selectedBill as any).doctor_name || 'Dr. Rahul Sharma'}
+          prescriptionId={(selectedBill as any).prescription_id || selectedBill.appointment_id}
+          paymentMethod={String((selectedBill as any).payment_method || 'UPI')}
+          paymentStatus={selectedBill.status || 'paid'}
+          items={(selectedBill.items && selectedBill.items.length > 0
+            ? selectedBill.items
+            : [
+                {
+                  id: 1,
+                  service_name: (selectedBill as any).description || 'General Treatment & Consultation Service',
+                  quantity: 1,
+                  unit_price: Number(selectedBill.total_amount || 0),
+                  total_price: Number(selectedBill.total_amount || 0),
+                },
+              ]
+          ).map((it: any) => ({
+            name: it.service_name,
+            quantity: Number(it.quantity || 1),
+            unitPrice: Number(it.unit_price || 0),
+            totalPrice: Number(it.total_price || 0),
+          }))}
+          subtotal={Number((selectedBill as any).subtotal || selectedBill.total_amount || 0)}
+          discount={Number(selectedBill.discount_amount || 0)}
+          tax={Number(selectedBill.tax_amount || 0)}
+          grandTotal={Number(selectedBill.total_amount || 0)}
+          paidAmount={Number(selectedBill.paid_amount ?? (selectedBill.status === 'paid' ? selectedBill.total_amount : 0))}
+          dueAmount={selectedBill.due_amount}
+          onClose={() => setShowBillDetailModal(false)}
+        />
+      )}
 
       <Modal visible={showStatusPicker} transparent animationType="fade" onRequestClose={() => setShowStatusPicker(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowStatusPicker(false)}>

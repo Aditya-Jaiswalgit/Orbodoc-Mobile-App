@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { createPrescriptionApi, getPrescriptionsApi } from '../api/prescriptionApi';
+import { createPrescriptionApi, getPrescriptionByIdApi, getPrescriptionsApi } from '../api/prescriptionApi';
 import { useAuthContext } from '../context/AuthContext';
 import { Prescription } from '../types/clinicTypes';
 
@@ -81,7 +81,7 @@ export const usePrescriptions = (patientId?: number) => {
           const detailedList = await Promise.all(
             rawList.map(async (rx: any) => {
               try {
-                if (rx.id) {
+                if (rx.id && (!Array.isArray(rx.items) || rx.items.length === 0)) {
                   const detailRes = await getPrescriptionByIdApi(token, rx.id);
                   if (detailRes.success && detailRes.data) {
                     const detailObj = (detailRes.data as any).prescription || detailRes.data;

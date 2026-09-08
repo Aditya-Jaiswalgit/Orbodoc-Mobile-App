@@ -17,7 +17,7 @@ export interface UserClinic {
 }
 
 export interface AuthUser {
-  id: number;
+  id: number | string;
   fullName: string;
   full_name?: string;
   email?: string;
@@ -25,6 +25,7 @@ export interface AuthUser {
   role_id?: number;
   roleId?: number;
   roleName?: string;
+  role_name?: string;
   role?: string;
   clinicId?: number;
   clinic_id?: number;
