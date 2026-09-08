@@ -54,13 +54,13 @@ export const VideoServicesScreen: React.FC<VideoServicesScreenProps> = ({
   const {
     visible: checkoutVisible,
     amount: checkoutAmount,
-    selectedMethod: checkoutMethod,
+    title: checkoutTitle,
     step: checkoutStep,
     loading: checkoutLoading,
+    error: checkoutError,
     newBalance: checkoutNewBalance,
     orderDetails: checkoutOrderDetails,
     setAmount: setCheckoutAmount,
-    setSelectedMethod: setCheckoutMethod,
     openCheckout,
     closeCheckout,
     startPayment,
@@ -79,8 +79,8 @@ export const VideoServicesScreen: React.FC<VideoServicesScreenProps> = ({
     });
   };
 
-  const handleConfirmPayment = () => {
-    confirmPayment(walletBalance, (updatedBal) => {
+  const handleConfirmPayment = (payment: any) => {
+    confirmPayment(payment, () => {
       refreshVideoServices();
     });
   };
@@ -264,15 +264,14 @@ export const VideoServicesScreen: React.FC<VideoServicesScreenProps> = ({
       <PaymentCheckoutModal
         visible={checkoutVisible}
         amount={checkoutAmount}
-        selectedMethod={checkoutMethod}
+        title={checkoutTitle}
         step={checkoutStep}
         loading={checkoutLoading}
+        error={checkoutError}
         newBalance={checkoutNewBalance}
-        currentBalance={walletBalance}
-        keyId={checkoutOrderDetails?.key_id}
-        orderId={checkoutOrderDetails?.order_id}
+        orderDetails={checkoutOrderDetails}
+        allowAmountEdit
         onSetAmount={setCheckoutAmount}
-        onSetSelectedMethod={setCheckoutMethod}
         onStartPayment={startPayment}
         onConfirmPayment={handleConfirmPayment}
         onClose={closeCheckout}

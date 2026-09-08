@@ -14,6 +14,8 @@ import { PatientHeader } from '../../components/common/PatientHeader';
 import { MedicinePillIcon, PrescriptionIcon } from '../../components/common/CustomIcons';
 import { useMedicineBills } from '../../hooks/useMedicineBills';
 import { MedicineBill } from '../../api/medicineBillApi';
+import { PaymentCheckoutModal } from '../../components/payment/PaymentCheckoutModal';
+import { usePaymentCheckout } from '../../hooks/usePaymentCheckout';
 
 interface MedicineBillingScreenProps {
   onOpenDrawer?: () => void;
@@ -30,6 +32,15 @@ export const MedicineBillingScreen: React.FC<MedicineBillingScreenProps> = ({
   const [selectedBill, setSelectedBill] = useState<MedicineBill | null>(null);
   const [showBillDetailModal, setShowBillDetailModal] = useState<boolean>(false);
   const [detailLoading, setDetailLoading] = useState<boolean>(false);
+  const payment = usePaymentCheckout();
+
+  const paySelectedBill = () => {
+    if (!selectedBill) return;
+    const due = Number(selectedBill.due_amount ?? Math.max(0, Number(selectedBill.total_amount || 0) - Number(selectedBill.paid_amount || 0)));
+    if (due <= 0) return;
+    setShowBillDetailModal(false);
+    payment.openCheckout({ target: 'medicine_bill', billId: selectedBill.id, amount: due, title: 'Medicine bill payment' });
+  };
 
   const filteredBills = bills.filter((b) => {
     const q = searchQuery.toLowerCase().trim();
@@ -220,6 +231,11 @@ export const MedicineBillingScreen: React.FC<MedicineBillingScreenProps> = ({
             )}
 
             <View style={styles.invoiceFooter}>
+              {Number(selectedBill?.due_amount ?? Math.max(0, Number(selectedBill?.total_amount || 0) - Number(selectedBill?.paid_amount || 0))) > 0 ? (
+                <TouchableOpacity style={styles.payInvoiceBtn} onPress={paySelectedBill}>
+                  <Text style={styles.closeInvoiceBtnText}>Pay with Razorpay</Text>
+                </TouchableOpacity>
+              ) : null}
               <TouchableOpacity style={styles.closeInvoiceBtn} onPress={() => setShowBillDetailModal(false)}>
                 <Text style={styles.closeInvoiceBtnText}>Close</Text>
               </TouchableOpacity>
@@ -227,6 +243,21 @@ export const MedicineBillingScreen: React.FC<MedicineBillingScreenProps> = ({
           </View>
         </View>
       </Modal>
+
+      <PaymentCheckoutModal
+        visible={payment.visible}
+        amount={payment.amount}
+        title={payment.title}
+        step={payment.step}
+        loading={payment.loading}
+        error={payment.error}
+        newBalance={payment.newBalance}
+        orderDetails={payment.orderDetails}
+        onSetAmount={payment.setAmount}
+        onStartPayment={payment.startPayment}
+        onConfirmPayment={(response) => payment.confirmPayment(response, refreshBills)}
+        onClose={payment.closeCheckout}
+      />
     </View>
   );
 };
@@ -336,7 +367,8 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 12, color: '#475569', fontWeight: '600' },
   summaryVal: { fontSize: 12, color: '#0f172a', fontWeight: '700' },
 
-  invoiceFooter: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#ffffff', alignItems: 'flex-end', borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  invoiceFooter: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#ffffff', flexDirection: 'row', justifyContent: 'flex-end', gap: 8, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  payInvoiceBtn: { backgroundColor: '#0d9488', paddingHorizontal: 18, paddingVertical: 9, borderRadius: 10 },
   closeInvoiceBtn: { backgroundColor: '#0d9488', paddingHorizontal: 18, paddingVertical: 9, borderRadius: 10 },
   closeInvoiceBtnText: { color: '#ffffff', fontSize: 13, fontWeight: '800' },
 });

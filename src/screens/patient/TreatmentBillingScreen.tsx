@@ -15,6 +15,8 @@ import { BillingCardIcon } from '../../components/common/CustomIcons';
 import { useTreatmentBills } from '../../hooks/useTreatmentBills';
 import { TreatmentBill } from '../../api/treatmentBillApi';
 import { InvoiceModal } from '../../components/billing/InvoiceModal';
+import { PaymentCheckoutModal } from '../../components/payment/PaymentCheckoutModal';
+import { usePaymentCheckout } from '../../hooks/usePaymentCheckout';
 
 interface TreatmentBillingScreenProps {
   onOpenDrawer?: () => void;
@@ -34,6 +36,15 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
   const [selectedBill, setSelectedBill] = useState<TreatmentBill | null>(null);
   const [showBillDetailModal, setShowBillDetailModal] = useState<boolean>(false);
   const [detailLoading, setDetailLoading] = useState<boolean>(false);
+  const payment = usePaymentCheckout();
+
+  const paySelectedBill = () => {
+    if (!selectedBill) return;
+    const due = Number(selectedBill.due_amount ?? Math.max(0, Number(selectedBill.total_amount || 0) - Number(selectedBill.paid_amount || 0)));
+    if (due <= 0) return;
+    setShowBillDetailModal(false);
+    payment.openCheckout({ target: 'treatment_bill', billId: selectedBill.id, amount: due, title: 'Treatment bill payment' });
+  };
 
   const filteredBills = bills.filter((b) => {
     const q = searchQuery.toLowerCase().trim();
@@ -218,9 +229,25 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
           grandTotal={Number(selectedBill.total_amount || 0)}
           paidAmount={Number(selectedBill.paid_amount ?? (selectedBill.status === 'paid' ? selectedBill.total_amount : 0))}
           dueAmount={selectedBill.due_amount}
+          onPay={paySelectedBill}
           onClose={() => setShowBillDetailModal(false)}
         />
       )}
+
+      <PaymentCheckoutModal
+        visible={payment.visible}
+        amount={payment.amount}
+        title={payment.title}
+        step={payment.step}
+        loading={payment.loading}
+        error={payment.error}
+        newBalance={payment.newBalance}
+        orderDetails={payment.orderDetails}
+        onSetAmount={payment.setAmount}
+        onStartPayment={payment.startPayment}
+        onConfirmPayment={(response) => payment.confirmPayment(response, refreshBills)}
+        onClose={payment.closeCheckout}
+      />
 
       <Modal visible={showStatusPicker} transparent animationType="fade" onRequestClose={() => setShowStatusPicker(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowStatusPicker(false)}>

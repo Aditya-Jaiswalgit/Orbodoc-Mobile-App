@@ -1,153 +1,80 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
+import { Alert } from 'react-native';
 import { useAuthContext } from '../context/AuthContext';
 import {
+  BillPaymentTarget,
+  BillPaymentOrderResponse,
+  createBillPaymentOrderApi,
   createPaymentOrderApi,
-  verifyPaymentApi,
   CreateOrderResponse,
+  verifyBillPaymentApi,
+  verifyPaymentApi,
 } from '../api/paymentApi';
-import { Alert } from 'react-native';
 
-export type PaymentMethod = 'upi' | 'razorpay' | 'card' | 'netbanking';
+export type PaymentMethod = 'razorpay';
 export type PaymentStep = 'select' | 'checkout' | 'verifying' | 'success' | 'error';
+export type PaymentTarget = 'wallet_recharge' | BillPaymentTarget;
+export interface PaymentIntent { target: PaymentTarget; amount?: number; billId?: number; title?: string; }
+export interface RazorpayPaymentResponse { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string; }
+
+const titles: Record<PaymentTarget, string> = {
+  wallet_recharge: 'Recharge wallet', medicine_bill: 'Medicine bill payment', treatment_bill: 'Treatment bill payment',
+};
 
 export const usePaymentCheckout = () => {
   const { token } = useAuthContext();
-
-  const [visible, setVisible] = useState<boolean>(false);
-  const [amount, setAmount] = useState<number>(500);
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('razorpay');
+  const [visible, setVisible] = useState(false);
+  const [amount, setAmount] = useState(500);
+  const [intent, setIntent] = useState<PaymentIntent>({ target: 'wallet_recharge', amount: 500 });
   const [step, setStep] = useState<PaymentStep>('select');
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [orderDetails, setOrderDetails] = useState<CreateOrderResponse | null>(null);
+  const [orderDetails, setOrderDetails] = useState<CreateOrderResponse | BillPaymentOrderResponse | null>(null);
   const [newBalance, setNewBalance] = useState<number | null>(null);
 
-  const openCheckout = (initialAmount: number = 500) => {
-    setAmount(initialAmount);
-    setStep('select');
-    setError(null);
-    setOrderDetails(null);
-    setNewBalance(null);
-    setVisible(true);
+  const openCheckout = (input: number | PaymentIntent = 500) => {
+    const nextIntent: PaymentIntent = typeof input === 'number' ? { target: 'wallet_recharge', amount: input } : input;
+    setIntent(nextIntent); setAmount(Number(nextIntent.amount || 0)); setStep('select'); setError(null);
+    setOrderDetails(null); setNewBalance(null); setVisible(true);
   };
+  const closeCheckout = () => { if (!loading) { setVisible(false); setStep('select'); } };
 
-  const closeCheckout = () => {
-    setVisible(false);
-    setStep('select');
-    setLoading(false);
-  };
-
-  // Step 1: Create Razorpay Order
-  const startPayment = async () => {
-    if (!amount || amount <= 0) {
-      Alert.alert('Invalid Amount', 'Please enter a valid recharge amount (min ₹10).');
-      return;
-    }
-
-    if (!token) {
-      Alert.alert('Authentication Required', 'Please log in to recharge wallet.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
+  const startPayment = async (amountOverride?: number) => {
+    const paymentAmount = intent.target === 'wallet_recharge' ? Number(amountOverride ?? amount) : amount;
+    if (!token) { Alert.alert('Authentication required', 'Please log in to make a payment.'); return; }
+    if (intent.target === 'wallet_recharge' && paymentAmount <= 0) { Alert.alert('Invalid amount', 'Enter a valid wallet recharge amount.'); return; }
+    if (intent.target !== 'wallet_recharge' && !intent.billId) { setError('Bill reference is missing. Please reopen the invoice.'); return; }
+    setLoading(true); setError(null);
     try {
-      const res = await createPaymentOrderApi(token, amount);
-
-      if (res.success && res.data) {
-        setOrderDetails(res.data);
-        setStep('checkout');
-      } else {
-        const mockOrder: CreateOrderResponse = {
-          key_id: 'rzp_test_mock12345',
-          order_id: `order_${Date.now()}`,
-          amount: amount * 100,
-          currency: 'INR',
-          display_amount: amount,
-        };
-        setOrderDetails(mockOrder);
-        setStep('checkout');
-      }
-    } catch (err: any) {
-      const mockOrder: CreateOrderResponse = {
-        key_id: 'rzp_test_mock12345',
-        order_id: `order_${Date.now()}`,
-        amount: amount * 100,
-        currency: 'INR',
-        display_amount: amount,
-      };
-      setOrderDetails(mockOrder);
-      setStep('checkout');
-    } finally {
-      setLoading(false);
-    }
+      const response = intent.target === 'wallet_recharge'
+        ? await createPaymentOrderApi(token, paymentAmount)
+        : await createBillPaymentOrderApi(token, intent.target, Number(intent.billId));
+      if (!response.success || !response.data) throw new Error(response.message || 'Could not create Razorpay order');
+      setOrderDetails(response.data); setAmount(Number(response.data.display_amount)); setStep('checkout');
+    } catch (requestError: any) {
+      const message = requestError?.message || 'Could not start the payment. Please try again.';
+      setError(message); Alert.alert('Payment unavailable', message);
+    } finally { setLoading(false); }
   };
 
-  // Step 2: Confirm & Verify Payment Signature with Backend
-  const confirmPayment = async (
-    currentBal: number = 0,
-    onSuccessCallback?: (updatedBal: number) => void
-  ) => {
-    setLoading(true);
-    setStep('verifying');
-    setError(null);
-
-    const orderId = orderDetails?.order_id || `order_${Date.now()}`;
-    const paymentId = `pay_${Date.now()}`;
-    const signature = `sig_${Date.now()}_verified`;
-
-    // Realistic network delay simulation for bank gateway processing
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-
+  const confirmPayment = async (payment: RazorpayPaymentResponse, onSuccess?: () => void) => {
+    if (!token || !orderDetails) { setError('Payment session expired. Please try again.'); return; }
+    setLoading(true); setStep('verifying'); setError(null);
     try {
-      let calculatedBal = (currentBal || 0) + (amount || 0);
-
-      if (token) {
-        try {
-          const verifyRes = await verifyPaymentApi(token, orderId, paymentId, signature);
-          if (verifyRes.success && verifyRes.data && verifyRes.data.balance !== undefined) {
-            calculatedBal = Number(verifyRes.data.balance || calculatedBal);
-          }
-        } catch (e) {
-          console.log('Backend verify API fallback using client balance calculation');
-        }
-      }
-
-      setNewBalance(calculatedBal);
-      setStep('success');
-      if (onSuccessCallback) {
-        onSuccessCallback(calculatedBal);
-      }
-    } catch (err: any) {
-      const calculatedBal = (currentBal || 0) + (amount || 0);
-      setNewBalance(calculatedBal);
-      setStep('success');
-      if (onSuccessCallback) {
-        onSuccessCallback(calculatedBal);
-      }
-    } finally {
-      setLoading(false);
-    }
+      const response = intent.target === 'wallet_recharge'
+        ? await verifyPaymentApi(token, payment.razorpay_order_id, payment.razorpay_payment_id, payment.razorpay_signature)
+        : await verifyBillPaymentApi(token, intent.target, Number(intent.billId), payment.razorpay_order_id, payment.razorpay_payment_id, payment.razorpay_signature);
+      if (!response.success) throw new Error(response.message || 'Razorpay could not verify this payment.');
+      if (intent.target === 'wallet_recharge') setNewBalance(Number((response.data as any)?.balance || 0));
+      setStep('success'); onSuccess?.();
+    } catch (verificationError: any) {
+      const message = verificationError?.message || 'Payment verification failed. Do not retry until you check the payment status.';
+      setError(message); setStep('error'); Alert.alert('Payment not verified', message);
+    } finally { setLoading(false); }
   };
 
-  return {
-    visible,
-    amount,
-    selectedMethod,
-    step,
-    loading,
-    error,
-    orderDetails,
-    newBalance,
-    setAmount,
-    setSelectedMethod,
-    openCheckout,
-    closeCheckout,
-    startPayment,
-    confirmPayment,
-  };
+  return { visible, amount, title: intent.title || titles[intent.target], target: intent.target, selectedMethod: 'razorpay' as PaymentMethod,
+    step, loading, error, orderDetails, newBalance, setAmount, openCheckout, closeCheckout, startPayment, confirmPayment };
 };
 
 export default usePaymentCheckout;

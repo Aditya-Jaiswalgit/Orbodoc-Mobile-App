@@ -14,9 +14,10 @@ import { StaffMember, StaffRole } from '../../types/clinicTypes';
 
 interface Props {
   onOpenDrawer: () => void;
+  onOpenNotifications?: () => void;
 }
 
-export const StaffManagementScreen: React.FC<Props> = ({ onOpenDrawer }) => {
+export const StaffManagementScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotifications }) => {
   const [staffList, setStaffList] = useState<StaffMember[]>([
     { id: 1, clinic_id: 1, full_name: 'Dr. Ramesh Sharma', email: 'dr.ramesh@arogya.clinic', phone: '+91 9876543210', role_name: 'doctor', department: 'Cardiology', specialization: 'Interventional Cardiology', consultation_fee: 800, is_active: true },
     { id: 2, clinic_id: 1, full_name: 'Dr. Ananya Roy', email: 'dr.ananya@arogya.clinic', phone: '+91 9876543211', role_name: 'doctor', department: 'Pediatrics', specialization: 'Child Specialist', consultation_fee: 600, is_active: true },

@@ -15,6 +15,13 @@ export interface VerifyPaymentResponse {
   message?: string;
 }
 
+export type BillPaymentTarget = 'medicine_bill' | 'treatment_bill';
+
+export interface BillPaymentOrderResponse extends CreateOrderResponse {
+  target: BillPaymentTarget;
+  bill_id: number;
+}
+
 /**
  * Step 1: Create Razorpay Order in Backend
  */
@@ -42,6 +49,39 @@ export async function verifyPaymentApi(
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: JSON.stringify({
+      razorpay_order_id: orderId,
+      razorpay_payment_id: paymentId,
+      razorpay_signature: signature,
+    }),
+  });
+}
+
+export async function createBillPaymentOrderApi(
+  token: string,
+  target: BillPaymentTarget,
+  billId: number
+): Promise<ApiResponse<BillPaymentOrderResponse>> {
+  return apiFetch<BillPaymentOrderResponse>('/payments/create-order', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ target, bill_id: billId }),
+  });
+}
+
+export async function verifyBillPaymentApi(
+  token: string,
+  target: BillPaymentTarget,
+  billId: number,
+  orderId: string,
+  paymentId: string,
+  signature: string
+): Promise<ApiResponse<{ bill: any }>> {
+  return apiFetch<{ bill: any }>('/payments/verify', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      target,
+      bill_id: billId,
       razorpay_order_id: orderId,
       razorpay_payment_id: paymentId,
       razorpay_signature: signature,

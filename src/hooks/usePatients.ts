@@ -8,6 +8,7 @@ import {
   getPatientConsultationsApi,
   getPatientMedicalHistoryApi,
   getPatientPrescriptionsApi,
+  getPatientBillingSummaryApi,
 } from '../api/patientApi';
 import { useAuthContext } from '../context/AuthContext';
 import { getPrescriptionByIdApi } from '../api/prescriptionApi';
@@ -45,7 +46,51 @@ export const usePatients = () => {
         rawList = Array.isArray(res.data)
           ? res.data
           : (res.data as any).patients || (res.data as any).data || [];
-        setPatients(rawList);
+
+        const normalizedList: PatientModel[] = rawList.map((p: any) => {
+          const bloodGroup =
+            p.blood_group !== undefined && p.blood_group !== null && String(p.blood_group).trim()
+              ? String(p.blood_group).trim()
+              : p.bloodGroup !== undefined && p.bloodGroup !== null && String(p.bloodGroup).trim()
+              ? String(p.bloodGroup).trim()
+              : p.blood_type !== undefined && p.blood_type !== null && String(p.blood_type).trim()
+              ? String(p.blood_type).trim()
+              : p.blood !== undefined && p.blood !== null && String(p.blood).trim()
+              ? String(p.blood).trim()
+              : '';
+
+          const address =
+            p.address !== undefined && p.address !== null && String(p.address).trim()
+              ? String(p.address).trim()
+              : p.address_line1 !== undefined && p.address_line1 !== null && String(p.address_line1).trim()
+              ? `${String(p.address_line1).trim()}${p.address_line2 ? `, ${String(p.address_line2).trim()}` : ''}`
+              : p.street !== undefined && p.street !== null && String(p.street).trim()
+              ? String(p.street).trim()
+              : p.residential_address !== undefined && p.residential_address !== null && String(p.residential_address).trim()
+              ? String(p.residential_address).trim()
+              : p.full_address !== undefined && p.full_address !== null && String(p.full_address).trim()
+              ? String(p.full_address).trim()
+              : p.location !== undefined && p.location !== null && String(p.location).trim()
+              ? String(p.location).trim()
+              : (p.city || p.state)
+              ? [p.city, p.state].filter(Boolean).join(', ')
+              : '';
+
+          return {
+            ...p,
+            blood_group: bloodGroup,
+            address: address,
+            city: p.city || '',
+            state: p.state || '',
+            emergency_contact: p.emergency_contact || p.emergency_phone || '',
+            emergency_contact_name: p.emergency_contact_name || p.emergency_name || '',
+            email: p.email || '',
+            date_of_birth: p.date_of_birth || p.dob || '',
+            dob: p.dob || p.date_of_birth || '',
+          };
+        });
+
+        setPatients(normalizedList);
 
         // Dynamically compute patient KPI stats directly from loaded DB records
         const total = rawList.length;
@@ -144,7 +189,7 @@ export const usePatients = () => {
           patientObj.address_line1 ||
           patientObj.street ||
           (patientObj.city ? `${patientObj.city}${patientObj.state ? `, ${patientObj.state}` : ''}` : null) ||
-          'palasiya';
+          '';
 
         const lastVisit =
           billingObj?.last_visit ||
@@ -185,12 +230,22 @@ export const usePatients = () => {
             ? Number(patientObj.grand_total_amount)
             : treatmentAmount;
 
+        const rawDetailsBg =
+          (typeof patientObj.blood_group === 'string' && patientObj.blood_group.trim()) ||
+          (typeof patientObj.bloodGroup === 'string' && patientObj.bloodGroup.trim()) ||
+          (typeof patientObj.blood_type === 'string' && patientObj.blood_type.trim()) ||
+          (typeof patientObj.bloodType === 'string' && patientObj.bloodType.trim()) ||
+          (typeof patientObj.blood === 'string' && patientObj.blood.trim()) ||
+          patientObj.blood_group ||
+          '';
+
         return {
           ...patientObj,
-          address,
-          city: patientObj.city || 'Anantapur',
-          state: patientObj.state || 'Andhra Pradesh',
-          emergency_contact: patientObj.emergency_contact || '9568956985',
+          blood_group: rawDetailsBg,
+          address: address || patientObj.address || '',
+          city: patientObj.city || '',
+          state: patientObj.state || '',
+          emergency_contact: patientObj.emergency_contact || '',
           billingSummary: billingObj,
           total_visits: totalVisits,
           last_visit: lastVisit,

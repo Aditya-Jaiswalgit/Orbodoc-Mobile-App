@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import {
+  Image,
   Modal,
   Platform,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -10,12 +10,19 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BellNotificationIcon,
   BillingCardIcon,
   CalendarIcon,
   DashboardIcon,
+  DrawerBellIcon,
+  DrawerCalendarIcon,
+  DrawerCreditCardIcon,
+  DrawerFlaskIcon,
+  DrawerGridIcon,
+  DrawerLogoutIcon,
+  DrawerUsersIcon,
+  DrawerVideoIcon,
   LabTubeIcon,
   MedicinePillIcon,
   PatientUserIcon,
@@ -39,15 +46,12 @@ import LabInventoryScreen from '../screens/staff/LabInventoryScreen';
 import LabManagementScreen from '../screens/staff/LabManagementScreen';
 import MedicineBillingScreen from '../screens/staff/MedicineBillingScreen';
 import NotificationsCenterScreen from '../screens/staff/NotificationsCenterScreen';
-import PatientsManagementScreen from '../screens/staff/PatientsManagementScreen';
+import PatientsScreen from '../screens/patient/PatientsScreen';
 import PharmacyInventoryScreen from '../screens/staff/PharmacyInventoryScreen';
 import PrescriptionsScreen from '../screens/staff/PrescriptionsScreen';
 import StaffManagementScreen from '../screens/staff/StaffManagementScreen';
 import TreatmentBillingScreen from '../screens/staff/TreatmentBillingScreen';
 import VideoServicesScreen from '../screens/staff/VideoServicesScreen';
-
-import PatientMedicineBillingScreen from '../screens/patient/MedicineBillingScreen';
-import PatientTreatmentBillingScreen from '../screens/patient/TreatmentBillingScreen';
 
 export type StaffTabType =
   | 'dashboard'
@@ -153,7 +157,6 @@ export const StaffMainContainer = () => {
   const [hideBottomBar, setHideBottomBar] = useState(false);
 
   const staffName = user?.fullName || user?.full_name || 'Staff User';
-  const initial = staffName.charAt(0).toUpperCase();
 
   const openDrawer = () => setDrawerOpen(true);
   const openNotifications = () => setActiveTab('notifications');
@@ -289,7 +292,7 @@ export const StaffMainContainer = () => {
       case 'staff':
         return <StaffManagementScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'patients':
-        return <PatientsManagementScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <PatientsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
       case 'appointments':
         return <AppointmentsManagerScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
       case 'book_appointment':
@@ -314,6 +317,35 @@ export const StaffMainContainer = () => {
         return <NotificationsCenterScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       default:
         return <ClinicAdminDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+    }
+  };
+
+  const renderDrawerIcon = (id: string, color: string, size: number = 20) => {
+    switch (id) {
+      case 'dashboard':
+        return <DrawerGridIcon color={color} size={size} />;
+      case 'book_appointment':
+      case 'appointments':
+        return <DrawerCalendarIcon color={color} size={size} />;
+      case 'prescriptions':
+        return <DrawerCalendarIcon color={color} size={size} />;
+      case 'clinics':
+      case 'staff':
+      case 'patients':
+        return <DrawerUsersIcon color={color} size={size} />;
+      case 'treatment_billing':
+      case 'medicine_billing':
+      case 'pharmacy_inventory':
+        return <DrawerCreditCardIcon color={color} size={size} />;
+      case 'video_services':
+        return <DrawerVideoIcon color={color} size={size} />;
+      case 'lab_management':
+      case 'lab_inventory':
+        return <DrawerFlaskIcon color={color} size={size} />;
+      case 'notifications':
+        return <DrawerBellIcon color={color} size={size} />;
+      default:
+        return <DrawerGridIcon color={color} size={size} />;
     }
   };
 
@@ -350,7 +382,7 @@ export const StaffMainContainer = () => {
       <View style={styles.screenContainer}>{renderActiveScreen()}</View>
 
       {/* ─── STAFF BOTTOM TAB BAR ─── */}
-      {!hideBottomBar && (
+      {!hideBottomBar && !drawerOpen && (
         <View style={styles.bottomTabBar}>
         <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('dashboard')}>
           <View style={styles.tabIconWrapper}>
@@ -412,33 +444,50 @@ export const StaffMainContainer = () => {
       </View>
       )}
 
-      {/* ─── SIDE DRAWER MODAL (DARK NAVY THEME) ─── */}
-      <Modal visible={drawerOpen} animationType="fade" transparent={true} onRequestClose={() => setDrawerOpen(false)}>
+      {/* ─── SIDE DRAWER MODAL (MATCH REFERENCE UI) ─── */}
+      <Modal
+        visible={drawerOpen}
+        animationType="fade"
+        transparent={true}
+        statusBarTranslucent={true}
+        onRequestClose={() => setDrawerOpen(false)}>
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback onPress={() => setDrawerOpen(false)}>
             <View style={styles.backdrop} />
           </TouchableWithoutFeedback>
 
           <View style={styles.drawerSheet}>
-            <SafeAreaView style={styles.drawerSafeArea}>
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.drawerHeader}>
-                  <Text style={styles.categoryTitle}>{staffRole.replace('_', ' ').toUpperCase()}</Text>
-                  <TouchableOpacity onPress={() => setDrawerOpen(false)} style={styles.closeBtn}>
-                    <Text style={styles.closeBtnText}>✕</Text>
+            <View style={styles.drawerInner}>
+              <View style={styles.drawerTopSection}>
+                {/* Top Profile + Close Row */}
+                <View style={styles.drawerTopHeaderRow}>
+                  <View style={styles.logoSquircle}>
+                    <Image
+                      source={require('../assets/images/logo.png')}
+                      style={styles.logoImage}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <View style={styles.userCol}>
+                    <Text style={styles.userNameText} numberOfLines={1}>
+                      {staffName}
+                    </Text>
+                    <Text style={styles.userRoleText}>
+                      {staffRole.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setDrawerOpen(false)}
+                    style={styles.darkCloseBtn}
+                    activeOpacity={0.7}>
+                    <Text style={styles.darkCloseBtnText}>✕</Text>
                   </TouchableOpacity>
                 </View>
 
-                {/* Staff User Box */}
-                <View style={styles.staffInfoCard}>
-                  <View style={styles.avatarCircle}>
-                    <Text style={styles.avatarLetter}>{initial}</Text>
-                  </View>
-                  <View style={styles.staffNameCol}>
-                    <Text style={styles.staffNameText} numberOfLines={1}>{staffName}</Text>
-                    <Text style={styles.staffSubText}>Arogya Clinic • {staffRole.replace('_', ' ')}</Text>
-                  </View>
-                </View>
+                {/* Role Category Title */}
+                <Text style={styles.categoryTitleText}>
+                  {staffRole.replace('_', ' ').toUpperCase()}
+                </Text>
 
                 {/* Role Specific Menu List */}
                 <View style={styles.menuList}>
@@ -454,34 +503,29 @@ export const StaffMainContainer = () => {
                           setDrawerOpen(false);
                         }}>
                         <View style={[styles.menuIconContainer, isActive && styles.menuIconContainerActive]}>
-                          {renderTabVectorIcon(item.id, isActive ? '#ffffff' : '#14b8a6', 19)}
+                          {renderDrawerIcon(item.id, isActive ? '#ffffff' : '#2dd4bf', 20)}
                         </View>
                         <Text style={[styles.menuItemLabel, isActive && styles.menuItemLabelActive]}>
                           {item.label}
                         </Text>
-                        {item.badge ? (
-                          <View style={styles.itemBadge}>
-                            <Text style={styles.itemBadgeText}>{item.badge}</Text>
-                          </View>
-                        ) : null}
                       </TouchableOpacity>
                     );
                   })}
                 </View>
+              </View>
 
-                {/* Logout Button */}
-                <TouchableOpacity
-                  style={styles.logoutBtn}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setDrawerOpen(false);
-                    logout();
-                  }}>
-                  <Text style={styles.logoutBtnIcon}>🚪</Text>
-                  <Text style={styles.logoutBtnText}>Logout Staff Account</Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </SafeAreaView>
+              {/* Logout Button pinned at bottom */}
+              <TouchableOpacity
+                style={styles.drawerLogoutRow}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setDrawerOpen(false);
+                  logout();
+                }}>
+                <DrawerLogoutIcon color="#2dd4bf" size={22} />
+                <Text style={styles.drawerLogoutText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -520,50 +564,155 @@ const styles = StyleSheet.create({
     marginTop: -20,
     shadowColor: '#0d9488',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 6,
     elevation: 6,
   },
   fabIcon: { color: '#ffffff', fontSize: 20, fontWeight: 'bold' },
-  fabLabel: { fontSize: 10, color: '#0d9488', fontWeight: '700', marginTop: 2 },
-  tabIconWrapper: { position: 'relative' },
-  tabLabel: { fontSize: 10, fontWeight: '600', color: '#64748b', marginTop: 2 },
-  tabLabelActive: { color: '#0d9488', fontWeight: '800' },
-  smallBadge: { position: 'absolute', top: -3, right: -6, backgroundColor: '#ef4444', borderRadius: 8, minWidth: 14, height: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
+  fabLabel: { fontSize: 11, color: '#64748b', marginTop: 2, fontWeight: '500' },
+  tabIconWrapper: { position: 'relative', alignItems: 'center', justifyContent: 'center' },
+  tabLabel: { fontSize: 11, color: '#94a3b8', marginTop: 2, fontWeight: '500' },
+  tabLabelActive: { color: '#0d9488', fontWeight: '700' },
+  smallBadge: { position: 'absolute', top: -4, right: -8, backgroundColor: '#ef4444', borderRadius: 8, minWidth: 14, height: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
   smallBadgeText: { color: '#ffffff', fontSize: 9, fontWeight: 'bold' },
   modalOverlay: {
-    position: 'absolute',
-    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 36) + 56 : 90,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     flexDirection: 'row',
   },
-  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)' },
-  drawerSheet: { width: '82%', maxWidth: 320, height: '100%', backgroundColor: '#071624', borderTopRightRadius: 16, borderBottomRightRadius: 16, paddingHorizontal: 16, paddingTop: 16, elevation: 20 },
-  drawerSafeArea: { flex: 1 },
-  drawerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, paddingHorizontal: 4 },
-  categoryTitle: { fontSize: 11, fontWeight: '900', color: '#14b8a6', letterSpacing: 1.5 },
-  closeBtn: { padding: 6 },
-  closeBtnText: { color: '#94a3b8', fontSize: 18, fontWeight: 'bold' },
-  staffInfoCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0f2942', borderRadius: 14, padding: 12, marginBottom: 20, borderWidth: 1, borderColor: '#1e3a5f' },
-  avatarCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  avatarLetter: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
-  staffNameCol: { flex: 1 },
-  staffNameText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
-  staffSubText: { color: '#94a3b8', fontSize: 11, marginTop: 1, textTransform: 'capitalize' },
-  menuList: { gap: 6, marginBottom: 24 },
-  menuItemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 12, borderRadius: 12 },
-  menuItemRowActive: { backgroundColor: '#0f2f4a', borderWidth: 1, borderColor: '#0d9488' },
-  menuIconContainer: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#0f2338', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  menuIconContainerActive: { backgroundColor: '#0d9488' },
-  menuItemLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: '#94a3b8' },
-  menuItemLabelActive: { color: '#ffffff', fontWeight: '800' },
-  itemBadge: { backgroundColor: '#0d9488', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
-  itemBadgeText: { color: '#ffffff', fontSize: 11, fontWeight: 'bold' },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e293b', borderRadius: 12, paddingVertical: 13, marginTop: 10, marginBottom: 30, gap: 8, borderWidth: 1, borderColor: '#334155' },
-  logoutBtnIcon: { fontSize: 16 },
-  logoutBtnText: { color: '#ef4444', fontWeight: '700', fontSize: 14 },
+  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)' },
+  drawerSheet: {
+    width: '75%',
+    maxWidth: 300,
+    height: '100%',
+    backgroundColor: '#071624',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 12 : 50,
+    paddingBottom: Platform.OS === 'android' ? 24 : 36,
+    shadowColor: '#000',
+    shadowOffset: { width: 8, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 25,
+  },
+  drawerInner: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  drawerTopSection: {
+    flex: 1,
+  },
+  drawerTopHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 4,
+  },
+  logoSquircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    overflow: 'hidden',
+    padding: 3,
+  },
+  logoImage: {
+    width: 38,
+    height: 38,
+  },
+  userCol: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  userNameText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  userRoleText: {
+    color: '#94a3b8',
+    fontSize: 13,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  darkCloseBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#0c273e',
+    borderWidth: 1,
+    borderColor: '#193b58',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  darkCloseBtnText: {
+    color: '#2dd4bf',
+    fontSize: 17,
+    fontWeight: 'bold',
+  },
+  categoryTitleText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#2dd4bf',
+    letterSpacing: 1.5,
+    marginTop: 14,
+    marginBottom: 14,
+    paddingHorizontal: 2,
+  },
+  menuList: {
+    gap: 2,
+  },
+  menuItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 46,
+    paddingHorizontal: 8,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    marginBottom: 2,
+  },
+  menuItemRowActive: {
+    backgroundColor: 'rgba(13, 148, 136, 0.14)',
+    borderColor: '#0d9488',
+  },
+  menuIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    backgroundColor: 'transparent',
+  },
+  menuIconContainerActive: {
+    backgroundColor: '#0d9488',
+  },
+  menuItemLabel: {
+    flex: 1,
+    fontSize: 14.5,
+    fontWeight: '600',
+    color: '#f1f5f9',
+  },
+  menuItemLabelActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  drawerLogoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    gap: 12,
+  },
+  drawerLogoutText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
 });
 
 export default StaffMainContainer;

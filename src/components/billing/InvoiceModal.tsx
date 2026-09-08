@@ -41,6 +41,7 @@ export interface InvoiceModalProps {
   dueAmount?: number;
   notes?: string;
   preparedBy?: string;
+  onPay?: () => void;
   onClose: () => void;
 }
 
@@ -68,6 +69,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
   dueAmount,
   notes = 'Thank you for choosing us for your care.',
   preparedBy,
+  onPay,
   onClose,
 }) => {
   const normStatus = (paymentStatus || 'paid').toLowerCase();
@@ -255,6 +257,11 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
             {/* Action Buttons */}
             <View style={styles.actionButtonsRow}>
+              {onPay && effectiveDue > 0 ? (
+                <TouchableOpacity style={styles.payBtn} onPress={onPay}>
+                  <Text style={styles.btnTextWhite} numberOfLines={1}>Pay ₹{Number(effectiveDue).toFixed(2)}</Text>
+                </TouchableOpacity>
+              ) : null}
               <TouchableOpacity style={styles.pdfBtn} onPress={handlePrintDownloadPdf}>
                 <Text style={styles.btnTextWhite} numberOfLines={1}>📥 Download PDF</Text>
               </TouchableOpacity>
@@ -528,6 +535,13 @@ const styles = StyleSheet.create({
     gap: 6,
     justifyContent: 'space-between',
     marginTop: 4,
+  },
+  payBtn: {
+    flex: 1,
+    backgroundColor: '#0d9488',
+    borderRadius: 10,
+    paddingVertical: 11,
+    alignItems: 'center',
   },
   pdfBtn: {
     flex: 1,

@@ -14,17 +14,57 @@ import {
 } from 'react-native';
 import { PatientHeader } from '../../components/common/PatientHeader';
 import {
+  ActivityPulseIcon,
+  CalendarIcon,
+  ChevronDownIcon,
+  ColumnsIcon,
   EditPenIcon,
+  FilterResetIcon,
   MedicalHistoryIcon,
+  MoreVerticalIcon,
   PatientUserIcon,
   PrescriptionIcon,
+  SearchInputIcon,
   StethoscopeIcon,
+  UserPlusIcon,
+  UsersIcon,
   ViewDetailsIcon,
 } from '../../components/common/CustomIcons';
 import { usePatients } from '../../hooks/usePatients';
 import { PatientModel } from '../../types/clinicTypes';
 import { useAuthContext } from '../../context/AuthContext';
 import { bookAppointmentApi } from '../../api/appointmentApi';
+import { ColumnsModal, ColumnItem } from '../../components/common/ColumnsModal';
+
+export const PATIENT_COLUMNS: ColumnItem[] = [
+  { id: 'patient_code', label: 'Patient Code' },
+  { id: 'full_name', label: 'Full Name' },
+  { id: 'email', label: 'Email' },
+  { id: 'phone', label: 'Phone' },
+  { id: 'gender', label: 'Gender' },
+  { id: 'dob', label: 'Date of Birth' },
+  { id: 'age', label: 'Age' },
+  { id: 'blood_group', label: 'Blood Group' },
+  { id: 'address', label: 'Address' },
+  { id: 'city', label: 'City' },
+  { id: 'state', label: 'State' },
+  { id: 'emergency_contact', label: 'Emergency Contact' },
+  { id: 'emergency_name', label: 'Emergency Contact Name' },
+  { id: 'registered_on', label: 'Registration Date' },
+  { id: 'status', label: 'Status' },
+  { id: 'actions', label: 'Actions', isDividerBefore: true },
+];
+
+export const DEFAULT_PATIENT_COLUMNS: string[] = [
+  'patient_code',
+  'full_name',
+  'phone',
+  'gender',
+  'blood_group',
+  'registered_on',
+  'status',
+  'actions',
+];
 
 const formatDateLong = (dateStr?: string) => {
   if (!dateStr) return '-';
@@ -77,8 +117,8 @@ interface PatientsScreenProps {
 }
 
 export const PatientsScreen: React.FC<PatientsScreenProps> = ({
-  onOpenDrawer = () => { },
-  onOpenNotifications = () => { },
+  onOpenDrawer = () => {},
+  onOpenNotifications = () => {},
 }) => {
   const {
     patients,
@@ -163,6 +203,21 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
   const [showBloodPicker, setShowBloodPicker] = useState<boolean>(false);
   const [showStatusPicker, setShowStatusPicker] = useState<boolean>(false);
   const [showEditBloodPicker, setShowEditBloodPicker] = useState<boolean>(false);
+  const [showColumnsModal, setShowColumnsModal] = useState<boolean>(false);
+  const [selectedColumns, setSelectedColumns] = useState<string[]>(DEFAULT_PATIENT_COLUMNS);
+
+  const handleToggleColumn = (colId: string) => {
+    setSelectedColumns((prev) =>
+      prev.includes(colId) ? prev.filter((id) => id !== colId) : [...prev, colId]
+    );
+  };
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setGenderFilter('All Genders');
+    setBloodGroupFilter('All Blood Groups');
+    setStatusFilter('All Status');
+  };
 
   const filteredPatients = patients.filter((p) => {
     const q = searchQuery.toLowerCase().trim();
@@ -224,7 +279,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
       setEditName(p.full_name || '');
       setEditDob(p.date_of_birth || (p as any).dob || '');
       setEditGender((p.gender as any) || 'female');
-      setEditBloodGroup(p.blood_group || 'O+');
+      setEditBloodGroup(p.blood_group || '');
       setEditPhone(p.phone || '');
       setEditEmail(p.email || '');
       setEditState((p as any).state || '');
@@ -354,68 +409,88 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      <PatientHeader onOpenDrawer={onOpenDrawer} onOpenNotifications={onOpenNotifications} />
+      <PatientHeader showLogo={false} onOpenDrawer={onOpenDrawer} onOpenNotifications={onOpenNotifications} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refreshPatients} colors={['#0d9488']} />}>
+        {/* Title Row */}
         <View style={styles.headerBox}>
           <View style={styles.titleRow}>
-            <PatientUserIcon color="#0f172a" size={24} />
+            <UsersIcon color="#0f172a" size={24} />
             <Text style={styles.pageTitle}>Patient Management</Text>
           </View>
           <Text style={styles.pageSub}>Manage patient records and medical history</Text>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsScrollRow}>
-          <View style={styles.statCard}>
-            <View style={styles.statCardHeader}>
-              <View style={[styles.statIconCircle, { backgroundColor: '#f1f5f9' }]}>
-                <PatientUserIcon color="#475569" size={18} />
+        {/* 2x2 Stats Grid (Exact match to screenshot) */}
+        <View style={styles.statsGrid}>
+          {/* Row 1 */}
+          <View style={styles.statsRow}>
+            {/* Card 1: Total Patients */}
+            <View style={styles.statCard}>
+              <View style={[styles.statIconBox, { backgroundColor: '#ecfdf5' }]}>
+                <UsersIcon color="#0d9488" size={20} />
               </View>
-              <Text style={styles.statNumber}>{stats.totalPatients}</Text>
-            </View>
-            <Text style={styles.statLabel}>Total Patients</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={styles.statCardHeader}>
-              <View style={[styles.statIconCircle, { backgroundColor: '#dcfce7' }]}>
-                <Text style={styles.statIconText}>📈</Text>
-              </View>
-              <View style={styles.statSplitRow}>
-                <Text style={[styles.statNumber, { color: '#16a34a' }]}>{stats.activeCount}</Text>
-                <Text style={styles.statSlash}>/</Text>
-                <Text style={[styles.statNumber, { color: '#94a3b8' }]}>{stats.inactiveCount}</Text>
+              <View style={styles.statContentCol}>
+                <Text style={styles.statNumber}>{stats.totalPatients}</Text>
+                <Text style={styles.statLabel}>Total Patients</Text>
               </View>
             </View>
-            <Text style={styles.statLabel}>Active / Inactive</Text>
-          </View>
 
-          <View style={styles.statCard}>
-            <View style={styles.statCardHeader}>
-              <View style={[styles.statIconCircle, { backgroundColor: '#e0f2fe' }]}>
-                <Text style={styles.statIconText}>📅</Text>
+            {/* Card 2: Active / Inactive */}
+            <View style={styles.statCard}>
+              <View style={[styles.statIconBox, { backgroundColor: '#ecfdf5' }]}>
+                <ActivityPulseIcon color="#10b981" size={20} />
               </View>
-              <Text style={styles.statNumber}>{stats.todayCount}</Text>
-            </View>
-            <Text style={styles.statLabel}>Today's Registration</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={styles.statCardHeader}>
-              <View style={[styles.statIconCircle, { backgroundColor: '#ffedd5' }]}>
-                <PatientUserIcon color="#ea580c" size={18} />
+              <View style={styles.statSplitContent}>
+                <View style={styles.statSplitCol}>
+                  <Text style={[styles.statNumber, { color: '#16a34a' }]}>{stats.activeCount}</Text>
+                  <Text style={styles.statLabel}>Active</Text>
+                </View>
+                <View style={styles.statSplitDivider} />
+                <View style={styles.statSplitCol}>
+                  <Text style={[styles.statNumber, { color: '#475569' }]}>{stats.inactiveCount}</Text>
+                  <Text style={styles.statLabel}>Inactive</Text>
+                </View>
               </View>
-              <Text style={styles.statNumber}>{stats.newThisWeek}</Text>
             </View>
-            <Text style={styles.statLabel}>New This Week</Text>
           </View>
-        </ScrollView>
 
+          {/* Row 2 */}
+          <View style={styles.statsRow}>
+            {/* Card 3: Today's Registration */}
+            <View style={styles.statCard}>
+              <View style={[styles.statIconBox, { backgroundColor: '#ecfdf5' }]}>
+                <CalendarIcon color="#0d9488" size={20} />
+              </View>
+              <View style={styles.statContentCol}>
+                <Text style={styles.statNumber}>{stats.todayCount}</Text>
+                <Text style={styles.statLabel} numberOfLines={1}>Today's Patient Registr...</Text>
+              </View>
+            </View>
+
+            {/* Card 4: New This Week */}
+            <View style={styles.statCard}>
+              <View style={[styles.statIconBox, { backgroundColor: '#fff7ed' }]}>
+                <UserPlusIcon color="#ea580c" size={20} />
+              </View>
+              <View style={styles.statContentCol}>
+                <Text style={styles.statNumber}>{stats.newThisWeek}</Text>
+                <Text style={styles.statLabel}>New This Week</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Filter Card (Exact match to screenshot) */}
         <View style={styles.filterCard}>
-          <View style={styles.searchInputWrapper}>
-            <Text style={styles.searchIconText}>🔍</Text>
+          {/* Row 1: Search */}
+          <View style={styles.searchInputBox}>
+            <SearchInputIcon size={16} color="#94a3b8" />
             <TextInput
-              style={styles.searchInput}
+              style={styles.searchTextInput}
               placeholder="Search by patient code, name, or phone..."
               placeholderTextColor="#94a3b8"
               value={searchQuery}
@@ -423,103 +498,258 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
             />
           </View>
 
-          <View style={styles.filterDropdownRow}>
-            <TouchableOpacity style={styles.filterPickerBtn} onPress={() => setShowGenderPicker(true)}>
-              <Text style={styles.filterPickerText} numberOfLines={1}>{genderFilter}</Text>
-              <Text style={styles.pickerArrow}>▼</Text>
+          {/* Row 2: All Genders & All Blood Groups */}
+          <View style={styles.filterDropdownsRow}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.filterDropdownBtn}
+              onPress={() => setShowGenderPicker(true)}>
+              <Text style={styles.filterDropdownText} numberOfLines={1}>{genderFilter}</Text>
+              <ChevronDownIcon size={14} color="#94a3b8" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.filterPickerBtn} onPress={() => setShowBloodPicker(true)}>
-              <Text style={styles.filterPickerText} numberOfLines={1}>{bloodGroupFilter}</Text>
-              <Text style={styles.pickerArrow}>▼</Text>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.filterDropdownBtn}
+              onPress={() => setShowBloodPicker(true)}>
+              <Text style={styles.filterDropdownText} numberOfLines={1}>{bloodGroupFilter}</Text>
+              <ChevronDownIcon size={14} color="#94a3b8" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Row 3: All Status & Registration Date */}
+          <View style={styles.filterDropdownsRow}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.filterDropdownBtn}
+              onPress={() => setShowStatusPicker(true)}>
+              <Text style={styles.filterDropdownText} numberOfLines={1}>{statusFilter}</Text>
+              <ChevronDownIcon size={14} color="#94a3b8" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.filterPickerBtn} onPress={() => setShowStatusPicker(true)}>
-              <Text style={styles.filterPickerText} numberOfLines={1}>{statusFilter}</Text>
-              <Text style={styles.pickerArrow}>▼</Text>
+            <View style={[styles.filterDropdownBtn, { flex: 1.2, justifyContent: 'flex-start', gap: 8 }]}>
+              <CalendarIcon size={15} color="#94a3b8" />
+              <Text style={[styles.filterDropdownText, { color: '#94a3b8' }]}>Registration Date</Text>
+            </View>
+          </View>
+
+          {/* Row 4: Reset Filter & Columns */}
+          <View style={styles.filterActionsRow}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.filterResetBtn}
+              onPress={handleResetFilters}>
+              <FilterResetIcon size={15} color="#94a3b8" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.columnsBtn}
+              onPress={() => setShowColumnsModal(true)}>
+              <ColumnsIcon size={15} color="#0f172a" />
+              <Text style={styles.columnsBtnText}>Columns</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.tableCard}>
-          <View style={styles.tableCardHeader}>
-            <Text style={styles.tableTitle}>Patients ({filteredPatients.length})</Text>
-            <TouchableOpacity style={styles.refreshBtn} onPress={refreshPatients}>
-              <Text style={styles.refreshBtnText}>🔄 Refresh</Text>
-            </TouchableOpacity>
+        {/* Patients Section */}
+        <View style={styles.patientsSection}>
+          <View style={styles.sectionHeaderRow}>
+            <UsersIcon color="#0f172a" size={20} />
+            <Text style={styles.sectionTitleText}>Patients ({filteredPatients.length})</Text>
           </View>
 
           {loading ? (
-            <ActivityIndicator size="large" color="#0d9488" style={{ marginVertical: 30 }} />
+            <ActivityIndicator size="large" color="#0d9488" style={{ marginVertical: 36 }} />
           ) : filteredPatients.length === 0 ? (
             <View style={styles.emptyCard}>
-              <PatientUserIcon color="#94a3b8" size={40} />
+              <UsersIcon color="#94a3b8" size={40} />
               <Text style={styles.emptyTitle}>No Patients Found</Text>
-              <Text style={styles.emptySub}>No patient records found in database matching your filter.</Text>
+              <Text style={styles.emptySub}>No patient records found matching your filters.</Text>
             </View>
           ) : (
-            <View style={styles.patientsList}>
+            <View style={styles.patientsListContainer}>
               {filteredPatients.map((item, idx) => {
                 const patientCode = (item as any).patient_code || `PT-${String(item.id).padStart(5, '0')}`;
-                const regDate = item.registered_at || (item as any).created_at ? new Date(item.registered_at || (item as any).created_at).toLocaleDateString() : '-';
+                const regDate = formatDateShort(item.registered_at || (item as any).created_at);
+                const isActive = item.is_active !== false;
+
+                const hasHeader =
+                  selectedColumns.includes('full_name') ||
+                  selectedColumns.includes('patient_code') ||
+                  selectedColumns.includes('actions');
 
                 return (
-                  <View key={item.id ? `pt-${item.id}-${idx}` : `pt-${idx}`} style={styles.patientRowCard}>
-                    <View style={styles.patientRowHeader}>
-                      <View style={styles.codeBadge}>
-                        <Text style={styles.codeBadgeText}>{patientCode}</Text>
-                      </View>
+                  <View key={item.id ? `pt-${item.id}-${idx}` : `pt-${idx}`} style={styles.patientCard}>
+                    {/* Top Row: Name + Code & 3-Dots Button */}
+                    {hasHeader && (
+                      <View style={styles.patientCardHeader}>
+                        <View style={styles.patientNameCol}>
+                          {selectedColumns.includes('full_name') && (
+                            <Text style={styles.patientNameText}>{item.full_name}</Text>
+                          )}
+                          {selectedColumns.includes('patient_code') && (
+                            <Text style={styles.patientCodeText}>{patientCode}</Text>
+                          )}
+                        </View>
 
-                      <View style={styles.headerRightActions}>
-                        <TouchableOpacity
-                          activeOpacity={0.8}
-                          style={[
-                            styles.statusToggleBtn,
-                            item.is_active !== false ? styles.badgeActiveBg : styles.badgeInactiveBg,
-                          ]}
-                          onPress={() => handleToggleStatus(item)}>
-                          <View style={item.is_active !== false ? styles.greenDot : styles.redDot} />
-                          <Text
-                            style={[
-                              styles.statusToggleText,
-                              item.is_active !== false ? styles.textActiveColor : styles.textInactiveColor,
-                            ]}>
-                            {item.is_active !== false ? 'Active' : 'Inactive'}
+                        {selectedColumns.includes('actions') && (
+                          <TouchableOpacity
+                            activeOpacity={0.7}
+                            style={styles.moreActionBtn}
+                            onPress={() => {
+                              setSelectedPatient(item);
+                              setShowActionMenuModal(true);
+                            }}>
+                            <MoreVerticalIcon size={18} color="#0f172a" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
+
+                    {/* Field Rows (Label left, Value right) */}
+                    <View style={styles.patientFieldsList}>
+                      {/* Email */}
+                      {selectedColumns.includes('email') && (
+                        <View style={styles.patientFieldRow}>
+                          <Text style={styles.fieldLabel}>Email</Text>
+                          <Text style={styles.fieldValue}>{item.email || '-'}</Text>
+                        </View>
+                      )}
+
+                      {/* Phone */}
+                      {selectedColumns.includes('phone') && (
+                        <View style={styles.patientFieldRow}>
+                          <Text style={styles.fieldLabel}>Phone</Text>
+                          <Text style={styles.fieldValue}>{item.phone || '-'}</Text>
+                        </View>
+                      )}
+
+                      {/* Gender */}
+                      {selectedColumns.includes('gender') && (
+                        <View style={styles.patientFieldRow}>
+                          <Text style={styles.fieldLabel}>Gender</Text>
+                          <Text style={styles.fieldValue}>
+                            {item.gender ? item.gender.charAt(0).toUpperCase() + item.gender.slice(1) : '-'}
                           </Text>
-                          <View
+                        </View>
+                      )}
+
+                      {/* Date of Birth */}
+                      {selectedColumns.includes('dob') && (
+                        <View style={styles.patientFieldRow}>
+                          <Text style={styles.fieldLabel}>Date of Birth</Text>
+                          <Text style={styles.fieldValue}>
+                            {formatDateShort(item.date_of_birth || (item as any).dob)}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Age */}
+                      {selectedColumns.includes('age') && (
+                        <View style={styles.patientFieldRow}>
+                          <Text style={styles.fieldLabel}>Age</Text>
+                          <Text style={styles.fieldValue}>
+                            {(item as any).age ? String((item as any).age) : (calculateAge(item.date_of_birth || (item as any).dob) || '-')}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Blood Group */}
+                      {selectedColumns.includes('blood_group') && (
+                        <View style={styles.patientFieldRow}>
+                          <Text style={styles.fieldLabel}>Blood Group</Text>
+                          <Text style={styles.fieldValue}>
+                            {item.blood_group || (item as any).bloodGroup || (item as any).blood_type || '-'}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Address */}
+                      {selectedColumns.includes('address') && (
+                        <View style={styles.patientFieldRow}>
+                          <Text style={styles.fieldLabel}>Address</Text>
+                          <Text style={styles.fieldValue} numberOfLines={2}>
+                            {item.address ||
+                              ((item as any).address_line1
+                                ? `${(item as any).address_line1}${(item as any).address_line2 ? `, ${(item as any).address_line2}` : ''}`
+                                : (item as any).street ||
+                                  ([(item as any).city, (item as any).state].filter(Boolean).join(', ')) ||
+                                  '-')}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* City */}
+                      {selectedColumns.includes('city') && (
+                        <View style={styles.patientFieldRow}>
+                          <Text style={styles.fieldLabel}>City</Text>
+                          <Text style={styles.fieldValue}>{(item as any).city || '-'}</Text>
+                        </View>
+                      )}
+
+                      {/* State */}
+                      {selectedColumns.includes('state') && (
+                        <View style={styles.patientFieldRow}>
+                          <Text style={styles.fieldLabel}>State</Text>
+                          <Text style={styles.fieldValue}>{(item as any).state || '-'}</Text>
+                        </View>
+                      )}
+
+                      {/* Emergency Contact */}
+                      {selectedColumns.includes('emergency_contact') && (
+                        <View style={styles.patientFieldRow}>
+                          <Text style={styles.fieldLabel}>Emergency Contact</Text>
+                          <Text style={styles.fieldValue}>
+                            {item.emergency_contact || (item as any).emergency_phone || '-'}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Emergency Contact Name */}
+                      {selectedColumns.includes('emergency_name') && (
+                        <View style={styles.patientFieldRow}>
+                          <Text style={styles.fieldLabel}>Emergency Contact Name</Text>
+                          <Text style={styles.fieldValue}>
+                            {(item as any).emergency_contact_name || (item as any).emergency_name || '-'}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* Registered On */}
+                      {selectedColumns.includes('registered_on') && (
+                        <View style={styles.patientFieldRow}>
+                          <Text style={styles.fieldLabel}>Registration Date</Text>
+                          <Text style={styles.fieldValue}>{regDate}</Text>
+                        </View>
+                      )}
+
+                      {/* Status with clickable green toggle switch */}
+                      {selectedColumns.includes('status') && (
+                        <View style={styles.patientFieldRow}>
+                          <Text style={styles.fieldLabel}>Status</Text>
+                          <TouchableOpacity
+                            activeOpacity={0.85}
                             style={[
                               styles.toggleSwitchTrack,
-                              item.is_active !== false ? styles.switchActiveTrack : styles.switchInactiveTrack,
-                            ]}>
+                              isActive ? styles.toggleSwitchTrackActive : styles.toggleSwitchTrackInactive,
+                            ]}
+                            onPress={() => handleToggleStatus(item)}>
                             <View
                               style={[
                                 styles.toggleSwitchThumb,
-                                item.is_active !== false ? styles.switchActiveThumb : styles.switchInactiveThumb,
+                                isActive ? styles.toggleSwitchThumbActive : styles.toggleSwitchThumbInactive,
                               ]}
                             />
-                          </View>
-                        </TouchableOpacity>
+                          </TouchableOpacity>
+                        </View>
+                      )}
 
-                        <TouchableOpacity
-                          style={styles.actionDotsBtn}
-                          onPress={() => {
-                            setSelectedPatient(item);
-                            setShowActionMenuModal(true);
-                          }}>
-                          <Text style={styles.actionDotsText}>⋮</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-
-                    <View style={styles.patientInfoCol}>
-                      <Text style={styles.patientFullName}>{item.full_name}</Text>
-                      <Text style={styles.patientPhoneText}>📞 {item.phone}</Text>
-
-                      <View style={styles.metaRowGrid}>
-                        <Text style={styles.metaChip}>Gender: <Text style={styles.metaChipVal}>{item.gender || 'Not specified'}</Text></Text>
-                        <Text style={styles.metaChip}>Blood Group: <Text style={styles.metaChipVal}>{item.blood_group || 'N/A'}</Text></Text>
-                        <Text style={styles.metaChip}>Registered: <Text style={styles.metaChipVal}>{regDate}</Text></Text>
-                      </View>
+                      {selectedColumns.length === 0 && (
+                        <Text style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', paddingVertical: 10 }}>
+                          No columns selected. Tap "Columns" above to choose fields.
+                        </Text>
+                      )}
                     </View>
                   </View>
                 );
@@ -2018,6 +2248,15 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
           </View>
         </View>
       </Modal>
+
+      {/* Reusable Show/Hide Columns Modal */}
+      <ColumnsModal
+        visible={showColumnsModal}
+        onClose={() => setShowColumnsModal(false)}
+        columns={PATIENT_COLUMNS}
+        selectedIds={selectedColumns}
+        onToggle={handleToggleColumn}
+      />
     </View>
   );
 };
@@ -2026,116 +2265,254 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   scrollContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100 },
 
-  headerBox: { marginBottom: 14 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  pageTitle: { fontSize: 22, fontWeight: '800', color: '#0f172a' },
-  pageSub: { fontSize: 13, color: '#64748b', marginTop: 2 },
+  headerBox: { marginBottom: 16 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  pageTitle: { fontSize: 21, fontWeight: '800', color: '#0f172a', letterSpacing: -0.3 },
+  pageSub: { fontSize: 13, color: '#64748b', marginTop: 3 },
 
-  statsScrollRow: { gap: 10, marginBottom: 16 },
+  /* 2x2 Stats Grid */
+  statsGrid: { gap: 10, marginBottom: 14 },
+  statsRow: { flexDirection: 'row', gap: 10 },
   statCard: {
-    width: 145,
+    flex: 1,
     backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 14,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    elevation: 2,
-  },
-  statCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  statIconCircle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  statIconText: { fontSize: 16 },
-  statNumber: { fontSize: 20, fontWeight: '800', color: '#0f172a' },
-  statSplitRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  statSlash: { fontSize: 14, color: '#94a3b8', fontWeight: 'bold' },
-  statLabel: { fontSize: 11, fontWeight: '700', color: '#64748b' },
-
-  filterCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    elevation: 2,
-    gap: 10,
-  },
-  searchInputWrapper: {
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 10,
-    paddingHorizontal: 10,
+    gap: 10,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  searchIconText: { fontSize: 14, marginRight: 6 },
-  searchInput: { flex: 1, paddingVertical: 9, fontSize: 12, color: '#0f172a' },
-
-  filterDropdownRow: { flexDirection: 'row', gap: 6 },
-  filterPickerBtn: {
+  statIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statContentCol: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748b',
+    marginTop: 1,
+  },
+  statSplitContent: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
   },
-  filterPickerText: { fontSize: 11, fontWeight: '700', color: '#334155', flex: 1 },
-  pickerArrow: { fontSize: 9, color: '#94a3b8', marginLeft: 2 },
+  statSplitCol: {
+    alignItems: 'flex-start',
+  },
+  statSplitDivider: {
+    width: 1,
+    height: 26,
+    backgroundColor: '#e2e8f0',
+    marginHorizontal: 8,
+  },
 
-  tableCard: {
+  /* Filter Card */
+  filterCard: {
     backgroundColor: '#ffffff',
     borderRadius: 18,
-    padding: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    elevation: 2,
-  },
-  tableCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  tableTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
-  refreshBtn: { backgroundColor: '#f1f5f9', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
-  refreshBtnText: { fontSize: 12, fontWeight: '700', color: '#0d9488' },
-
-  patientsList: { gap: 12 },
-  patientRowCard: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 14,
     padding: 14,
+    gap: 10,
+    marginBottom: 16,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  searchInputBox: {
+    height: 44,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  patientRowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  codeBadge: { backgroundColor: '#e2e8f0', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  codeBadgeText: { fontSize: 11, fontWeight: '800', color: '#334155' },
-  headerRightActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  statusToggleBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 4, borderWidth: 1 },
-  badgeActiveBg: { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' },
-  badgeInactiveBg: { backgroundColor: '#fef2f2', borderColor: '#fecaca' },
-  greenDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#16a34a' },
-  redDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#ef4444' },
-  statusToggleText: { fontSize: 10, fontWeight: '800' },
-  textActiveColor: { color: '#15803d' },
-  textInactiveColor: { color: '#b91c1c' },
-  toggleSwitchTrack: { width: 26, height: 14, borderRadius: 7, padding: 2, justifyContent: 'center' },
-  switchActiveTrack: { backgroundColor: '#10b981' },
-  switchInactiveTrack: { backgroundColor: '#cbd5e1' },
-  toggleSwitchThumb: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#ffffff' },
-  switchActiveThumb: { alignSelf: 'flex-end' },
-  switchInactiveThumb: { alignSelf: 'flex-start' },
-  statusToggleBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#dcfce7', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, gap: 4 },
-  actionDotsBtn: { paddingHorizontal: 8, paddingVertical: 2 },
-  actionDotsText: { fontSize: 18, fontWeight: 'bold', color: '#64748b' },
+  searchTextInput: {
+    flex: 1,
+    fontSize: 12.5,
+    color: '#0f172a',
+    paddingVertical: 0,
+  },
+  filterDropdownsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterDropdownBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  filterDropdownText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  filterActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
+  },
+  filterResetBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  columnsBtn: {
+    height: 36,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  columnsBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
 
-  patientInfoCol: { gap: 4 },
-  patientFullName: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
-  patientPhoneText: { fontSize: 13, color: '#0d9488', fontWeight: '700' },
-  metaRowGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  metaChip: { fontSize: 11, color: '#64748b', fontWeight: '600' },
-  metaChipVal: { color: '#0f172a', fontWeight: '700' },
+  /* Patients Section */
+  patientsSection: {
+    gap: 12,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  sectionTitleText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  patientsListContainer: {
+    gap: 12,
+  },
+  patientCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 16,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+    gap: 12,
+  },
+  patientCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  patientNameCol: {
+    gap: 2,
+  },
+  patientNameText: {
+    fontSize: 15.5,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  patientCodeText: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  moreActionBtn: {
+    padding: 4,
+    marginTop: -2,
+  },
+  patientFieldsList: {
+    gap: 8,
+  },
+  patientFieldRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  fieldLabel: {
+    fontSize: 12.5,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  fieldValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  toggleSwitchTrack: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleSwitchTrackActive: {
+    backgroundColor: '#0d9488',
+  },
+  toggleSwitchTrackInactive: {
+    backgroundColor: '#cbd5e1',
+  },
+  toggleSwitchThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  toggleSwitchThumbActive: {
+    alignSelf: 'flex-end',
+  },
+  toggleSwitchThumbInactive: {
+    alignSelf: 'flex-start',
+  },
 
   emptyCard: { alignItems: 'center', padding: 30 },
   emptyTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginTop: 8 },

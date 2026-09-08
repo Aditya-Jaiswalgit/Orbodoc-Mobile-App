@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import {
+  Image,
   Modal,
   Platform,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -10,12 +10,19 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BellNotificationIcon,
   BillingCardIcon,
   CalendarIcon,
   DashboardIcon,
+  DrawerBellIcon,
+  DrawerCalendarIcon,
+  DrawerCreditCardIcon,
+  DrawerFlaskIcon,
+  DrawerGridIcon,
+  DrawerLogoutIcon,
+  DrawerUsersIcon,
+  DrawerVideoIcon,
   LabTubeIcon,
   MedicinePillIcon,
   PatientUserIcon,
@@ -52,6 +59,30 @@ interface MenuItem {
   badge?: number;
 }
 
+const renderDrawerIcon = (id: string, color: string, size: number = 20) => {
+  switch (id) {
+    case 'dashboard':
+      return <DrawerGridIcon color={color} size={size} />;
+    case 'book_appointment':
+    case 'appointments':
+      return <DrawerCalendarIcon color={color} size={size} />;
+    case 'patients':
+    case 'profile':
+      return <DrawerUsersIcon color={color} size={size} />;
+    case 'treatment_billing':
+    case 'medicine_billing':
+      return <DrawerCreditCardIcon color={color} size={size} />;
+    case 'video_services':
+      return <DrawerVideoIcon color={color} size={size} />;
+    case 'lab_tests':
+      return <DrawerFlaskIcon color={color} size={size} />;
+    case 'notifications':
+      return <DrawerBellIcon color={color} size={size} />;
+    default:
+      return <DrawerGridIcon color={color} size={size} />;
+  }
+};
+
 const renderTabVectorIcon = (tab: PatientTabType, color: string, size: number = 20) => {
   switch (tab) {
     case 'dashboard':
@@ -83,8 +114,7 @@ export const PatientMainContainer = () => {
   const { user, logout } = useAuthContext();
   const { unreadCount } = useNotifications();
 
-  const patientName = user?.fullName || user?.full_name || 'Patient';
-  const initial = patientName.charAt(0).toUpperCase();
+  const patientName = user?.fullName || user?.full_name || 'bulbul';
 
   const MENU_ITEMS: MenuItem[] = [
     { id: 'dashboard', label: 'Patient Dashboard' },
@@ -95,8 +125,7 @@ export const PatientMainContainer = () => {
     { id: 'medicine_billing', label: 'Medicine Billing' },
     { id: 'video_services', label: 'Video Services' },
     { id: 'lab_tests', label: 'Lab Tests' },
-    { id: 'notifications', label: 'Notifications', badge: unreadCount },
-    { id: 'profile', label: 'My Profile' },
+    { id: 'notifications', label: 'Notifications' },
   ];
 
   const openDrawer = () => setDrawerOpen(true);
@@ -148,91 +177,94 @@ export const PatientMainContainer = () => {
       <View style={styles.screenContainer}>{renderActiveScreen()}</View>
 
       {/* Bottom Tab Bar */}
-      <View style={styles.bottomTabBar}>
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => setActiveTab('dashboard')}>
-          <View style={styles.tabIconWrapper}>
-            {renderTabVectorIcon('dashboard', activeTab === 'dashboard' ? '#0d9488' : '#94a3b8', 21)}
-          </View>
-          <Text
-            style={[
-              styles.tabLabel,
-              activeTab === 'dashboard' && styles.tabLabelActive,
-            ]}>
-            Dashboard
-          </Text>
-        </TouchableOpacity>
+      {!drawerOpen && (
+        <View style={styles.bottomTabBar}>
+          <TouchableOpacity
+            style={styles.tabItem}
+            onPress={() => setActiveTab('dashboard')}>
+            <View style={styles.tabIconWrapper}>
+              {renderTabVectorIcon('dashboard', activeTab === 'dashboard' ? '#0d9488' : '#94a3b8', 21)}
+            </View>
+            <Text
+              style={[
+                styles.tabLabel,
+                activeTab === 'dashboard' && styles.tabLabelActive,
+              ]}>
+              Dashboard
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => setActiveTab('book_appointment')}>
-          <View style={styles.tabIconWrapper}>
-            {renderTabVectorIcon('book_appointment', activeTab === 'book_appointment' ? '#0d9488' : '#94a3b8', 21)}
-          </View>
-          <Text
-            style={[
-              styles.tabLabel,
-              activeTab === 'book_appointment' && styles.tabLabelActive,
-            ]}>
-            Book
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.tabItem}
+            onPress={() => setActiveTab('book_appointment')}>
+            <View style={styles.tabIconWrapper}>
+              {renderTabVectorIcon('book_appointment', activeTab === 'book_appointment' ? '#0d9488' : '#94a3b8', 21)}
+            </View>
+            <Text
+              style={[
+                styles.tabLabel,
+                activeTab === 'book_appointment' && styles.tabLabelActive,
+              ]}>
+              Book
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.tabItemCenter}
-          onPress={() => setDrawerOpen(true)}>
-          <View style={styles.centerFab}>
-            <Text style={styles.fabIcon}>☰</Text>
-          </View>
-          <Text style={styles.fabLabel}>Menu</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.tabItemCenter}
+            onPress={() => setDrawerOpen(true)}>
+            <View style={styles.centerFab}>
+              <Text style={styles.fabIcon}>☰</Text>
+            </View>
+            <Text style={styles.fabLabel}>Menu</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => setActiveTab('treatment_billing')}>
-          <View style={styles.tabIconWrapper}>
-            {renderTabVectorIcon(
-              'treatment_billing',
-              activeTab === 'treatment_billing' || activeTab === 'medicine_billing' ? '#0d9488' : '#94a3b8',
-              21
-            )}
-          </View>
-          <Text
-            style={[
-              styles.tabLabel,
-              (activeTab === 'treatment_billing' || activeTab === 'medicine_billing') && styles.tabLabelActive,
-            ]}>
-            Billing
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.tabItem}
+            onPress={() => setActiveTab('treatment_billing')}>
+            <View style={styles.tabIconWrapper}>
+              {renderTabVectorIcon(
+                'treatment_billing',
+                activeTab === 'treatment_billing' || activeTab === 'medicine_billing' ? '#0d9488' : '#94a3b8',
+                21
+              )}
+            </View>
+            <Text
+              style={[
+                styles.tabLabel,
+                (activeTab === 'treatment_billing' || activeTab === 'medicine_billing') && styles.tabLabelActive,
+              ]}>
+              Billing
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => setActiveTab('notifications')}>
-          <View style={styles.tabIconWrapper}>
-            {renderTabVectorIcon('notifications', activeTab === 'notifications' ? '#0d9488' : '#94a3b8', 21)}
-            {unreadCount > 0 && (
-              <View style={styles.smallBadge}>
-                <Text style={styles.smallBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-              </View>
-            )}
-          </View>
-          <Text
-            style={[
-              styles.tabLabel,
-              activeTab === 'notifications' && styles.tabLabelActive,
-            ]}>
-            Alerts
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={styles.tabItem}
+            onPress={() => setActiveTab('notifications')}>
+            <View style={styles.tabIconWrapper}>
+              {renderTabVectorIcon('notifications', activeTab === 'notifications' ? '#0d9488' : '#94a3b8', 21)}
+              {unreadCount > 0 && (
+                <View style={styles.smallBadge}>
+                  <Text style={styles.smallBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                </View>
+              )}
+            </View>
+            <Text
+              style={[
+                styles.tabLabel,
+                activeTab === 'notifications' && styles.tabLabelActive,
+              ]}>
+              Alerts
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Side Drawer Menu Modal */}
       <Modal
         visible={drawerOpen}
         animationType="fade"
         transparent={true}
+        statusBarTranslucent={true}
         onRequestClose={() => setDrawerOpen(false)}>
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback onPress={() => setDrawerOpen(false)}>
@@ -240,28 +272,33 @@ export const PatientMainContainer = () => {
           </TouchableWithoutFeedback>
 
           <View style={styles.drawerSheet}>
-            <SafeAreaView style={styles.drawerSafeArea}>
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Header Category Tag */}
-                <View style={styles.drawerHeader}>
-                  <Text style={styles.categoryTitle}>PATIENT</Text>
+            <View style={styles.drawerInner}>
+              <View style={styles.drawerTopSection}>
+                {/* Top Profile + Close Row */}
+                <View style={styles.drawerTopHeaderRow}>
+                  <View style={styles.logoSquircle}>
+                    <Image
+                      source={require('../assets/images/logo.png')}
+                      style={styles.logoImage}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <View style={styles.userCol}>
+                    <Text style={styles.userNameText} numberOfLines={1}>
+                      {patientName}
+                    </Text>
+                    <Text style={styles.userRoleText}>Patient</Text>
+                  </View>
                   <TouchableOpacity
                     onPress={() => setDrawerOpen(false)}
-                    style={styles.closeBtn}>
-                    <Text style={styles.closeBtnText}>✕</Text>
+                    style={styles.darkCloseBtn}
+                    activeOpacity={0.7}>
+                    <Text style={styles.darkCloseBtnText}>✕</Text>
                   </TouchableOpacity>
                 </View>
 
-                {/* Patient Info Box */}
-                <View style={styles.patientInfoCard}>
-                  <View style={styles.avatarCircle}>
-                    <Text style={styles.avatarLetter}>{initial}</Text>
-                  </View>
-                  <View style={styles.patientNameCol}>
-                    <Text style={styles.patientNameText}>{patientName}</Text>
-                    <Text style={styles.patientSubText}>Patient Account</Text>
-                  </View>
-                </View>
+                {/* Uppercase Category Label */}
+                <Text style={styles.categoryTitleText}>PATIENT</Text>
 
                 {/* Navigation Menu Links */}
                 <View style={styles.menuList}>
@@ -284,10 +321,10 @@ export const PatientMainContainer = () => {
                             styles.menuIconContainer,
                             isActive && styles.menuIconContainerActive,
                           ]}>
-                          {renderTabVectorIcon(
+                          {renderDrawerIcon(
                             item.id,
-                            isActive ? '#ffffff' : '#14b8a6',
-                            19
+                            isActive ? '#ffffff' : '#2dd4bf',
+                            20
                           )}
                         </View>
 
@@ -298,30 +335,24 @@ export const PatientMainContainer = () => {
                           ]}>
                           {item.label}
                         </Text>
-
-                        {item.badge ? (
-                          <View style={styles.itemBadge}>
-                            <Text style={styles.itemBadgeText}>{item.badge}</Text>
-                          </View>
-                        ) : null}
                       </TouchableOpacity>
                     );
                   })}
                 </View>
+              </View>
 
-                {/* Logout Button */}
-                <TouchableOpacity
-                  style={styles.logoutBtn}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setDrawerOpen(false);
-                    logout();
-                  }}>
-                  <Text style={styles.logoutBtnIcon}>🚪</Text>
-                  <Text style={styles.logoutBtnText}>Logout Account</Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </SafeAreaView>
+              {/* Logout Item Row pinned at bottom */}
+              <TouchableOpacity
+                style={styles.drawerLogoutRow}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setDrawerOpen(false);
+                  logout();
+                }}>
+                <DrawerLogoutIcon color="#2dd4bf" size={22} />
+                <Text style={styles.drawerLogoutText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -395,7 +426,7 @@ const styles = StyleSheet.create({
     marginTop: -20,
     shadowColor: '#0d9488',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 6,
     elevation: 6,
   },
@@ -405,35 +436,33 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   fabLabel: {
-    fontSize: 10,
-    color: '#0d9488',
-    fontWeight: '700',
+    fontSize: 11,
+    color: '#64748b',
     marginTop: 2,
+    fontWeight: '500',
   },
   tabIconWrapper: {
     position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  tabIcon: {
+  tabEmoji: {
     fontSize: 20,
-    opacity: 0.5,
-  },
-  tabIconActive: {
-    opacity: 1,
   },
   tabLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#64748b',
+    fontSize: 11,
+    color: '#94a3b8',
     marginTop: 2,
+    fontWeight: '500',
   },
   tabLabelActive: {
     color: '#0d9488',
-    fontWeight: '800',
+    fontWeight: '700',
   },
   smallBadge: {
     position: 'absolute',
-    top: -3,
-    right: -6,
+    top: -4,
+    right: -8,
     backgroundColor: '#ef4444',
     borderRadius: 8,
     minWidth: 14,
@@ -448,11 +477,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   modalOverlay: {
-    position: 'absolute',
-    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 36) + 56 : 90,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     flexDirection: 'row',
   },
   backdrop: {
@@ -461,155 +486,140 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
   },
   drawerSheet: {
-    width: '82%',
-    maxWidth: 320,
+    width: '75%',
+    maxWidth: 300,
     height: '100%',
     backgroundColor: '#071624',
-    borderTopRightRadius: 16,
-    borderBottomRightRadius: 16,
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 12 : 50,
+    paddingBottom: Platform.OS === 'android' ? 24 : 36,
     shadowColor: '#000',
-    shadowOffset: { width: 6, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 20,
+    shadowOffset: { width: 8, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 25,
   },
-  drawerSafeArea: {
+  drawerInner: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  drawerTopSection: {
     flex: 1,
   },
-  drawerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 18,
-    paddingHorizontal: 4,
-  },
-  categoryTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#14b8a6',
-    letterSpacing: 1.5,
-  },
-  closeBtn: {
-    padding: 6,
-  },
-  closeBtnText: {
-    color: '#94a3b8',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  patientInfoCard: {
+  drawerTopHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0f2942',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#1e3a5f',
+    marginBottom: 16,
+    marginTop: 4,
   },
-  avatarCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#0d9488',
+  logoSquircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: 12,
+    overflow: 'hidden',
+    padding: 3,
   },
-  avatarLetter: {
+  logoImage: {
+    width: 38,
+    height: 38,
+  },
+  userCol: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  userNameText: {
     color: '#ffffff',
     fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  userRoleText: {
+    color: '#94a3b8',
+    fontSize: 13,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  darkCloseBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#0c273e',
+    borderWidth: 1,
+    borderColor: '#193b58',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  darkCloseBtnText: {
+    color: '#2dd4bf',
+    fontSize: 17,
     fontWeight: 'bold',
   },
-  patientNameCol: {
-    flex: 1,
-  },
-  patientNameText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  patientSubText: {
-    color: '#94a3b8',
-    fontSize: 11,
+  categoryTitleText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#2dd4bf',
+    letterSpacing: 1.5,
+    marginTop: 14,
+    marginBottom: 14,
+    paddingHorizontal: 2,
   },
   menuList: {
-    gap: 6,
-    marginBottom: 24,
+    gap: 2,
   },
   menuItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 11,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    height: 46,
+    paddingHorizontal: 8,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    marginBottom: 2,
   },
   menuItemRowActive: {
-    backgroundColor: '#0f2f4a',
-    borderWidth: 1,
+    backgroundColor: 'rgba(13, 148, 136, 0.14)',
     borderColor: '#0d9488',
   },
   menuIconContainer: {
-    width: 34,
-    height: 34,
+    width: 36,
+    height: 36,
     borderRadius: 10,
-    backgroundColor: '#0f2338',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    backgroundColor: 'transparent',
   },
   menuIconContainerActive: {
     backgroundColor: '#0d9488',
   },
-  menuItemEmoji: {
-    fontSize: 16,
-  },
   menuItemLabel: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: '600',
-    color: '#94a3b8',
+    color: '#f1f5f9',
   },
   menuItemLabelActive: {
     color: '#ffffff',
-    fontWeight: '800',
+    fontWeight: '700',
   },
-  itemBadge: {
-    backgroundColor: '#0d9488',
-    borderRadius: 10,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-  },
-  itemBadgeText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  logoutBtn: {
+  drawerLogoutRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    paddingVertical: 13,
-    marginTop: 10,
-    marginBottom: 30,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#334155',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    gap: 12,
   },
-  logoutBtnIcon: {
-    fontSize: 16,
-  },
-  logoutBtnText: {
-    color: '#ef4444',
-    fontWeight: '700',
-    fontSize: 14,
+  drawerLogoutText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
 

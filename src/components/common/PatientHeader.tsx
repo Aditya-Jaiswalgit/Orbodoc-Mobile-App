@@ -13,18 +13,26 @@ import {
 } from 'react-native';
 import { useAuthContext } from '../../context/AuthContext';
 import { useNotifications } from '../../hooks/useNotifications';
-import { BellNotificationIcon } from './CustomIcons';
+import {
+  BellNotificationIcon,
+  ChevronDownIcon,
+  EnvelopePlusIcon,
+  HamburgerMenuIcon,
+} from './CustomIcons';
+import { getIconPngUri } from '../../utils/pixelIconEngine';
 
 interface PatientHeaderProps {
   onOpenDrawer?: () => void;
   onOpenNotifications?: () => void;
   onNavigateProfile?: () => void;
+  showLogo?: boolean;
 }
 
 export const PatientHeader: React.FC<PatientHeaderProps> = ({
   onOpenDrawer = () => {},
   onOpenNotifications,
   onNavigateProfile,
+  showLogo = true,
 }) => {
   const { user, logout } = useAuthContext();
   const { unreadCount } = useNotifications();
@@ -74,32 +82,40 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
       )}
 
       <View style={styles.headerRow}>
-        {/* Left Section: Menu Toggle + Logo */}
+        {/* Left Section: Menu Toggle (+ optional logo) */}
         <View style={styles.leftSection}>
           <TouchableOpacity
             style={styles.menuIconButton}
-            activeOpacity={0.8}
+            activeOpacity={0.7}
             onPress={onOpenDrawer}>
-            <Text style={styles.menuIconText}>☰</Text>
+            <HamburgerMenuIcon color="#334155" size={20} />
           </TouchableOpacity>
 
-          <Image
-            source={require('../../assets/images/logo.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
+          {showLogo && (
+            <Image
+              source={require('../../assets/images/logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+          )}
         </View>
 
-        {/* Right Section: Wallet, Bell, Profile Avatar Pill */}
+        {/* Right Section: Envelope+ button, Bell with (1), Profile Avatar Pill */}
         <View style={styles.rightSection}>
-          {/* Wallet Button */}
-          <TouchableOpacity style={styles.walletPill} activeOpacity={0.8}>
-            <View style={styles.walletIconCircle}>
-              <Text style={styles.walletPlus}>+</Text>
-            </View>
-            <View style={styles.walletTextCol}>
-              <Text style={styles.walletLabel}>WALLET</Text>
-              <Text style={styles.walletAmount}>₹0</Text>
+          {/* Message / Compose button with yellow + badge */}
+          <TouchableOpacity
+            style={styles.envelopeBtn}
+            activeOpacity={0.8}
+            onPress={onOpenNotifications}>
+            <View style={styles.envelopeInnerCircle}>
+              <Image
+                source={{ uri: getIconPngUri('envelope', '#ffffff') }}
+                style={{ width: 14, height: 14 }}
+                resizeMode="contain"
+              />
+              <View style={styles.envelopePlusBadge}>
+                <Text style={styles.envelopePlusText}>+</Text>
+              </View>
             </View>
           </TouchableOpacity>
 
@@ -108,20 +124,21 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
             style={styles.notificationBell}
             activeOpacity={0.8}
             onPress={onOpenNotifications}>
-            <BellNotificationIcon color="#0f766e" size={17} />
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-              </View>
-            )}
+            <BellNotificationIcon color="#334155" size={20} />
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : '1'}</Text>
+            </View>
           </TouchableOpacity>
 
-          {/* Profile Avatar (Click to open dropdown tab) */}
+          {/* Profile Avatar (Click to open dropdown tab) with Chevron */}
           <TouchableOpacity
-            style={styles.profileAvatar}
+            style={styles.profileAvatarPill}
             onPress={() => setShowDropdown(!showDropdown)}
             activeOpacity={0.8}>
-            <Text style={styles.avatarText}>{initial}</Text>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>{initial}</Text>
+            </View>
+            <ChevronDownIcon color="#64748b" size={14} />
           </TouchableOpacity>
         </View>
       </View>
@@ -332,19 +349,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   menuIconButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: '#f1f5f9',
-    alignItems: 'center',
+    padding: 6,
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    alignItems: 'center',
   },
   menuIconText: {
-    fontSize: 18,
-    color: '#0d9488',
-    fontWeight: 'bold',
+    fontSize: 22,
+    color: '#334155',
+    fontWeight: '700',
   },
   logoImage: {
     width: 100,
@@ -353,7 +365,103 @@ const styles = StyleSheet.create({
   rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+  },
+  envelopeBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#d1fae5',
+    borderWidth: 1.2,
+    borderColor: '#a7f3d0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  envelopeInnerCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#0d9488',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  envelopePlusBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#f59e0b',
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  envelopePlusText: {
+    color: '#000000',
+    fontSize: 9.5,
+    fontWeight: '900',
+    lineHeight: 11,
+    textAlign: 'center',
+  },
+  notificationBell: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    backgroundColor: '#ef4444',
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+  },
+  badgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  profileAvatarPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 20,
+    paddingRight: 8,
+    paddingLeft: 2,
+    paddingVertical: 2,
+    gap: 4,
+  },
+  avatarCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#0d9488',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  dropdownCaret: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748b',
+    marginTop: -2,
   },
   walletPill: {
     flexDirection: 'row',
@@ -393,32 +501,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0f766e',
   },
-  notificationBell: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f1f5f9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  badge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: '#ef4444',
-    borderRadius: 8,
-    minWidth: 14,
-    height: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  badgeText: {
-    color: '#ffffff',
-    fontSize: 8.5,
-    fontWeight: 'bold',
-  },
   profilePill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -430,14 +512,6 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     gap: 5,
   },
-  avatarCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#0d9488',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   profileAvatar: {
     width: 34,
     height: 34,
@@ -445,11 +519,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#0d9488',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  avatarText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '800',
   },
   profileTextCol: {
     justifyContent: 'center',
@@ -464,11 +533,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: '#64748b',
     marginTop: -1,
-  },
-  dropdownCaret: {
-    fontSize: 9,
-    color: '#64748b',
-    marginLeft: 1,
   },
 
   /* Dropdown Menu Modal Overlay */
