@@ -47,6 +47,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
   const statusBarHeight = StatusBar.currentHeight || 36;
   const staffName = user?.fullName || (user as any)?.full_name || 'Dr Verma';
   const roleName = (user?.roleName || (user as any)?.role_name || (user as any)?.role || 'doctor').toUpperCase();
+  const isDoctor = roleName === 'DOCTOR' || roleName.includes('DOCTOR');
   const getInitials = (name: string) => {
     if (!name) return 'DV';
     const clean = name.trim();
@@ -125,13 +126,13 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             <Text style={styles.menuIconText}>☰</Text>
           </TouchableOpacity>
 
-          {title ? (
+          {!isDoctor && title ? (
             <View style={styles.titleCol}>
               <Text style={styles.headerTitle} numberOfLines={1}>
                 {title}
               </Text>
             </View>
-          ) : showLogo ? (
+          ) : !isDoctor && showLogo ? (
             <Image
               source={require('../../assets/images/logo.png')}
               style={styles.logoImage}
@@ -154,23 +155,6 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               </Text>
             </View>
           )}
-
-          {/* Message / Compose button with yellow + badge */}
-          <TouchableOpacity
-            style={styles.envelopeBtn}
-            activeOpacity={0.8}
-            onPress={onOpenNotifications}>
-            <View style={styles.envelopeInnerCircle}>
-              <Image
-                source={{ uri: getIconPngUri('envelope', '#ffffff') }}
-                style={{ width: 14, height: 14 }}
-                resizeMode="contain"
-              />
-              <View style={styles.envelopePlusBadge}>
-                <Text style={styles.envelopePlusText}>+</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
 
           {/* Notification Bell */}
           <TouchableOpacity

@@ -72,7 +72,7 @@ const renderDrawerIcon = (id: string, color: string, size: number = 20) => {
       return <DrawerUsersIcon color={color} size={size} />;
     case 'treatment_billing':
     case 'medicine_billing':
-      return <ReceiptIcon color={color} size={size} strokeWidth={2} />;
+      return <DrawerCreditCardIcon color={color} size={size} />;
     case 'video_services':
       return <DrawerVideoIcon color={color} size={size} />;
     case 'lab_tests':
@@ -323,11 +323,7 @@ export const PatientMainContainer = () => {
                             styles.menuIconContainer,
                             isActive && styles.menuIconContainerActive,
                           ]}>
-                          {renderDrawerIcon(
-                            item.id,
-                            isActive ? '#ffffff' : '#2dd4bf',
-                            20
-                          )}
+                          {renderDrawerIcon(item.id, '#2dd4bf', 20)}
                         </View>
 
                         <Text
@@ -351,7 +347,9 @@ export const PatientMainContainer = () => {
                   setDrawerOpen(false);
                   logout();
                 }}>
-                <DrawerLogoutIcon color="#2dd4bf" size={22} />
+                <View style={styles.logoutIconContainer}>
+                  <DrawerLogoutIcon color="#2dd4bf" size={20} />
+                </View>
                 <Text style={styles.drawerLogoutText}>Logout</Text>
               </TouchableOpacity>
             </View>
@@ -578,28 +576,41 @@ const styles = StyleSheet.create({
   menuItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 46,
+    height: 48,
     paddingHorizontal: 8,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1.5,
     borderColor: 'transparent',
-    marginBottom: 2,
+    marginBottom: 3,
   },
   menuItemRowActive: {
-    backgroundColor: 'rgba(13, 148, 136, 0.14)',
-    borderColor: '#0d9488',
+    backgroundColor: 'rgba(45, 212, 191, 0.12)',
+    borderColor: '#2dd4bf',
   },
   menuIconContainer: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-    backgroundColor: 'transparent',
+    backgroundColor: '#0c2636',
+    borderWidth: 0,
+    shadowColor: '#2dd4bf',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.65,
+    shadowRadius: 8,
+    elevation: 6,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 10px rgba(45, 212, 191, 0.4)' } as any) : {}),
   },
   menuIconContainerActive: {
-    backgroundColor: '#0d9488',
+    backgroundColor: 'rgba(45, 212, 191, 0.22)',
+    shadowColor: '#2dd4bf',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 12,
+    elevation: 8,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 14px rgba(45, 212, 191, 0.65)' } as any) : {}),
   },
   menuItemLabel: {
     flex: 1,
@@ -614,9 +625,24 @@ const styles = StyleSheet.create({
   drawerLogoutRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 8,
     gap: 12,
+  },
+  logoutIconContainer: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0c2636',
+    borderWidth: 0,
+    shadowColor: '#2dd4bf',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.65,
+    shadowRadius: 8,
+    elevation: 6,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 10px rgba(45, 212, 191, 0.4)' } as any) : {}),
   },
   drawerLogoutText: {
     color: '#ffffff',

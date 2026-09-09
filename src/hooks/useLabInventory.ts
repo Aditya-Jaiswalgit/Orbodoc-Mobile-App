@@ -18,15 +18,34 @@ export function useLabInventory() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const getEffectiveClinicId = useCallback((): number => {
+    const raw =
+      (user as any)?.clinic_id ||
+      (user as any)?.clinicId ||
+      (user as any)?.activeClinicId ||
+      ((user as any)?.clinics && (user as any).clinics[0]?.id) ||
+      1;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+  }, [user]);
+
   const fetchCatalog = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await getLabCatalogApi(token, (user as any)?.clinic_id || user?.clinicId);
+      const clinicId = getEffectiveClinicId();
+      const res = await getLabCatalogApi(token, clinicId);
       if (res.success && res.data) {
-        const rawList = Array.isArray(res.data)
-          ? res.data
-          : (res.data as any).data || (res.data as any).catalog || [];
+        let rawList: LabCatalogItem[] = [];
+        if (Array.isArray(res.data)) {
+          rawList = res.data;
+        } else if (Array.isArray((res.data as any).data)) {
+          rawList = (res.data as any).data;
+        } else if (Array.isArray((res.data as any).catalog)) {
+          rawList = (res.data as any).catalog;
+        } else if (Array.isArray((res as any).data?.data)) {
+          rawList = (res as any).data.data;
+        }
         setCatalog(rawList);
       } else {
         setError(res.message || 'Failed to load clinic lab inventory');
@@ -36,21 +55,27 @@ export function useLabInventory() {
     } finally {
       setLoading(false);
     }
-  }, [token, user]);
+  }, [token, getEffectiveClinicId]);
 
   const fetchMasterTests = useCallback(async () => {
     try {
-      const res = await getMasterLabTestsApi(token);
+      const clinicId = getEffectiveClinicId();
+      const res = await getMasterLabTestsApi(token, clinicId);
       if (res.success && res.data) {
-        const rawList = Array.isArray(res.data)
-          ? res.data
-          : (res.data as any).data || (res.data as any).tests || [];
+        let rawList: any[] = [];
+        if (Array.isArray(res.data)) {
+          rawList = res.data;
+        } else if (Array.isArray((res.data as any).data)) {
+          rawList = (res.data as any).data;
+        } else if (Array.isArray((res.data as any).tests)) {
+          rawList = (res.data as any).tests;
+        }
         setMasterTests(rawList);
       }
     } catch (err) {
       // silent
     }
-  }, [token]);
+  }, [token, getEffectiveClinicId]);
 
   useEffect(() => {
     fetchCatalog();
@@ -60,14 +85,28 @@ export function useLabInventory() {
   const addCatalogItem = async (itemData: Partial<LabCatalogItem>) => {
     setLoading(true);
     try {
-      const res = await createLabCatalogItemApi(token, itemData);
+      const clinicId = getEffectiveClinicId();
+      const payload: any = {
+        ...itemData,
+        clinic_id: (itemData as any).clinic_id || clinicId,
+      };
+      const res = await createLabCatalogItemApi(token, payload);
       if (res.success || res.data) {
+        const createdItem = (res.data as any)?.item || {
+          id: Date.now(),
+          ...payload,
+        };
+        setCatalog((prev) => {
+          const exists = prev.some((p) => p.id === createdItem.id);
+          if (exists) return prev.map((p) => (p.id === createdItem.id ? createdItem : p));
+          return [createdItem, ...prev];
+        });
         await fetchCatalog();
         return { success: true, message: 'Lab catalog test added successfully' };
       }
-      return { success: true, message: res.message || 'Catalog item saved' };
+      return { success: false, message: res.message || 'Failed to add catalog item' };
     } catch (err: any) {
-      return { success: true, message: 'Lab catalog item saved' };
+      return { success: false, message: err.message || 'Error adding catalog item' };
     } finally {
       setLoading(false);
     }
@@ -78,17 +117,33 @@ export function useLabInventory() {
     price: number;
     discount_price?: number;
     home_collection_available?: number;
+    is_available?: number;
+    clinic_id?: number;
   }) => {
     setLoading(true);
     try {
-      const res = await mapMasterLabTestApi(token, mapData);
+      const clinicId = getEffectiveClinicId();
+      const payload = {
+        ...mapData,
+        clinic_id: mapData.clinic_id || clinicId,
+      };
+      const res = await mapMasterLabTestApi(token, payload);
       if (res.success || res.data) {
+        const mappedItem = (res.data as any)?.item;
+        if (mappedItem) {
+          setCatalog((prev) => {
+            const exists = prev.some((p) => p.id === mappedItem.id);
+            if (exists) return prev.map((p) => (p.id === mappedItem.id ? mappedItem : p));
+            return [mappedItem, ...prev];
+          });
+        }
         await fetchCatalog();
+        await fetchMasterTests();
         return { success: true, message: 'Master test mapped to clinic catalog' };
       }
-      return { success: true, message: res.message || 'Master test mapped' };
+      return { success: false, message: res.message || 'Failed to map test' };
     } catch (err: any) {
-      return { success: true, message: 'Master test mapped' };
+      return { success: false, message: err.message || 'Error mapping test' };
     } finally {
       setLoading(false);
     }
@@ -97,24 +152,40 @@ export function useLabInventory() {
   const updateCatalogItem = async (id: number, itemData: Partial<LabCatalogItem>) => {
     setLoading(true);
     try {
-      const res = await updateLabCatalogItemApi(token, id, itemData);
+      const clinicId = getEffectiveClinicId();
+      const payload: any = {
+        ...itemData,
+        clinic_id: (itemData as any).clinic_id || clinicId,
+      };
+      const res = await updateLabCatalogItemApi(token, id, payload);
       if (res.success || res.data) {
+        const updatedItem = (res.data as any)?.item;
+        if (updatedItem) {
+          setCatalog((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedItem } : p)));
+        }
         await fetchCatalog();
         return { success: true, message: 'Lab catalog test updated successfully' };
       }
-      return { success: true, message: res.message || 'Catalog test updated' };
+      return { success: false, message: res.message || 'Failed to update catalog test' };
     } catch (err: any) {
-      return { success: true, message: 'Catalog test updated' };
+      return { success: false, message: err.message || 'Error updating catalog test' };
     } finally {
       setLoading(false);
     }
   };
 
-  // Compute 4 Stat Metrics matching Web Screenshot
-  const mappedCount = catalog.length || 4;
-  const availableCount = catalog.filter((c) => c.is_available !== false && (c.is_available as any) !== 0).length || catalog.length || 4;
-  const homeCollectionCount = catalog.filter((c) => Boolean(c.home_collection_available)).length || 2;
-  const discountedCount = catalog.filter((c) => Number(c.discount_price) > 0).length || 2;
+  // Compute 4 dynamic Stat Metrics
+  const mappedCount = catalog.length;
+  const availableCount = catalog.filter(
+    (c) => c.is_available === 1 || c.is_available === true || (c.is_available as any) === '1'
+  ).length;
+  const homeCollectionCount = catalog.filter(
+    (c) =>
+      c.home_collection_available === 1 ||
+      c.home_collection_available === true ||
+      (c.home_collection_available as any) === '1'
+  ).length;
+  const discountedCount = catalog.filter((c) => Number(c.discount_price) > 0).length;
 
   return {
     catalog,

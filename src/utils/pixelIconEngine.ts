@@ -457,6 +457,44 @@ export function getIconPngUri(iconName: string, colorHex: string): string {
       break;
     }
 
+    case 'test-tube': {
+      // Top rim lip
+      canvas.drawLine(15, 8, 33, 8, col, stroke);
+      // Tube vertical lines
+      canvas.drawLine(18, 8, 18, 31, col, stroke);
+      canvas.drawLine(30, 8, 30, 31, col, stroke);
+      // Rounded bottom
+      canvas.drawArc(24, 31, 6, 0, Math.PI, col, stroke);
+      // Inner liquid meniscus
+      canvas.drawLine(20, 24, 28, 24, col, stroke);
+      break;
+    }
+
+    case 'clipboard-check': {
+      // Clipboard body
+      canvas.drawRoundRect(10, 10, 28, 32, 5, col, stroke);
+      // Clip at top
+      canvas.drawRoundRect(18, 6, 12, 7, 2, col, stroke);
+      // Checkmark inside
+      canvas.drawLine(17, 27, 23, 33, col, stroke);
+      canvas.drawLine(23, 33, 31, 21, col, stroke);
+      break;
+    }
+
+    case 'trash-2': {
+      // Lid
+      canvas.drawLine(8, 12, 40, 12, col, stroke);
+      canvas.drawRoundRect(18, 6, 12, 6, 2, col, stroke);
+      // Body
+      canvas.drawLine(12, 12, 14, 40, col, stroke);
+      canvas.drawLine(36, 12, 34, 40, col, stroke);
+      canvas.drawLine(14, 40, 34, 40, col, stroke);
+      // Vertical flutes
+      canvas.drawLine(20, 18, 20, 34, col, stroke);
+      canvas.drawLine(28, 18, 28, 34, col, stroke);
+      break;
+    }
+
     case 'menu': {
       // 3 horizontal bars
       canvas.drawLine(8, 12, 40, 12, col, stroke);
@@ -670,6 +708,67 @@ export function getIconPngUri(iconName: string, colorHex: string): string {
       canvas.drawLine(43, 24, 40, 26, col, stroke);
       // Single center iris circle (only 1 circle inside)
       canvas.drawCircle(24, 24, 6.5, col, stroke);
+      break;
+    }
+
+    case 'download': {
+      // Tray (open top box)
+      canvas.drawLine(10, 28, 10, 38, col, stroke);
+      canvas.drawLine(10, 38, 38, 38, col, stroke);
+      canvas.drawLine(38, 38, 38, 28, col, stroke);
+      // Down arrow line
+      canvas.drawLine(24, 10, 24, 28, col, stroke);
+      // Arrow head
+      canvas.drawLine(24, 28, 16, 20, col, stroke);
+      canvas.drawLine(24, 28, 32, 20, col, stroke);
+      break;
+    }
+
+    case 'pencil': {
+      // Slanted pencil
+      canvas.drawLine(14, 34, 32, 16, col, stroke);
+      canvas.drawLine(16, 36, 34, 18, col, stroke);
+      canvas.drawLine(14, 34, 10, 38, col, stroke);
+      canvas.drawLine(16, 36, 10, 38, col, stroke);
+      canvas.drawLine(32, 16, 36, 12, col, stroke);
+      canvas.drawLine(34, 18, 38, 14, col, stroke);
+      canvas.drawLine(36, 12, 38, 14, col, stroke);
+      break;
+    }
+
+    case 'check-circle': {
+      canvas.drawCircle(24, 24, 16, col, stroke);
+      canvas.drawLine(16, 24, 22, 30, col, stroke);
+      canvas.drawLine(22, 30, 32, 18, col, stroke);
+      break;
+    }
+
+    case 'shield-check': {
+      // Shield outline
+      canvas.drawLine(12, 12, 36, 12, col, stroke);
+      canvas.drawLine(12, 12, 12, 26, col, stroke);
+      canvas.drawLine(36, 12, 36, 26, col, stroke);
+      canvas.drawLine(12, 26, 24, 39, col, stroke);
+      canvas.drawLine(36, 26, 24, 39, col, stroke);
+      // Checkmark inside
+      canvas.drawLine(18, 23, 23, 28, col, stroke);
+      canvas.drawLine(23, 28, 30, 19, col, stroke);
+      break;
+    }
+
+    case 'columns': {
+      // Window / 3 columns outline
+      canvas.drawRoundRect(8, 10, 32, 28, 4, col, stroke);
+      canvas.drawLine(18, 10, 18, 38, col, stroke);
+      canvas.drawLine(29, 10, 29, 38, col, stroke);
+      break;
+    }
+
+    case 'refresh': {
+      canvas.drawArc(24, 24, 14, -Math.PI * 0.75, Math.PI * 0.65, col, stroke);
+      // Arrowhead
+      canvas.drawLine(24, 8, 28, 12, col, stroke);
+      canvas.drawLine(24, 8, 20, 12, col, stroke);
       break;
     }
 

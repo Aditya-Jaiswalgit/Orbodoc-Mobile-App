@@ -9,14 +9,16 @@ import {
   View,
 } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { useAuthContext } from '../../context/AuthContext';
 import {
+  ArrowRightIcon,
   BellNotificationIcon,
-  BillingCardIcon,
+  BillingPaymentCardIcon,
   CalendarIcon,
-  DashboardIcon,
   LabTubeIcon,
-  MedicinePillIcon,
-  PatientUserIcon,
+  ShieldCheckIcon,
+  StethoscopeIcon,
+  UsersIcon,
 } from '../../components/common/CustomIcons';
 import { useNurseDashboard, NurseModuleCard } from '../../hooks/useNurseDashboard';
 
@@ -31,34 +33,63 @@ export const NurseDashboardScreen: React.FC<NurseDashboardScreenProps> = ({
   onOpenNotifications,
   onNavigateScreen = () => {},
 }) => {
+  const { user } = useAuthContext();
   const { modules, loading, refreshing, onRefresh } = useNurseDashboard();
 
-  const renderModuleIcon = (id: string, size = 22) => {
+  // Dynamic Clinic Name
+  const clinicName =
+    user?.clinic_name ||
+    user?.clinicName ||
+    (user as any)?.clinics?.[0]?.name ||
+    'Aarogya Care Clinic';
+
+  // Dynamic Staff First Name
+  const rawName = user?.fullName || (user as any)?.full_name || (user as any)?.name || 'anit';
+  const firstName = rawName.trim().split(/\s+/)[0] || 'anit';
+
+  // Dynamic Time of Day Greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  // Dynamic Formatted Date matching Screenshot 1 (e.g., "Wednesday, September 9")
+  const todayFormatted = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const renderModuleIcon = (id: string, size = 20) => {
     switch (id) {
       case 'patients':
-        return <PatientUserIcon color="#0d9488" size={size} />;
+        return <UsersIcon color="#0d9488" size={size} />;
       case 'appointments':
       case 'book_appointment':
         return <CalendarIcon color="#0d9488" size={size} />;
       case 'treatment_billing':
       case 'medicine_billing':
-        return <BillingCardIcon color="#0d9488" size={size} />;
+        return <BillingPaymentCardIcon color="#0d9488" size={size} strokeWidth={1.8} />;
       case 'lab_tests':
       case 'lab_inventory':
-        return <LabTubeIcon color="#0d9488" size={size} />;
+        return <LabTubeIcon color="#0d9488" size={size} strokeWidth={2} />;
       case 'notifications':
         return <BellNotificationIcon color="#0d9488" size={size} />;
       default:
-        return <DashboardIcon color="#0d9488" size={size} />;
+        return <UsersIcon color="#0d9488" size={size} />;
     }
   };
 
   return (
     <View style={styles.container}>
+      {/* Top Bar Header matching Screenshot 1 (Hamburger, Bell, Avatar pill) */}
       <StaffHeader
         onOpenDrawer={onOpenDrawer}
         onOpenNotifications={onOpenNotifications}
-        title="Nurse Station"
+        showLogo={false}
+        showRolePill={false}
       />
 
       <ScrollView
@@ -67,43 +98,84 @@ export const NurseDashboardScreen: React.FC<NurseDashboardScreenProps> = ({
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0d9488']} />
         }>
-        {/* Top Hero Banner */}
-        <View style={styles.heroCard}>
-          <View style={styles.heroHeaderRow}>
-            <View style={styles.shieldCircle}>
-              <Text style={styles.shieldIcon}>🛡️</Text>
+        {/* Clinic Branding Header matching Screenshot 1 */}
+        <View style={styles.clinicHeaderSection}>
+          <View style={styles.clinicNameRow}>
+            <View style={styles.stethoscopeBox}>
+              <StethoscopeIcon color="#ffffff" size={20} strokeWidth={2.2} />
             </View>
-            <View style={styles.badgePill}>
-              <Text style={styles.badgeText}>CUSTOM WORKSPACE</Text>
+            <View style={styles.clinicTitleWrapper}>
+              <Text style={styles.clinicTitleText}>{clinicName}</Text>
+              <View style={styles.gradientUnderline}>
+                <View style={styles.gradientPartTeal} />
+                <View style={styles.gradientPartBlue} />
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Greeting Section matching Screenshot 1 */}
+        <View style={styles.greetingSection}>
+          <Text style={styles.greetingTitle}>
+            {getGreeting()}, {firstName.toLowerCase()}!
+          </Text>
+          <Text style={styles.greetingSubtitle}>
+            Here's what's happening at your clinic today.
+          </Text>
+        </View>
+
+        {/* Date Card matching Screenshot 1 */}
+        <View style={styles.dateCard}>
+          <View style={styles.calendarIconBox}>
+            <CalendarIcon color="#0d9488" size={20} strokeWidth={2} />
+          </View>
+          <View style={styles.dateInfoBox}>
+            <View style={styles.todayRow}>
+              <View style={styles.greenDot} />
+              <Text style={styles.todayLabel}>TODAY</Text>
+            </View>
+            <Text style={styles.dateText}>{todayFormatted}</Text>
+          </View>
+        </View>
+
+        {/* Custom Workspace Card matching Screenshot 1 */}
+        <View style={styles.workspaceCard}>
+          <View style={styles.workspaceHeaderRow}>
+            <View style={styles.shieldBox}>
+              <ShieldCheckIcon color="#ffffff" size={22} strokeWidth={2} />
+            </View>
+            <View style={styles.workspaceBadgePill}>
+              <Text style={styles.workspaceBadgeText}>CUSTOM WORKSPACE</Text>
             </View>
           </View>
 
-          <Text style={styles.heroTitle}>Nurse Dashboard</Text>
-          <Text style={styles.heroSub}>
+          <Text style={styles.workspaceTitle}>Nurse Dashboard</Text>
+          <Text style={styles.workspaceSubtitle}>
             Your workspace displays only the modules enabled for this role by your clinic administrator.
           </Text>
         </View>
 
+        {/* Modules Cards List matching Screenshots 1 & 2 */}
         {loading ? (
           <ActivityIndicator size="large" color="#0d9488" style={styles.loader} />
         ) : (
-          <View style={styles.gridContainer}>
+          <View style={styles.modulesList}>
             {modules.map((item: NurseModuleCard) => (
               <TouchableOpacity
                 key={item.id}
-                activeOpacity={0.8}
-                style={styles.cardItem}
+                activeOpacity={0.75}
+                style={styles.moduleCard}
                 onPress={() => onNavigateScreen(item.screenKey)}>
-                <View style={styles.cardHeader}>
-                  <View style={styles.iconCircle}>
+                <View style={styles.moduleCardTopRow}>
+                  <View style={styles.moduleIconBox}>
                     {renderModuleIcon(item.id, 20)}
                   </View>
-                  <Text style={styles.arrowIcon}>→</Text>
+                  <ArrowRightIcon color="#64748b" size={18} strokeWidth={2} />
                 </View>
 
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
-                  <Text style={styles.cardSub}>{item.subtitle}</Text>
+                <View style={styles.moduleCardBody}>
+                  <Text style={styles.moduleCardTitle}>{item.title}</Text>
+                  <Text style={styles.moduleCardSubtitle}>{item.subtitle}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -123,110 +195,227 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 90,
   },
-  heroCard: {
-    backgroundColor: '#e6fffa',
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#99f6e4',
+
+  /* Clinic Branding Header matching Screenshot 1 */
+  clinicHeaderSection: {
+    marginBottom: 16,
+    marginTop: 2,
   },
-  heroHeaderRow: {
+  clinicNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
+    gap: 12,
   },
-  shieldCircle: {
+  stethoscopeBox: {
     width: 38,
     height: 38,
+    borderRadius: 10,
+    backgroundColor: '#14b8a6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#14b8a6',
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  clinicTitleWrapper: {
+    flex: 1,
+  },
+  clinicTitleText: {
+    fontSize: 21,
+    fontWeight: '800',
+    color: '#0f766e',
+    letterSpacing: -0.2,
+  },
+  gradientUnderline: {
+    flexDirection: 'row',
+    height: 3,
+    borderRadius: 2,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  gradientPartTeal: {
+    flex: 2,
+    backgroundColor: '#14b8a6',
+  },
+  gradientPartBlue: {
+    flex: 1,
+    backgroundColor: '#3b82f6',
+  },
+
+  /* Greeting Section matching Screenshot 1 */
+  greetingSection: {
+    marginBottom: 16,
+  },
+  greetingTitle: {
+    fontSize: 21,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  greetingSubtitle: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 4,
+  },
+
+  /* Date Card matching Screenshot 1 */
+  dateCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1.2,
+    borderColor: '#ccfbf1',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  calendarIconBox: {
+    width: 44,
+    height: 44,
     borderRadius: 12,
-    backgroundColor: '#0d9488',
+    backgroundColor: '#f0fdfa',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  shieldIcon: {
-    fontSize: 18,
+  dateInfoBox: {
+    flex: 1,
+    gap: 2,
   },
-  badgePill: {
-    backgroundColor: '#ccfbf1',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+  todayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  greenDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#0d9488',
+  },
+  todayLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0f766e',
+    letterSpacing: 0.8,
+  },
+  dateText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+
+  /* Workspace Banner Card matching Screenshot 1 */
+  workspaceCard: {
+    backgroundColor: '#f0fdfa',
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#ccfbf1',
+    marginBottom: 16,
+    shadowColor: '#0d9488',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  workspaceHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 12,
+  },
+  shieldBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#0d9488',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0d9488',
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  workspaceBadgePill: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: '#5eead4',
   },
-  badgeText: {
+  workspaceBadgeText: {
     color: '#0f766e',
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.8,
   },
-  heroTitle: {
-    fontSize: 24,
+  workspaceTitle: {
+    fontSize: 20,
     fontWeight: '800',
     color: '#0f172a',
+    marginTop: 14,
     marginBottom: 6,
   },
-  heroSub: {
+  workspaceSubtitle: {
     fontSize: 13,
-    color: '#475569',
-    lineHeight: 18,
+    color: '#64748b',
+    lineHeight: 19,
   },
+
   loader: {
     marginVertical: 40,
   },
-  gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+
+  /* Modules Cards List matching Screenshots 1 & 2 */
+  modulesList: {
     gap: 12,
   },
-  cardItem: {
-    width: '48%',
+  moduleCard: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    justifyContent: 'space-between',
-    minHeight: 120,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
     shadowRadius: 6,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
-  cardHeader: {
+  moduleCardTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
   },
-  iconCircle: {
-    width: 38,
-    height: 38,
+  moduleIconBox: {
+    width: 42,
+    height: 42,
     borderRadius: 12,
-    backgroundColor: '#ccfbf1',
+    backgroundColor: '#f0fdfa',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  arrowIcon: {
-    fontSize: 18,
-    color: '#94a3b8',
-    fontWeight: '700',
+  moduleCardBody: {
+    marginTop: 14,
   },
-  cardBody: {
-    gap: 2,
-  },
-  cardTitle: {
+  moduleCardTitle: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#0f172a',
   },
-  cardSub: {
-    fontSize: 11,
+  moduleCardSubtitle: {
+    fontSize: 12.5,
     color: '#64748b',
-    fontWeight: '500',
+    marginTop: 3,
   },
 });
 

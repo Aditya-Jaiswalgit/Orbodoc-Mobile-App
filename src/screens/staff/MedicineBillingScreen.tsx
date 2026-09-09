@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -15,9 +14,22 @@ import {
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { useMedicineBills } from '../../hooks/useMedicineBills';
 import { MedicineBill, MedicineBillItem } from '../../api/medicineBillApi';
-import { generateInvoiceHtml, printOrDownloadPdf } from '../../utils/pdfGenerator';
 import { InvoiceModal } from '../../components/billing/InvoiceModal';
-import { ColumnsIcon, ReceiptIcon, SearchInputIcon } from '../../components/common/CustomIcons';
+import {
+  BillBanknoteIcon,
+  BillingEyeIcon,
+  ColumnsIcon,
+  MoreVerticalIcon,
+  ReceiptIcon,
+  SearchInputIcon,
+} from '../../components/common/CustomIcons';
+import {
+  MedicineColumnKey,
+  MedicineColumnsModal,
+  MedicineColumnVisibilityState,
+} from '../../components/medicineBilling/MedicineColumnsModal';
+import { MedicineBillActionModal } from '../../components/medicineBilling/MedicineBillActionModal';
+import { EditMedicineBillModal } from '../../components/medicineBilling/EditMedicineBillModal';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -25,37 +37,58 @@ interface Props {
   onToggleTabBar?: (hide: boolean) => void;
 }
 
-export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotifications, onToggleTabBar }) => {
-  const { bills, loading, refreshBills, fetchBillDetails, createBill, recordPayment } = useMedicineBills();
+const DEFAULT_COLUMNS: MedicineColumnVisibilityState = {
+  billNumber: true,
+  patientName: true,
+  patientPhone: true,
+  patientCode: false,
+  subtotal: false,
+  tax: false,
+  totalAmount: true,
+  paid: false,
+  paymentMethod: false,
+  status: true,
+  date: false,
+  pharmacist: false,
+  actions: true,
+};
 
-  const [modalVisible, setModalVisible] = useState(false);
+export const MedicineBillingScreen: React.FC<Props> = ({
+  onOpenDrawer,
+  onOpenNotifications,
+  onToggleTabBar,
+}) => {
+  const {
+    bills,
+    loading,
+    refreshBills,
+    fetchBillDetails,
+    createBill,
+    updateBill,
+    cancelBill,
+  } = useMedicineBills();
+
+  // Modal States
+  const [createModalVisible, setCreateModalVisible] = useState(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
-  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [columnsModalVisible, setColumnsModalVisible] = useState(false);
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+
+  // Selected Bill
   const [selectedBill, setSelectedBill] = useState<MedicineBill | null>(null);
 
-  useEffect(() => {
-    if (onToggleTabBar) {
-      onToggleTabBar(modalVisible || detailsModalVisible || paymentModalVisible);
-    }
-  }, [modalVisible, detailsModalVisible, paymentModalVisible, onToggleTabBar]);
+  // Columns visibility state matching Screenshots 2 & 3
+  const [columns, setColumns] = useState<MedicineColumnVisibilityState>(DEFAULT_COLUMNS);
 
-  useEffect(() => {
-    return () => {
-      onToggleTabBar?.(false);
-    };
-  }, [onToggleTabBar]);
-
-  // Filter state
+  // Search state
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'partial' | 'pending'>('all');
 
-  // Form State for Multi-Item Bill Creation
+  // New Bill Form State
   const [patientName, setPatientName] = useState('');
   const [patientPhone, setPatientPhone] = useState('');
-  const [doctorName, setDoctorName] = useState('Dr. Sharma');
+  const [patientCode, setPatientCode] = useState('');
   const [discountAmount, setDiscountAmount] = useState('0');
-
-  // Items list in new bill
   const [billItems, setBillItems] = useState<Array<{ name: string; qty: number; price: number }>>([
     { name: 'Paracetamol 650mg', qty: 10, price: 2.5 },
   ]);
@@ -63,14 +96,38 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
   const [newMedQty, setNewMedQty] = useState('1');
   const [newMedPrice, setNewMedPrice] = useState('10');
 
-  // Record Payment State
-  const [payAmount, setPayAmount] = useState('');
-  const [payMode, setPayMode] = useState<'cash' | 'upi' | 'card' | 'online'>('cash');
-  const [paySubmitting, setPaySubmitting] = useState(false);
+  useEffect(() => {
+    const isAnyModalOpen =
+      createModalVisible ||
+      detailsModalVisible ||
+      columnsModalVisible ||
+      actionSheetVisible ||
+      editModalVisible;
+    if (onToggleTabBar) {
+      onToggleTabBar(isAnyModalOpen);
+    }
+  }, [
+    createModalVisible,
+    detailsModalVisible,
+    columnsModalVisible,
+    actionSheetVisible,
+    editModalVisible,
+    onToggleTabBar,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      onToggleTabBar?.(false);
+    };
+  }, [onToggleTabBar]);
+
+  const handleToggleColumn = (key: MedicineColumnKey) => {
+    setColumns((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const handleAddItem = () => {
     if (!newMedName.trim() || !newMedQty.trim() || !newMedPrice.trim()) {
-      Alert.alert('Validation Error', 'Enter medicine name, quantity and price.');
+      Alert.alert('Validation Error', 'Enter medicine name, quantity, and price.');
       return;
     }
     const q = parseInt(newMedQty, 10);
@@ -124,7 +181,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
     const newBillPayload: Partial<MedicineBill> = {
       patient_name: patientName.trim(),
       patient_phone: patientPhone.trim() || undefined,
-      clinic_name: 'Aarogya Care Pharmacy',
+      patient_code: patientCode.trim() || undefined,
       total_amount: grandTotal,
       subtotal: subtotal,
       net_amount: grandTotal,
@@ -139,12 +196,13 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
     try {
       const res = await createBill(newBillPayload);
       if (res.success) {
-        setModalVisible(false);
+        setCreateModalVisible(false);
         setPatientName('');
         setPatientPhone('');
+        setPatientCode('');
         setDiscountAmount('0');
         setBillItems([{ name: 'Paracetamol 650mg', qty: 10, price: 2.5 }]);
-        Alert.alert('Success ✅', 'Medicine Invoice created & API saved successfully!');
+        Alert.alert('Success ✅', 'Medicine Bill created & saved successfully!');
       } else {
         Alert.alert('Error', res.message || 'Could not create bill');
       }
@@ -153,68 +211,75 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
     }
   };
 
-  const handleOpenDetails = async (id: number) => {
+  const handleOpenDetails = async (bill: MedicineBill) => {
+    setSelectedBill(bill);
     setDetailsModalVisible(true);
-    const detail = await fetchBillDetails(id);
+    const detail = await fetchBillDetails(bill.id);
     if (detail) {
       setSelectedBill(detail);
     }
   };
 
-  const handleOpenPaymentModal = (bill: MedicineBill) => {
+  const handleOpenActionMenu = (bill: MedicineBill) => {
     setSelectedBill(bill);
-    const net = Number(bill.net_amount || bill.total_amount || 0);
-    const paid = Number(bill.paid_amount || 0);
-    const due = Math.max(0, net - paid);
-    setPayAmount(String(due > 0 ? due : net));
-    setPaymentModalVisible(true);
+    setActionSheetVisible(true);
   };
 
-  const handleRecordPaymentSubmit = async () => {
-    if (!selectedBill) return;
-    const amt = parseFloat(payAmount);
-    if (isNaN(amt) || amt <= 0) {
-      Alert.alert('Validation Error', 'Enter a valid payment amount.');
-      return;
-    }
+  const handleEditBillFromMenu = (bill: MedicineBill) => {
+    setActionSheetVisible(false);
+    setSelectedBill(bill);
+    setEditModalVisible(true);
+  };
 
-    setPaySubmitting(true);
-    try {
-      const res = await recordPayment(selectedBill.id, {
-        amount: amt,
-        payment_method: payMode,
-      });
+  const handleCancelBillFromMenu = (bill: MedicineBill) => {
+    setActionSheetVisible(false);
+    Alert.alert(
+      'Cancel Bill',
+      `Are you sure you want to cancel ${bill.bill_number || `Bill #${bill.id}`}? This will restore medicine stocks to inventory.`,
+      [
+        { text: 'No, Keep Bill', style: 'cancel' },
+        {
+          text: 'Yes, Cancel Bill',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await cancelBill(bill.id, 'Cancelled by staff user');
+              if (res.success) {
+                Alert.alert('Cancelled ✅', `Bill ${bill.bill_number || `#${bill.id}`} has been cancelled.`);
+              } else {
+                Alert.alert('Error', res.message || 'Failed to cancel bill');
+              }
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Could not cancel bill');
+            }
+          },
+        },
+      ]
+    );
+  };
 
-      if (res.success) {
-        setPaymentModalVisible(false);
-        refreshBills();
-        Alert.alert('Payment Recorded ✅', `₹${amt} payment recorded for invoice #${selectedBill.bill_number || selectedBill.id}`);
-      } else {
-        Alert.alert('Error', res.message || 'Failed to record payment');
-      }
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Server connection error');
-    } finally {
-      setPaySubmitting(false);
+  const handleSaveEditedBill = async (id: number, data: Partial<MedicineBill>) => {
+    const res = await updateBill(id, data);
+    if (res.success) {
+      Alert.alert('Saved ✅', 'Medicine bill updated successfully');
+      return true;
+    } else {
+      Alert.alert('Error', res.message || 'Failed to update bill');
+      return false;
     }
   };
 
+  // Filter bills purely based on backend data
   const filteredBills = bills.filter((b) => {
     const q = searchQuery.toLowerCase().trim();
-    const matchesSearch =
-      !q ||
+    if (!q) return true;
+    return (
       b.patient_name?.toLowerCase().includes(q) ||
       b.bill_number?.toLowerCase().includes(q) ||
-      String(b.id).includes(q);
-
-    const st = String(b.payment_status || b.status || '').toLowerCase();
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'paid' && (st === 'paid' || st === 'settled')) ||
-      (statusFilter === 'partial' && (st === 'partially_paid' || st === 'partial')) ||
-      (statusFilter === 'pending' && (st === 'pending' || st === 'unpaid'));
-
-    return matchesSearch && matchesStatus;
+      (b.patient_phone && b.patient_phone.includes(q)) ||
+      (b.patient_code && b.patient_code.toLowerCase().includes(q)) ||
+      String(b.id).includes(q)
+    );
   });
 
   return (
@@ -232,21 +297,24 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={refreshBills} colors={['#0d9488']} />
         }>
-        {/* Header Title Row */}
+        {/* Header Section matching Screenshot 1 */}
         <View style={styles.topHeaderSection}>
           <View style={styles.topTitleRow}>
-            <ReceiptIcon color="#0f172a" size={24} strokeWidth={2} />
+            <BillBanknoteIcon color="#0f172a" size={24} strokeWidth={2} />
             <Text style={styles.topPageTitle}>Medicine Bills</Text>
           </View>
           <Text style={styles.topSubtitleText}>Manage medicine bills and payments</Text>
 
-          <TouchableOpacity style={styles.headerCreateBillBtn} activeOpacity={0.85} onPress={() => setModalVisible(true)}>
+          <TouchableOpacity
+            style={styles.headerCreateBillBtn}
+            activeOpacity={0.85}
+            onPress={() => setCreateModalVisible(true)}>
             <Text style={styles.createBillPlus}>+</Text>
             <Text style={styles.headerCreateBillBtnText}>Create Bill</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Card 1: Search Card */}
+        {/* Card 1: Search Card matching Screenshot 1 */}
         <View style={styles.searchCard}>
           <View style={styles.searchInputWrapper}>
             <SearchInputIcon size={16} color="#94a3b8" />
@@ -259,125 +327,267 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
             />
           </View>
 
-          <TouchableOpacity style={styles.searchBtn} activeOpacity={0.8} onPress={refreshBills}>
+          <TouchableOpacity
+            style={styles.searchBtn}
+            activeOpacity={0.8}
+            onPress={refreshBills}>
             <SearchInputIcon size={16} color="#0f172a" />
             <Text style={styles.searchBtnText}>Search</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Card 2: All Bills Card */}
+        {/* Card 2: All Bills Card matching Screenshot 1 */}
         <View style={styles.allBillsCard}>
+          {/* Header row: [$] All Bills (count) */}
           <View style={styles.allBillsTitleRow}>
-            <ReceiptIcon color="#0f172a" size={18} strokeWidth={2} />
+            <BillBanknoteIcon color="#0f172a" size={20} strokeWidth={2} />
             <Text style={styles.allBillsTitle}>All Bills ({filteredBills.length})</Text>
           </View>
+
+          {/* Full-width Columns Button matching Screenshot 1 */}
+          <TouchableOpacity
+            style={styles.columnsBtn}
+            activeOpacity={0.8}
+            onPress={() => setColumnsModalVisible(true)}>
+            <ColumnsIcon size={16} color="#0f172a" />
+            <Text style={styles.columnsBtnText}>Columns</Text>
+          </TouchableOpacity>
 
           {/* Bills List Rendering */}
           {loading && bills.length === 0 ? (
             <View style={styles.loadingBox}>
               <ActivityIndicator size="large" color="#0d9488" />
-              <Text style={styles.loadingText}>Fetching pharmacy invoices from backend API...</Text>
+              <Text style={styles.loadingText}>Fetching medicine bills from backend API...</Text>
             </View>
           ) : filteredBills.length === 0 ? (
             <View style={styles.emptyMedicineBox}>
-              <ReceiptIcon color="#cbd5e1" size={56} strokeWidth={1.5} />
+              <ReceiptIcon color="#cbd5e1" size={52} strokeWidth={1.5} />
               <Text style={styles.emptyMedicineText}>No medicine bills found</Text>
             </View>
           ) : (
-          <View style={styles.billList}>
-            {filteredBills.map((bill) => {
-              const statusStr = String(bill.payment_status || bill.status || '').toLowerCase();
-              const isPaid = statusStr === 'paid' || statusStr === 'settled' || statusStr === 'completed';
-              const isPartial = statusStr === 'partially_paid' || statusStr === 'partial';
-              const netAmt = Number(bill.net_amount || bill.total_amount || bill.subtotal || 0);
-              const paidAmt = Number(bill.paid_amount || (isPaid ? netAmt : 0));
-              const dueAmt = Math.max(0, netAmt - paidAmt);
+            <View style={styles.billList}>
+              {filteredBills.map((bill) => {
+                const statusStr = String(
+                  bill.payment_status || bill.status || 'pending'
+                ).toLowerCase();
+                const isPaid =
+                  statusStr === 'paid' || statusStr === 'settled' || statusStr === 'completed';
+                const isPartial =
+                  statusStr === 'partially_paid' || statusStr === 'partial';
+                const isCancelled =
+                  statusStr === 'cancelled' || statusStr === 'canceled';
 
-              return (
-                <View key={bill.id} style={styles.card}>
-                  <View style={styles.cardHeader}>
-                    <View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Text style={styles.billNo}>{bill.bill_number || `MB-${bill.id}`}</Text>
+                const totalAmt = Number(bill.total_amount || bill.net_amount || bill.subtotal || 0);
+                const subtotalAmt = Number(bill.subtotal || bill.total_amount || 0);
+                const taxAmt = Number(bill.tax_amount || 0);
+                const paidAmt = Number(bill.paid_amount || (isPaid ? totalAmt : 0));
+                const dateStr = bill.created_at ? String(bill.created_at).split('T')[0] : 'N/A';
+
+                return (
+                  <View key={bill.id} style={styles.card}>
+                    {/* Top Row: Bill Number + Status badge */}
+                    <View style={styles.cardHeaderRow}>
+                      {columns.billNumber && (
+                        <Text style={styles.billNoText}>
+                          {bill.bill_number || `MB-${bill.id}`}
+                        </Text>
+                      )}
+
+                      {columns.status && (
                         <View
                           style={[
                             styles.statusBadgePill,
-                            isPaid ? styles.paidBg : isPartial ? styles.partialBg : styles.pendingBg,
+                            isPaid
+                              ? styles.paidBg
+                              : isPartial
+                              ? styles.partialBg
+                              : isCancelled
+                              ? styles.cancelledBg
+                              : styles.pendingBg,
                           ]}>
                           <Text
                             style={[
-                              styles.statusText,
-                              isPaid ? styles.paidText : isPartial ? styles.partialText : styles.pendingText,
+                              styles.statusBadgeText,
+                              isPaid
+                                ? styles.paidText
+                                : isPartial
+                                ? styles.partialText
+                                : isCancelled
+                                ? styles.cancelledText
+                                : styles.pendingText,
                             ]}>
-                            {isPaid ? 'PAID' : isPartial ? 'PARTIAL' : 'PENDING'}
+                            {isPaid
+                              ? 'paid'
+                              : isPartial
+                              ? 'partial'
+                              : isCancelled
+                              ? 'cancelled'
+                              : 'pending'}
                           </Text>
                         </View>
-                      </View>
-                      <Text style={styles.patientName}>{bill.patient_name || 'Patient'}</Text>
-                    </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={styles.netAmount}>₹{netAmt.toFixed(2)}</Text>
-                      {dueAmt > 0 ? (
-                        <Text style={styles.dueText}>Due: ₹{dueAmt.toFixed(2)}</Text>
-                      ) : (
-                        <Text style={styles.settledText}>✓ Fully Settled</Text>
                       )}
                     </View>
-                  </View>
 
-                  <Text style={styles.dateText}>
-                    📅 Date: {bill.created_at ? String(bill.created_at).split('T')[0] : 'N/A'}
-                  </Text>
+                    {/* Patient Name */}
+                    {columns.patientName && (
+                      <Text style={styles.patientNameText}>
+                        {bill.patient_name || 'Patient'}
+                      </Text>
+                    )}
 
-                  {/* Itemized Services Preview */}
-                  {Array.isArray(bill.items) && bill.items.length > 0 ? (
-                    <View style={styles.itemsBox}>
-                      <Text style={styles.itemsBoxTitle}>ITEMIZED MEDICINES ({bill.items.length}):</Text>
-                      {bill.items.map((it: any, idx: number) => (
-                        <View key={idx} style={styles.itemRow}>
-                          <Text style={styles.itemTitle}>
-                            💊 {it.medicine_name || it.name} × {it.quantity || 1}
-                          </Text>
-                          <Text style={styles.itemPrice}>
-                            ₹{Number(it.total_price || (it.unit_price || 0) * (it.quantity || 1)).toFixed(2)}
+                    {/* Divider line if column values follow */}
+                    <View style={styles.cardDivider} />
+
+                    {/* Dynamically Visible Columns Grid */}
+                    <View style={styles.columnsGrid}>
+                      {/* Total Amount */}
+                      {columns.totalAmount && (
+                        <View style={styles.gridItem}>
+                          <Text style={styles.columnLabel}>TOTAL</Text>
+                          <Text style={styles.columnValueBold}>₹{totalAmt.toFixed(2)}</Text>
+                        </View>
+                      )}
+
+                      {/* Patient Phone */}
+                      {columns.patientPhone && bill.patient_phone ? (
+                        <View style={styles.gridItem}>
+                          <Text style={styles.columnLabel}>PHONE</Text>
+                          <Text style={styles.columnValueBold}>{bill.patient_phone}</Text>
+                        </View>
+                      ) : null}
+
+                      {/* Patient Code */}
+                      {columns.patientCode && bill.patient_code ? (
+                        <View style={styles.gridItem}>
+                          <Text style={styles.columnLabel}>CODE</Text>
+                          <Text style={styles.columnValueBold}>{bill.patient_code}</Text>
+                        </View>
+                      ) : null}
+
+                      {/* Subtotal */}
+                      {columns.subtotal && (
+                        <View style={styles.gridItem}>
+                          <Text style={styles.columnLabel}>SUBTOTAL</Text>
+                          <Text style={styles.columnValueBold}>₹{subtotalAmt.toFixed(2)}</Text>
+                        </View>
+                      )}
+
+                      {/* Tax */}
+                      {columns.tax && (
+                        <View style={styles.gridItem}>
+                          <Text style={styles.columnLabel}>TAX</Text>
+                          <Text style={styles.columnValueBold}>₹{taxAmt.toFixed(2)}</Text>
+                        </View>
+                      )}
+
+                      {/* Paid */}
+                      {columns.paid && (
+                        <View style={styles.gridItem}>
+                          <Text style={styles.columnLabel}>PAID</Text>
+                          <Text style={styles.columnValueBold}>₹{paidAmt.toFixed(2)}</Text>
+                        </View>
+                      )}
+
+                      {/* Payment Method */}
+                      {columns.paymentMethod && (
+                        <View style={styles.gridItem}>
+                          <Text style={styles.columnLabel}>PAY METHOD</Text>
+                          <Text style={styles.columnValueBold}>
+                            {String(bill.payment_method || (bill as any).payment_mode || 'Cash').toUpperCase()}
                           </Text>
                         </View>
-                      ))}
+                      )}
+
+                      {/* Date */}
+                      {columns.date && (
+                        <View style={styles.gridItem}>
+                          <Text style={styles.columnLabel}>DATE</Text>
+                          <Text style={styles.columnValueBold}>{dateStr}</Text>
+                        </View>
+                      )}
+
+                      {/* Pharmacist */}
+                      {columns.pharmacist && bill.pharmacist_name ? (
+                        <View style={styles.gridItem}>
+                          <Text style={styles.columnLabel}>PHARMACIST</Text>
+                          <Text style={styles.columnValueBold}>{bill.pharmacist_name}</Text>
+                        </View>
+                      ) : null}
                     </View>
-                  ) : null}
 
-                  {/* Card Actions Footer */}
-                  <View style={styles.cardFooter}>
-                    <TouchableOpacity style={styles.detailsBtn} onPress={() => handleOpenDetails(bill.id)}>
-                      <Text style={styles.detailsBtnText}>📄 View Invoice Details</Text>
-                    </TouchableOpacity>
+                    {/* Actions Row (Bottom Right) matching Screenshot 1 */}
+                    {columns.actions && (
+                      <View style={styles.cardActionsRow}>
+                        {/* 1. Eye Button: Cyan border, light teal bg, teal eye icon */}
+                        <TouchableOpacity
+                          style={styles.eyeActionBtn}
+                          activeOpacity={0.7}
+                          onPress={() => handleOpenDetails(bill)}>
+                          <BillingEyeIcon size={18} color="#0d9488" strokeWidth={2} />
+                        </TouchableOpacity>
 
-                    {!isPaid && (
-                      <TouchableOpacity style={styles.recordPayBtn} onPress={() => handleOpenPaymentModal(bill)}>
-                        <Text style={styles.recordPayBtnText}>💳 Record Payment</Text>
-                      </TouchableOpacity>
+                        {/* 2. 3-Dots Button: Grey border, light bg, 3 dots icon */}
+                        <TouchableOpacity
+                          style={styles.moreActionBtn}
+                          activeOpacity={0.7}
+                          onPress={() => handleOpenActionMenu(bill)}>
+                          <MoreVerticalIcon size={18} color="#0f172a" />
+                        </TouchableOpacity>
+                      </View>
                     )}
                   </View>
-                </View>
-              );
-            })}
-          </View>
-        )}
+                );
+              })}
+            </View>
+          )}
         </View>
       </ScrollView>
 
-      {/* CREATE MULTI-ITEM MEDICINE BILL MODAL */}
-      <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
+      {/* 1. COLUMNS MODAL matching Screenshots 2 & 3 */}
+      <MedicineColumnsModal
+        visible={columnsModalVisible}
+        columns={columns}
+        onClose={() => setColumnsModalVisible(false)}
+        onToggleColumn={handleToggleColumn}
+      />
+
+      {/* 2. 3-DOTS ACTION MENU BOTTOM SHEET matching Screenshot 4 */}
+      <MedicineBillActionModal
+        visible={actionSheetVisible}
+        bill={selectedBill}
+        onClose={() => setActionSheetVisible(false)}
+        onEdit={handleEditBillFromMenu}
+        onCancel={handleCancelBillFromMenu}
+      />
+
+      {/* 3. EDIT MEDICINE BILL MODAL */}
+      <EditMedicineBillModal
+        visible={editModalVisible}
+        bill={selectedBill}
+        onClose={() => setEditModalVisible(false)}
+        onSave={handleSaveEditedBill}
+      />
+
+      {/* 4. CREATE MULTI-ITEM MEDICINE BILL MODAL */}
+      <Modal
+        visible={createModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setCreateModalVisible(false)}>
         <View style={styles.modalBg}>
           <View style={styles.modalCardWide}>
             <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>New Itemized Medicine Invoice</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
+              <Text style={styles.modalTitle}>New Medicine Invoice</Text>
+              <TouchableOpacity
+                onPress={() => setCreateModalVisible(false)}
+                style={styles.closeBtn}>
                 <Text style={styles.closeBtnText}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 10 }}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingBottom: 10 }}>
               <View style={styles.formRowTwo}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.label}>Patient Name *</Text>
@@ -402,6 +612,17 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
                 </View>
               </View>
 
+              <View>
+                <Text style={styles.label}>Patient Code (Optional)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. P-101"
+                  placeholderTextColor="#94a3b8"
+                  value={patientCode}
+                  onChangeText={setPatientCode}
+                />
+              </View>
+
               {/* Itemized Medicine Rows List */}
               <Text style={styles.sectionHeading}>Itemized Prescribed Medicines</Text>
               <View style={styles.itemsTableCard}>
@@ -410,7 +631,9 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
                     <Text style={styles.itemTableTitle}>{item.name}</Text>
                     <Text style={styles.itemTableQty}>Qty: {item.qty}</Text>
                     <Text style={styles.itemTablePrice}>₹{item.price.toFixed(2)}/unit</Text>
-                    <Text style={styles.itemTableTotal}>₹{(item.qty * item.price).toFixed(2)}</Text>
+                    <Text style={styles.itemTableTotal}>
+                      ₹{(item.qty * item.price).toFixed(2)}
+                    </Text>
                     <TouchableOpacity onPress={() => handleRemoveItem(idx)}>
                       <Text style={styles.removeItemText}>🗑️</Text>
                     </TouchableOpacity>
@@ -463,8 +686,14 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
                     onChangeText={setDiscountAmount}
                   />
                 </View>
-                <View style={[styles.totalRowLine, { borderTopWidth: 1, borderTopColor: '#cbd5e1', paddingTop: 6, marginTop: 4 }]}>
-                  <Text style={[styles.totalRowLabel, { fontWeight: '800' }]}>Grand Payable Total:</Text>
+                <View
+                  style={[
+                    styles.totalRowLine,
+                    { borderTopWidth: 1, borderTopColor: '#cbd5e1', paddingTop: 6, marginTop: 4 },
+                  ]}>
+                  <Text style={[styles.totalRowLabel, { fontWeight: '800' }]}>
+                    Grand Payable Total:
+                  </Text>
                   <Text style={styles.grandTotalVal}>₹{calculateGrandTotal().toFixed(2)}</Text>
                 </View>
               </View>
@@ -477,75 +706,28 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
         </View>
       </Modal>
 
-      {/* RECORD PAYMENT MODAL */}
-      <Modal visible={paymentModalVisible} animationType="slide" transparent={true} onRequestClose={() => setPaymentModalVisible(false)}>
-        <View style={styles.modalBg}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Record Bill Payment</Text>
-              <TouchableOpacity onPress={() => setPaymentModalVisible(false)} style={styles.closeBtn}>
-                <Text style={styles.closeBtnText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {selectedBill ? (
-              <View style={{ gap: 12 }}>
-                <View style={styles.payInfoBox}>
-                  <Text style={styles.payInfoText}>
-                    Invoice #{selectedBill.bill_number || selectedBill.id} · {selectedBill.patient_name}
-                  </Text>
-                  <Text style={styles.payInfoAmount}>Total: ₹{Number(selectedBill.net_amount || selectedBill.total_amount || 0).toFixed(2)}</Text>
-                </View>
-
-                <Text style={styles.label}>Payment Amount (₹) *</Text>
-                <TextInput
-                  style={styles.input}
-                  keyboardType="numeric"
-                  value={payAmount}
-                  onChangeText={setPayAmount}
-                  placeholder="Enter amount paid"
-                />
-
-                <Text style={styles.label}>Payment Mode *</Text>
-                <View style={styles.payModesGrid}>
-                  {(['cash', 'upi', 'card', 'online'] as const).map((m) => (
-                    <TouchableOpacity
-                      key={m}
-                      style={[styles.payModeCard, payMode === m && styles.payModeCardActive]}
-                      onPress={() => setPayMode(m)}>
-                      <Text style={styles.payModeText}>{m.toUpperCase()}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <TouchableOpacity style={styles.primarySaveBtn} onPress={handleRecordPaymentSubmit} disabled={paySubmitting}>
-                  {paySubmitting ? (
-                    <ActivityIndicator color="#ffffff" />
-                  ) : (
-                    <Text style={styles.primarySaveBtnText}>Confirm & Save Payment (Hit API)</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            ) : null}
-          </View>
-        </View>
-      </Modal>
-
-      {/* INVOICE DETAILS REUSABLE MODAL */}
+      {/* 5. INVOICE DETAILS REUSABLE MODAL (Opened by eye icon) */}
       {selectedBill && (
         <InvoiceModal
           visible={detailsModalVisible}
           title="Medicine Invoice"
           invoiceType="medicine"
           invoiceNumber={selectedBill.bill_number || `MB-${selectedBill.id}`}
-          invoiceDate={selectedBill.created_at ? String(selectedBill.created_at).split('T')[0] : undefined}
+          invoiceDate={
+            selectedBill.created_at ? String(selectedBill.created_at).split('T')[0] : undefined
+          }
           clinicName={selectedBill.clinic_name || 'Aarogya Care Clinic'}
           patientName={selectedBill.patient_name || 'Patient'}
-          patientPhone={selectedBill.patient_phone || '9876534927'}
+          patientPhone={selectedBill.patient_phone || ''}
           doctorName={selectedBill.doctor_name || (selectedBill as any).doctor_name || 'Dr. Rahul Sharma'}
           prescriptionId={selectedBill.prescription_id || selectedBill.id}
-          paymentMethod={String((selectedBill as any).payment_mode || (selectedBill as any).payment_method || 'UPI')}
-          paymentStatus={selectedBill.payment_status || 'paid'}
+          paymentMethod={String(
+            (selectedBill as any).payment_mode ||
+              (selectedBill as any).payment_method ||
+              selectedBill.payment_method ||
+              'Cash'
+          ).toUpperCase()}
+          paymentStatus={selectedBill.payment_status || selectedBill.status || 'paid'}
           items={(selectedBill.items || []).map((it) => ({
             name: it.medicine_name,
             quantity: it.quantity,
@@ -554,9 +736,14 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
           }))}
           subtotal={Number(selectedBill.subtotal || selectedBill.total_amount || 0)}
           discount={Number(selectedBill.discount_amount || 0)}
-          tax={0}
+          tax={Number(selectedBill.tax_amount || 0)}
           grandTotal={Number(selectedBill.net_amount || selectedBill.total_amount || 0)}
-          paidAmount={Number(selectedBill.paid_amount || (selectedBill.payment_status === 'paid' ? (selectedBill.net_amount || selectedBill.total_amount || 0) : 0))}
+          paidAmount={Number(
+            selectedBill.paid_amount ||
+              (selectedBill.payment_status === 'paid'
+                ? selectedBill.net_amount || selectedBill.total_amount || 0
+                : 0)
+          )}
           dueAmount={selectedBill.due_amount}
           onClose={() => setDetailsModalVisible(false)}
         />
@@ -566,13 +753,35 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  content: { padding: 16, paddingBottom: 90 },
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 90,
+  },
 
-  topHeaderSection: { marginBottom: 16, marginTop: 4 },
-  topTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  topPageTitle: { fontSize: 22, fontWeight: '800', color: '#0f172a' },
-  topSubtitleText: { fontSize: 13.5, color: '#64748b', marginTop: 4 },
+  /* Header Section matching Screenshot 1 */
+  topHeaderSection: {
+    marginBottom: 16,
+    marginTop: 4,
+  },
+  topTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  topPageTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  topSubtitleText: {
+    fontSize: 13.5,
+    color: '#64748b',
+    marginTop: 4,
+  },
   headerCreateBillBtn: {
     backgroundColor: '#169b91',
     borderRadius: 10,
@@ -582,18 +791,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     alignSelf: 'flex-start',
-    marginTop: 12,
+    marginTop: 14,
   },
-  createBillPlus: { color: '#ffffff', fontSize: 18, fontWeight: '700', lineHeight: 18 },
-  headerCreateBillBtnText: { color: '#ffffff', fontSize: 13.5, fontWeight: '700' },
+  createBillPlus: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  headerCreateBillBtnText: {
+    color: '#ffffff',
+    fontSize: 13.5,
+    fontWeight: '700',
+  },
 
+  /* Search Card matching Screenshot 1 */
   searchCard: {
     backgroundColor: '#ffffff',
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#f1f5f9',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   searchInputWrapper: {
     flexDirection: 'row',
@@ -607,7 +831,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     marginBottom: 12,
   },
-  searchInput: { flex: 1, paddingVertical: 0, fontSize: 13.5, color: '#0f172a' },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 0,
+    fontSize: 13.5,
+    color: '#0f172a',
+  },
   searchBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -619,111 +848,365 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     backgroundColor: '#ffffff',
   },
-  searchBtnText: { fontSize: 14, fontWeight: '600', color: '#0f172a' },
+  searchBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
 
+  /* All Bills Section matching Screenshot 1 */
   allBillsCard: {
     backgroundColor: '#ffffff',
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#f1f5f9',
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  allBillsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 14,
   },
-  allBillsTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
-  allBillsTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
+  allBillsTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  columnsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 42,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    marginBottom: 16,
+  },
+  columnsBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
 
-  emptyMedicineBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 56 },
-  emptyMedicineText: { fontSize: 14, fontWeight: '500', color: '#64748b', marginTop: 14 },
+  /* Empty / Loading */
+  emptyMedicineBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+  },
+  emptyMedicineText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#64748b',
+    marginTop: 12,
+  },
+  loadingBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 10,
+  },
 
-  loadingBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
-  loadingText: { fontSize: 13, color: '#64748b', marginTop: 10 },
+  /* Bill Cards matching Screenshot 1 */
+  billList: {
+    gap: 12,
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  billNoText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  patientNameText: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 3,
+  },
+  statusBadgePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'lowercase',
+  },
+  paidBg: {
+    backgroundColor: '#dcfce7',
+  },
+  paidText: {
+    color: '#166534',
+  },
+  partialBg: {
+    backgroundColor: '#fef3c7',
+  },
+  partialText: {
+    color: '#b45309',
+  },
+  pendingBg: {
+    backgroundColor: '#fee2e2',
+  },
+  pendingText: {
+    color: '#b91c1c',
+  },
+  cancelledBg: {
+    backgroundColor: '#f1f5f9',
+  },
+  cancelledText: {
+    color: '#64748b',
+  },
 
-  billList: { gap: 12 },
-  card: { backgroundColor: '#ffffff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#e2e8f0', gap: 8 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  billNo: { fontSize: 12, fontWeight: '800', color: '#0d9488' },
-  patientName: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginTop: 2 },
-  netAmount: { fontSize: 18, fontWeight: '900', color: '#0f172a' },
-  dueText: { fontSize: 11, fontWeight: '700', color: '#dc2626', marginTop: 2 },
-  settledText: { fontSize: 11, fontWeight: '700', color: '#16a34a', marginTop: 2 },
-  dateText: { fontSize: 12, color: '#64748b' },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#f8fafc',
+    marginVertical: 10,
+  },
 
-  itemsBox: { backgroundColor: '#f8fafc', padding: 10, borderRadius: 10, borderWidth: 1, borderColor: '#f1f5f9', gap: 4 },
-  itemsBoxTitle: { fontSize: 10, fontWeight: '800', color: '#64748b', marginBottom: 2 },
-  itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  itemTitle: { fontSize: 12, color: '#334155', fontWeight: '600' },
-  itemPrice: { fontSize: 12, fontWeight: '700', color: '#0f172a' },
+  columnsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    marginBottom: 8,
+  },
+  gridItem: {
+    minWidth: 90,
+  },
+  columnLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#94a3b8',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+  },
+  columnValueBold: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
 
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
-  detailsBtn: { backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  detailsBtnText: { fontSize: 12, fontWeight: '700', color: '#0369a1' },
-  recordPayBtn: { backgroundColor: '#2dd4bf', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  recordPayBtnText: { fontSize: 12, fontWeight: '800', color: '#0f172a' },
+  /* Card Action Buttons (Bottom Right) matching Screenshot 1 */
+  cardActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  eyeActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1.2,
+    borderColor: '#5eead4',
+    backgroundColor: '#f0fdfa',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
-  statusBadgePill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  statusText: { fontSize: 10, fontWeight: '900' },
-  paidBg: { backgroundColor: '#dcfce7' },
-  paidText: { color: '#166534' },
-  partialBg: { backgroundColor: '#ffedd5' },
-  partialText: { color: '#c2410c' },
-  pendingBg: { backgroundColor: '#fef3c7' },
-  pendingText: { color: '#92400e' },
-
-  loadingBox: { padding: 40, alignItems: 'center' },
-  loadingText: { marginTop: 10, color: '#64748b', fontWeight: '600' },
-  emptyCard: { backgroundColor: '#ffffff', padding: 30, borderRadius: 16, alignItems: 'center' },
-  emptyTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
-  emptySub: { fontSize: 13, color: '#64748b', textAlign: 'center', marginTop: 4 },
-
-  modalBg: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.65)', justifyContent: 'center', padding: 16 },
-  modalCard: { backgroundColor: '#ffffff', borderRadius: 16, padding: 20 },
-  modalCardWide: { backgroundColor: '#ffffff', borderRadius: 16, padding: 20, maxHeight: '90%' },
-  modalHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  modalTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a' },
-  closeBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
-  closeBtnText: { fontSize: 12, fontWeight: 'bold', color: '#64748b' },
-
-  label: { fontSize: 12, fontWeight: '700', color: '#334155', marginTop: 6, marginBottom: 4 },
-  input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: '#0f172a', backgroundColor: '#ffffff' },
-  formRowTwo: { flexDirection: 'row', gap: 10 },
-  sectionHeading: { fontSize: 13, fontWeight: '800', color: '#0f172a', marginTop: 8 },
-
-  itemsTableCard: { backgroundColor: '#f8fafc', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#e2e8f0', gap: 6 },
-  itemTableRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
-  itemTableTitle: { flex: 1, fontSize: 12, fontWeight: '700', color: '#0f172a' },
-  itemTableQty: { fontSize: 11, color: '#64748b' },
-  itemTablePrice: { fontSize: 11, color: '#64748b' },
-  itemTableTotal: { fontSize: 12, fontWeight: '800', color: '#0d9488' },
-  removeItemText: { fontSize: 14 },
-
-  addItemInputRow: { flexDirection: 'row', gap: 6, alignItems: 'center' },
-  addItemBtn: { backgroundColor: '#0d9488', paddingHorizontal: 12, paddingVertical: 9, borderRadius: 8 },
-  addItemBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 12 },
-
-  totalsBoxCard: { backgroundColor: '#f1f5f9', borderRadius: 10, padding: 12, gap: 6, marginTop: 6 },
-  totalRowLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  totalRowLabel: { fontSize: 12, color: '#475569', fontWeight: '600' },
-  totalRowVal: { fontSize: 13, fontWeight: '700', color: '#0f172a' },
-  discountInput: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, width: 80, textAlign: 'right', fontSize: 13, fontWeight: '700', color: '#0f172a', backgroundColor: '#ffffff' },
-  grandTotalVal: { fontSize: 16, fontWeight: '900', color: '#0d9488' },
-
-  primarySaveBtn: { backgroundColor: '#0d9488', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 10 },
-  primarySaveBtnText: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
-
-  payInfoBox: { backgroundColor: '#e0f2fe', padding: 12, borderRadius: 10 },
-  payInfoText: { fontSize: 13, fontWeight: '800', color: '#0369a1' },
-  payInfoAmount: { fontSize: 15, fontWeight: '900', color: '#075985', marginTop: 2 },
-  payModesGrid: { flexDirection: 'row', gap: 6 },
-  payModeCard: { flex: 1, backgroundColor: '#f8fafc', paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#cbd5e1', alignItems: 'center' },
-  payModeCardActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
-  payModeText: { fontSize: 11, fontWeight: '800', color: '#0f172a' },
-
-  receiptPrintHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', paddingBottom: 10 },
-  clinicTitleText: { fontSize: 16, fontWeight: '900', color: '#0f172a' },
-  receiptSubtitleText: { fontSize: 12, color: '#64748b' },
-  receiptPatientInfoCard: { backgroundColor: '#f8fafc', padding: 10, borderRadius: 8, gap: 4 },
-  infoLine: { fontSize: 12, color: '#475569' },
-  bold: { fontWeight: '800', color: '#0f172a' },
+  /* Create Bill Modal */
+  modalBg: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  modalCardWide: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    maxHeight: '90%',
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeBtnText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#64748b',
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: '#0f172a',
+    backgroundColor: '#ffffff',
+  },
+  formRowTwo: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  sectionHeading: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginTop: 8,
+  },
+  itemsTableCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 6,
+  },
+  itemTableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  itemTableTitle: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  itemTableQty: {
+    fontSize: 11,
+    color: '#64748b',
+  },
+  itemTablePrice: {
+    fontSize: 11,
+    color: '#64748b',
+  },
+  itemTableTotal: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0d9488',
+  },
+  removeItemText: {
+    fontSize: 14,
+  },
+  addItemInputRow: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+  },
+  addItemBtn: {
+    backgroundColor: '#0d9488',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 8,
+  },
+  addItemBtnText: {
+    color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  totalsBoxCard: {
+    backgroundColor: '#f1f5f9',
+    borderRadius: 10,
+    padding: 12,
+    gap: 6,
+    marginTop: 6,
+  },
+  totalRowLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  totalRowLabel: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '600',
+  },
+  totalRowVal: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  discountInput: {
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    width: 80,
+    textAlign: 'right',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0f172a',
+    backgroundColor: '#ffffff',
+  },
+  grandTotalVal: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0d9488',
+  },
+  primarySaveBtn: {
+    backgroundColor: '#0d9488',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  primarySaveBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
 });
 
 export default MedicineBillingScreen;

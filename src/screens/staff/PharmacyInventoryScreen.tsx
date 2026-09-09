@@ -255,7 +255,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({
       <StaffHeader
         onOpenDrawer={onOpenDrawer}
         onOpenNotifications={onOpenNotifications}
-        title="Medicine Inventory"
+        showLogo={false}
       />
 
       <ScrollView

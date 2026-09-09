@@ -19,12 +19,19 @@ export interface MedicineBill {
   patient_id: number;
   patient_name: string;
   patient_phone?: string;
+  patient_code?: string;
+  subtotal?: number;
   total_amount: number;
+  net_amount?: number;
   discount_amount?: number;
   tax_amount?: number;
   paid_amount: number;
   due_amount?: number;
-  status: 'paid' | 'unpaid' | 'partially_paid' | 'cancelled';
+  payment_method?: string;
+  payment_status?: string;
+  status: 'paid' | 'unpaid' | 'partially_paid' | 'partial' | 'cancelled' | string;
+  pharmacist_name?: string;
+  notes?: string;
   created_at: string;
   items?: MedicineBillItem[];
 }
@@ -61,6 +68,30 @@ export async function createMedicineBillApi(
   });
 }
 
+export async function updateMedicineBillApi(
+  token: string,
+  id: number,
+  data: Partial<MedicineBill>
+): Promise<ApiResponse<MedicineBill>> {
+  return apiFetch<MedicineBill>(`/medicine-bills/${id}`, {
+    method: 'PUT',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: JSON.stringify(data),
+  });
+}
+
+export async function cancelMedicineBillApi(
+  token: string,
+  id: number,
+  reason?: string
+): Promise<ApiResponse<any>> {
+  return apiFetch<any>(`/medicine-bills/${id}/cancel`, {
+    method: 'PATCH',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: JSON.stringify({ reason }),
+  });
+}
+
 export async function recordMedicinePaymentApi(
   token: string,
   id: number,
@@ -72,3 +103,4 @@ export async function recordMedicinePaymentApi(
     body: JSON.stringify(paymentData),
   });
 }
+

@@ -193,7 +193,7 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotif
       <StaffHeader
         onOpenDrawer={onOpenDrawer}
         onOpenNotifications={onOpenNotifications}
-        title="Prescription Manager"
+        showLogo={false}
       />
 
       <ScrollView

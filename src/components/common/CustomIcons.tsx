@@ -335,6 +335,259 @@ export const BillingWhatsAppIcon: React.FC<IconProps> = ({ color = '#22c55e', si
   );
 };
 
+export const LabTestTubeIcon: React.FC<IconProps> = ({ color = '#ffffff', size = 22, strokeWidth = 2 }) => {
+  const lipWidth = Math.round(size * 0.58);
+  const tubeWidth = Math.round(size * 0.44);
+  const tubeHeight = Math.round(size * 0.72);
+  const radius = Math.round(tubeWidth / 2);
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      {/* Top rim lip */}
+      <View
+        style={{
+          width: lipWidth,
+          height: strokeWidth,
+          backgroundColor: color,
+          borderRadius: 1,
+        }}
+      />
+      {/* U-shaped tube body */}
+      <View
+        style={{
+          width: tubeWidth,
+          height: tubeHeight,
+          borderLeftWidth: strokeWidth,
+          borderRightWidth: strokeWidth,
+          borderBottomWidth: strokeWidth,
+          borderColor: color,
+          borderBottomLeftRadius: radius,
+          borderBottomRightRadius: radius,
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          paddingBottom: 3,
+        }}>
+        {/* Inner liquid line */}
+        <View
+          style={{
+            width: Math.max(3, tubeWidth - strokeWidth * 2 - 2),
+            height: strokeWidth,
+            backgroundColor: color,
+            borderRadius: 1,
+          }}
+        />
+      </View>
+    </View>
+  );
+};
+
+export const LabPatientsIcon: React.FC<IconProps> = ({ color = '#3b82f6', size = 18, strokeWidth = 2 }) => {
+  const webSvg = renderWebSvg(
+    size,
+    color,
+    [
+      { tag: 'path', props: { d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' } },
+      { tag: 'circle', props: { cx: '9', cy: '7', r: '4' } },
+      { tag: 'path', props: { d: 'M22 21v-2a4 4 0 0 0-3-3.87' } },
+      { tag: 'path', props: { d: 'M16 3.13a4 4 0 0 1 0 7.75' } },
+    ],
+    strokeWidth
+  );
+  if (webSvg) return webSvg;
+
+  return (
+    <Image
+      source={{ uri: getIconPngUri('users', color, strokeWidth) }}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
+  );
+};
+
+export const LabPulseIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 18, strokeWidth = 2 }) => {
+  const webSvg = renderWebSvg(
+    size,
+    color,
+    [
+      { tag: 'path', props: { d: 'M22 12h-4l-3 9L9 3l-3 9H2' } },
+    ],
+    strokeWidth
+  );
+  if (webSvg) return webSvg;
+
+  return (
+    <Image
+      source={{ uri: getIconPngUri('activity', color, strokeWidth) }}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
+  );
+};
+
+export const LabReportsIcon: React.FC<IconProps> = ({ color = '#f59e0b', size = 18, strokeWidth = 2 }) => {
+  const webSvg = renderWebSvg(
+    size,
+    color,
+    [
+      { tag: 'rect', props: { width: '8', height: '4', x: '8', y: '2', rx: '1', ry: '1' } },
+      { tag: 'path', props: { d: 'M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2' } },
+      { tag: 'path', props: { d: 'm9 14 2 2 4-4' } },
+    ],
+    strokeWidth
+  );
+  if (webSvg) return webSvg;
+
+  return (
+    <Image
+      source={{ uri: getIconPngUri('clipboard-check', color, strokeWidth) }}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
+  );
+};
+
+export const SearchIcon: React.FC<IconProps> = ({ color = '#64748b', size = 18, strokeWidth = 2 }) => {
+  const webSvg = renderWebSvg(
+    size,
+    color,
+    [
+      { tag: 'circle', props: { cx: '11', cy: '11', r: '8' } },
+      { tag: 'path', props: { d: 'm21 21-4.3-4.3' } },
+    ],
+    strokeWidth
+  );
+  if (webSvg) return webSvg;
+
+  return (
+    <Image
+      source={{ uri: getIconPngUri('search', color, strokeWidth) }}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
+  );
+};
+
+export const DownloadIcon: React.FC<IconProps> = ({ color = '#0f172a', size = 16, strokeWidth = 1.8 }) => {
+  const webSvg = renderWebSvg(
+    size,
+    color,
+    [
+      { tag: 'path', props: { d: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' } },
+      { tag: 'polyline', props: { points: '7 10 12 15 17 10' } },
+      { tag: 'line', props: { x1: '12', x2: '12', y1: '15', y2: '3' } },
+    ],
+    strokeWidth
+  );
+  if (webSvg) return webSvg;
+
+  return (
+    <Image
+      source={{ uri: getIconPngUri('download', color, strokeWidth) }}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
+  );
+};
+
+export const LabTrashIcon: React.FC<IconProps> = ({ color = '#64748b', size = 18, strokeWidth = 1.8 }) => {
+  const webSvg = renderWebSvg(
+    size,
+    color,
+    [
+      { tag: 'path', props: { d: 'M3 6h18' } },
+      { tag: 'path', props: { d: 'M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6' } },
+      { tag: 'path', props: { d: 'M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2' } },
+      { tag: 'line', props: { x1: '10', x2: '10', y1: '11', y2: '17' } },
+      { tag: 'line', props: { x1: '14', x2: '14', y1: '11', y2: '17' } },
+    ],
+    strokeWidth
+  );
+  if (webSvg) return webSvg;
+
+  return (
+    <Image
+      source={{ uri: getIconPngUri('trash-2', color, strokeWidth) }}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
+  );
+};
+
+export const PenEditIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 18, strokeWidth = 2 }) => {
+  const webSvg = renderWebSvg(
+    size,
+    color,
+    [
+      { tag: 'path', props: { d: 'M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z' } },
+      { tag: 'path', props: { d: 'm15 5 4 4' } },
+    ],
+    strokeWidth
+  );
+  if (webSvg) return webSvg;
+
+  return (
+    <Image
+      source={{ uri: getIconPngUri('pencil', color, strokeWidth) }}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
+  );
+};
+
+
+export const ShieldCheckIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 18, strokeWidth = 2 }) => {
+  const webSvg = renderWebSvg(
+    size,
+    color,
+    [
+      { tag: 'path', props: { d: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10' } },
+      { tag: 'path', props: { d: 'm9 12 2 2 4-4' } },
+    ],
+    strokeWidth
+  );
+  if (webSvg) return webSvg;
+
+  return (
+    <Image
+      source={{ uri: getIconPngUri('shield-check', color, strokeWidth) }}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
+  );
+};
+
+export const RupeeIcon: React.FC<IconProps> = ({ color = '#0d9488', size = 18 }) => {
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ color, fontSize: size * 0.9, fontWeight: '700', lineHeight: size }}>₹</Text>
+    </View>
+  );
+};
+
+
+export const InventoryRefreshIcon: React.FC<IconProps> = ({ color = '#0f172a', size = 16, strokeWidth = 2 }) => {
+  const webSvg = renderWebSvg(
+    size,
+    color,
+    [
+      { tag: 'path', props: { d: 'M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8' } },
+      { tag: 'path', props: { d: 'M3 3v5h5' } },
+      { tag: 'path', props: { d: 'M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16' } },
+      { tag: 'path', props: { d: 'M16 21h5v-5' } },
+    ],
+    strokeWidth
+  );
+  if (webSvg) return webSvg;
+
+  return (
+    <Image
+      source={{ uri: getIconPngUri('refresh', color, strokeWidth) }}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+    />
+  );
+};
+
 export const BillingMailIcon: React.FC<IconProps> = ({ color = '#3b82f6', size = 18, strokeWidth = 1.8 }) => {
   const webSvg = renderWebSvg(
     size,
@@ -773,6 +1026,21 @@ export const ArrowLeftIcon: React.FC<IconProps> = ({ color = '#334155', size = 1
   return <Text style={{ color, fontSize: size, fontWeight: '700' }}>←</Text>;
 };
 
+export const ArrowRightIcon: React.FC<IconProps> = ({ color = '#64748b', size = 18, strokeWidth = 2 }) => {
+  const webSvg = renderWebSvg(
+    size,
+    color,
+    [
+      { tag: 'path', props: { d: 'M5 12h14' } },
+      { tag: 'path', props: { d: 'm12 5 7 7-7 7' } },
+    ],
+    strokeWidth
+  );
+  if (webSvg) return webSvg;
+
+  return <Text style={{ color, fontSize: size, fontWeight: '700' }}>→</Text>;
+};
+
 export const UsersIcon: React.FC<IconProps> = ({ color = '#0f172a', size = 20 }) => {
   const webSvg = renderWebSvg(size, color, [
     { tag: 'path', props: { d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' } },
@@ -827,17 +1095,22 @@ export const UserPlusIcon: React.FC<IconProps> = ({ color = '#ea580c', size = 20
   );
 };
 
-export const ColumnsIcon: React.FC<IconProps> = ({ color = '#0f172a', size = 16 }) => {
-  const webSvg = renderWebSvg(size, color, [
-    { tag: 'rect', props: { width: '18', height: '18', x: '3', y: '3', rx: '2' } },
-    { tag: 'path', props: { d: 'M9 3v18' } },
-    { tag: 'path', props: { d: 'M15 3v18' } },
-  ]);
+export const ColumnsIcon: React.FC<IconProps> = ({ color = '#0f172a', size = 16, strokeWidth = 1.8 }) => {
+  const webSvg = renderWebSvg(
+    size,
+    color,
+    [
+      { tag: 'rect', props: { width: '18', height: '18', x: '3', y: '3', rx: '2' } },
+      { tag: 'path', props: { d: 'M9 3v18' } },
+      { tag: 'path', props: { d: 'M15 3v18' } },
+    ],
+    strokeWidth
+  );
   if (webSvg) return webSvg;
 
   return (
     <Image
-      source={{ uri: getIconPngUri('columns', color) }}
+      source={{ uri: getIconPngUri('columns', color, strokeWidth) }}
       style={{ width: size, height: size }}
       resizeMode="contain"
     />
@@ -1675,7 +1948,72 @@ export const AlertCircleIcon: React.FC<IconProps> = ({ color = '#f59e0b', size =
   );
 };
 
+export const BillBanknoteIcon: React.FC<IconProps> = ({ color = '#0f172a', size = 22, strokeWidth = 2 }) => {
+  const webSvg = renderWebSvg(
+    size,
+    color,
+    [
+      { tag: 'rect', props: { width: '20', height: '12', x: '2', y: '6', rx: '2' } },
+      { tag: 'circle', props: { cx: '12', cy: '12', r: '2' } },
+      { tag: 'path', props: { d: 'M6 12h.01M18 12h.01' } },
+    ],
+    strokeWidth
+  );
+  if (webSvg) return webSvg;
 
+  return (
+    <View
+      style={{
+        width: size,
+        height: size * 0.65,
+        borderWidth: strokeWidth,
+        borderColor: color,
+        borderRadius: 3,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+      <View
+        style={{
+          width: size * 0.3,
+          height: size * 0.3,
+          borderRadius: (size * 0.3) / 2,
+          borderWidth: strokeWidth * 0.8,
+          borderColor: color,
+        }}
+      />
+    </View>
+  );
+};
+
+
+export const CancelCircleCrossIcon: React.FC<IconProps> = ({ color = '#ef4444', size = 18, strokeWidth = 2 }) => {
+  const webSvg = renderWebSvg(
+    size,
+    color,
+    [
+      { tag: 'circle', props: { cx: '12', cy: '12', r: '10' } },
+      { tag: 'path', props: { d: 'm15 9-6 6' } },
+      { tag: 'path', props: { d: 'm9 9 6 6' } },
+    ],
+    strokeWidth
+  );
+  if (webSvg) return webSvg;
+
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        borderWidth: strokeWidth,
+        borderColor: color,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+      <Text style={{ color, fontSize: size * 0.65, fontWeight: '700', marginTop: -2 }}>✕</Text>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   gridContainer: {

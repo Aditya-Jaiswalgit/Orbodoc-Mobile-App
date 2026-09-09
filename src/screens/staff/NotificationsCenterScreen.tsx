@@ -125,7 +125,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({ onOpenDrawer = () =
       <StaffHeader
         onOpenDrawer={onOpenDrawer}
         onOpenNotifications={onOpenNotifications}
-        title="Notifications Center"
+        showLogo={false}
       />
 
       <ScrollView

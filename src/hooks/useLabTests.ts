@@ -36,22 +36,8 @@ export const useLabTests = () => {
       const clinicId = (user as any)?.clinic_id || (user as any)?.clinicId || (user as any)?.activeClinicId;
       const doctorId = user?.id || (user as any)?.userId;
 
-      // Nurse / Reception / Staff → fetch ALL clinic orders (no doctor_id filter)
-      const roleName = String(
-        (user as any)?.roleName || (user as any)?.role_name || (user as any)?.role || ''
-      ).toLowerCase().trim();
-      const roleId = Number((user as any)?.roleId || (user as any)?.role_id || 0);
-      const isStaff =
-        roleName.includes('nurse') ||
-        roleName.includes('reception') ||
-        roleName.includes('staff') ||
-        roleId === 8 ||
-        roleId === 5;
-
+      // Fetch all clinic diagnostic orders across all doctors in the clinic
       const orderParams: Record<string, any> = { clinic_id: clinicId, per_page: 500 };
-      if (!isStaff) {
-        orderParams.doctor_id = doctorId;
-      }
 
       const ordersRes = await getLabTestOrdersApi(token, orderParams);
       if (ordersRes.success && ordersRes.data) {
@@ -65,9 +51,6 @@ export const useLabTests = () => {
 
       try {
         const reportParams: Record<string, any> = { clinic_id: clinicId, per_page: 500 };
-        if (!isStaff) {
-          reportParams.doctor_id = doctorId;
-        }
         const reportsRes = await getLabReportsApi(token, reportParams);
         if (reportsRes.success && reportsRes.data) {
           const rawReports = Array.isArray(reportsRes.data)

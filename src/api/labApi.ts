@@ -154,9 +154,11 @@ export async function getLabCatalogApi(
 }
 
 export async function getMasterLabTestsApi(
-  token: string
+  token: string,
+  clinicId?: number
 ): Promise<ApiResponse<{ tests: any[] }>> {
-  return apiFetch<{ tests: any[] }>('/labs/master-tests', {
+  const query = clinicId ? `?clinic_id=${clinicId}&limit=100` : '?limit=100';
+  return apiFetch<{ tests: any[] }>(`/labs/master-tests${query}`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   });
