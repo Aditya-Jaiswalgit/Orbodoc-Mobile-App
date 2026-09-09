@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,9 +16,10 @@ import { StaffMember, StaffRole } from '../../types/clinicTypes';
 interface Props {
   onOpenDrawer: () => void;
   onOpenNotifications?: () => void;
+  onToggleTabBar?: (hide: boolean) => void;
 }
 
-export const StaffManagementScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotifications }) => {
+export const StaffManagementScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotifications, onToggleTabBar }) => {
   const [staffList, setStaffList] = useState<StaffMember[]>([
     { id: 1, clinic_id: 1, full_name: 'Dr. Ramesh Sharma', email: 'dr.ramesh@arogya.clinic', phone: '+91 9876543210', role_name: 'doctor', department: 'Cardiology', specialization: 'Interventional Cardiology', consultation_fee: 800, is_active: true },
     { id: 2, clinic_id: 1, full_name: 'Dr. Ananya Roy', email: 'dr.ananya@arogya.clinic', phone: '+91 9876543211', role_name: 'doctor', department: 'Pediatrics', specialization: 'Child Specialist', consultation_fee: 600, is_active: true },
@@ -29,6 +31,18 @@ export const StaffManagementScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
 
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
   const [modalVisible, setModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (onToggleTabBar) {
+      onToggleTabBar(modalVisible);
+    }
+  }, [modalVisible, onToggleTabBar]);
+
+  useEffect(() => {
+    return () => {
+      onToggleTabBar?.(false);
+    };
+  }, [onToggleTabBar]);
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');

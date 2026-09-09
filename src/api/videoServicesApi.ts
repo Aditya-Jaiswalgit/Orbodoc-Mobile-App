@@ -57,10 +57,14 @@ export interface VideoBillingItem {
   id: number;
   bill_number?: string;
   patient_name: string;
+  doctor_id?: number;
   doctor_name: string;
   amount: number;
-  payment_status: 'paid' | 'pending';
+  due_amount?: number;
+  payment_status: 'paid' | 'pending' | 'no_bill' | string;
   date: string;
+  time?: string;
+  patient_phone?: string;
 }
 
 export async function getWalletBalanceApi(token: string): Promise<ApiResponse<WalletBalanceData>> {

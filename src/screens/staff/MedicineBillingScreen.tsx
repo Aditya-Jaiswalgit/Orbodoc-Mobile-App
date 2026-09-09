@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -16,19 +17,33 @@ import { useMedicineBills } from '../../hooks/useMedicineBills';
 import { MedicineBill, MedicineBillItem } from '../../api/medicineBillApi';
 import { generateInvoiceHtml, printOrDownloadPdf } from '../../utils/pdfGenerator';
 import { InvoiceModal } from '../../components/billing/InvoiceModal';
+import { ColumnsIcon, ReceiptIcon, SearchInputIcon } from '../../components/common/CustomIcons';
 
 interface Props {
   onOpenDrawer: () => void;
   onOpenNotifications?: () => void;
+  onToggleTabBar?: (hide: boolean) => void;
 }
 
-export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotifications }) => {
+export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotifications, onToggleTabBar }) => {
   const { bills, loading, refreshBills, fetchBillDetails, createBill, recordPayment } = useMedicineBills();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [selectedBill, setSelectedBill] = useState<MedicineBill | null>(null);
+
+  useEffect(() => {
+    if (onToggleTabBar) {
+      onToggleTabBar(modalVisible || detailsModalVisible || paymentModalVisible);
+    }
+  }, [modalVisible, detailsModalVisible, paymentModalVisible, onToggleTabBar]);
+
+  useEffect(() => {
+    return () => {
+      onToggleTabBar?.(false);
+    };
+  }, [onToggleTabBar]);
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -207,7 +222,8 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
       <StaffHeader
         onOpenDrawer={onOpenDrawer}
         onOpenNotifications={onOpenNotifications}
-        title="Medicine Billing Desk"
+        showLogo={false}
+        showRolePill={false}
       />
 
       <ScrollView
@@ -217,66 +233,57 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
           <RefreshControl refreshing={loading} onRefresh={refreshBills} colors={['#0d9488']} />
         }>
         {/* Header Title Row */}
-        <View style={styles.topRow}>
-          <View style={{ flex: 1, paddingRight: 10 }}>
-            <Text style={styles.pageTitle}>Pharmacy Invoices ({bills.length})</Text>
-            <Text style={styles.pageSub}>Generate itemized medicine bills & track payment status.</Text>
+        <View style={styles.topHeaderSection}>
+          <View style={styles.topTitleRow}>
+            <ReceiptIcon color="#0f172a" size={24} strokeWidth={2} />
+            <Text style={styles.topPageTitle}>Medicine Bills</Text>
           </View>
-          <TouchableOpacity style={[styles.addBtn, { flexShrink: 0 }]} onPress={() => setModalVisible(true)}>
-            <Text style={styles.addBtnText}>+ Create Bill</Text>
+          <Text style={styles.topSubtitleText}>Manage medicine bills and payments</Text>
+
+          <TouchableOpacity style={styles.headerCreateBillBtn} activeOpacity={0.85} onPress={() => setModalVisible(true)}>
+            <Text style={styles.createBillPlus}>+</Text>
+            <Text style={styles.headerCreateBillBtnText}>Create Bill</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Search & Status Filter Bar */}
-        <View style={styles.filterBarCard}>
-          <View style={styles.searchInputContainer}>
-            <Text style={{ fontSize: 14 }}>🔍</Text>
+        {/* Card 1: Search Card */}
+        <View style={styles.searchCard}>
+          <View style={styles.searchInputWrapper}>
+            <SearchInputIcon size={16} color="#94a3b8" />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search by Patient Name or Bill No..."
+              placeholder="Search by patient ID, name, or mobile..."
               placeholderTextColor="#94a3b8"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
           </View>
 
-          <View style={styles.statusPillsRow}>
-            {(['all', 'paid', 'partial', 'pending'] as const).map((st) => {
-              const isActive = statusFilter === st;
-              const label =
-                st === 'all'
-                  ? 'All Invoices'
-                  : st === 'paid'
-                  ? 'Paid'
-                  : st === 'partial'
-                  ? 'Partially Paid'
-                  : 'Pending';
-              return (
-                <TouchableOpacity
-                  key={st}
-                  style={[styles.filterPill, isActive && styles.filterPillActive]}
-                  onPress={() => setStatusFilter(st)}>
-                  <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <TouchableOpacity style={styles.searchBtn} activeOpacity={0.8} onPress={refreshBills}>
+            <SearchInputIcon size={16} color="#0f172a" />
+            <Text style={styles.searchBtnText}>Search</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Bills List Rendering */}
-        {loading && bills.length === 0 ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color="#0d9488" />
-            <Text style={styles.loadingText}>Fetching pharmacy invoices from backend API...</Text>
+        {/* Card 2: All Bills Card */}
+        <View style={styles.allBillsCard}>
+          <View style={styles.allBillsTitleRow}>
+            <ReceiptIcon color="#0f172a" size={18} strokeWidth={2} />
+            <Text style={styles.allBillsTitle}>All Bills ({filteredBills.length})</Text>
           </View>
-        ) : filteredBills.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No Matching Invoices Found</Text>
-            <Text style={styles.emptySub}>Try adjusting your search query or filter settings.</Text>
-          </View>
-        ) : (
+
+          {/* Bills List Rendering */}
+          {loading && bills.length === 0 ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="large" color="#0d9488" />
+              <Text style={styles.loadingText}>Fetching pharmacy invoices from backend API...</Text>
+            </View>
+          ) : filteredBills.length === 0 ? (
+            <View style={styles.emptyMedicineBox}>
+              <ReceiptIcon color="#cbd5e1" size={56} strokeWidth={1.5} />
+              <Text style={styles.emptyMedicineText}>No medicine bills found</Text>
+            </View>
+          ) : (
           <View style={styles.billList}>
             {filteredBills.map((bill) => {
               const statusStr = String(bill.payment_status || bill.status || '').toLowerCase();
@@ -356,6 +363,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
             })}
           </View>
         )}
+        </View>
       </ScrollView>
 
       {/* CREATE MULTI-ITEM MEDICINE BILL MODAL */}
@@ -560,20 +568,75 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNot
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   content: { padding: 16, paddingBottom: 90 },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  pageTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
-  pageSub: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  addBtn: { backgroundColor: '#0d9488', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, flexShrink: 0 },
-  addBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 13 },
 
-  filterBarCard: { backgroundColor: '#ffffff', borderRadius: 12, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: '#e2e8f0', gap: 10 },
-  searchInputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 8, paddingHorizontal: 10, borderWidth: 1, borderColor: '#cbd5e1' },
-  searchInput: { flex: 1, paddingVertical: 8, fontSize: 13, color: '#0f172a' },
-  statusPillsRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  filterPill: { backgroundColor: '#f1f5f9', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: '#cbd5e1' },
-  filterPillActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
-  filterPillText: { fontSize: 11, fontWeight: '700', color: '#475569' },
-  filterPillTextActive: { color: '#ffffff' },
+  topHeaderSection: { marginBottom: 16, marginTop: 4 },
+  topTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  topPageTitle: { fontSize: 22, fontWeight: '800', color: '#0f172a' },
+  topSubtitleText: { fontSize: 13.5, color: '#64748b', marginTop: 4 },
+  headerCreateBillBtn: {
+    backgroundColor: '#169b91',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginTop: 12,
+  },
+  createBillPlus: { color: '#ffffff', fontSize: 18, fontWeight: '700', lineHeight: 18 },
+  headerCreateBillBtnText: { color: '#ffffff', fontSize: 13.5, fontWeight: '700' },
+
+  searchCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  searchInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    height: 44,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    backgroundColor: '#ffffff',
+    marginBottom: 12,
+  },
+  searchInput: { flex: 1, paddingVertical: 0, fontSize: 13.5, color: '#0f172a' },
+  searchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+  },
+  searchBtnText: { fontSize: 14, fontWeight: '600', color: '#0f172a' },
+
+  allBillsCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginBottom: 14,
+  },
+  allBillsTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  allBillsTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
+
+  emptyMedicineBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 56 },
+  emptyMedicineText: { fontSize: 14, fontWeight: '500', color: '#64748b', marginTop: 14 },
+
+  loadingBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
+  loadingText: { fontSize: 13, color: '#64748b', marginTop: 10 },
 
   billList: { gap: 12 },
   card: { backgroundColor: '#ffffff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#e2e8f0', gap: 8 },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -34,6 +34,7 @@ import { Clinic, StaffMember } from '../../types/clinicTypes';
 interface BookAppointmentScreenProps {
   onOpenDrawer?: () => void;
   onOpenNotifications?: () => void;
+  onToggleTabBar?: (hide: boolean) => void;
 }
 
 const TIME_SLOTS = {
@@ -76,6 +77,7 @@ const generateNext30Days = () => {
 export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
   onOpenDrawer = () => {},
   onOpenNotifications = () => {},
+  onToggleTabBar,
 }) => {
   const { user } = useAuthContext();
 
@@ -111,6 +113,33 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
 
   const [showStatePicker, setShowStatePicker] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
+
+  useEffect(() => {
+    if (onToggleTabBar) {
+      const isAnyModalOpen =
+        showModePicker ||
+        showDatePicker ||
+        showSlotPicker ||
+        showSuccessModal ||
+        showStatePicker ||
+        showCityPicker;
+      onToggleTabBar(isAnyModalOpen);
+    }
+  }, [
+    showModePicker,
+    showDatePicker,
+    showSlotPicker,
+    showSuccessModal,
+    showStatePicker,
+    showCityPicker,
+    onToggleTabBar,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      onToggleTabBar?.(false);
+    };
+  }, [onToggleTabBar]);
 
   const availableDatesList = generateNext30Days();
 
@@ -218,6 +247,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
       {/* Patient Header without logo to match screenshot */}
       <PatientHeader
         showLogo={false}
+        showRolePill={false}
         onOpenDrawer={onOpenDrawer}
         onOpenNotifications={onOpenNotifications}
       />

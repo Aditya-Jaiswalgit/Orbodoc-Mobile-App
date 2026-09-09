@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -22,9 +23,10 @@ import { generatePrescriptionHtml, printOrDownloadPdf } from '../../utils/pdfGen
 interface Props {
   onOpenDrawer: () => void;
   onOpenNotifications?: () => void;
+  onToggleTabBar?: (hide: boolean) => void;
 }
 
-export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotifications }) => {
+export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotifications, onToggleTabBar }) => {
   const { user } = useAuthContext();
   const { prescriptions, loading, refreshing, onRefresh, addPrescription } = usePrescriptions();
   const { patients } = usePatients();
@@ -34,6 +36,18 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotif
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [patientPickerVisible, setPatientPickerVisible] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
+
+  useEffect(() => {
+    if (onToggleTabBar) {
+      onToggleTabBar(modalVisible || viewModalVisible || patientPickerVisible);
+    }
+  }, [modalVisible, viewModalVisible, patientPickerVisible, onToggleTabBar]);
+
+  useEffect(() => {
+    return () => {
+      onToggleTabBar?.(false);
+    };
+  }, [onToggleTabBar]);
 
   const [selectedPatient, setSelectedPatient] = useState<PatientModel | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,9 +16,10 @@ import { Clinic } from '../../types/clinicTypes';
 interface Props {
   onOpenDrawer: () => void;
   onOpenNotifications?: () => void;
+  onToggleTabBar?: (hide: boolean) => void;
 }
 
-export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotifications }) => {
+export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onOpenNotifications, onToggleTabBar }) => {
   const [clinics, setClinics] = useState<Clinic[]>([
     {
       id: 1,
@@ -66,6 +68,18 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onOpenN
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
   const [plan, setPlan] = useState('Pro');
+
+  useEffect(() => {
+    if (onToggleTabBar) {
+      onToggleTabBar(modalVisible);
+    }
+  }, [modalVisible, onToggleTabBar]);
+
+  useEffect(() => {
+    return () => {
+      onToggleTabBar?.(false);
+    };
+  }, [onToggleTabBar]);
 
   const handleCreateClinic = () => {
     if (!name.trim() || !email.trim() || !phone.trim()) {

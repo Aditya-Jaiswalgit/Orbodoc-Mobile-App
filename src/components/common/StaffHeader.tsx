@@ -13,13 +13,16 @@ import {
 } from 'react-native';
 import { useAuthContext } from '../../context/AuthContext';
 import { useNotifications } from '../../hooks/useNotifications';
-import { BellNotificationIcon } from './CustomIcons';
+import { BellNotificationIcon, ChevronDownIcon } from './CustomIcons';
+import { getIconPngUri } from '../../utils/pixelIconEngine';
 
 interface StaffHeaderProps {
   onOpenDrawer?: () => void;
   onOpenNotifications?: () => void;
   title?: string;
   onNavigateProfile?: () => void;
+  showLogo?: boolean;
+  showRolePill?: boolean;
 }
 
 export const StaffHeader: React.FC<StaffHeaderProps> = ({
@@ -27,6 +30,8 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
   onOpenNotifications,
   title,
   onNavigateProfile,
+  showLogo = true,
+  showRolePill = true,
 }) => {
   const { user, logout } = useAuthContext();
   const { unreadCount } = useNotifications();
@@ -40,9 +45,18 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
   const [pwdSubmitting, setPwdSubmitting] = useState(false);
 
   const statusBarHeight = StatusBar.currentHeight || 36;
-  const staffName = user?.fullName || (user as any)?.full_name || 'Staff User';
-  const roleName = (user?.roleName || (user as any)?.role_name || (user as any)?.role || 'staff').toUpperCase();
-  const initial = staffName.charAt(0).toUpperCase();
+  const staffName = user?.fullName || (user as any)?.full_name || 'Dr Verma';
+  const roleName = (user?.roleName || (user as any)?.role_name || (user as any)?.role || 'doctor').toUpperCase();
+  const getInitials = (name: string) => {
+    if (!name) return 'DV';
+    const clean = name.trim();
+    const parts = clean.split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return clean.slice(0, 2).toUpperCase();
+  };
+  const initial = getInitials(staffName);
 
   const getRoleBadgeColor = (role: string) => {
     switch (role.toLowerCase()) {
@@ -117,47 +131,67 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                 {title}
               </Text>
             </View>
-          ) : (
+          ) : showLogo ? (
             <Image
               source={require('../../assets/images/logo.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />
-          )}
+          ) : null}
         </View>
 
         {/* Right Section: Role Pill, Bell, Staff Avatar Pill */}
         <View style={styles.rightSection}>
           {/* Role Pill */}
-          <View
-            style={[
-              styles.rolePill,
-              { backgroundColor: badgeTheme.bg, borderColor: badgeTheme.border },
-            ]}>
-            <Text style={[styles.rolePillText, { color: badgeTheme.text }]}>
-              {roleName.replace('_', ' ')}
-            </Text>
-          </View>
+          {showRolePill && (
+            <View
+              style={[
+                styles.rolePill,
+                { backgroundColor: badgeTheme.bg, borderColor: badgeTheme.border },
+              ]}>
+              <Text style={[styles.rolePillText, { color: badgeTheme.text }]}>
+                {roleName.replace('_', ' ')}
+              </Text>
+            </View>
+          )}
+
+          {/* Message / Compose button with yellow + badge */}
+          <TouchableOpacity
+            style={styles.envelopeBtn}
+            activeOpacity={0.8}
+            onPress={onOpenNotifications}>
+            <View style={styles.envelopeInnerCircle}>
+              <Image
+                source={{ uri: getIconPngUri('envelope', '#ffffff') }}
+                style={{ width: 14, height: 14 }}
+                resizeMode="contain"
+              />
+              <View style={styles.envelopePlusBadge}>
+                <Text style={styles.envelopePlusText}>+</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
 
           {/* Notification Bell */}
           <TouchableOpacity
             style={styles.notificationBell}
             activeOpacity={0.8}
             onPress={onOpenNotifications}>
-            <BellNotificationIcon color="#0f766e" size={17} />
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-              </View>
-            )}
+            <BellNotificationIcon color="#334155" size={18} />
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : '1'}</Text>
+            </View>
           </TouchableOpacity>
 
-          {/* Profile Avatar (Click to open dropdown tab) */}
+          {/* Profile Avatar Pill with Chevron */}
           <TouchableOpacity
-            style={styles.profileAvatar}
+            style={styles.profilePill}
             onPress={() => setShowDropdown(!showDropdown)}
             activeOpacity={0.8}>
-            <Text style={styles.avatarText}>{initial}</Text>
+            <View style={styles.avatarCircle}>
+              <Text style={[styles.avatarText, { fontSize: 13 }]}>{initial}</Text>
+            </View>
+            <ChevronDownIcon color="#64748b" size={14} />
           </TouchableOpacity>
         </View>
       </View>
@@ -411,10 +445,49 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
+  envelopeBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#d1fae5',
+    borderWidth: 1.2,
+    borderColor: '#a7f3d0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  envelopeInnerCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#0d9488',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  envelopePlusBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#f59e0b',
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  envelopePlusText: {
+    color: '#000000',
+    fontSize: 9.5,
+    fontWeight: '900',
+    lineHeight: 11,
+    textAlign: 'center',
+  },
   notificationBell: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: '#f1f5f9',
     alignItems: 'center',
     justifyContent: 'center',

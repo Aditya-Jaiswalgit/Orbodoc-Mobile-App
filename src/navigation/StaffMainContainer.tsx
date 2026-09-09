@@ -21,11 +21,13 @@ import {
   DrawerFlaskIcon,
   DrawerGridIcon,
   DrawerLogoutIcon,
+  DrawerPillIcon,
   DrawerUsersIcon,
   DrawerVideoIcon,
   LabTubeIcon,
   MedicinePillIcon,
   PatientUserIcon,
+  ReceiptIcon,
 } from '../components/common/CustomIcons';
 import { useAuthContext } from '../context/AuthContext';
 
@@ -172,20 +174,6 @@ export const StaffMainContainer = () => {
           { id: 'audit_logs', label: 'Audit Trail Logs' },
           { id: 'notifications', label: 'Notifications', badge: 3 },
         ];
-      case 'admin_doctor':
-        return [
-          { id: 'dashboard', label: 'Doctor Workspace' },
-          { id: 'appointments', label: 'Patient Consultations' },
-          { id: 'prescriptions', label: 'Prescription Creator' },
-          { id: 'staff', label: 'Manage Staff' },
-          { id: 'patients', label: 'Patients Directory' },
-          { id: 'treatment_billing', label: 'Treatment Billing' },
-          { id: 'medicine_billing', label: 'Medicine Billing' },
-          { id: 'pharmacy_inventory', label: 'Pharmacy Inventory' },
-          { id: 'lab_management', label: 'Lab Reports' },
-          { id: 'audit_logs', label: 'Audit Trail' },
-          { id: 'notifications', label: 'Notifications', badge: 3 },
-        ];
       case 'clinic_admin':
         return [
           { id: 'dashboard', label: 'Clinic Dashboard' },
@@ -198,6 +186,7 @@ export const StaffMainContainer = () => {
           { id: 'audit_logs', label: 'Audit Trail' },
           { id: 'notifications', label: 'Notifications', badge: 3 },
         ];
+      case 'admin_doctor':
       case 'doctor':
         return [
           { id: 'dashboard', label: 'Doctor Dashboard' },
@@ -206,10 +195,9 @@ export const StaffMainContainer = () => {
           { id: 'video_services', label: 'Video Services' },
           { id: 'treatment_billing', label: 'Treatment Billing' },
           { id: 'pharmacy_inventory', label: 'Medicines' },
-          { id: 'prescriptions', label: 'Prescriptions (Rx)' },
           { id: 'lab_management', label: 'Lab Tests' },
           { id: 'lab_inventory', label: 'Lab Inventory' },
-          { id: 'notifications', label: 'Notifications', badge: 3 },
+          { id: 'notifications', label: 'Notifications' },
         ];
       case 'receptionist':
         return [
@@ -288,31 +276,31 @@ export const StaffMainContainer = () => {
             return <ClinicAdminDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
         }
       case 'clinics':
-        return <ClinicsManagementScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <ClinicsManagementScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'staff':
-        return <StaffManagementScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <StaffManagementScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'patients':
-        return <PatientsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <PatientsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'appointments':
-        return <AppointmentsManagerScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+        return <AppointmentsManagerScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} onToggleTabBar={setHideBottomBar} />;
       case 'book_appointment':
-        return <BookAppointmentScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <BookAppointmentScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'video_services':
-        return <VideoServicesScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+        return <VideoServicesScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} onToggleTabBar={setHideBottomBar} />;
       case 'prescriptions':
-        return <PrescriptionsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <PrescriptionsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'pharmacy_inventory':
-        return <PharmacyInventoryScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <PharmacyInventoryScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'medicine_billing':
-        return <MedicineBillingScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <MedicineBillingScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'treatment_billing':
-        return <TreatmentBillingScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <TreatmentBillingScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'lab_management':
         return <LabManagementScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'lab_inventory':
         return <LabInventoryScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'audit_logs':
-        return <AuditLogsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <AuditLogsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'notifications':
         return <NotificationsCenterScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       default:
@@ -335,8 +323,9 @@ export const StaffMainContainer = () => {
         return <DrawerUsersIcon color={color} size={size} />;
       case 'treatment_billing':
       case 'medicine_billing':
-      case 'pharmacy_inventory':
         return <DrawerCreditCardIcon color={color} size={size} />;
+      case 'pharmacy_inventory':
+        return <DrawerPillIcon color={color} size={size} />;
       case 'video_services':
         return <DrawerVideoIcon color={color} size={size} />;
       case 'lab_management':
@@ -363,7 +352,7 @@ export const StaffMainContainer = () => {
         return <PatientUserIcon color={color} size={size} />;
       case 'treatment_billing':
       case 'medicine_billing':
-        return <BillingCardIcon color={color} size={size} />;
+        return <ReceiptIcon color={color} size={size} strokeWidth={2} />;
       case 'pharmacy_inventory':
       case 'prescriptions':
         return <MedicinePillIcon color={color} size={size} />;
@@ -473,7 +462,7 @@ export const StaffMainContainer = () => {
                       {staffName}
                     </Text>
                     <Text style={styles.userRoleText}>
-                      {staffRole.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                      {staffRole.includes('doctor') ? 'Doctor' : staffRole.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -486,7 +475,7 @@ export const StaffMainContainer = () => {
 
                 {/* Role Category Title */}
                 <Text style={styles.categoryTitleText}>
-                  {staffRole.replace('_', ' ').toUpperCase()}
+                  {staffRole.includes('doctor') ? 'DOCTOR' : staffRole.replace('_', ' ').toUpperCase()}
                 </Text>
 
                 {/* Role Specific Menu List */}
@@ -503,7 +492,7 @@ export const StaffMainContainer = () => {
                           setDrawerOpen(false);
                         }}>
                         <View style={[styles.menuIconContainer, isActive && styles.menuIconContainerActive]}>
-                          {renderDrawerIcon(item.id, isActive ? '#ffffff' : '#2dd4bf', 20)}
+                          {renderDrawerIcon(item.id, '#2dd4bf', 20)}
                         </View>
                         <Text style={[styles.menuItemLabel, isActive && styles.menuItemLabelActive]}>
                           {item.label}
@@ -522,7 +511,9 @@ export const StaffMainContainer = () => {
                   setDrawerOpen(false);
                   logout();
                 }}>
-                <DrawerLogoutIcon color="#2dd4bf" size={22} />
+                <View style={styles.logoutIconContainer}>
+                  <DrawerLogoutIcon color="#2dd4bf" size={20} />
+                </View>
                 <Text style={styles.drawerLogoutText}>Logout</Text>
               </TouchableOpacity>
             </View>
@@ -581,10 +572,10 @@ const styles = StyleSheet.create({
   },
   backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)' },
   drawerSheet: {
-    width: '75%',
+    width: '78%',
     maxWidth: 300,
     height: '100%',
-    backgroundColor: '#071624',
+    backgroundColor: '#071622',
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 12 : 50,
     paddingBottom: Platform.OS === 'android' ? 24 : 36,
@@ -604,23 +595,28 @@ const styles = StyleSheet.create({
   drawerTopHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 18,
     marginTop: 4,
   },
   logoSquircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
     overflow: 'hidden',
     padding: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   logoImage: {
-    width: 38,
-    height: 38,
+    width: 36,
+    height: 36,
   },
   userCol: {
     flex: 1,
@@ -628,7 +624,7 @@ const styles = StyleSheet.create({
   },
   userNameText: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     letterSpacing: 0.2,
   },
@@ -639,57 +635,70 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   darkCloseBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: '#0c273e',
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#0e2434',
     borderWidth: 1,
-    borderColor: '#193b58',
+    borderColor: '#16384e',
     alignItems: 'center',
     justifyContent: 'center',
   },
   darkCloseBtnText: {
     color: '#2dd4bf',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   categoryTitleText: {
     fontSize: 12,
     fontWeight: '800',
     color: '#2dd4bf',
-    letterSpacing: 1.5,
+    letterSpacing: 1.8,
     marginTop: 14,
     marginBottom: 14,
     paddingHorizontal: 2,
   },
   menuList: {
-    gap: 2,
+    gap: 4,
   },
   menuItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 46,
+    height: 48,
     paddingHorizontal: 8,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1.5,
     borderColor: 'transparent',
-    marginBottom: 2,
+    marginBottom: 3,
   },
   menuItemRowActive: {
-    backgroundColor: 'rgba(13, 148, 136, 0.14)',
-    borderColor: '#0d9488',
+    backgroundColor: 'rgba(45, 212, 191, 0.12)',
+    borderColor: '#2dd4bf',
   },
   menuIconContainer: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-    backgroundColor: 'transparent',
+    backgroundColor: '#0c2636',
+    borderWidth: 0,
+    shadowColor: '#2dd4bf',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.65,
+    shadowRadius: 8,
+    elevation: 6,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 10px rgba(45, 212, 191, 0.4)' } as any) : {}),
   },
   menuIconContainerActive: {
-    backgroundColor: '#0d9488',
+    backgroundColor: 'rgba(45, 212, 191, 0.22)',
+    shadowColor: '#2dd4bf',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 12,
+    elevation: 8,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 14px rgba(45, 212, 191, 0.65)' } as any) : {}),
   },
   menuItemLabel: {
     flex: 1,
@@ -704,9 +713,24 @@ const styles = StyleSheet.create({
   drawerLogoutRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 8,
     gap: 12,
+  },
+  logoutIconContainer: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0c2636',
+    borderWidth: 0,
+    shadowColor: '#2dd4bf',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.65,
+    shadowRadius: 8,
+    elevation: 6,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 10px rgba(45, 212, 191, 0.4)' } as any) : {}),
   },
   drawerLogoutText: {
     color: '#ffffff',

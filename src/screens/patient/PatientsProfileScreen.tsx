@@ -15,14 +15,28 @@ import { usePatientProfile } from '../../hooks/usePatientProfile';
 interface PatientsProfileScreenProps {
   onOpenDrawer?: () => void;
   onOpenNotifications?: () => void;
+  onToggleTabBar?: (hide: boolean) => void;
 }
 
 export const PatientsProfileScreen: React.FC<PatientsProfileScreenProps> = ({
   onOpenDrawer = () => {},
   onOpenNotifications = () => {},
+  onToggleTabBar,
 }) => {
   const { profile, updateProfile } = usePatientProfile();
   const [showEditModal, setShowEditModal] = useState(false);
+
+  useEffect(() => {
+    if (onToggleTabBar) {
+      onToggleTabBar(showEditModal);
+    }
+  }, [showEditModal, onToggleTabBar]);
+
+  useEffect(() => {
+    return () => {
+      onToggleTabBar?.(false);
+    };
+  }, [onToggleTabBar]);
 
   const [formData, setFormData] = useState({ ...profile });
 

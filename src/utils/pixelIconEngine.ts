@@ -374,7 +374,8 @@ export function getIconPngUri(iconName: string, colorHex: string): string {
       break;
     }
 
-    case 'calendar': {
+    case 'calendar':
+    case 'calendar-days': {
       // Outer rounded box: x=7, y=9, w=34, h=34, radius=6
       canvas.drawRoundRect(7, 9, 34, 34, 6, col, stroke);
       // Top binder pins
@@ -382,6 +383,17 @@ export function getIconPngUri(iconName: string, colorHex: string): string {
       canvas.drawLine(32, 4, 32, 12, col, stroke);
       // Horizontal header divider
       canvas.drawLine(7, 21, 41, 21, col, stroke);
+
+      // 6 day dots (2 rows of 3) matching Lucide CalendarDays
+      // Row 1 (y=28)
+      canvas.drawFilledCircle(16, 28, 2.2, col);
+      canvas.drawFilledCircle(24, 28, 2.2, col);
+      canvas.drawFilledCircle(32, 28, 2.2, col);
+
+      // Row 2 (y=36)
+      canvas.drawFilledCircle(16, 36, 2.2, col);
+      canvas.drawFilledCircle(24, 36, 2.2, col);
+      canvas.drawFilledCircle(32, 36, 2.2, col);
       break;
     }
 
@@ -521,6 +533,143 @@ export function getIconPngUri(iconName: string, colorHex: string): string {
       canvas.drawLine(18, 24, 38, 24, col, stroke);
       canvas.drawLine(31, 17, 38, 24, col, stroke);
       canvas.drawLine(31, 31, 38, 24, col, stroke);
+      break;
+    }
+
+    case 'refresh-cw': {
+      // Top half clockwise arc
+      canvas.drawArc(24, 24, 15, -Math.PI + 0.35, -0.3, col, stroke);
+      // Top arrow pointing down/right at (37, 18)
+      canvas.drawLine(38, 10, 38, 20, col, stroke);
+      canvas.drawLine(28, 20, 38, 20, col, stroke);
+
+      // Bottom half clockwise arc
+      canvas.drawArc(24, 24, 15, 0.35, Math.PI - 0.3, col, stroke);
+      // Bottom arrow pointing up/left at (10, 30)
+      canvas.drawLine(10, 38, 10, 28, col, stroke);
+      canvas.drawLine(10, 28, 20, 28, col, stroke);
+      break;
+    }
+
+    case 'receipt': {
+      // Outline of receipt with 4 symmetrical zig-zag teeth at top and bottom (48x48)
+      canvas.drawLine(8, 5, 8, 43, col, stroke);
+      canvas.drawLine(40, 5, 40, 43, col, stroke);
+      // Top teeth (8,5 -> 12,8.5 -> 16,5 -> 20,8.5 -> 24,5 -> 28,8.5 -> 32,5 -> 36,8.5 -> 40,5)
+      canvas.drawLine(8, 5, 12, 8.5, col, stroke);
+      canvas.drawLine(12, 8.5, 16, 5, col, stroke);
+      canvas.drawLine(16, 5, 20, 8.5, col, stroke);
+      canvas.drawLine(20, 8.5, 24, 5, col, stroke);
+      canvas.drawLine(24, 5, 28, 8.5, col, stroke);
+      canvas.drawLine(28, 8.5, 32, 5, col, stroke);
+      canvas.drawLine(32, 5, 36, 8.5, col, stroke);
+      canvas.drawLine(36, 8.5, 40, 5, col, stroke);
+      // Bottom teeth (8,43 -> 12,39.5 -> 16,43 -> 20,39.5 -> 24,43 -> 28,39.5 -> 32,43 -> 36,39.5 -> 40,43)
+      canvas.drawLine(8, 43, 12, 39.5, col, stroke);
+      canvas.drawLine(12, 39.5, 16, 43, col, stroke);
+      canvas.drawLine(16, 43, 20, 39.5, col, stroke);
+      canvas.drawLine(20, 39.5, 24, 43, col, stroke);
+      canvas.drawLine(24, 43, 28, 39.5, col, stroke);
+      canvas.drawLine(28, 39.5, 32, 43, col, stroke);
+      canvas.drawLine(32, 43, 36, 39.5, col, stroke);
+      canvas.drawLine(36, 39.5, 40, 43, col, stroke);
+      // Dollar sign - vertical bar
+      canvas.drawLine(24, 12, 24, 36, col, stroke);
+      // Dollar sign - curved 'S'
+      canvas.drawLine(31, 17, 21, 17, col, stroke);
+      canvas.drawArc(21, 20.5, 3.5, Math.PI * 0.5, Math.PI * 1.5, col, stroke);
+      canvas.drawLine(21, 24, 27, 24, col, stroke);
+      canvas.drawArc(27, 27.5, 3.5, -Math.PI * 0.5, Math.PI * 0.5, col, stroke);
+      canvas.drawLine(27, 31, 17, 31, col, stroke);
+      break;
+    }
+
+    case 'clock': {
+      canvas.drawCircle(24, 24, 18, col, stroke);
+      canvas.drawLine(24, 12, 24, 24, col, stroke);
+      canvas.drawLine(24, 24, 32, 28, col, stroke);
+      break;
+    }
+
+    case 'stethoscope': {
+      // Binaural tips
+      canvas.drawLine(10, 4, 10, 8, col, stroke);
+      canvas.drawLine(22, 4, 22, 8, col, stroke);
+
+      // Binaural arch
+      canvas.drawLine(10, 6, 8, 6, col, stroke);
+      canvas.drawLine(8, 6, 4, 10, col, stroke);
+      canvas.drawLine(4, 10, 4, 18, col, stroke);
+      canvas.drawArc(16, 18, 12, 0, Math.PI, col, stroke);
+      canvas.drawLine(28, 18, 28, 10, col, stroke);
+      canvas.drawLine(28, 10, 24, 6, col, stroke);
+      canvas.drawLine(24, 6, 22, 6, col, stroke);
+
+      // Tube loop
+      canvas.drawArc(28, 30, 12, Math.PI * 0.35, Math.PI, col, stroke);
+      canvas.drawLine(40, 30, 40, 24, col, stroke);
+
+      // Chest piece circle
+      canvas.drawCircle(40, 20, 4.5, col, stroke);
+      break;
+    }
+
+    case 'tube': {
+      // Test tube rim at top
+      canvas.drawLine(16, 6, 32, 6, col, stroke);
+      // Tube vertical walls
+      canvas.drawLine(19, 6, 19, 36, col, stroke);
+      canvas.drawLine(29, 6, 29, 36, col, stroke);
+      // Tube rounded bottom
+      canvas.drawArc(24, 36, 5, 0, Math.PI, col, stroke);
+      // Liquid level inside tube
+      canvas.drawLine(19, 23, 29, 23, col, stroke);
+      break;
+    }
+
+    case 'activity': {
+      // Pulse / ECG wave
+      canvas.drawLine(4, 24, 13, 24, col, stroke);
+      canvas.drawLine(13, 24, 19, 8, col, stroke);
+      canvas.drawLine(19, 8, 27, 40, col, stroke);
+      canvas.drawLine(27, 40, 33, 16, col, stroke);
+      canvas.drawLine(33, 16, 37, 24, col, stroke);
+      canvas.drawLine(37, 24, 44, 24, col, stroke);
+      break;
+    }
+
+    case 'users': {
+      // Primary user head & shoulders
+      canvas.drawCircle(18, 14, 6, col, stroke);
+      canvas.drawArc(18, 38, 14, -Math.PI * 0.9, -Math.PI * 0.1, col, stroke);
+      // Secondary user head & shoulders
+      canvas.drawCircle(34, 16, 5, col, stroke);
+      canvas.drawArc(34, 38, 12, -Math.PI * 0.85, -Math.PI * 0.35, col, stroke);
+      break;
+    }
+
+    case 'clipboard-check': {
+      // Board outline
+      canvas.drawRoundRect(8, 10, 32, 34, 4, col, stroke);
+      // Top clip
+      canvas.drawRoundRect(17, 4, 14, 8, 2, col, stroke);
+      // Checkmark inside
+      canvas.drawLine(17, 28, 22, 33, col, stroke);
+      canvas.drawLine(22, 33, 31, 22, col, stroke);
+      break;
+    }
+
+    case 'eye': {
+      // Exact almond eye contour with top and bottom arched eyelids and sharp corners
+      canvas.drawArc(24, 38, 24, -Math.PI * 0.77, -Math.PI * 0.23, col, stroke);
+      canvas.drawArc(24, 10, 24, Math.PI * 0.23, Math.PI * 0.77, col, stroke);
+      // Corner connection points
+      canvas.drawLine(5, 24, 8, 22, col, stroke);
+      canvas.drawLine(5, 24, 8, 26, col, stroke);
+      canvas.drawLine(43, 24, 40, 22, col, stroke);
+      canvas.drawLine(43, 24, 40, 26, col, stroke);
+      // Single center iris circle (only 1 circle inside)
+      canvas.drawCircle(24, 24, 6.5, col, stroke);
       break;
     }
 

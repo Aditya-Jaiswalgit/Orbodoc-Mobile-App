@@ -26,6 +26,7 @@ import {
   LabTubeIcon,
   MedicinePillIcon,
   PatientUserIcon,
+  ReceiptIcon,
   VideoCamIcon,
 } from '../components/common/CustomIcons';
 import { useAuthContext } from '../context/AuthContext';
@@ -71,7 +72,7 @@ const renderDrawerIcon = (id: string, color: string, size: number = 20) => {
       return <DrawerUsersIcon color={color} size={size} />;
     case 'treatment_billing':
     case 'medicine_billing':
-      return <DrawerCreditCardIcon color={color} size={size} />;
+      return <ReceiptIcon color={color} size={size} strokeWidth={2} />;
     case 'video_services':
       return <DrawerVideoIcon color={color} size={size} />;
     case 'lab_tests':
@@ -94,9 +95,8 @@ const renderTabVectorIcon = (tab: PatientTabType, color: string, size: number = 
     case 'profile':
       return <PatientUserIcon color={color} size={size} />;
     case 'treatment_billing':
-      return <BillingCardIcon color={color} size={size} />;
     case 'medicine_billing':
-      return <MedicinePillIcon color={color} size={size} />;
+      return <ReceiptIcon color={color} size={size} strokeWidth={2} />;
     case 'video_services':
       return <VideoCamIcon color={color} size={size} />;
     case 'lab_tests':
@@ -128,6 +128,8 @@ export const PatientMainContainer = () => {
     { id: 'notifications', label: 'Notifications' },
   ];
 
+  const [hideBottomBar, setHideBottomBar] = useState<boolean>(false);
+
   const openDrawer = () => setDrawerOpen(true);
   const openNotifications = () => setActiveTab('notifications');
   const openProfile = () => setActiveTab('profile');
@@ -144,23 +146,23 @@ export const PatientMainContainer = () => {
           />
         );
       case 'book_appointment':
-        return <BookAppointmentScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <BookAppointmentScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'patients':
-        return <PatientsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <PatientsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'appointments':
-        return <AppointmentsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <AppointmentsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'treatment_billing':
-        return <TreatmentBillingScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <TreatmentBillingScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'medicine_billing':
-        return <MedicineBillingScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <MedicineBillingScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'video_services':
-        return <VideoServicesScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <VideoServicesScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'lab_tests':
-        return <LabTestsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <LabTestsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'notifications':
-        return <NotificationsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <NotificationsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'profile':
-        return <PatientsProfileScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <PatientsProfileScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       default:
         return (
           <PatientDashboardScreen
@@ -177,7 +179,7 @@ export const PatientMainContainer = () => {
       <View style={styles.screenContainer}>{renderActiveScreen()}</View>
 
       {/* Bottom Tab Bar */}
-      {!drawerOpen && (
+      {!hideBottomBar && !drawerOpen && (
         <View style={styles.bottomTabBar}>
           <TouchableOpacity
             style={styles.tabItem}

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -58,67 +59,69 @@ export const PATIENT_COLUMNS: ColumnItem[] = [
 export const DEFAULT_PATIENT_COLUMNS: string[] = [
   'patient_code',
   'full_name',
+  'email',
   'phone',
   'gender',
+  'age',
   'blood_group',
-  'registered_on',
   'status',
   'actions',
 ];
 
-const formatDateLong = (dateStr?: string) => {
+const formatDateLong = (dateStr?: string): string => {
   if (!dateStr) return '-';
   try {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    const month = months[d.getMonth()];
-    const day = d.getDate();
-    let suffix = 'th';
-    if (day === 1 || day === 21 || day === 31) suffix = 'st';
-    else if (day === 2 || day === 22) suffix = 'nd';
-    else if (day === 3 || day === 23) suffix = 'rd';
-    return `${month} ${day}${suffix}, ${d.getFullYear()}`;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
   } catch (e) {
     return dateStr;
   }
 };
 
-const formatDateShort = (dateStr?: string) => {
+const formatDateShort = (dateStr?: string): string => {
   if (!dateStr) return '-';
   try {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
-    return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
   } catch (e) {
     return dateStr;
   }
 };
 
-const calculateAge = (dobStr?: string) => {
+const formatDisplayDate = formatDateLong;
+
+const calculateAge = (dobStr?: string): string => {
   if (!dobStr) return '';
   try {
     const dob = new Date(dobStr);
     if (isNaN(dob.getTime())) return '';
-    const diffMs = Date.now() - dob.getTime();
-    const ageDate = new Date(diffMs);
-    return Math.abs(ageDate.getUTCFullYear() - 1970);
+    const diff = Date.now() - dob.getTime();
+    const ageDate = new Date(diff);
+    const calculatedAge = Math.abs(ageDate.getUTCFullYear() - 1970);
+    return calculatedAge > 0 ? `${calculatedAge} yrs` : '';
   } catch (e) {
     return '';
   }
 };
 
+const calculateAgeFromDob = calculateAge;
+
 interface PatientsScreenProps {
   onOpenDrawer?: () => void;
   onOpenNotifications?: () => void;
+  onToggleTabBar?: (hide: boolean) => void;
 }
 
 export const PatientsScreen: React.FC<PatientsScreenProps> = ({
   onOpenDrawer = () => {},
   onOpenNotifications = () => {},
+  onToggleTabBar,
 }) => {
   const {
     patients,
@@ -205,6 +208,46 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
   const [showEditBloodPicker, setShowEditBloodPicker] = useState<boolean>(false);
   const [showColumnsModal, setShowColumnsModal] = useState<boolean>(false);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(DEFAULT_PATIENT_COLUMNS);
+
+  // Hide footer bottom bar whenever any modal or bottom sheet is open
+  useEffect(() => {
+    if (onToggleTabBar) {
+      const isAnyModalOpen =
+        showActionMenuModal ||
+        showViewDetailsModal ||
+        showEditPatientModal ||
+        showConsultationsModal ||
+        showPrescriptionsModal ||
+        showMedicalHistoryModal ||
+        showBookAppointmentModal ||
+        showGenderPicker ||
+        showBloodPicker ||
+        showStatusPicker ||
+        showEditBloodPicker ||
+        showColumnsModal;
+      onToggleTabBar(isAnyModalOpen);
+    }
+  }, [
+    showActionMenuModal,
+    showViewDetailsModal,
+    showEditPatientModal,
+    showConsultationsModal,
+    showPrescriptionsModal,
+    showMedicalHistoryModal,
+    showBookAppointmentModal,
+    showGenderPicker,
+    showBloodPicker,
+    showStatusPicker,
+    showEditBloodPicker,
+    showColumnsModal,
+    onToggleTabBar,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      onToggleTabBar?.(false);
+    };
+  }, [onToggleTabBar]);
 
   const handleToggleColumn = (colId: string) => {
     setSelectedColumns((prev) =>
@@ -2518,15 +2561,15 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginTop: 8 },
   emptySub: { fontSize: 12, color: '#64748b', textAlign: 'center', marginTop: 2 },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modalOverlayDark: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.7)', justifyContent: 'center', alignItems: 'center', padding: 14 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'center', alignItems: 'center', padding: 20, zIndex: 99999, elevation: 99999 },
+  modalOverlayDark: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.7)', justifyContent: 'center', alignItems: 'center', padding: 14, zIndex: 99999, elevation: 99999 },
   pickerModalContent: { backgroundColor: '#ffffff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 320 },
   pickerModalTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginBottom: 14, textAlign: 'center' },
   pickerOptionRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   pickerOptionText: { fontSize: 14, color: '#334155', fontWeight: '600', textAlign: 'center' },
   pickerOptionSelected: { color: '#0d9488', fontWeight: '800' },
 
-  actionMenuCard: { backgroundColor: '#ffffff', borderRadius: 18, padding: 18, width: '100%', maxWidth: 300, gap: 4, zIndex: 999 },
+  actionMenuCard: { backgroundColor: '#ffffff', borderRadius: 18, padding: 18, width: '100%', maxWidth: 300, gap: 4, zIndex: 100000, elevation: 100000 },
   actionMenuTitle: { fontSize: 15, fontWeight: '800', color: '#0f172a', marginBottom: 10, textAlign: 'center' },
   actionOptionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10, backgroundColor: '#f8fafc', marginVertical: 2 },
   actionOptionHighlight: { backgroundColor: '#ccfbf1' },
@@ -2534,9 +2577,9 @@ const styles = StyleSheet.create({
   closeActionBtn: { backgroundColor: '#f1f5f9', borderRadius: 10, paddingVertical: 10, alignItems: 'center', marginTop: 10 },
   closeActionBtnText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
 
-  sheetOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'flex-end' },
-  bottomSheetContainer: { backgroundColor: '#eef4f4', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18, maxHeight: '88%' },
-  pickerBottomSheetContainer: { backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 18, paddingBottom: 28, maxHeight: '80%', width: '100%' },
+  sheetOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'flex-end', zIndex: 99999, elevation: 99999 },
+  bottomSheetContainer: { backgroundColor: '#eef4f4', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18, paddingBottom: Platform.OS === 'ios' ? 40 : 30, maxHeight: '88%', width: '100%', zIndex: 100000, elevation: 100000 },
+  pickerBottomSheetContainer: { backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 18, paddingBottom: Platform.OS === 'ios' ? 40 : 30, maxHeight: '80%', width: '100%', zIndex: 100000, elevation: 100000 },
   sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   headerRightActionsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activePillBadge: { backgroundColor: '#d1fae5', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },

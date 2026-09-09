@@ -28,7 +28,7 @@ interface ColumnsModalProps {
 export const ColumnsModal: React.FC<ColumnsModalProps> = ({
   visible,
   onClose,
-  title = 'Show/Hide Columns',
+  title = 'Show / Hide Columns',
   columns,
   selectedIds,
   onToggle,
@@ -39,57 +39,63 @@ export const ColumnsModal: React.FC<ColumnsModalProps> = ({
       transparent
       animationType="fade"
       onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.dropdownCard}>
-              <View style={styles.headerRow}>
-                <Text style={styles.titleText}>{title}</Text>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={onClose}
-                  style={styles.closeBtn}>
-                  <Text style={styles.closeBtnText}>✕</Text>
-                </TouchableOpacity>
-              </View>
+      <TouchableOpacity
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={onClose}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.dropdownCard}
+          onPress={(e) => {
+            if (e && typeof e.stopPropagation === 'function') {
+              e.stopPropagation();
+            }
+          }}>
+          <View style={styles.headerRow}>
+            <Text style={styles.titleText}>{title}</Text>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={onClose}
+              style={styles.closeBtn}>
+              <Text style={styles.closeBtnText}>✕</Text>
+            </TouchableOpacity>
+          </View>
 
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                style={styles.scrollList}
-                contentContainerStyle={styles.scrollContent}>
-                {columns.map((col) => {
-                  const isChecked = selectedIds.includes(col.id);
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            style={styles.scrollList}
+            contentContainerStyle={styles.scrollContent}>
+            {columns.map((col) => {
+              const isChecked = selectedIds.includes(col.id);
 
-                  return (
-                    <React.Fragment key={col.id}>
-                      {col.isDividerBefore && <View style={styles.divider} />}
-                      <TouchableOpacity
-                        activeOpacity={0.7}
-                        style={styles.optionRow}
-                        onPress={() => onToggle(col.id)}>
-                        <View style={styles.checkCol}>
-                          {isChecked ? (
-                            <Text style={styles.checkMark}>✓</Text>
-                          ) : (
-                            <View style={styles.emptyCheck} />
-                          )}
-                        </View>
-                        <Text
-                          style={[
-                            styles.labelText,
-                            isChecked && styles.labelTextChecked,
-                          ]}>
-                          {col.label}
-                        </Text>
-                      </TouchableOpacity>
-                    </React.Fragment>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
+              return (
+                <React.Fragment key={col.id}>
+                  {col.isDividerBefore && <View style={styles.divider} />}
+                  <TouchableOpacity
+                    activeOpacity={0.65}
+                    style={styles.optionRow}
+                    onPress={() => onToggle(col.id)}>
+                    <View style={styles.checkCol}>
+                      {isChecked ? (
+                        <Text style={styles.checkMark}>✓</Text>
+                      ) : (
+                        <View style={styles.emptyCheck} />
+                      )}
+                    </View>
+                    <Text
+                      style={[
+                        styles.labelText,
+                        isChecked && styles.labelTextChecked,
+                      ]}>
+                      {col.label}
+                    </Text>
+                  </TouchableOpacity>
+                </React.Fragment>
+              );
+            })}
+          </ScrollView>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 };
@@ -101,6 +107,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    zIndex: 99999,
+    elevation: 99999,
   },
   dropdownCard: {
     width: '100%',
@@ -110,6 +118,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e2e8f0',
     overflow: 'hidden',
+    zIndex: 100000,
     ...Platform.select({
       ios: {
         shadowColor: '#0f172a',

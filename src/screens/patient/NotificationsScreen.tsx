@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -19,11 +20,13 @@ import { useAuthContext } from '../../context/AuthContext';
 interface NotificationsScreenProps {
   onOpenDrawer?: () => void;
   onOpenNotifications?: () => void;
+  onToggleTabBar?: (hide: boolean) => void;
 }
 
 export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
   onOpenDrawer = () => {},
   onOpenNotifications = () => {},
+  onToggleTabBar,
 }) => {
   const { user } = useAuthContext();
   const {
@@ -46,6 +49,18 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
   const [showManageModal, setShowManageModal] = useState<boolean>(false);
   const [showClinicPicker, setShowClinicPicker] = useState<boolean>(false);
   const [showRolePicker, setShowRolePicker] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (onToggleTabBar) {
+      onToggleTabBar(showManageModal || showClinicPicker || showRolePicker);
+    }
+  }, [showManageModal, showClinicPicker, showRolePicker, onToggleTabBar]);
+
+  useEffect(() => {
+    return () => {
+      onToggleTabBar?.(false);
+    };
+  }, [onToggleTabBar]);
 
   const [selectedCatList, setSelectedCatList] = useState<string[]>([
     'User Registration',

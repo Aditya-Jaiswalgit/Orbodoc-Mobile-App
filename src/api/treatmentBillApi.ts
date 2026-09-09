@@ -71,3 +71,39 @@ export async function recordPaymentApi(
     body: JSON.stringify(paymentData),
   });
 }
+
+export async function cancelTreatmentBillApi(
+  token: string,
+  id: number,
+  reason?: string
+): Promise<ApiResponse<any>> {
+  return apiFetch<any>(`/treatment-bills/${id}/cancel`, {
+    method: 'PATCH',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: JSON.stringify({ reason: reason || 'Cancelled by user' }),
+  });
+}
+
+export async function updateTreatmentBillApi(
+  token: string,
+  id: number,
+  data: Partial<TreatmentBill>
+): Promise<ApiResponse<TreatmentBill>> {
+  return apiFetch<TreatmentBill>(`/treatment-bills/${id}`, {
+    method: 'PUT',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: JSON.stringify(data),
+  });
+}
+
+export async function removeBillItemApi(
+  token: string,
+  billId: number,
+  itemId: number
+): Promise<ApiResponse<any>> {
+  return apiFetch<any>(`/treatment-bills/${billId}/items/${itemId}`, {
+    method: 'DELETE',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+}
+
