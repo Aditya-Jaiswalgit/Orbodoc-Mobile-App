@@ -17,22 +17,9 @@ const minimalPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQV
 
 for (const file of targetFiles) {
   const targetPath = path.join(assetsDir, file);
-  // Always write valid PNG data if target doesn't exist or is not a valid PNG
-  fs.writeFileSync(targetPath, Buffer.from(minimalPngBase64, 'base64'));
-  console.log(`[Expo Setup] Ensured valid PNG assets/${file}`);
-}
-
-// 2. Remove legacy React Native CLI bare directories and files for clean Expo project
-const legacyPathsToRemove = ['android', 'ios', 'Gemfile', '.bundle'];
-
-for (const item of legacyPathsToRemove) {
-  const itemPath = path.join(projectRoot, item);
-  if (fs.existsSync(itemPath)) {
-    try {
-      fs.rmSync(itemPath, { recursive: true, force: true });
-      console.log(`[Expo Clean] Removed legacy React Native CLI item: ${item}`);
-    } catch (err) {
-      console.warn(`[Expo Clean] Warning removing ${item}:`, err.message);
-    }
+  // Project artwork must never be overwritten by a startup script.
+  if (!fs.existsSync(targetPath)) {
+    fs.writeFileSync(targetPath, Buffer.from(minimalPngBase64, 'base64'));
+    console.log(`[Expo Setup] Created missing assets/${file}`);
   }
 }

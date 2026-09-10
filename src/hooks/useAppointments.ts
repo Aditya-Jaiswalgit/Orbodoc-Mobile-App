@@ -178,11 +178,14 @@ export const useAppointments = () => {
     try {
       const res = await updateAppointmentStatusApi(token, appointmentId, status);
       if (res.success) {
-        fetchAppointments();
+        await fetchAppointments();
+      } else {
+        await fetchAppointments();
       }
       return res;
     } catch (err: any) {
-      return { success: true };
+      await fetchAppointments();
+      return { success: false, message: err.message || 'Unable to update appointment' };
     }
   };
 
@@ -195,19 +198,51 @@ export const useAppointments = () => {
     try {
       const res = await cancelAppointmentApi(token, appointmentId);
       if (res.success) {
-        fetchAppointments();
+        await fetchAppointments();
+      } else {
+        await fetchAppointments();
       }
       return res;
     } catch (err: any) {
-      return { success: true };
+      await fetchAppointments();
+      return { success: false, message: err.message || 'Unable to cancel appointment' };
     }
   };
 
-  const fetchAvailableSlots = async (doctorId: number, date: string) => {
+  const fetchAvailableSlots = useCallback(async (doctorId: number, date: string, clinicId?: number) => {
     if (!token) return [];
-    const res = await getAvailableSlotsApi(token, doctorId, date);
-    return res.success && Array.isArray(res.data) ? res.data : [];
-  };
+    const res = await getAvailableSlotsApi(token, doctorId, date, clinicId);
+    if (!res.success) {
+      throw new Error(res.message || 'Doctor not found in your clinic');
+    }
+    if (!res.data) return [];
+    // The appointments endpoint returns `{ doctor_id, date, slots }`; accept the
+    // web client's wrapped response shape too, so a valid API response never
+    // becomes an empty time picker because of a response envelope difference.
+    const payload: any = res.data;
+    const rawSlots = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.slots)
+        ? payload.slots
+        : Array.isArray(payload?.data?.slots)
+          ? payload.data.slots
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
+    const toLabel = (value: string) => {
+      const [hourText, minuteText = '00'] = value.slice(0, 5).split(':');
+      const hour = Number(hourText);
+      const suffix = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+      return `${String(displayHour).padStart(2, '0')}:${minuteText} ${suffix}`;
+    };
+    return rawSlots
+      .filter((slot: any) => typeof slot === 'string' || (slot.available !== false && slot.is_available !== false))
+      .map((slot: any) => typeof slot === 'string' ? slot : String(slot.time || ''))
+      .filter(Boolean)
+      .map(toLabel)
+      .filter(Boolean);
+  }, [token]);
 
   useEffect(() => {
     fetchAppointments();

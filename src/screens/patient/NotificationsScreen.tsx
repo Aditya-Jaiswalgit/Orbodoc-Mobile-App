@@ -80,21 +80,43 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
     }
   };
 
-  const handleSaveSubscriptions = () => {
-    updateSubCategories(selectedCatList);
+  const handleSaveSubscriptions = async () => {
+    const result = await updateSubCategories(selectedCatList);
+    if (!result?.success) {
+      Alert.alert('Unable to save preferences', result?.message || 'Please try again.');
+      return;
+    }
     setShowManageModal(false);
-    Alert.alert('Subscriptions Saved', 'Your notification preference settings have been updated.');
+    Alert.alert('Subscriptions Saved', 'Your notification preferences have been updated.');
   };
 
-  const filteredSubscriptions = subscriptions.filter((s) => {
+  const ownSubscriptions = subscriptions.filter((subscription) => {
+    const sessionId = user?.userId || user?.id || user?.patient_id;
+    return sessionId && String(subscription.user_id) === String(sessionId);
+  });
+
+  useEffect(() => {
+    const categories = ownSubscriptions[0]?.categories;
+    if (Array.isArray(categories) && categories.length > 0) {
+      setSelectedCatList(categories);
+    }
+  }, [subscriptions]);
+
+  const clinicOptions = [
+    'All Clinics',
+    ...Array.from(new Set(ownSubscriptions.map((subscription) => subscription.clinic_name).filter(Boolean) as string[])),
+  ];
+
+  const filteredSubscriptions = ownSubscriptions.filter((s) => {
     const q = searchQuery.toLowerCase().trim();
     const name = (s.user_name || '').toLowerCase();
     const role = (s.role || '').toLowerCase();
 
     const matchesSearch = q === '' || name.includes(q) || role.includes(q);
     const matchesRole = roleFilter === 'All Roles' || role.includes(roleFilter.toLowerCase());
+    const matchesClinic = clinicFilter === 'All Clinics' || s.clinic_name === clinicFilter;
 
-    return matchesSearch && matchesRole;
+    return matchesSearch && matchesRole && matchesClinic;
   });
 
   return (
@@ -188,11 +210,18 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
                 <Text style={[styles.colHeader, { flex: 1.2 }]}>Actions</Text>
               </View>
 
-              {filteredSubscriptions.map((sub, idx) => (
+              {filteredSubscriptions.length === 0 ? (
+                <View style={styles.emptySubscriptions}>
+                  <Text style={styles.emptySubscriptionsText}>No saved subscription preferences found.</Text>
+                  <TouchableOpacity style={styles.manageBtn} onPress={() => setShowManageModal(true)}>
+                    <Text style={styles.manageBtnText}>Set Preferences</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : filteredSubscriptions.map((sub, idx) => (
                 <View key={`sub-${sub.user_id || idx}-${idx}`} style={styles.userTableRow}>
                   <View style={[styles.colCell, { flex: 1.2 }]}>
                     <Text style={styles.userNameText}>{sub.user_name || patientName}</Text>
-                    <Text style={styles.userClinicText}>{sub.clinic_name || "Dr Agrawal's healthcare clinic"}</Text>
+                    <Text style={styles.userClinicText}>{sub.clinic_name || 'Clinic unavailable'}</Text>
                   </View>
 
                   <View style={[styles.colCell, { flex: 0.8 }]}>
@@ -209,11 +238,11 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
 
                   <View style={[styles.colCell, { flex: 1.2, flexDirection: 'row', gap: 4, alignItems: 'center' }]}>
                     <View style={styles.darkBadgePill}>
-                      <Text style={styles.darkBadgeText}>{sub.system_channels || 15} System</Text>
+                      <Text style={styles.darkBadgeText}>{sub.system_channels || 0} System</Text>
                     </View>
                     <View style={styles.bellBadgePill}>
                       <BellNotificationIcon color="#0d9488" size={12} />
-                      <Text style={styles.bellBadgeText}>{sub.bell_channels || 15}</Text>
+                      <Text style={styles.bellBadgeText}>{sub.bell_channels || 0}</Text>
                     </View>
                   </View>
 
@@ -226,7 +255,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
               ))}
 
               <View style={styles.tableFooterRow}>
-                <Text style={styles.footerCountText}>Showing 1-1 of 1 users</Text>
+                <Text style={styles.footerCountText}>Showing {filteredSubscriptions.length} user{filteredSubscriptions.length === 1 ? '' : 's'}</Text>
                 <View style={styles.paginationControls}>
                   <TouchableOpacity style={styles.pageBtnDisabled}>
                     <Text style={styles.pageBtnTextDisabled}>Previous</Text>
@@ -330,7 +359,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowClinicPicker(false)}>
           <View style={styles.pickerModalContent}>
             <Text style={styles.pickerModalTitle}>Select Clinic</Text>
-            {['All Clinics', "Dr Agrawal's healthcare clinic"].map((c) => (
+            {clinicOptions.map((c) => (
               <TouchableOpacity
                 key={c}
                 style={styles.pickerOptionRow}
@@ -404,6 +433,8 @@ const styles = StyleSheet.create({
   colHeader: { fontSize: 11, fontWeight: '800', color: '#475569' },
 
   userTableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  emptySubscriptions: { alignItems: 'center', gap: 12, padding: 24 },
+  emptySubscriptionsText: { color: '#64748b', fontSize: 13, textAlign: 'center' },
   colCell: {},
   userNameText: { fontSize: 13, fontWeight: '800', color: '#0f172a' },
   userClinicText: { fontSize: 11, color: '#64748b' },

@@ -22,6 +22,7 @@ import {
   LabReportsIcon,
   LabTestTubeIcon,
   LabTrashIcon,
+  RefreshCwIcon,
   SearchIcon,
 } from '../../components/common/CustomIcons';
 import { useAuthContext } from '../../context/AuthContext';
@@ -536,10 +537,42 @@ export const LabManagementScreen: React.FC<Props> = ({
             colors={['#0d9488']}
           />
         }>
-        {/* ─── LAST REFRESHED TIMESTAMP ─── */}
-        <Text style={styles.lastRefreshedText}>
-          Last refreshed: {refreshedTimeStr || '9 Sept 2026, 8:23:33 pm'}
-        </Text>
+        {/* ─── TOP PAGE HEADER: MINT SQUIRCLE ICON + LAB TESTS ─── */}
+        <View style={styles.topHeaderSection}>
+          <View style={styles.topHeaderRow}>
+            <View style={styles.topIconSquircle}>
+              <LabTestTubeIcon color="#0f766e" size={24} strokeWidth={2.2} />
+            </View>
+            <View style={styles.topTitleCol}>
+              <Text style={styles.topPageTitle}>Lab Tests</Text>
+              <Text style={styles.topSubtitleText}>
+                Manage clinic tests and diagnostic reports
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ─── CLINIC SELECTOR & REFRESH ROW ─── */}
+        <View style={styles.topControlsContainer}>
+          <View style={styles.clinicDisplayBox}>
+            <Text style={styles.clinicDisplayText} numberOfLines={1}>
+              {clinicName}
+            </Text>
+            <ChevronDownIcon size={18} color="#64748b" strokeWidth={2} />
+          </View>
+
+          <TouchableOpacity
+            style={styles.refreshMintBtn}
+            activeOpacity={0.8}
+            onPress={refreshLabData}>
+            <RefreshCwIcon size={16} color="#0d9488" />
+            <Text style={styles.refreshMintBtnText}>Refresh</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.lastRefreshedText}>
+            Last refreshed: {refreshedTimeStr || '10 Sept 2026, 4:50:50 pm'}
+          </Text>
+        </View>
 
         {/* ─── SEARCH & CLINIC FILTER CARD ─── */}
         <View style={styles.searchCard}>
@@ -1243,10 +1276,54 @@ const styles = StyleSheet.create({
     paddingBottom: 90,
   },
 
+  /* ─── TOP PAGE HEADER ─── */
+  topHeaderSection: { marginBottom: 14, marginTop: 4 },
+  topHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  topIconSquircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#ccfbf1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topTitleCol: { flex: 1 },
+  topPageTitle: { fontSize: 22, fontWeight: '800', color: '#0f172a' },
+  topSubtitleText: { fontSize: 13, color: '#64748b', marginTop: 2 },
+
+  /* ─── CLINIC & REFRESH ─── */
+  topControlsContainer: { marginBottom: 14 },
+  clinicDisplayBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#ccfbf1',
+    borderRadius: 12,
+    height: 46,
+    paddingHorizontal: 16,
+  },
+  clinicDisplayText: { fontSize: 14, fontWeight: '600', color: '#0f172a', flex: 1 },
+  refreshMintBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#e6f7f5',
+    borderWidth: 1,
+    borderColor: '#99f6e4',
+    borderRadius: 12,
+    height: 44,
+    marginTop: 10,
+  },
+  refreshMintBtnText: { fontSize: 14, fontWeight: '700', color: '#0d9488' },
+
   /* ─── Last Refreshed ─── */
   lastRefreshedText: {
     fontSize: 12,
     color: '#64748b',
+    marginTop: 8,
     marginBottom: 8,
     paddingHorizontal: 2,
   },

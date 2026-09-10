@@ -37,6 +37,8 @@ export async function getClinicsApi(token: string): Promise<ApiResponse<Clinic[]
         address: p.address || `${p.city || 'Indore'}, ${p.state || 'Madhya Pradesh'}`,
         phone: p.phone || '0731-2541234',
         email: p.email || 'info@clinic.com',
+        image_url: p.image_url || p.logo_url || undefined,
+        logo_url: p.logo_url || p.image_url || undefined,
         status: 'active',
         doctors_count: p.doctors ? p.doctors.length : 1,
       }));

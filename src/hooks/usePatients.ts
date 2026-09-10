@@ -3,6 +3,7 @@ import {
   getPatientsApi,
   getPatientsDashboardStatsApi,
   createPatientApi,
+  deletePatientApi,
   getPatientByIdApi,
   updatePatientApi,
   getPatientConsultationsApi,
@@ -269,6 +270,13 @@ export const usePatients = () => {
     return res;
   };
 
+  const deletePatient = async (patientId: number) => {
+    if (!token) throw new Error('Authentication required');
+    const res = await deletePatientApi(token, patientId);
+    if (res.success) await fetchPatients();
+    return res;
+  };
+
   const fetchPatientConsultations = async (patientId: number) => {
     if (!token) return [];
     try {
@@ -362,6 +370,7 @@ export const usePatients = () => {
     addPatient,
     fetchPatientDetails,
     updatePatient,
+    deletePatient,
     togglePatientStatus,
     fetchPatientConsultations,
     fetchPatientMedicalHistory,

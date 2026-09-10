@@ -1,6 +1,11 @@
 import { ApiResponse } from '../types/auth';
 
-export const PRIMARY_BASE_URL = 'https://api.orbodoc.com/api';
+// Set EXPO_PUBLIC_API_URL for a deployed API. In Android emulator use 10.0.2.2;
+// on a real phone use your computer's LAN address, never localhost.
+const configuredBaseUrl =
+  typeof process !== 'undefined' ? process.env.EXPO_PUBLIC_API_URL?.trim() : '';
+
+export const PRIMARY_BASE_URL = configuredBaseUrl || 'https://api.orbodoc.com/api';
 export const LOCAL_BASE_URLS = [
   'http://192.168.29.224:5000/api',
   'http://10.0.2.2:5000/api',
@@ -18,7 +23,7 @@ export async function apiFetch<T>(
 ): Promise<ApiResponse<T>> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   
-  const allUrls = [PRIMARY_BASE_URL, ...LOCAL_BASE_URLS];
+  const allUrls = Array.from(new Set([PRIMARY_BASE_URL, ...LOCAL_BASE_URLS]));
   const targetUrls = activeBaseUrl
     ? [activeBaseUrl, ...allUrls.filter((u) => u !== activeBaseUrl)]
     : allUrls;

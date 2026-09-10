@@ -10,26 +10,31 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeftIcon,
-  BuildingClinicIcon,
   ChevronsUpDownIcon,
-  ClinicVerifiedIcon,
   FilterResetIcon,
-  GlobeCareIcon,
-  MapPinIcon,
   SearchInputIcon,
   SparklesIcon,
   StethoscopeIcon,
 } from '../../components/common/CustomIcons';
+import { BadgeCheck, Building2, CalendarDays, Check, Clock3, Globe2, MapPin, Monitor, Search, ShieldCheck, X } from 'lucide-react-native';
 import { PatientHeader } from '../../components/common/PatientHeader';
+import { InlineCalendarPicker } from '../../components/common/InlineCalendarPicker';
 import { useAuthContext } from '../../context/AuthContext';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useClinics } from '../../hooks/useClinics';
 import { useDoctors } from '../../hooks/useDoctors';
 import { Clinic, StaffMember } from '../../types/clinicTypes';
+
+// This screen follows the web app's compact mobile layout. Do not let the
+// device-wide accessibility font multiplier break the booking sheet geometry.
+(Text as any).defaultProps = { ...((Text as any).defaultProps || {}), maxFontSizeMultiplier: 1 };
+(TextInput as any).defaultProps = { ...((TextInput as any).defaultProps || {}), maxFontSizeMultiplier: 1 };
 
 interface BookAppointmentScreenProps {
   onOpenDrawer?: () => void;
@@ -74,6 +79,16 @@ const generateNext30Days = () => {
   return dates;
 };
 
+const calendarCells = (month: Date) => {
+  const start = new Date(month.getFullYear(), month.getMonth(), 1);
+  const firstWeekday = start.getDay();
+  const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  const cells: Array<Date | null> = Array(firstWeekday).fill(null);
+  for (let day = 1; day <= daysInMonth; day += 1) cells.push(new Date(month.getFullYear(), month.getMonth(), day));
+  while (cells.length % 7) cells.push(null);
+  return cells;
+};
+
 export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
   onOpenDrawer = () => {},
   onOpenNotifications = () => {},
@@ -83,11 +98,17 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
 
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
-  const { clinics, loading: clinicsLoading } = useClinics();
-  const { bookAppointment } = useAppointments();
+  const {
+    clinics,
+    loading: clinicsLoading,
+    statesList,
+    citiesList,
+    selectedStateId,
+    setSelectedStateId,
+  } = useClinics();
+  const { bookAppointment, fetchAvailableSlots } = useAppointments();
 
-  const [selectedState, setSelectedState] = useState<string>('All States');
-  const [selectedCity, setSelectedCity] = useState<string>('All Cities');
+  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
   const [clinicSearch, setClinicSearch] = useState<string>('');
   const [doctorSearch, setDoctorSearch] = useState<string>('');
 
@@ -97,7 +118,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
 
   const [consultationMode, setConsultationMode] = useState<'In Person' | 'Video Call'>('In Person');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('10:00 AM');
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [symptomsInput, setSymptomsInput] = useState<string>('');
   const [notesInput, setNotesInput] = useState<string>('');
 
@@ -109,7 +130,16 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
   const [showSlotPicker, setShowSlotPicker] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [showScheduleModal, setShowScheduleModal] = useState<boolean>(false);
   const [bookedAppointmentId, setBookedAppointmentId] = useState<number | null>(null);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotError, setSlotError] = useState<string | null>(null);
+  const [slotReloadKey, setSlotReloadKey] = useState(0);
+  const [showInlineCalendar, setShowInlineCalendar] = useState(false);
+  const [showTimeOptions, setShowTimeOptions] = useState(false);
+  const [timeSearch, setTimeSearch] = useState('');
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   const [showStatePicker, setShowStatePicker] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
@@ -120,6 +150,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
         showModePicker ||
         showDatePicker ||
         showSlotPicker ||
+        showScheduleModal ||
         showSuccessModal ||
         showStatePicker ||
         showCityPicker;
@@ -129,6 +160,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
     showModePicker,
     showDatePicker,
     showSlotPicker,
+    showScheduleModal,
     showSuccessModal,
     showStatePicker,
     showCityPicker,
@@ -143,23 +175,16 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
 
   const availableDatesList = generateNext30Days();
 
-  const availableStates = ['All States', ...Array.from(new Set(clinics.map((c) => c.state).filter(Boolean) as string[]))];
-
-  const availableCities = [
-    'All Cities',
-    ...Array.from(
-      new Set(
-        clinics
-          .filter((c) => selectedState === 'All States' || c.state === selectedState)
-          .map((c) => c.city)
-          .filter(Boolean) as string[]
-      )
-    ),
-  ];
+  const selectedState = statesList.find((state) => state.id === selectedStateId);
+  const selectedCity = citiesList.find((city) => city.id === selectedCityId);
 
   const filteredClinics = clinics.filter((c) => {
-    const matchesState = selectedState === 'All States' || c.state === selectedState;
-    const matchesCity = selectedCity === 'All Cities' || c.city === selectedCity;
+    const matchesState =
+      !selectedState ||
+      String(c.state || '').trim().toLowerCase() === selectedState.state_name.trim().toLowerCase();
+    const matchesCity =
+      !selectedCity ||
+      String(c.city || '').trim().toLowerCase() === selectedCity.city_name.trim().toLowerCase();
     const matchesSearch =
       clinicSearch.trim() === '' ||
       c.name.toLowerCase().includes(clinicSearch.toLowerCase()) ||
@@ -185,18 +210,62 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
 
   const handleSelectDoctor = (doctor: StaffMember) => {
     setSelectedDoctor(doctor);
+    setSelectedTimeSlot('');
+    setSlotError(null);
     setCurrentStep(3);
+    setShowScheduleModal(true);
   };
 
+  const handleCloseScheduleSheet = () => {
+    setShowScheduleModal(false);
+    setShowInlineCalendar(false);
+    setShowTimeOptions(false);
+    setShowModePicker(false);
+    setCurrentStep(2);
+  };
+
+  useEffect(() => {
+    const loadSlots = async () => {
+      if (!selectedDoctor?.id || !selectedDate) {
+        setAvailableSlots([]);
+        setSlotError(null);
+        setSlotsLoading(false);
+        return;
+      }
+      setSelectedTimeSlot('');
+      setSlotError(null);
+      setSlotsLoading(true);
+      try {
+        const slots = await fetchAvailableSlots(
+          Number(selectedDoctor.id),
+          selectedDate,
+          Number(selectedClinic?.id || selectedDoctor.clinic_id || 0) || undefined,
+        );
+        setAvailableSlots(slots);
+      } catch (error: any) {
+        setAvailableSlots([]);
+        setSlotError(error?.message || 'Doctor not found in your clinic');
+      } finally {
+        setSlotsLoading(false);
+      }
+    };
+    void loadSlots();
+  }, [selectedDoctor?.id, selectedClinic?.id, selectedDate, slotReloadKey, fetchAvailableSlots]);
+
   const handleResetFilters = () => {
-    setSelectedState('All States');
-    setSelectedCity('All Cities');
+    setSelectedStateId(null);
+    setSelectedCityId(null);
     setClinicSearch('');
   };
 
   const handleConfirmBooking = async () => {
     if (!selectedClinic || !selectedDoctor) {
       Alert.alert('Selection Error', 'Please select a clinic and doctor first.');
+      return;
+    }
+
+    if (slotError) {
+      Alert.alert('Doctor not found', slotError);
       return;
     }
 
@@ -223,24 +292,32 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
       };
 
       const res = await bookAppointment(payload as any);
-      setSubmitting(false);
+      if (!res?.success) {
+        Alert.alert('Booking Error', res?.message || 'Unable to complete appointment booking.');
+        return;
+      }
 
-      if (res && ((res as any).id || (res as any).appointment_id || (res as any).data?.id)) {
+      if ((res as any).id || (res as any).appointment_id || (res as any).data?.id) {
         const newId = (res as any).id || (res as any).appointment_id || (res as any).data?.id;
         setBookedAppointmentId(newId);
-        setShowSuccessModal(true);
       } else {
-        setBookedAppointmentId(Math.floor(1000 + Math.random() * 9000));
-        setShowSuccessModal(true);
+        setBookedAppointmentId(null);
       }
+      setShowScheduleModal(false);
+      setShowSuccessModal(true);
     } catch (err: any) {
-      setSubmitting(false);
       Alert.alert('Booking Error', err.message || 'Unable to complete appointment booking.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const selectedDateObj = availableDatesList.find((d) => d.dateStr === selectedDate);
   const formattedSelectedDate = selectedDateObj ? selectedDateObj.label : selectedDate;
+  const visibleCalendarDays = calendarCells(calendarMonth);
+  const filteredTimeSlots = availableSlots.filter((slot) =>
+    slot.toLowerCase().includes(timeSearch.trim().toLowerCase())
+  );
 
   return (
     <View style={styles.container}>
@@ -256,8 +333,14 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
+        <View style={styles.bookingFlowShell}>
         {/* Top Dark Pine/Teal Hero Banner */}
-        <View style={styles.heroBanner}>
+        <LinearGradient
+          colors={['#042f2e', '#115e59', '#0e7490']}
+          locations={[0, 0.56, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroBanner}>
           {/* Top Pill Badge */}
           <View style={styles.heroBadgePill}>
             <SparklesIcon size={12} color="#ffffff" />
@@ -286,7 +369,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
               onPress={() => setCurrentStep(1)}>
               {currentStep > 1 ? (
                 <View style={styles.wizardStepCircleCompleted}>
-                  <Text style={styles.wizardStepCheckmark}>✓</Text>
+                  <Check size={13} color="#ffffff" strokeWidth={3} />
                 </View>
               ) : (
                 <View style={[styles.wizardStepCircle, currentStep === 1 && styles.wizardStepCircleActive]}>
@@ -309,7 +392,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
               }}>
               {currentStep > 2 ? (
                 <View style={styles.wizardStepCircleCompleted}>
-                  <Text style={styles.wizardStepCheckmark}>✓</Text>
+                  <Check size={13} color="#ffffff" strokeWidth={3} />
                 </View>
               ) : (
                 <View style={[styles.wizardStepCircle, currentStep === 2 && styles.wizardStepCircleActive]}>
@@ -333,6 +416,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
                   return;
                 }
                 setCurrentStep(3);
+                setShowScheduleModal(true);
               }}>
               <View style={[styles.wizardStepCircle, currentStep === 3 && styles.wizardStepCircleActive]}>
                 <Text style={[styles.wizardStepNumber, currentStep === 3 && styles.wizardStepNumberActive]}>3</Text>
@@ -340,7 +424,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
               <Text style={[styles.wizardStepText, currentStep === 3 && styles.wizardStepTextActive]}>Schedule</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* STEP 1: FIND CARE NEAR YOU & CLINIC LIST */}
         {currentStep === 1 && (
@@ -348,7 +432,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
             {/* Header: Teal Circle + Title + Subtitle */}
             <View style={styles.cardHeaderRow}>
               <View style={styles.cardHeaderIconCircle}>
-                <GlobeCareIcon size={18} color="#ffffff" />
+                <Globe2 size={16} color="#ffffff" strokeWidth={2} />
               </View>
               <View style={styles.cardHeaderTextCol}>
                 <Text style={styles.cardHeaderTitle}>Find care near you</Text>
@@ -382,10 +466,10 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
                   <Text
                     style={[
                       styles.filterSelectBoxText,
-                      selectedState === 'All States' && styles.filterSelectBoxPlaceholder,
+                      !selectedState && styles.filterSelectBoxPlaceholder,
                     ]}
                     numberOfLines={1}>
-                    {selectedState === 'All States' ? 'Select state' : selectedState}
+                    {selectedState ? selectedState.state_name : 'Select state'}
                   </Text>
                   <ChevronsUpDownIcon size={14} color="#94a3b8" />
                 </TouchableOpacity>
@@ -398,7 +482,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
                   activeOpacity={0.8}
                   style={styles.filterSelectBox}
                   onPress={() => {
-                    if (selectedState === 'All States') {
+                    if (!selectedStateId) {
                       setShowStatePicker(true);
                     } else {
                       setShowCityPicker(true);
@@ -407,15 +491,15 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
                   <Text
                     style={[
                       styles.filterSelectBoxText,
-                      (selectedState === 'All States' || selectedCity === 'All Cities') &&
+                      (!selectedState || !selectedCity) &&
                         styles.filterSelectBoxPlaceholder,
                     ]}
                     numberOfLines={1}>
-                    {selectedState === 'All States'
+                    {!selectedState
                       ? 'Select state first'
-                      : selectedCity === 'All Cities'
+                      : !selectedCity
                       ? 'Select city'
-                      : selectedCity}
+                      : selectedCity.city_name}
                   </Text>
                   <ChevronsUpDownIcon size={14} color="#94a3b8" />
                 </TouchableOpacity>
@@ -467,9 +551,9 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
               <View style={styles.clinicsListContainer}>
                 {filteredClinics.map((clinic) => {
                   const isSelected = selectedClinic?.id === clinic.id;
+                  const clinicImage = clinic.image_url || clinic.logo_url;
                   const docCount =
-                    clinic.doctors_count ||
-                    (clinic.name.toLowerCase().includes('wellness') ? 1 : 3);
+                    clinic.doctors_count || 0;
 
                   return (
                     <TouchableOpacity
@@ -479,7 +563,11 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
                       onPress={() => handleSelectClinic(clinic)}>
                       {/* Left Building Icon Box */}
                       <View style={styles.buildingIconBox}>
-                        <BuildingClinicIcon size={22} color="#64748b" />
+                        {clinicImage ? (
+                          <Image source={{ uri: clinicImage }} style={styles.clinicLogoImage} resizeMode="cover" />
+                        ) : (
+                          <Building2 size={20} color="#64748b" strokeWidth={1.8} />
+                        )}
                       </View>
 
                       {/* Right Content */}
@@ -489,14 +577,14 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
                           <Text style={styles.clinicTitleText} numberOfLines={1}>
                             {clinic.name}
                           </Text>
-                          <ClinicVerifiedIcon size={14} color="#0d9488" />
+                          <BadgeCheck size={14} color="#0d9488" strokeWidth={2} />
                         </View>
 
                         {/* Location Row */}
                         <View style={styles.clinicLocationRow}>
-                          <MapPinIcon size={12} color="#64748b" />
+                          <MapPin size={12} color="#64748b" strokeWidth={2} />
                           <Text style={styles.clinicLocationText} numberOfLines={1}>
-                            {clinic.city || 'Indore'}, {clinic.state || 'Madhya Pradesh'}
+                            {clinic.city || 'Location unavailable'}{clinic.state ? `, ${clinic.state}` : ''}
                           </Text>
                         </View>
 
@@ -617,7 +705,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
         )}
 
         {/* STEP 3: SCHEDULE & CONFIRM APPOINTMENT */}
-        {currentStep === 3 && selectedClinic && selectedDoctor && (
+        {false && currentStep === 3 && selectedClinic && selectedDoctor && (
           <View style={styles.mainCard}>
             {/* Summary Top Card */}
             <View style={styles.summaryBox}>
@@ -749,7 +837,115 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
             </View>
           </View>
         )}
+        </View>
       </ScrollView>
+
+      {/* Step 3 is a focused modal, matching the responsive web booking flow. */}
+      <Modal
+        visible={showScheduleModal && Boolean(selectedClinic && selectedDoctor)}
+        transparent
+        animationType="slide"
+        onRequestClose={handleCloseScheduleSheet}>
+        <View style={styles.scheduleOverlay}>
+          <View style={styles.scheduleModalCard}>
+            <LinearGradient
+              colors={['#042f2e', '#115e59', '#0e7490']}
+              locations={[0, 0.56, 1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.scheduleModalHeader}>
+              <View style={styles.scheduleHeaderIcon}><StethoscopeIcon color="#ffffff" size={22} /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.scheduleModalTitle}>Schedule appointment</Text>
+                <Text style={styles.scheduleModalSubtitle} numberOfLines={1}>
+                  {selectedDoctor?.full_name}{' \u00B7 '}{selectedDoctor?.specialization || selectedDoctor?.department || 'General Physician'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={handleCloseScheduleSheet} hitSlop={12}>
+                <X color="#bce8e7" size={20} strokeWidth={2} />
+              </TouchableOpacity>
+            </LinearGradient>
+
+            <ScrollView style={styles.scheduleModalBody} keyboardShouldPersistTaps="handled">
+              <View style={styles.formGroup}>
+                <Text style={styles.scheduleFieldLabel}><Monitor color="#0f172a" size={14} /> Consultation Mode <Text style={styles.asterisk}>*</Text></Text>
+                <TouchableOpacity style={styles.formPickerBtn} onPress={() => setShowModePicker(true)}>
+                  <Text style={styles.formPickerBtnText}>{consultationMode === 'Video Call' ? 'Video Call' : 'In Person'}</Text>
+                  <ChevronsUpDownIcon size={16} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.scheduleFieldLabel}><CalendarDays color="#0f172a" size={14} /> Appointment Date <Text style={styles.asterisk}>*</Text></Text>
+                <TouchableOpacity style={styles.formPickerBtn} onPress={() => { setShowInlineCalendar((current) => !current); setShowTimeOptions(false); }}>
+                  <CalendarDays color="#334155" size={16} />
+                  <Text style={[styles.formPickerBtnText, { flex: 1 }]}>{new Date(`${selectedDate}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</Text>
+                  <ChevronsUpDownIcon size={16} color="#64748b" />
+                </TouchableOpacity>
+                {showInlineCalendar ? (
+                  <InlineCalendarPicker
+                    value={selectedDate}
+                    minimumDate={new Date().toISOString().slice(0, 10)}
+                    onSelect={(date) => setSelectedDate(date)}
+                    onClose={() => setShowInlineCalendar(false)}
+                  />
+                ) : null}
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.scheduleFieldLabel}><Clock3 color="#0f172a" size={14} /> Appointment Time <Text style={styles.asterisk}>*</Text></Text>
+                <TouchableOpacity
+                  disabled={Boolean(slotError)}
+                  style={[styles.formPickerBtn, Boolean(slotError) && styles.formPickerDisabled]}
+                  onPress={() => { setShowTimeOptions((current) => !current); setShowInlineCalendar(false); }}>
+                  <Clock3 color="#94a3b8" size={16} />
+                  <Text style={[styles.formPickerBtnText, !selectedTimeSlot && styles.placeholderPickerText]}>
+                    {slotsLoading ? 'Loading available slots…' : selectedTimeSlot || 'Select time slot'}
+                  </Text>
+                  <ChevronsUpDownIcon size={16} color="#64748b" />
+                </TouchableOpacity>
+                {slotError ? (
+                  <View style={styles.providerUnavailableNotice} accessibilityRole="alert">
+                    <Text style={styles.providerUnavailableText}>{slotError}</Text>
+                    <TouchableOpacity onPress={() => setSlotReloadKey((current) => current + 1)} hitSlop={6}>
+                      <Text style={styles.providerUnavailableRetry}>Retry</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+                {showTimeOptions ? (
+                  <View style={styles.timeOptionsCard}>
+                    <View style={styles.timeSearchRow}><Search color="#94a3b8" size={16} /><TextInput value={timeSearch} onChangeText={setTimeSearch} placeholder="Search time slot..." placeholderTextColor="#94a3b8" style={styles.timeSearchInput} /></View>
+                    <ScrollView style={styles.timeOptionsList} nestedScrollEnabled>
+                      {slotsLoading ? <ActivityIndicator color="#0d9488" style={{ marginVertical: 16 }} /> : filteredTimeSlots.length === 0 ? <Text style={styles.noSlotsText}>No available slots found.</Text> : filteredTimeSlots.map((slot) => <TouchableOpacity key={slot} style={[styles.timeOption, selectedTimeSlot === slot && styles.timeOptionSelected]} onPress={() => { setSelectedTimeSlot(slot); setShowTimeOptions(false); setTimeSearch(''); }}><Text style={[styles.timeOptionText, selectedTimeSlot === slot && styles.timeOptionTextSelected]}>{slot}</Text></TouchableOpacity>)}
+                    </ScrollView>
+                  </View>
+                ) : null}
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Symptoms</Text>
+                <TextInput style={[styles.formInput, styles.formInputMulti]} placeholder="Enter symptoms" placeholderTextColor="#94a3b8" value={symptomsInput} onChangeText={setSymptomsInput} multiline />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Notes</Text>
+                <TextInput style={[styles.formInput, styles.formInputMulti]} placeholder="Enter notes" placeholderTextColor="#94a3b8" value={notesInput} onChangeText={setNotesInput} multiline />
+              </View>
+            </ScrollView>
+
+            <View style={styles.scheduleModalFooter}>
+              <TouchableOpacity style={styles.scheduleCancelBtn} onPress={handleCloseScheduleSheet}><Text style={styles.scheduleCancelText}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.scheduleConfirmBtn, selectedTimeSlot && !slotError ? styles.scheduleConfirmReady : styles.scheduleConfirmDisabled]}
+                disabled={submitting || !selectedTimeSlot || Boolean(slotError)}
+                onPress={handleConfirmBooking}>
+                {submitting ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.scheduleConfirmText}>Confirm Appointment</Text>}
+              </TouchableOpacity>
+            </View>
+            <View style={styles.scheduleSecurityRow}><ShieldCheck color="#059669" size={13} /><Text style={styles.scheduleSecurityText}>Your booking details are secure</Text></View>
+          </View>
+        </View>
+      </Modal>
 
       {/* State Picker Modal */}
       <Modal visible={showStatePicker} transparent animationType="fade" onRequestClose={() => setShowStatePicker(false)}>
@@ -757,17 +953,17 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
           <View style={styles.modalBox}>
             <Text style={styles.modalBoxTitle}>Select State</Text>
             <ScrollView style={{ maxHeight: 320, width: '100%' }}>
-              {availableStates.map((st) => (
+              {statesList.map((state) => (
                 <TouchableOpacity
-                  key={st}
+                  key={state.id}
                   style={styles.modalOptionItem}
                   onPress={() => {
-                    setSelectedState(st);
-                    setSelectedCity('All Cities');
+                    setSelectedStateId(state.id);
+                    setSelectedCityId(null);
                     setShowStatePicker(false);
                   }}>
-                  <Text style={[styles.modalOptionText, selectedState === st && styles.modalOptionTextActive]}>
-                    {st}
+                  <Text style={[styles.modalOptionText, selectedStateId === state.id && styles.modalOptionTextActive]}>
+                    {state.state_name}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -782,16 +978,16 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
           <View style={styles.modalBox}>
             <Text style={styles.modalBoxTitle}>Select City</Text>
             <ScrollView style={{ maxHeight: 320, width: '100%' }}>
-              {availableCities.map((ct) => (
+              {citiesList.map((city) => (
                 <TouchableOpacity
-                  key={ct}
+                  key={city.id}
                   style={styles.modalOptionItem}
                   onPress={() => {
-                    setSelectedCity(ct);
+                    setSelectedCityId(city.id);
                     setShowCityPicker(false);
                   }}>
-                  <Text style={[styles.modalOptionText, selectedCity === ct && styles.modalOptionTextActive]}>
-                    {ct}
+                  <Text style={[styles.modalOptionText, selectedCityId === city.id && styles.modalOptionTextActive]}>
+                    {city.city_name}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -824,26 +1020,19 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
 
       {/* Date Picker Modal */}
       <Modal visible={showDatePicker} transparent animationType="slide" onRequestClose={() => setShowDatePicker(false)}>
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowDatePicker(false)}>
-          <View style={[styles.modalBox, { maxHeight: '70%' }]}>
-            <Text style={styles.modalBoxTitle}>Select Appointment Date</Text>
-            <ScrollView style={{ width: '100%' }}>
-              {availableDatesList.map((d) => (
-                <TouchableOpacity
-                  key={d.dateStr}
-                  style={styles.modalOptionItem}
-                  onPress={() => {
-                    setSelectedDate(d.dateStr);
-                    setShowDatePicker(false);
-                  }}>
-                  <Text style={[styles.modalOptionText, selectedDate === d.dateStr && styles.modalOptionTextActive]}>
-                    📅 {d.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+        <View style={styles.modalBackdrop}>
+          <TouchableWithoutFeedback onPress={() => setShowDatePicker(false)}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+          <View style={{ width: '92%', maxWidth: 340 }}>
+            <InlineCalendarPicker
+              value={selectedDate}
+              minimumDate={new Date().toISOString().slice(0, 10)}
+              onSelect={(date) => setSelectedDate(date)}
+              onClose={() => setShowDatePicker(false)}
+            />
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       {/* Time Slot Picker Modal */}
@@ -852,8 +1041,10 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
           <View style={[styles.modalBox, { maxHeight: '75%' }]}>
             <Text style={styles.modalBoxTitle}>Select Time Slot</Text>
             <ScrollView style={{ width: '100%' }}>
+              {slotsLoading ? <ActivityIndicator color="#0d9488" style={{ marginVertical: 20 }} /> : null}
+              {!slotsLoading && availableSlots.length === 0 ? <Text style={styles.noSlotsText}>No available slots for this date. Please choose another date.</Text> : null}
               <Text style={styles.slotGroupTitle}>🌅 Morning Slots</Text>
-              {TIME_SLOTS.morning.map((slot) => (
+              {availableSlots.map((slot) => (
                 <TouchableOpacity
                   key={slot}
                   style={styles.modalOptionItem}
@@ -868,7 +1059,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
               ))}
 
               <Text style={[styles.slotGroupTitle, { marginTop: 12 }]}>☀️ Afternoon Slots</Text>
-              {TIME_SLOTS.afternoon.map((slot) => (
+              {([] as string[]).map((slot) => (
                 <TouchableOpacity
                   key={slot}
                   style={styles.modalOptionItem}
@@ -883,7 +1074,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
               ))}
 
               <Text style={[styles.slotGroupTitle, { marginTop: 12 }]}>🌙 Evening Slots</Text>
-              {TIME_SLOTS.evening.map((slot) => (
+              {([] as string[]).map((slot) => (
                 <TouchableOpacity
                   key={slot}
                   style={styles.modalOptionItem}
@@ -915,7 +1106,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
 
             <View style={styles.successInfoBox}>
               <Text style={styles.successInfoLabel}>BOOKING ID</Text>
-              <Text style={styles.successInfoVal}>#{bookedAppointmentId || 1001}</Text>
+              <Text style={styles.successInfoVal}>{bookedAppointmentId ? `#${bookedAppointmentId}` : 'Confirmed'}</Text>
 
               <Text style={[styles.successInfoLabel, { marginTop: 8 }]}>CLINIC & DOCTOR</Text>
               <Text style={styles.successInfoVal}>🏥 {selectedClinic?.name}</Text>
@@ -952,14 +1143,24 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 110,
   },
+  bookingFlowShell: {
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#2dd4bf',
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+  },
 
   /* Hero Banner */
   heroBanner: {
-    backgroundColor: '#074c50',
-    borderRadius: 22,
-    padding: 18,
+    borderTopLeftRadius: 10.5,
+    borderTopRightRadius: 10.5,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    padding: 17,
     marginBottom: 14,
-    shadowColor: '#074c50',
+    overflow: 'hidden',
+    shadowColor: '#075a5e',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: 10,
@@ -1018,7 +1219,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(0, 0, 0, 0.16)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 28,
@@ -1105,8 +1306,8 @@ const styles = StyleSheet.create({
   cardHeaderIconCircle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#0d766e',
+    borderRadius: 10,
+    backgroundColor: '#0f766e',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1278,14 +1479,19 @@ const styles = StyleSheet.create({
     borderWidth: 1.6,
   },
   buildingIconBox: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  clinicLogoImage: {
+    width: '100%',
+    height: '100%',
   },
   clinicInfoCol: {
     flex: 1,
@@ -1544,6 +1750,7 @@ const styles = StyleSheet.create({
   },
   formGroup: {
     gap: 4,
+    marginBottom: 13,
   },
   formLabel: {
     fontSize: 11.5,
@@ -1561,13 +1768,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#cbd5e1',
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    height: 36,
+    paddingHorizontal: 10,
   },
   formPickerBtnText: {
     fontSize: 12.5,
     fontWeight: '600',
     color: '#0f172a',
+  },
+  formPickerDisabled: {
+    backgroundColor: '#f8fafc',
+    opacity: 0.72,
   },
   formInput: {
     backgroundColor: '#ffffff',
@@ -1580,7 +1791,7 @@ const styles = StyleSheet.create({
     color: '#0f172a',
   },
   formInputMulti: {
-    height: 70,
+    height: 78,
     textAlignVertical: 'top',
   },
   submitBookingBtn: {
@@ -1600,9 +1811,7 @@ const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    justifyContent: 'flex-end',
   },
   modalBackdropDark: {
     flex: 1,
@@ -1613,11 +1822,14 @@ const styles = StyleSheet.create({
   },
   modalBox: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 18,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
     width: '100%',
-    maxWidth: 320,
+    maxWidth: 520,
     alignItems: 'center',
+    alignSelf: 'center',
+    maxHeight: '78%',
   },
   modalBoxTitle: {
     fontSize: 15,
@@ -1650,6 +1862,48 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     width: '100%',
   },
+  noSlotsText: { color: '#64748b', fontSize: 13, textAlign: 'center', paddingVertical: 20 },
+
+  scheduleOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.72)', justifyContent: 'flex-end' },
+  scheduleModalCard: { width: '100%', maxWidth: 430, height: '99%', alignSelf: 'center', backgroundColor: '#f8fafc', borderTopLeftRadius: 10, borderTopRightRadius: 10, overflow: 'visible' },
+  scheduleModalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 18, borderTopLeftRadius: 10, borderTopRightRadius: 10 },
+  scheduleHeaderIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.16)' },
+  scheduleModalTitle: { color: '#ffffff', fontSize: 18, fontWeight: '800' },
+  scheduleModalSubtitle: { color: '#d5f5f1', fontSize: 11, marginTop: 2, fontWeight: '600' },
+  scheduleCloseText: { color: '#bce8e7', fontSize: 25, lineHeight: 28 },
+  scheduleModalBody: { paddingHorizontal: 14, paddingTop: 28, backgroundColor: '#f8fafc' },
+  scheduleFieldLabel: { flexDirection: 'row', alignItems: 'center', gap: 5, color: '#0f172a', fontSize: 12, fontWeight: '600', marginBottom: 6 },
+  inlineCalendarCard: { position: 'absolute', zIndex: 30, top: 72, left: 40, right: 18, backgroundColor: '#ffffff', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#0f172a', shadowOpacity: 0.16, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
+  calendarControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 6 },
+  calendarArrow: { color: '#475569', fontSize: 26, lineHeight: 28, paddingHorizontal: 6 },
+  calendarMonthTitle: { color: '#334155', fontSize: 13, fontWeight: '700' },
+  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calendarWeekday: { width: '14.285%', color: '#64748b', fontSize: 11, textAlign: 'center', marginBottom: 7 },
+  calendarDay: { width: '14.285%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 8, marginBottom: 2 },
+  calendarDaySelected: { backgroundColor: '#20aaa7' },
+  calendarDayText: { color: '#475569', fontSize: 12 },
+  calendarDayTextSelected: { color: '#ffffff', fontWeight: '800' },
+  timeOptionsCard: { position: 'absolute', zIndex: 30, top: 72, left: 0, right: 0, backgroundColor: '#ffffff', borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden', shadowColor: '#0f172a', shadowOpacity: 0.16, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
+  timeSearchRow: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  timeSearchInput: { flex: 1, color: '#334155', fontSize: 13, paddingVertical: 10 },
+  timeOptionsList: { maxHeight: 200 },
+  timeOption: { paddingHorizontal: 14, paddingVertical: 9 },
+  timeOptionSelected: { backgroundColor: '#d9f3f0' },
+  timeOptionText: { color: '#334155', fontSize: 13 },
+  timeOptionTextSelected: { color: '#0d9488', fontWeight: '700' },
+  providerUnavailableNotice: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderWidth: 1, borderColor: '#fde68a', backgroundColor: '#fffbeb', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, marginTop: 7 },
+  providerUnavailableText: { flex: 1, color: '#92400e', fontSize: 12, fontWeight: '600' },
+  providerUnavailableRetry: { color: '#78350f', fontSize: 12, fontWeight: '800', textDecorationLine: 'underline' },
+  scheduleModalFooter: { flexDirection: 'row', gap: 8, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 8, backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#e2e8f0' },
+  scheduleCancelBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0', paddingVertical: 12, backgroundColor: '#f8fafc' },
+  scheduleCancelText: { color: '#334155', fontSize: 12, fontWeight: '700' },
+  scheduleConfirmBtn: { flex: 1.35, alignItems: 'center', justifyContent: 'center', borderRadius: 10, paddingVertical: 10, backgroundColor: '#8dc4cd' },
+  scheduleConfirmReady: { backgroundColor: '#087d84' },
+  scheduleConfirmDisabled: { opacity: 0.75 },
+  scheduleConfirmText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
+  scheduleSecurityRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, backgroundColor: '#ffffff', paddingBottom: 12 },
+  scheduleSecurityText: { color: '#64748b', textAlign: 'center', fontSize: 11 },
+  placeholderPickerText: { color: '#94a3b8' },
 
   /* Success Modal */
   successModalCard: {

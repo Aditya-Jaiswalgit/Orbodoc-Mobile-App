@@ -36,6 +36,22 @@ import { PatientModel } from '../../types/clinicTypes';
 import { useAuthContext } from '../../context/AuthContext';
 import { bookAppointmentApi } from '../../api/appointmentApi';
 import { ColumnsModal, ColumnItem } from '../../components/common/ColumnsModal';
+import {
+  CalendarDays,
+  ContactRound,
+  Droplets,
+  FlaskConical,
+  HeartPulse,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  UserRound,
+  X,
+} from 'lucide-react-native';
 
 export const PATIENT_COLUMNS: ColumnItem[] = [
   { id: 'patient_code', label: 'Patient Code' },
@@ -59,11 +75,10 @@ export const PATIENT_COLUMNS: ColumnItem[] = [
 export const DEFAULT_PATIENT_COLUMNS: string[] = [
   'patient_code',
   'full_name',
-  'email',
   'phone',
   'gender',
-  'age',
   'blood_group',
+  'registered_on',
   'status',
   'actions',
 ];
@@ -129,6 +144,8 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
     loading,
     refreshPatients,
     updatePatient,
+    addPatient,
+    deletePatient,
     togglePatientStatus,
     fetchPatientDetails,
     fetchPatientConsultations,
@@ -150,15 +167,30 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
   const [genderFilter, setGenderFilter] = useState<string>('All Genders');
   const [bloodGroupFilter, setBloodGroupFilter] = useState<string>('All Blood Groups');
   const [statusFilter, setStatusFilter] = useState<string>('All Status');
+  const [registrationDateFilter, setRegistrationDateFilter] = useState<string>('');
+  const [activePanel, setActivePanel] = useState<'filters' | 'patients' | 'total' | 'active' | 'inactive' | 'today' | 'week' | null>(null);
 
   const [selectedPatient, setSelectedPatient] = useState<PatientModel | null>(null);
   const [selectedPrescription, setSelectedPrescription] = useState<any | null>(null);
 
-  const { token, user } = useAuthContext();
+  const { token, user, permissions } = useAuthContext();
+  const normalizedRole = String(user?.role || user?.roleName || user?.role_name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+  const patientPermissions = Object.entries(permissions || {}).find(([name]) =>
+    String(name).trim().toLowerCase().replace(/[\s-]+/g, '_') === 'patients',
+  )?.[1] || {};
+  const hasPatientPermission = (action: 'can_add' | 'can_edit' | 'can_delete') =>
+    normalizedRole === 'super_admin' || patientPermissions[action] === true || patientPermissions[action] === 1 || patientPermissions[action] === '1';
+  const canAddPatient = normalizedRole !== 'patient' && hasPatientPermission('can_add');
+  const canEditPatient = normalizedRole !== 'patient' && hasPatientPermission('can_edit');
+  const canDeletePatient = normalizedRole !== 'patient' && hasPatientPermission('can_delete');
 
   const [showActionMenuModal, setShowActionMenuModal] = useState<boolean>(false);
   const [showViewDetailsModal, setShowViewDetailsModal] = useState<boolean>(false);
   const [showEditPatientModal, setShowEditPatientModal] = useState<boolean>(false);
+  const [isCreatingPatient, setIsCreatingPatient] = useState<boolean>(false);
   const [showConsultationsModal, setShowConsultationsModal] = useState<boolean>(false);
   const [showPrescriptionsModal, setShowPrescriptionsModal] = useState<boolean>(false);
   const [showMedicalHistoryModal, setShowMedicalHistoryModal] = useState<boolean>(false);
@@ -177,6 +209,8 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
   const [medicalHistoryData, setMedicalHistoryData] = useState<any>(null);
   const [prescriptionList, setPrescriptionList] = useState<any[]>([]);
   const [historySearchQuery, setHistorySearchQuery] = useState<string>('');
+  const [historyRecordFilter, setHistoryRecordFilter] = useState<'all' | 'visits' | 'reports'>('all');
+  const [historyDateFilter, setHistoryDateFilter] = useState<'all' | '30-days' | '90-days' | 'this-year'>('all');
   const [consultSearchQuery, setConsultSearchQuery] = useState<string>('');
 
   const handleSelectPrescription = async (p: any) => {
@@ -256,10 +290,26 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
   };
 
   const handleResetFilters = () => {
+    setActivePanel('filters');
     setSearchQuery('');
     setGenderFilter('All Genders');
     setBloodGroupFilter('All Blood Groups');
     setStatusFilter('All Status');
+    setRegistrationDateFilter('');
+  };
+
+  const handleStatPress = (panel: 'total' | 'active' | 'inactive' | 'today' | 'week') => {
+    setActivePanel(panel);
+    if (panel === 'total') {
+      handleResetFilters();
+      setActivePanel(panel);
+    } else if (panel === 'active') {
+      setStatusFilter('Active');
+    } else if (panel === 'inactive') {
+      setStatusFilter('Inactive');
+    } else if (panel === 'today') {
+      setRegistrationDateFilter(new Date().toISOString().split('T')[0]);
+    }
   };
 
   const filteredPatients = patients.filter((p) => {
@@ -279,12 +329,38 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
       bloodGroupFilter === 'All Blood Groups' ||
       (p.blood_group && p.blood_group === bloodGroupFilter);
 
+    const isActive = p.is_active !== false && (p as any).is_active !== 0 && (p as any).is_active !== '0';
     const matchesStatus =
       statusFilter === 'All Status' ||
-      (statusFilter === 'Active' ? p.is_active !== false : p.is_active === false);
+      (statusFilter === 'Active' ? isActive : !isActive);
 
-    return matchesSearch && matchesGender && matchesBlood && matchesStatus;
+    const registeredAt = String((p as any).registered_at || (p as any).created_at || '');
+    const matchesRegistrationDate = !registrationDateFilter || registeredAt.startsWith(registrationDateFilter);
+
+    return matchesSearch && matchesGender && matchesBlood && matchesStatus && matchesRegistrationDate;
   });
+
+  const resetPatientForm = () => {
+    setEditName('');
+    setEditDob('');
+    setEditGender('female');
+    setEditBloodGroup('');
+    setEditPhone('');
+    setEditEmail('');
+    setEditState('');
+    setEditCity('');
+    setEditAddress('');
+    setEditEmergencyName('');
+    setEditEmergencyRelation('');
+    setEditEmergencyPhone('');
+  };
+
+  const openCreatePatient = () => {
+    resetPatientForm();
+    setSelectedPatient(null);
+    setIsCreatingPatient(true);
+    setShowEditPatientModal(true);
+  };
 
   const handleOpenAction = async (
     actionType: 'details' | 'edit' | 'consultation' | 'prescription' | 'history' | 'book_appointment'
@@ -314,6 +390,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
       }
       setModalLoading(false);
     } else if (actionType === 'edit') {
+      setIsCreatingPatient(false);
       setShowEditPatientModal(true);
       setModalLoading(true);
       const detailed = await fetchPatientDetails(targetPatient.id);
@@ -358,8 +435,27 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
       setShowMedicalHistoryModal(true);
       setModalLoading(true);
       setHistorySearchQuery('');
-      const data = await fetchPatientMedicalHistory(targetPatient.id);
-      setMedicalHistoryData(data);
+      setHistoryRecordFilter('all');
+      setHistoryDateFilter('all');
+      // Fetch both medical history and consultations in parallel for dynamic visit + lab data
+      const [historyData, consultations] = await Promise.all([
+        fetchPatientMedicalHistory(targetPatient.id).catch(() => null),
+        fetchPatientConsultations(targetPatient.id).catch(() => []),
+      ]);
+      // Merge consultations into the visit list for dynamic backend data
+      const mergedVisits = [
+        ...(historyData?.visits || []),
+        ...(consultations || []),
+      ].filter((v: any, idx: number, arr: any[]) => {
+        // Deduplicate by appointment_id or id
+        const key = v.appointment_id || v.id;
+        if (!key) return true;
+        return arr.findIndex((x: any) => (x.appointment_id || x.id) === key) === idx;
+      });
+      const mergedData = historyData
+        ? { ...historyData, visits: mergedVisits }
+        : { visits: mergedVisits, labReports: [] };
+      setMedicalHistoryData(mergedData);
       setModalLoading(false);
     }
   };
@@ -408,11 +504,12 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
   };
 
   const handleSaveEditPatient = async () => {
-    const targetPatient = selectedPatient || patients[0];
-    if (!targetPatient) return;
-
     if (!editName.trim()) {
       Alert.alert('Validation Error', 'Full Name is required.');
+      return;
+    }
+    if (!editPhone.trim() || !/^[6-9]\d{9}$/.test(editPhone.trim())) {
+      Alert.alert('Validation Error', 'A valid 10-digit mobile number is required.');
       return;
     }
 
@@ -437,15 +534,47 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
     }
 
     try {
-      await updatePatient(targetPatient.id, payload as any);
-      Alert.alert('Success', 'Patient information updated successfully!');
+      const result = isCreatingPatient
+        ? await addPatient(payload as any)
+        : selectedPatient
+          ? await updatePatient(selectedPatient.id, payload as any)
+          : null;
+      if (!result?.success) {
+        Alert.alert('Unable to save patient', result?.message || 'Please try again.');
+        return;
+      }
+      Alert.alert('Success', isCreatingPatient ? 'Patient registered successfully!' : 'Patient information updated successfully!');
       setShowEditPatientModal(false);
+      setIsCreatingPatient(false);
       refreshPatients();
     } catch (e: any) {
-      Alert.alert('Notice', e.message || 'Patient information updated.');
-      setShowEditPatientModal(false);
-      refreshPatients();
+      Alert.alert('Unable to save patient', e.message || 'Please try again.');
     }
+  };
+
+  const handleDeletePatient = () => {
+    if (!selectedPatient) return;
+    Alert.alert(
+      'Delete patient?',
+      `This will permanently delete ${selectedPatient.full_name}'s patient record.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const result = await deletePatient(selectedPatient.id);
+            if (result.success) {
+              setShowActionMenuModal(false);
+              setSelectedPatient(null);
+              Alert.alert('Patient deleted', 'The patient record was removed.');
+            } else {
+              Alert.alert('Unable to delete patient', result.message || 'Please try again.');
+            }
+          },
+        },
+      ],
+    );
   };
 
   const activeDisplayPatient = selectedPatient || patients[0];
@@ -463,6 +592,12 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
           <View style={styles.titleRow}>
             <UsersIcon color="#0f172a" size={24} />
             <Text style={styles.pageTitle}>Patient Management</Text>
+            {canAddPatient ? (
+              <TouchableOpacity style={styles.addPatientButton} onPress={openCreatePatient} activeOpacity={0.8}>
+                <UserPlusIcon color="#ffffff" size={16} />
+                <Text style={styles.addPatientButtonText}>Add</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
           <Text style={styles.pageSub}>Manage patient records and medical history</Text>
         </View>
@@ -472,7 +607,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
           {/* Row 1 */}
           <View style={styles.statsRow}>
             {/* Card 1: Total Patients */}
-            <View style={styles.statCard}>
+            <TouchableOpacity activeOpacity={0.86} style={[styles.statCard, activePanel === 'total' && styles.surfaceActive]} onPress={() => handleStatPress('total')}>
               <View style={[styles.statIconBox, { backgroundColor: '#ecfdf5' }]}>
                 <UsersIcon color="#0d9488" size={20} />
               </View>
@@ -480,31 +615,31 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                 <Text style={styles.statNumber}>{stats.totalPatients}</Text>
                 <Text style={styles.statLabel}>Total Patients</Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Card 2: Active / Inactive */}
-            <View style={styles.statCard}>
+            <TouchableOpacity activeOpacity={0.86} style={[styles.statCard, (activePanel === 'active' || activePanel === 'inactive') && styles.surfaceActive]} onPress={() => handleStatPress('active')}>
               <View style={[styles.statIconBox, { backgroundColor: '#ecfdf5' }]}>
                 <ActivityPulseIcon color="#10b981" size={20} />
               </View>
               <View style={styles.statSplitContent}>
-                <View style={styles.statSplitCol}>
+                <TouchableOpacity style={styles.statSplitCol} onPress={() => handleStatPress('active')}>
                   <Text style={[styles.statNumber, { color: '#16a34a' }]}>{stats.activeCount}</Text>
                   <Text style={styles.statLabel}>Active</Text>
-                </View>
+                </TouchableOpacity>
                 <View style={styles.statSplitDivider} />
-                <View style={styles.statSplitCol}>
+                <TouchableOpacity style={styles.statSplitCol} onPress={() => handleStatPress('inactive')}>
                   <Text style={[styles.statNumber, { color: '#475569' }]}>{stats.inactiveCount}</Text>
                   <Text style={styles.statLabel}>Inactive</Text>
-                </View>
+                </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* Row 2 */}
           <View style={styles.statsRow}>
             {/* Card 3: Today's Registration */}
-            <View style={styles.statCard}>
+            <TouchableOpacity activeOpacity={0.86} style={[styles.statCard, activePanel === 'today' && styles.surfaceActive]} onPress={() => handleStatPress('today')}>
               <View style={[styles.statIconBox, { backgroundColor: '#ecfdf5' }]}>
                 <CalendarIcon color="#0d9488" size={20} />
               </View>
@@ -512,10 +647,10 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                 <Text style={styles.statNumber}>{stats.todayCount}</Text>
                 <Text style={styles.statLabel} numberOfLines={1}>Today's Patient Registr...</Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Card 4: New This Week */}
-            <View style={styles.statCard}>
+            <TouchableOpacity activeOpacity={0.86} style={[styles.statCard, activePanel === 'week' && styles.surfaceActive]} onPress={() => handleStatPress('week')}>
               <View style={[styles.statIconBox, { backgroundColor: '#fff7ed' }]}>
                 <UserPlusIcon color="#ea580c" size={20} />
               </View>
@@ -523,12 +658,12 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                 <Text style={styles.statNumber}>{stats.newThisWeek}</Text>
                 <Text style={styles.statLabel}>New This Week</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
 
         {/* Filter Card (Exact match to screenshot) */}
-        <View style={styles.filterCard}>
+        <View style={[styles.filterCard, activePanel === 'filters' && styles.surfaceActive]} onTouchStart={() => setActivePanel('filters')}>
           {/* Row 1: Search */}
           <View style={styles.searchInputBox}>
             <SearchInputIcon size={16} color="#94a3b8" />
@@ -538,6 +673,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
               placeholderTextColor="#94a3b8"
               value={searchQuery}
               onChangeText={setSearchQuery}
+              onFocus={() => setActivePanel('filters')}
             />
           </View>
 
@@ -572,7 +708,15 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
 
             <View style={[styles.filterDropdownBtn, { flex: 1.2, justifyContent: 'flex-start', gap: 8 }]}>
               <CalendarIcon size={15} color="#94a3b8" />
-              <Text style={[styles.filterDropdownText, { color: '#94a3b8' }]}>Registration Date</Text>
+              <TextInput
+                style={styles.registrationDateInput}
+                placeholder="Registration date"
+                placeholderTextColor="#94a3b8"
+                value={registrationDateFilter}
+                onChangeText={setRegistrationDateFilter}
+                keyboardType="numbers-and-punctuation"
+                maxLength={10}
+              />
             </View>
           </View>
 
@@ -596,7 +740,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
         </View>
 
         {/* Patients Section */}
-        <View style={styles.patientsSection}>
+        <View style={[styles.patientsSection, activePanel === 'patients' && styles.surfaceActive]} onTouchStart={() => setActivePanel('patients')}>
           <View style={styles.sectionHeaderRow}>
             <UsersIcon color="#0f172a" size={20} />
             <Text style={styles.sectionTitleText}>Patients ({filteredPatients.length})</Text>
@@ -615,7 +759,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
               {filteredPatients.map((item, idx) => {
                 const patientCode = (item as any).patient_code || `PT-${String(item.id).padStart(5, '0')}`;
                 const regDate = formatDateShort(item.registered_at || (item as any).created_at);
-                const isActive = item.is_active !== false;
+                const isActive = item.is_active !== false && (item as any).is_active !== 0 && (item as any).is_active !== '0';
 
                 const hasHeader =
                   selectedColumns.includes('full_name') ||
@@ -623,7 +767,13 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                   selectedColumns.includes('actions');
 
                 return (
-                  <View key={item.id ? `pt-${item.id}-${idx}` : `pt-${idx}`} style={styles.patientCard}>
+                  <View
+                    key={item.id ? `pt-${item.id}-${idx}` : `pt-${idx}`}
+                    style={[styles.patientCard, selectedPatient?.id === item.id && styles.patientCardSelected]}
+                    onTouchStart={() => {
+                      setSelectedPatient(item);
+                      setActivePanel('patients');
+                    }}>
                     {/* Top Row: Name + Code & 3-Dots Button */}
                     {hasHeader && (
                       <View style={styles.patientCardHeader}>
@@ -762,7 +912,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                       {/* Registered On */}
                       {selectedColumns.includes('registered_on') && (
                         <View style={styles.patientFieldRow}>
-                          <Text style={styles.fieldLabel}>Registration Date</Text>
+                          <Text style={styles.fieldLabel}>Registered On</Text>
                           <Text style={styles.fieldValue}>{regDate}</Text>
                         </View>
                       )}
@@ -777,6 +927,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                               styles.toggleSwitchTrack,
                               isActive ? styles.toggleSwitchTrackActive : styles.toggleSwitchTrackInactive,
                             ]}
+                            disabled={!canEditPatient}
                             onPress={() => handleToggleStatus(item)}>
                             <View
                               style={[
@@ -851,6 +1002,13 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
               <Text style={styles.actionOptionText}>Medical History</Text>
             </TouchableOpacity>
 
+            {canDeletePatient ? (
+              <TouchableOpacity style={[styles.actionOptionRow, styles.deleteActionOption]} onPress={handleDeletePatient}>
+                <Text style={styles.deleteActionIcon}>×</Text>
+                <Text style={styles.deleteActionText}>Delete Patient</Text>
+              </TouchableOpacity>
+            ) : null}
+
             <TouchableOpacity style={styles.closeActionBtn} onPress={() => setShowActionMenuModal(false)}>
               <Text style={styles.closeActionBtnText}>Close</Text>
             </TouchableOpacity>
@@ -870,8 +1028,8 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
           </TouchableWithoutFeedback>
 
           <View style={styles.bottomSheetContainer}>
-            {/* Header Row */}
-            <View style={styles.sheetHeader}>
+            <View style={styles.viewDetailsHeader}>
+              <View style={styles.viewDetailsTopRow}>
               <View style={styles.headerLeftRow}>
                 <View style={styles.avatarBigCircle}>
                   <Text style={styles.avatarBigLetter}>
@@ -887,39 +1045,42 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                 </View>
               </View>
 
-              <View style={styles.headerRightActionsRow}>
+              <TouchableOpacity style={styles.viewDetailsCloseBtn} onPress={() => setShowViewDetailsModal(false)}>
+                <X color="#475569" size={25} strokeWidth={2.1} />
+              </TouchableOpacity>
+              </View>
+
+              <View style={styles.viewDetailsActionsRow}>
                 <View style={styles.activePillBadge}>
                   <Text style={styles.activePillText}>
                     {activeDisplayPatient?.is_active !== false ? 'Active' : 'Inactive'}
                   </Text>
                 </View>
 
-                <TouchableOpacity
-                  style={styles.editInfoBtn}
-                  onPress={() => {
-                    setShowViewDetailsModal(false);
-                    handleOpenAction('edit');
-                  }}>
-                  <EditPenIcon color="#334155" size={14} />
-                  <Text style={styles.editInfoBtnText}>Edit Information</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.closeCircleBtn} onPress={() => setShowViewDetailsModal(false)}>
-                  <Text style={styles.closeCircleText}>✕</Text>
-                </TouchableOpacity>
+                {canEditPatient ? (
+                  <TouchableOpacity
+                    style={styles.editInfoBtn}
+                    onPress={() => {
+                      setShowViewDetailsModal(false);
+                      handleOpenAction('edit');
+                    }}>
+                    <Pencil color="#0f172a" size={20} strokeWidth={2.1} />
+                    <Text style={styles.editInfoBtnText}>Edit Information</Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
 
             {modalLoading ? (
               <ActivityIndicator size="large" color="#0d9488" style={{ marginVertical: 40 }} />
             ) : (
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContentScroll}>
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.viewDetailsBodyGrid}>
                 <View style={styles.cardsGridTwoCol}>
                   {/* Card 1: Personal Details */}
                   <View style={styles.detailCard}>
                     <View style={styles.cardHeaderRow}>
                       <View style={styles.cardHeaderIconBox}>
-                        <PatientUserIcon color="#0d9488" size={16} />
+                        <UserRound color="#0d9488" size={23} strokeWidth={2} />
                       </View>
                       <Text style={styles.cardTitle}>Personal Details</Text>
                     </View>
@@ -934,35 +1095,39 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                         {formatDateLong(activeDisplayPatient?.date_of_birth || (activeDisplayPatient as any)?.dob)}
                       </Text>
                     </View>
+                    <View style={styles.detailDataRow}>
+                      <Text style={styles.dataLabel}>Blood Group</Text>
+                      <Text style={styles.dataValBold}>{activeDisplayPatient?.blood_group || '-'}</Text>
+                    </View>
                   </View>
 
                   {/* Card 2: Contact Information (Highlighted with teal border) */}
-                  <View style={[styles.detailCard, styles.contactCardHighlight]}>
+                  <View style={styles.detailCard}>
                     <View style={styles.cardHeaderRow}>
                       <View style={[styles.cardHeaderIconBox, { backgroundColor: '#e6fffa' }]}>
-                        <Text style={{ fontSize: 14 }}>📞</Text>
+                        <Phone color="#0d9488" size={23} strokeWidth={2} />
                       </View>
                       <Text style={styles.cardTitle}>Contact Information</Text>
                     </View>
 
                     <View style={styles.detailDataRow}>
-                      <Text style={styles.dataLabelIcon}>📞 Phone</Text>
+                      <View style={styles.dataLabelIconRow}><Phone color="#38bdb3" size={17} /><Text style={styles.dataLabelIcon}>Phone</Text></View>
                       <Text style={styles.dataValBold}>{activeDisplayPatient?.phone || '-'}</Text>
                     </View>
                     <View style={styles.detailDataRow}>
-                      <Text style={styles.dataLabelIcon}>✉️ Email</Text>
+                      <View style={styles.dataLabelIconRow}><Mail color="#38bdb3" size={17} /><Text style={styles.dataLabelIcon}>Email</Text></View>
                       <Text style={styles.dataValBold}>{activeDisplayPatient?.email || '-'}</Text>
                     </View>
                     <View style={styles.detailDataRow}>
-                      <Text style={styles.dataLabelIcon}>📍 Address</Text>
+                      <View style={styles.dataLabelIconRow}><MapPin color="#38bdb3" size={17} /><Text style={styles.dataLabelIcon}>Address</Text></View>
                       <Text style={styles.dataValBold}>{activeDisplayPatient?.address || '-'}</Text>
                     </View>
                     <View style={styles.detailDataRow}>
-                      <Text style={styles.dataLabelIcon}>📍 City</Text>
+                      <View style={styles.dataLabelIconRow}><MapPin color="#38bdb3" size={17} /><Text style={styles.dataLabelIcon}>City</Text></View>
                       <Text style={styles.dataValBold}>{(activeDisplayPatient as any)?.city || '-'}</Text>
                     </View>
                     <View style={styles.detailDataRow}>
-                      <Text style={styles.dataLabelIcon}>📍 State</Text>
+                      <View style={styles.dataLabelIconRow}><MapPin color="#38bdb3" size={17} /><Text style={styles.dataLabelIcon}>State</Text></View>
                       <Text style={styles.dataValBold}>{(activeDisplayPatient as any)?.state || '-'}</Text>
                     </View>
                   </View>
@@ -971,7 +1136,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                   <View style={styles.detailCard}>
                     <View style={styles.cardHeaderRow}>
                       <View style={[styles.cardHeaderIconBox, { backgroundColor: '#e6fffa' }]}>
-                        <Text style={{ fontSize: 14 }}>📅</Text>
+                        <CalendarDays color="#0d9488" size={23} strokeWidth={2} />
                       </View>
                       <Text style={styles.cardTitle}>Visit Information</Text>
                     </View>
@@ -980,12 +1145,6 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                       <Text style={styles.dataLabel}>Registration Date</Text>
                       <Text style={styles.dataValBold}>
                         {formatDateShort(activeDisplayPatient?.registered_at || (activeDisplayPatient as any)?.created_at)}
-                      </Text>
-                    </View>
-                    <View style={styles.detailDataRow}>
-                      <Text style={styles.dataLabel}>Last Visit</Text>
-                      <Text style={styles.dataValBold}>
-                        {formatDateShort((activeDisplayPatient as any)?.last_visit)}
                       </Text>
                     </View>
                     <View style={styles.detailDataRow}>
@@ -1000,53 +1159,18 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                   <View style={styles.detailCard}>
                     <View style={styles.cardHeaderRow}>
                       <View style={[styles.cardHeaderIconBox, { backgroundColor: '#e6fffa' }]}>
-                        <Text style={{ fontSize: 14 }}>🛡️</Text>
+                        <ShieldCheck color="#0d9488" size={23} strokeWidth={2} />
                       </View>
                       <Text style={styles.cardTitle}>Emergency Contact</Text>
                     </View>
 
                     <View style={styles.detailDataRow}>
-                      <Text style={styles.dataLabelIcon}>📞 Contact</Text>
+                      <View style={styles.dataLabelIconRow}><Phone color="#38bdb3" size={17} /><Text style={styles.dataLabelIcon}>Contact</Text></View>
                       <Text style={styles.dataValBold}>{activeDisplayPatient?.emergency_contact || '-'}</Text>
                     </View>
                   </View>
                 </View>
 
-                {/* Card 5: Billing Summary */}
-                <View style={[styles.detailCard, { marginTop: 12 }]}>
-                  <View style={styles.cardHeaderRow}>
-                    <View style={[styles.cardHeaderIconBox, { backgroundColor: '#e6fffa' }]}>
-                      <Text style={{ fontSize: 14 }}>💳</Text>
-                    </View>
-                    <Text style={styles.cardTitle}>Billing Summary</Text>
-                  </View>
-
-                  <View style={styles.billingSummaryRowGrid}>
-                    <View style={styles.billingSummaryItem}>
-                      <Text style={styles.billingItemLabel}>Treatment Bill</Text>
-                      <Text style={styles.dataValBold}>
-                        ₹
-                        {Number(
-                          (activeDisplayPatient as any)?.treatment_total_amount ??
-                          (activeDisplayPatient as any)?.billingSummary?.treatment_total_amount ??
-                          799
-                        ).toFixed(2)}
-                      </Text>
-                    </View>
-
-                    <View style={styles.billingSummaryItem}>
-                      <Text style={styles.billingItemLabel}>Grand Total</Text>
-                      <Text style={styles.billingItemValTeal}>
-                        ₹
-                        {Number(
-                          (activeDisplayPatient as any)?.grand_total_amount ??
-                          (activeDisplayPatient as any)?.billingSummary?.grand_total_amount ??
-                          799
-                        ).toFixed(2)}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
               </ScrollView>
             )}
           </View>
@@ -1064,14 +1188,14 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
             <View style={StyleSheet.absoluteFillObject} />
           </TouchableWithoutFeedback>
 
-          <View style={styles.bottomSheetContainer}>
-            <View style={styles.sheetHeader}>
+          <View style={styles.editBottomSheetContainer}>
+            <View style={styles.editSheetHeader}>
               <View style={styles.headerLeftRow}>
                 <PatientUserIcon color="#0d9488" size={20} />
-                <Text style={styles.editModalHeaderTitle}>Edit Patient</Text>
+                <Text style={styles.editModalHeaderTitle}>{isCreatingPatient ? 'Add Patient' : 'Edit Patient'}</Text>
               </View>
-              <TouchableOpacity style={styles.closeCircleBtn} onPress={() => setShowEditPatientModal(false)}>
-                <Text style={styles.closeCircleText}>✕</Text>
+              <TouchableOpacity style={styles.editSheetCloseBtn} onPress={() => setShowEditPatientModal(false)}>
+                <X color="#475569" size={18} strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
@@ -1106,6 +1230,14 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
               </View>
 
               <View style={[styles.formRowGrid, { marginTop: 10 }]}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabelReq}>Age</Text>
+                  <TextInput
+                    style={[styles.textInput, styles.readOnlyTextInput]}
+                    value={calculateAge(editDob) || 'Not available'}
+                    editable={false}
+                  />
+                </View>
                 <View style={[styles.inputGroup, { flex: 1.2 }]}>
                   <Text style={styles.inputLabelReq}>Gender <Text style={styles.reqAsterisk}>*</Text></Text>
                   <View style={styles.radioGroupRow}>
@@ -1245,7 +1377,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.updateTealBtn} onPress={handleSaveEditPatient}>
-                <Text style={styles.updateTealBtnText}>Update Patient</Text>
+                <Text style={styles.updateTealBtnText}>{isCreatingPatient ? 'Register Patient' : 'Update Patient'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1301,11 +1433,11 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                   {modalLoading ? (
                     <ActivityIndicator size="large" color="#0d9488" style={{ marginVertical: 40 }} />
                   ) : (
-                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContentScroll}>
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.sheetContentScroll, styles.recordScrollContent]}>
                       {/* Search & Filters Row */}
                       <View style={styles.medSearchFilterRow}>
                         <View style={styles.medSearchInputBox}>
-                          <Text style={{ fontSize: 13, marginRight: 6 }}>🔍</Text>
+                          <Search color="#94a3b8" size={20} strokeWidth={2} style={{ marginRight: 8 }} />
                           <TextInput
                             style={styles.medSearchTextInput}
                             placeholder="Search doctor, reason, diagnosis..."
@@ -1484,7 +1616,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                 <Text style={styles.emptySub}>No prescription records found for this patient.</Text>
               </View>
             ) : (
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContentScroll}>
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.sheetContentScroll, styles.recordScrollContent]}>
                 {/* Section Subtitle */}
                 <View style={styles.prescListHeaderRow}>
                   <View style={styles.rowAlignGap}>
@@ -1702,14 +1834,28 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
               const visitList = medicalHistoryData?.visits || (Array.isArray(medicalHistoryData) ? medicalHistoryData : []);
               const labReportList = medicalHistoryData?.labReports || medicalHistoryData?.lab_reports || [];
               const age = calculateAge(medPatient?.date_of_birth || medPatient?.dob || activeDisplayPatient?.date_of_birth);
+              const patientCode = medPatient?.patient_code || (activeDisplayPatient as any)?.patient_code || `PT-${String(activeDisplayPatient?.id || 1).padStart(5, '0')}`;
               const emergencyFormatted = [
                 medPatient?.emergency_contact_name || medPatient?.emergency_name,
                 medPatient?.emergency_relation,
                 medPatient?.emergency_contact || medPatient?.emergency_phone
               ].filter(Boolean).join(' · ') || (activeDisplayPatient?.emergency_contact ? `Contact · ${activeDisplayPatient.emergency_contact}` : 'Not recorded');
 
-              const filteredVisits = (visitList || []).filter((v: any) => {
-                if (!historySearchQuery.trim()) return true;
+              const matchesHistoryDate = (dateValue?: string) => {
+                if (historyDateFilter === 'all') return true;
+                if (!dateValue) return false;
+                const date = new Date(dateValue);
+                if (Number.isNaN(date.getTime())) return false;
+                const now = new Date();
+                if (historyDateFilter === 'this-year') return date.getFullYear() === now.getFullYear();
+                const days = historyDateFilter === '30-days' ? 30 : 90;
+                const earliest = new Date(now);
+                earliest.setDate(now.getDate() - days);
+                return date >= earliest && date <= now;
+              };
+
+              const filteredVisits = (historyRecordFilter === 'reports' ? [] : visitList || []).filter((v: any) => {
+                if (!historySearchQuery.trim()) return matchesHistoryDate(v.appointment_date || v.created_at);
                 const q = historySearchQuery.toLowerCase();
                 return (
                   (v.reason && v.reason.toLowerCase().includes(q)) ||
@@ -1718,239 +1864,294 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                   (v.doctor_name && v.doctor_name.toLowerCase().includes(q)) ||
                   (v.notes && v.notes.toLowerCase().includes(q)) ||
                   (v.advice && v.advice.toLowerCase().includes(q))
-                );
+                ) && matchesHistoryDate(v.appointment_date || v.created_at);
+              });
+
+              const filteredLabReports = (historyRecordFilter === 'visits' ? [] : labReportList || []).filter((r: any) => {
+                if (!historySearchQuery.trim()) return matchesHistoryDate(r.uploaded_at || r.created_at);
+                const q = historySearchQuery.toLowerCase();
+                return (
+                  (r.test_name && r.test_name.toLowerCase().includes(q)) ||
+                  (r.status && r.status.toLowerCase().includes(q)) ||
+                  (r.doctor_name && r.doctor_name.toLowerCase().includes(q)) ||
+                  (r.technician_name && r.technician_name.toLowerCase().includes(q)) ||
+                  (r.remarks && r.remarks.toLowerCase().includes(q))
+                ) && matchesHistoryDate(r.uploaded_at || r.created_at);
               });
 
               return (
                 <>
-                  {/* Header Row (Dark #071624) */}
-                  <View style={styles.prescHeaderDark}>
-                    <View style={styles.headerLeftRow}>
-                      <View style={styles.historyIconCircleTeal}>
-                        <MedicalHistoryIcon color="#0d9488" size={20} />
+                  {/* ── Dark header (matches web slate-950 bg) ── */}
+                  <View style={mhStyles.header}>
+                    <View style={mhStyles.headerLeft}>
+                      <View style={mhStyles.headerIconBox}>
+                        <HeartPulse color="#0f172a" size={26} strokeWidth={2.4} />
                       </View>
-                      <View style={styles.headerTitleCol}>
-                        <Text style={styles.prescTitleDark}>Medical history</Text>
-                        <Text style={styles.prescSubDark}>
-                          {medPatient?.full_name || activeDisplayPatient?.full_name || 'Patient'} ·{' '}
-                          {medPatient?.patient_code || (activeDisplayPatient as any)?.patient_code || `PT-${String(activeDisplayPatient?.id || 1).padStart(5, '0')}`} ·{' '}
-                          {medPatient?.gender || activeDisplayPatient?.gender || 'female'}
-                          {age ? ` · ${age} yrs` : ''}
-                        </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={mhStyles.headerTitle}>Medical history</Text>
+                        <View style={mhStyles.headerSubRow}>
+                          <Text style={mhStyles.headerPatientName}>
+                            {medPatient?.full_name || activeDisplayPatient?.full_name || 'Patient'}
+                          </Text>
+                          <View style={mhStyles.headerCodeBadge}>
+                            <Text style={mhStyles.headerCodeBadgeText}>{patientCode}</Text>
+                          </View>
+                          <Text style={mhStyles.headerMeta}>
+                            {medPatient?.gender || activeDisplayPatient?.gender || 'female'}
+                            {age ? ` · ${age}` : ''}
+                          </Text>
+                        </View>
                       </View>
                     </View>
-
-                    <View style={styles.headerRightActionsRow}>
-                      <View style={styles.recordsCountBadge}>
-                        <Text style={styles.recordsCountLabel}>VISITS</Text>
-                        <Text style={styles.recordsCountNum}>{visitList.length}</Text>
-                      </View>
-                      <View style={styles.recordsCountBadge}>
-                        <Text style={styles.recordsCountLabel}>REPORTS</Text>
-                        <Text style={styles.recordsCountNum}>{labReportList.length}</Text>
-                      </View>
-
-                      <TouchableOpacity style={styles.closeCircleBtn} onPress={() => setShowMedicalHistoryModal(false)}>
-                        <Text style={styles.closeCircleText}>✕</Text>
-                      </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity style={mhStyles.headerCloseBtn} onPress={() => setShowMedicalHistoryModal(false)}>
+                      <X color="#ffffff" size={20} strokeWidth={2} />
+                    </TouchableOpacity>
                   </View>
 
                   {modalLoading ? (
                     <ActivityIndicator size="large" color="#0d9488" style={{ marginVertical: 40 }} />
                   ) : (
-                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContentScroll}>
-                      {/* Search & Filters Row */}
-                      <View style={styles.medSearchFilterRow}>
-                        <View style={styles.medSearchInputBox}>
-                          <Text style={{ fontSize: 13, marginRight: 6 }}>🔍</Text>
-                          <TextInput
-                            style={styles.medSearchTextInput}
-                            placeholder="Search visits, diagnosis, medicines, lab tests..."
-                            placeholderTextColor="#94a3b8"
-                            value={historySearchQuery}
-                            onChangeText={setHistorySearchQuery}
-                          />
-                        </View>
-                        <View style={styles.medFilterPillBtn}>
-                          <Text style={styles.medFilterPillText}>All history</Text>
-                          <Text style={{ fontSize: 9, color: '#94a3b8', marginLeft: 4 }}>▼</Text>
-                        </View>
-                        <View style={styles.medFilterPillBtn}>
-                          <Text style={styles.medFilterPillText}>All dates</Text>
-                          <Text style={{ fontSize: 9, color: '#94a3b8', marginLeft: 4 }}>▼</Text>
-                        </View>
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={mhStyles.scrollContent}>
+                      {/* ── Search bar ── */}
+                      <View style={mhStyles.searchBar}>
+                        <Search color="#94a3b8" size={18} strokeWidth={2} />
+                        <TextInput
+                          style={mhStyles.searchInput}
+                          placeholder="Search visits, diagnosis, medicines, lab"
+                          placeholderTextColor="#94a3b8"
+                          value={historySearchQuery}
+                          onChangeText={setHistorySearchQuery}
+                        />
                       </View>
 
-                      {/* Section 1: Patient Overview */}
-                      <View style={styles.overviewSectionHeader}>
-                        <View style={styles.iconCircleTealSmall}>
-                          <MedicalHistoryIcon color="#0d9488" size={16} />
-                        </View>
-                        <View>
-                          <Text style={styles.cardTitleText}>Patient overview</Text>
-                          <Text style={styles.cardSubText}>Important health and emergency information</Text>
-                        </View>
+                      {/* ── Filter pills row ── */}
+                      <View style={mhStyles.filterRow}>
+                        <TouchableOpacity
+                          style={mhStyles.filterPill}
+                          onPress={() => Alert.alert('History type', 'Choose records to show', [
+                            { text: 'All history', onPress: () => setHistoryRecordFilter('all') },
+                            { text: 'Visits only', onPress: () => setHistoryRecordFilter('visits') },
+                            { text: 'Lab reports only', onPress: () => setHistoryRecordFilter('reports') },
+                            { text: 'Cancel', style: 'cancel' },
+                          ])}>
+                          <Text style={mhStyles.filterPillText}>
+                            {historyRecordFilter === 'all' ? 'All history' : historyRecordFilter === 'visits' ? 'Visits only' : 'Lab reports'}
+                          </Text>
+                          <ChevronDownIcon size={14} color="#94a3b8" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={mhStyles.filterPill}
+                          onPress={() => Alert.alert('Date range', 'Choose a date range', [
+                            { text: 'All dates', onPress: () => setHistoryDateFilter('all') },
+                            { text: 'Last 30 days', onPress: () => setHistoryDateFilter('30-days') },
+                            { text: 'Last 90 days', onPress: () => setHistoryDateFilter('90-days') },
+                            { text: 'This year', onPress: () => setHistoryDateFilter('this-year') },
+                            { text: 'Cancel', style: 'cancel' },
+                          ])}>
+                          <Text style={mhStyles.filterPillText}>
+                            {historyDateFilter === 'all' ? 'All dates' : historyDateFilter === '30-days' ? 'Last 30 days' : historyDateFilter === '90-days' ? 'Last 90 days' : 'This year'}
+                          </Text>
+                          <ChevronDownIcon size={14} color="#94a3b8" />
+                        </TouchableOpacity>
                       </View>
 
-                      {/* Patient Vitals Metrics Section */}
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
-                        {/* Temp */}
-                        <View style={{ flex: 1, minWidth: 110, backgroundColor: '#fff7ed', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#ffedd5' }}>
-                          <Text style={{ fontSize: 10, fontWeight: '800', color: '#c2410c' }}>🌡️ BODY TEMP</Text>
-                          <Text style={{ fontSize: 16, fontWeight: '900', color: '#9a3412', marginTop: 4 }}>
-                            {(medPatient as any)?.temperature || (activeDisplayPatient as any)?.temperature || '98.6°F'}
-                          </Text>
-                          <Text style={{ fontSize: 9, color: '#ea580c', fontWeight: '700', marginTop: 2 }}>Normal Range</Text>
-                        </View>
-
-                        {/* BP */}
-                        <View style={{ flex: 1, minWidth: 110, backgroundColor: '#f0fdf4', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#bbf7d0' }}>
-                          <Text style={{ fontSize: 10, fontWeight: '800', color: '#15803d' }}>❤️ BLOOD PRESSURE</Text>
-                          <Text style={{ fontSize: 16, fontWeight: '900', color: '#166534', marginTop: 4 }}>
-                            {(medPatient as any)?.blood_pressure || (activeDisplayPatient as any)?.blood_pressure || '120/80 mmHg'}
-                          </Text>
-                          <Text style={{ fontSize: 9, color: '#16a34a', fontWeight: '700', marginTop: 2 }}>Optimal SYS/DIA</Text>
-                        </View>
-
-                        {/* Pulse */}
-                        <View style={{ flex: 1, minWidth: 110, backgroundColor: '#f0f9ff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#bae6fd' }}>
-                          <Text style={{ fontSize: 10, fontWeight: '800', color: '#0369a1' }}>💓 PULSE RATE</Text>
-                          <Text style={{ fontSize: 16, fontWeight: '900', color: '#075985', marginTop: 4 }}>
-                            {(medPatient as any)?.pulse_rate || (activeDisplayPatient as any)?.pulse_rate || '72 BPM'}
-                          </Text>
-                          <Text style={{ fontSize: 9, color: '#0284c7', fontWeight: '700', marginTop: 2 }}>Resting Heart Rate</Text>
-                        </View>
-
-                        {/* SpO2 */}
-                        <View style={{ flex: 1, minWidth: 110, backgroundColor: '#faf5ff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e9d5ff' }}>
-                          <Text style={{ fontSize: 10, fontWeight: '800', color: '#7e22ce' }}>🫁 SPO2 OXYGEN</Text>
-                          <Text style={{ fontSize: 16, fontWeight: '900', color: '#6b21a8', marginTop: 4 }}>
-                            {(medPatient as any)?.spo2 || (activeDisplayPatient as any)?.spo2 || '99%'}
-                          </Text>
-                          <Text style={{ fontSize: 9, color: '#9333ea', fontWeight: '700', marginTop: 2 }}>Normal Saturation</Text>
-                        </View>
-                      </View>
-
-                      <View style={styles.overviewCardsGridThree}>
-                        {/* Card 1: Blood Group */}
-                        <View style={styles.overviewSingleBoxCard}>
-                          <View style={styles.overviewBoxIconHeader}>
-                            <View style={styles.iconBoxLightGrey}>
-                              <Text style={{ fontSize: 13 }}>🩸</Text>
-                            </View>
-                            <Text style={styles.overviewBoxLabelTitle}>BLOOD GROUP</Text>
-                          </View>
-                          <Text style={styles.overviewBoxBigValText}>
-                            {medPatient?.blood_group || activeDisplayPatient?.blood_group || 'Not recorded'}
-                          </Text>
-                        </View>
-
-                        {/* Card 2: Allergies */}
-                        <View style={styles.overviewSingleBoxCard}>
-                          <View style={styles.overviewBoxIconHeader}>
-                            <View style={styles.iconBoxLightGrey}>
-                              <Text style={{ fontSize: 13 }}>🛡️</Text>
-                            </View>
-                            <Text style={styles.overviewBoxLabelTitle}>ALLERGIES</Text>
-                          </View>
-                          <Text style={styles.overviewBoxBigValText}>
-                            {medPatient?.allergies || activeDisplayPatient?.allergies || 'None recorded'}
-                          </Text>
-                        </View>
-
-                        {/* Card 3: Emergency Contact */}
-                        <View style={styles.overviewSingleBoxCard}>
-                          <View style={styles.overviewBoxIconHeader}>
-                            <View style={styles.iconBoxLightGrey}>
-                              <Text style={{ fontSize: 13 }}>👤</Text>
-                            </View>
-                            <Text style={styles.overviewBoxLabelTitle}>EMERGENCY CONTACT</Text>
-                          </View>
-                          <Text style={styles.overviewBoxBigValText} numberOfLines={2}>
-                            {emergencyFormatted}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Section 2: Visit History */}
-                      <View style={styles.overviewSectionHeader}>
-                        <View style={styles.iconCircleTealSmall}>
-                          <StethoscopeIcon color="#0d9488" size={16} />
+                      {/* ── Patient overview section ── */}
+                      <View style={mhStyles.sectionHeader}>
+                        <View style={mhStyles.sectionIconCircle}>
+                          <HeartPulse color="#0d9488" size={18} strokeWidth={2.2} />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <View style={styles.rowAlignGap}>
-                            <Text style={styles.cardTitleText}>Visit history</Text>
-                            <View style={styles.miniCountPill}>
-                              <Text style={styles.miniCountPillText}>{filteredVisits.length}</Text>
-                            </View>
-                          </View>
-                          <Text style={styles.cardSubText}>Consultations, diagnoses and prescribed medicines</Text>
+                          <Text style={mhStyles.sectionTitle}>Patient overview</Text>
+                          <Text style={mhStyles.sectionSub}>Important health and emergency information</Text>
                         </View>
                       </View>
 
-                      {filteredVisits.length === 0 ? (
-                        <View style={styles.emptyItemsBox}>
-                          <Text style={styles.emptyItemsText}>No visit history found.</Text>
+                      {/* Overview info cards */}
+                      <View style={mhStyles.infoCardsContainer}>
+                        {/* Blood Group */}
+                        <View style={mhStyles.infoCard}>
+                          <View style={mhStyles.infoCardIconBox}>
+                            <Droplets color="#94a3b8" size={20} strokeWidth={2} />
+                          </View>
+                          <View style={mhStyles.infoCardContent}>
+                            <Text style={[mhStyles.infoCardLabel, { color: '#0d9488' }]}>BLOOD GROUP</Text>
+                            <Text style={mhStyles.infoCardValue}>
+                              {medPatient?.blood_group || activeDisplayPatient?.blood_group || 'Not recorded'}
+                            </Text>
+                          </View>
                         </View>
-                      ) : (
-                        <View style={{ gap: 10 }}>
-                          {filteredVisits.map((v: any, vIdx: number) => {
-                            const vDate = v.appointment_date
-                              ? `${v.appointment_date} ${v.appointment_time || ''}`.trim()
-                              : '9/5/2026 10:00:00';
-                            return (
-                              <View key={v.appointment_id || vIdx} style={styles.visitRowCardItem}>
-                                <View style={styles.visitCardTopRow}>
-                                  <Text style={styles.visitCardReasonTitle}>
-                                    {v.reason || v.diagnosis || v.symptoms || 'General Checkup'}
-                                  </Text>
-                                  <View style={styles.approvedGreenBadge}>
-                                    <Text style={styles.approvedGreenBadgeText}>
-                                      {v.status ? String(v.status).toUpperCase() : 'APPROVED'}
-                                    </Text>
-                                  </View>
+
+                        {/* Allergies */}
+                        <View style={mhStyles.infoCard}>
+                          <View style={mhStyles.infoCardIconBox}>
+                            <ShieldAlert color="#94a3b8" size={20} strokeWidth={2} />
+                          </View>
+                          <View style={mhStyles.infoCardContent}>
+                            <Text style={[mhStyles.infoCardLabel, { color: '#0d9488' }]}>ALLERGIES</Text>
+                            <Text style={mhStyles.infoCardValue}>
+                              {medPatient?.allergies || activeDisplayPatient?.allergies || 'None reported'}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Emergency Contact */}
+                        <View style={mhStyles.infoCard}>
+                          <View style={mhStyles.infoCardIconBox}>
+                            <ContactRound color="#94a3b8" size={20} strokeWidth={2} />
+                          </View>
+                          <View style={mhStyles.infoCardContent}>
+                            <Text style={[mhStyles.infoCardLabel, { color: '#f43f5e' }]}>EMERGENCY CONTACT</Text>
+                            <Text style={mhStyles.infoCardValue} numberOfLines={2}>
+                              {emergencyFormatted}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* ── Visit history section ── */}
+                      {historyRecordFilter !== 'reports' && (
+                        <>
+                          <View style={mhStyles.sectionHeader}>
+                            <View style={[mhStyles.sectionIconCircle, { backgroundColor: '#ccfbf1' }]}>
+                              <StethoscopeIcon color="#0d9488" size={16} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Text style={mhStyles.sectionTitle}>Visit history</Text>
+                                <View style={mhStyles.sectionCountBadge}>
+                                  <Text style={mhStyles.sectionCountBadgeText}>{filteredVisits.length}</Text>
                                 </View>
+                              </View>
+                              <Text style={mhStyles.sectionSub}>Consultations, diagnoses and prescribed medicines</Text>
+                            </View>
+                          </View>
 
-                                <View style={styles.visitMetaFlexRow}>
-                                  <Text style={styles.visitMetaItemText}>📅 {vDate}</Text>
-                                  <Text style={styles.visitMetaItemText}>
-                                    🩺 {v.doctor_name || 'Dr. Doctor'}
-                                  </Text>
-                                </View>
-
-                                {v.notes || v.advice ? (
-                                  <View style={styles.visitNotesYellowCard}>
-                                    <Text style={styles.visitNotesYellowText}>
-                                      💡 Note: {v.advice || v.notes}
-                                    </Text>
-                                  </View>
-                                ) : null}
-
-                                {(v.medicines || []).length > 0 && (
-                                  <View style={styles.visitMedsPillsRow}>
-                                    {(v.medicines || []).map((m: any, mIdx: number) => (
-                                      <View key={mIdx} style={styles.visitMedChip}>
-                                        <Text style={styles.visitMedChipText}>
-                                          💊 {m.medicine_name} ({m.dosage || '1 tab'})
+                          {filteredVisits.length === 0 ? (
+                            <View style={mhStyles.emptyBox}>
+                              <Search color="#cbd5e1" size={22} />
+                              <Text style={mhStyles.emptyText}>No visit history found.</Text>
+                            </View>
+                          ) : (
+                            <View style={{ gap: 10 }}>
+                              {filteredVisits.map((v: any, vIdx: number) => {
+                                const vDate = v.appointment_date
+                                  ? `${v.appointment_date} ${v.appointment_time || ''}`.trim()
+                                  : v.created_at ? formatDateLong(v.created_at) : '-';
+                                return (
+                                  <View key={v.appointment_id || v.id || vIdx} style={mhStyles.recordCard}>
+                                    <View style={mhStyles.recordCardHeader}>
+                                      <Text style={mhStyles.recordCardTitle} numberOfLines={1}>
+                                        {v.reason || v.diagnosis || v.symptoms || 'Consultation'}
+                                      </Text>
+                                      <View style={mhStyles.statusBadgeGreen}>
+                                        <Text style={mhStyles.statusBadgeGreenText}>
+                                          {v.status ? String(v.status).toUpperCase() : 'RECORDED'}
                                         </Text>
                                       </View>
-                                    ))}
+                                    </View>
+
+                                    <View style={mhStyles.recordMetaRow}>
+                                      <Text style={mhStyles.recordMetaText}>📅 {vDate}</Text>
+                                      <Text style={mhStyles.recordMetaText}>🩺 {v.doctor_name || 'Not assigned'}</Text>
+                                    </View>
+
+                                    {v.notes || v.advice ? (
+                                      <View style={mhStyles.noteBox}>
+                                        <Text style={mhStyles.noteText}>💡 {v.advice || v.notes}</Text>
+                                      </View>
+                                    ) : null}
+
+                                    {(v.medicines || []).length > 0 && (
+                                      <View style={mhStyles.medChipsRow}>
+                                        {(v.medicines || []).map((m: any, mIdx: number) => (
+                                          <View key={mIdx} style={mhStyles.medChip}>
+                                            <Text style={mhStyles.medChipText}>💊 {m.medicine_name} ({m.dosage || '1 tab'})</Text>
+                                          </View>
+                                        ))}
+                                      </View>
+                                    )}
                                   </View>
-                                )}
+                                );
+                              })}
+                            </View>
+                          )}
+                        </>
+                      )}
+
+                      {/* ── Lab reports section ── */}
+                      {historyRecordFilter !== 'visits' && (
+                        <>
+                          <View style={[mhStyles.sectionHeader, { marginTop: 16 }]}>
+                            <View style={[mhStyles.sectionIconCircle, { backgroundColor: '#fef3c7' }]}>
+                              <FlaskConical color="#d97706" size={16} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Text style={mhStyles.sectionTitle}>Lab reports</Text>
+                                <View style={[mhStyles.sectionCountBadge, { backgroundColor: '#fef3c7' }]}>
+                                  <Text style={[mhStyles.sectionCountBadgeText, { color: '#d97706' }]}>{filteredLabReports.length}</Text>
+                                </View>
                               </View>
-                            );
-                          })}
-                        </View>
+                              <Text style={mhStyles.sectionSub}>Test requests and diagnostic results</Text>
+                            </View>
+                          </View>
+
+                          {filteredLabReports.length === 0 ? (
+                            <View style={mhStyles.emptyBox}>
+                              <Search color="#cbd5e1" size={22} />
+                              <Text style={mhStyles.emptyText}>No lab reports found.</Text>
+                            </View>
+                          ) : (
+                            <View style={{ gap: 10 }}>
+                              {filteredLabReports.map((r: any, rIdx: number) => {
+                                const reportDate = r.uploaded_at || r.created_at || r.ordered_date;
+                                const formattedDate = reportDate ? formatDateLong(reportDate) : '-';
+                                const isAbnormal = r.is_abnormal === 1 || r.is_abnormal === true;
+                                return (
+                                  <View key={r.lab_test_id || r.report_id || rIdx} style={mhStyles.recordCard}>
+                                    <View style={mhStyles.recordCardHeader}>
+                                      <Text style={mhStyles.recordCardTitle} numberOfLines={1}>
+                                        {r.test_name || 'Lab Test'}
+                                      </Text>
+                                      <View style={[mhStyles.statusBadgeGreen, isAbnormal && { backgroundColor: '#fef2f2' }]}>
+                                        <Text style={[mhStyles.statusBadgeGreenText, isAbnormal && { color: '#dc2626' }]}>
+                                          {isAbnormal ? 'ABNORMAL' : (r.status ? String(r.status).toUpperCase() : 'ORDERED')}
+                                        </Text>
+                                      </View>
+                                    </View>
+
+                                    <Text style={{ fontSize: 11, color: '#64748b', fontWeight: '500' }}>
+                                      {[r.test_type, r.sample_type].filter(Boolean).join(' · ') || 'General diagnostic test'}
+                                    </Text>
+
+                                    <View style={mhStyles.recordMetaRow}>
+                                      <Text style={mhStyles.recordMetaText}>📅 {formattedDate}</Text>
+                                      <Text style={mhStyles.recordMetaText}>
+                                        📋 Report {r.report_id ? `#${r.report_id}` : 'Pending'}
+                                      </Text>
+                                    </View>
+
+                                    {r.remarks ? (
+                                      <View style={mhStyles.noteBox}>
+                                        <Text style={mhStyles.noteText}>📝 {r.remarks}</Text>
+                                      </View>
+                                    ) : null}
+                                  </View>
+                                );
+                              })}
+                            </View>
+                          )}
+                        </>
                       )}
                     </ScrollView>
                   )}
 
-                  {/* Footer Row */}
-                  <View style={styles.prescFooterRow}>
-                    <Text style={styles.prescFooterSecText}>Private patient information · Handle with care</Text>
-                    <TouchableOpacity style={styles.darkCloseBtn} onPress={() => setShowMedicalHistoryModal(false)}>
-                      <Text style={styles.darkCloseBtnText}>✕ Close</Text>
+                  {/* ── Footer ── */}
+                  <View style={mhStyles.footer}>
+                    <Text style={mhStyles.footerPrivacy}>Private patient information</Text>
+                    <TouchableOpacity style={mhStyles.footerCloseBtn} onPress={() => setShowMedicalHistoryModal(false)}>
+                      <X color="#ffffff" size={16} strokeWidth={2} />
+                      <Text style={mhStyles.footerCloseBtnText}>Close</Text>
                     </TouchableOpacity>
                   </View>
                 </>
@@ -2311,6 +2512,8 @@ const styles = StyleSheet.create({
   headerBox: { marginBottom: 16 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   pageTitle: { fontSize: 21, fontWeight: '800', color: '#0f172a', letterSpacing: -0.3 },
+  addPatientButton: { marginLeft: 'auto', backgroundColor: '#0d9488', borderRadius: 10, paddingHorizontal: 11, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  addPatientButtonText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
   pageSub: { fontSize: 13, color: '#64748b', marginTop: 3 },
 
   /* 2x2 Stats Grid */
@@ -2331,6 +2534,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
+  },
+  surfaceActive: {
+    borderColor: '#16d4c2',
+    borderWidth: 2,
+    shadowColor: '#14b8a6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 7,
+    elevation: 3,
   },
   statIconBox: {
     width: 42,
@@ -2422,6 +2634,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#334155',
   },
+  registrationDateInput: { flex: 1, fontSize: 12, fontWeight: '600', color: '#334155', padding: 0 },
   filterActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2457,7 +2670,17 @@ const styles = StyleSheet.create({
 
   /* Patients Section */
   patientsSection: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 14,
     gap: 12,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -2475,16 +2698,25 @@ const styles = StyleSheet.create({
   },
   patientCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    padding: 16,
+    padding: 14,
     shadowColor: '#64748b',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
     gap: 12,
+  },
+  patientCardSelected: {
+    borderColor: '#16d4c2',
+    borderWidth: 2,
+    shadowColor: '#14b8a6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
   },
   patientCardHeader: {
     flexDirection: 'row',
@@ -2574,44 +2806,55 @@ const styles = StyleSheet.create({
   actionOptionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10, backgroundColor: '#f8fafc', marginVertical: 2 },
   actionOptionHighlight: { backgroundColor: '#ccfbf1' },
   actionOptionText: { fontSize: 14, fontWeight: '700', color: '#334155' },
+  deleteActionOption: { backgroundColor: '#fef2f2', borderWidth: 1, borderColor: '#fecaca' },
+  deleteActionIcon: { width: 18, textAlign: 'center', color: '#dc2626', fontSize: 22, fontWeight: '700', lineHeight: 22 },
+  deleteActionText: { color: '#dc2626', fontSize: 14, fontWeight: '800' },
   closeActionBtn: { backgroundColor: '#f1f5f9', borderRadius: 10, paddingVertical: 10, alignItems: 'center', marginTop: 10 },
   closeActionBtnText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
 
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'flex-end', zIndex: 99999, elevation: 99999 },
+  viewDetailsOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.78)', justifyContent: 'center', alignItems: 'center', padding: 16, zIndex: 99999, elevation: 99999 },
+  recordModalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.78)', justifyContent: 'center', alignItems: 'center', padding: 16, zIndex: 99999, elevation: 99999 },
+  recordModalCard: { width: '100%', maxWidth: 480, maxHeight: '88%', backgroundColor: '#f8fafc', borderRadius: 22, overflow: 'hidden', elevation: 18 },
   bottomSheetContainer: { backgroundColor: '#eef4f4', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18, paddingBottom: Platform.OS === 'ios' ? 40 : 30, maxHeight: '88%', width: '100%', zIndex: 100000, elevation: 100000 },
   pickerBottomSheetContainer: { backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 18, paddingBottom: Platform.OS === 'ios' ? 40 : 30, maxHeight: '80%', width: '100%', zIndex: 100000, elevation: 100000 },
   sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   headerRightActionsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  activePillBadge: { backgroundColor: '#d1fae5', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  activePillText: { color: '#059669', fontSize: 11, fontWeight: '800' },
-  editInfoBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 },
-  editInfoBtnText: { fontSize: 12, fontWeight: '700', color: '#334155' },
+  activePillBadge: { backgroundColor: '#d1fae5', borderRadius: 15, paddingHorizontal: 17, paddingVertical: 9 },
+  activePillText: { color: '#059669', fontSize: 15, fontWeight: '600' },
+  editInfoBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 14, paddingHorizontal: 20, paddingVertical: 10, shadowColor: '#64748b', shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
+  editInfoBtnText: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
   closeCircleBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' },
   closeCircleText: { fontSize: 14, color: '#475569', fontWeight: 'bold' },
   sheetContentScroll: { gap: 12, paddingBottom: 20 },
+  recordScrollContent: { paddingHorizontal: 14, paddingBottom: 20 },
   cardsGridTwoCol: { gap: 12 },
-  detailCard: { backgroundColor: '#ffffff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#e2e8f0', gap: 8 },
+  detailCard: { backgroundColor: '#ffffff', borderRadius: 18, borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden', paddingBottom: 4 },
   contactCardHighlight: { borderColor: '#2dd4bf', borderWidth: 1.5 },
-  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  cardHeaderIconBox: { width: 28, height: 28, borderRadius: 8, backgroundColor: '#e0f2fe', alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
-  detailDataRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 2 },
-  dataLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
-  dataLabelIcon: { fontSize: 12, color: '#64748b', fontWeight: '600' },
-  dataValBold: { fontSize: 13, fontWeight: '800', color: '#0f172a' },
+  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 13, backgroundColor: '#effbf9', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  cardHeaderIconBox: { width: 46, height: 46, borderRadius: 14, backgroundColor: '#dff8f3', alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a' },
+  detailDataRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 14, marginHorizontal: 14, marginTop: 10, paddingHorizontal: 14, paddingVertical: 13, gap: 12 },
+  dataLabel: { fontSize: 15, color: '#718096', fontWeight: '500', flex: 1 },
+  dataLabelIcon: { fontSize: 15, color: '#718096', fontWeight: '500' },
+  dataLabelIconRow: { flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1 },
+  dataValBold: { fontSize: 15, fontWeight: '700', color: '#0f172a', flexShrink: 1, textAlign: 'right' },
   billingSummaryRowGrid: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
   billingSummaryItem: { flex: 1, gap: 2 },
   billingItemLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
   billingItemValTeal: { fontSize: 13, fontWeight: '800', color: '#0d9488' },
 
-  viewDetailsModalCard: { width: '100%', maxWidth: 460, backgroundColor: '#f0fdf4', borderRadius: 20, overflow: 'hidden', maxHeight: '88%' },
-  viewDetailsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#e6f4f1', paddingHorizontal: 16, paddingVertical: 14 },
+  viewDetailsModalCard: { width: '100%', maxWidth: 480, backgroundColor: '#f8fafc', borderRadius: 22, overflow: 'hidden', maxHeight: '88%', elevation: 18 },
+  viewDetailsHeader: { backgroundColor: '#effbf9', paddingHorizontal: 28, paddingTop: 28, paddingBottom: 22, borderBottomWidth: 1, borderBottomColor: '#cfe8e4' },
+  viewDetailsTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  viewDetailsActionsRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 22 },
+  viewDetailsCloseBtn: { padding: 4, marginTop: -4, marginRight: -5 },
   headerLeftRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  avatarBigCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#ccfbf1', alignItems: 'center', justifyContent: 'center' },
-  avatarBigLetter: { fontSize: 20, fontWeight: '800', color: '#0d9488' },
+  avatarBigCircle: { width: 76, height: 76, borderRadius: 22, backgroundColor: '#ccefeb', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#b5e5df' },
+  avatarBigLetter: { fontSize: 32, fontWeight: '800', color: '#0d9488' },
   headerTitleCol: {},
-  viewDetailsName: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
-  viewDetailsCode: { fontSize: 12, color: '#64748b', fontWeight: '600' },
+  viewDetailsName: { fontSize: 27, fontWeight: '800', color: '#0f172a' },
+  viewDetailsCode: { fontSize: 17, color: '#718096', fontWeight: '500', marginTop: 4 },
   headerRightRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activeBadgePill: { backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
   activeBadgePillText: { fontSize: 11, fontWeight: '800', color: '#16a34a' },
@@ -2620,7 +2863,7 @@ const styles = StyleSheet.create({
   closeModalCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   closeModalCircleText: { fontSize: 14, fontWeight: 'bold', color: '#64748b' },
 
-  viewDetailsBodyGrid: { padding: 14, gap: 12 },
+  viewDetailsBodyGrid: { padding: 14, gap: 14, paddingBottom: 28 },
   gridDetailsCard: { backgroundColor: '#ffffff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#e2e8f0', gap: 8 },
   cardHeaderIconText: { fontSize: 16 },
   cardHeaderTitle: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
@@ -2630,34 +2873,38 @@ const styles = StyleSheet.create({
 
   editModalCard: { width: '100%', maxWidth: 480, backgroundColor: '#ffffff', borderRadius: 20, overflow: 'hidden', maxHeight: '90%' },
   editModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  editModalHeaderTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
+  editBottomSheetContainer: { width: '100%', maxHeight: '92%', backgroundColor: '#ffffff', borderTopLeftRadius: 14, borderTopRightRadius: 14, overflow: 'hidden', borderTopWidth: 3, borderTopColor: '#0d9488' },
+  editSheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  editSheetCloseBtn: { padding: 6, marginRight: -4 },
+  editModalHeaderTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a' },
   closeBtnText: { fontSize: 18, fontWeight: 'bold', color: '#64748b' },
-  editFormBodyScroll: { padding: 20, gap: 10 },
-  formSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, marginBottom: 4 },
-  formSectionTitle: { fontSize: 13, fontWeight: '800', color: '#475569' },
-  formRowGrid: { flexDirection: 'row', gap: 10 },
-  inputGroup: { gap: 4 },
-  inputLabelReq: { fontSize: 12, fontWeight: '700', color: '#334155' },
+  editFormBodyScroll: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20, gap: 14 },
+  formSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2, marginBottom: 4, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  formSectionTitle: { fontSize: 12, fontWeight: '600', color: '#64748b' },
+  formRowGrid: { gap: 14 },
+  inputGroup: { gap: 6 },
+  inputLabelReq: { fontSize: 12, fontWeight: '700', color: '#0f172a' },
   reqAsterisk: { color: '#ef4444', fontWeight: 'bold' },
-  textInput: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, fontSize: 13, color: '#0f172a' },
-  textInputActiveFocus: { borderColor: '#0d9488', borderWidth: 1.8, backgroundColor: '#f0fdf4' },
-  multilineInput: { height: 75, textAlignVertical: 'top' },
-  inputWithIconRight: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 12 },
+  textInput: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 13, color: '#0f172a' },
+  readOnlyTextInput: { color: '#94a3b8', backgroundColor: '#f1f5f9' },
+  textInputActiveFocus: { borderColor: '#0d9488', borderWidth: 1.8, backgroundColor: '#f8fafc' },
+  multilineInput: { height: 70, textAlignVertical: 'top' },
+  inputWithIconRight: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 10, paddingHorizontal: 12 },
   innerRightIcon: { fontSize: 14, marginLeft: 4 },
-  radioGroupRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
+  radioGroupRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 5 },
   radioOption: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   radioCircle: { width: 18, height: 18, borderRadius: 9, borderWidth: 1.8, borderColor: '#cbd5e1', alignItems: 'center', justifyContent: 'center' },
   radioCircleActive: { borderColor: '#0d9488' },
   radioDot: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: '#0d9488' },
   radioText: { fontSize: 13, color: '#334155', fontWeight: '600' },
-  dropdownPickerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  dropdownPickerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
   dropdownPickerText: { fontSize: 12, color: '#334155', fontWeight: '600' },
   dropdownArrow: { fontSize: 10, color: '#94a3b8' },
   sectionDividerLine: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 10 },
-  editModalFooter: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, paddingHorizontal: 20, paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#f1f5f9', backgroundColor: '#ffffff' },
-  cancelGreyBtn: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
+  editModalFooter: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#e2e8f0', backgroundColor: '#ffffff' },
+  cancelGreyBtn: { flex: 1, alignItems: 'center', backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 10, paddingVertical: 11 },
   cancelGreyBtnText: { fontSize: 13, fontWeight: '700', color: '#475569' },
-  updateTealBtn: { backgroundColor: '#0d9488', borderRadius: 10, paddingHorizontal: 22, paddingVertical: 10 },
+  updateTealBtn: { flex: 1, alignItems: 'center', backgroundColor: '#0d9488', borderRadius: 10, paddingVertical: 11 },
   updateTealBtnText: { fontSize: 13, fontWeight: '800', color: '#ffffff' },
 
   consultModalCard: { width: '100%', maxWidth: 460, backgroundColor: '#f8fafc', borderRadius: 20, overflow: 'hidden', maxHeight: '85%' },
@@ -2735,7 +2982,7 @@ const styles = StyleSheet.create({
   visitMetaText: { fontSize: 11, color: '#64748b' },
   visitNoteYellowBox: { backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fed7aa', borderRadius: 8, padding: 8, marginTop: 4 },
   visitNoteText: { fontSize: 11, color: '#c2410c', fontWeight: '700' },
-  prescHeaderDark: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#071624', paddingHorizontal: 16, paddingVertical: 14, borderTopLeftRadius: 24, borderTopRightRadius: 24, marginHorizontal: -18, marginTop: -18, marginBottom: 12 },
+  prescHeaderDark: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#071624', paddingHorizontal: 20, paddingVertical: 18, marginBottom: 12 },
   prescTitleDark: { fontSize: 16, fontWeight: '800', color: '#ffffff' },
   prescSubDark: { fontSize: 11, color: '#94a3b8' },
   recordsCountBadge: { backgroundColor: '#0f2942', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignItems: 'center' },
@@ -2800,18 +3047,27 @@ const styles = StyleSheet.create({
   prescModalFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 12 },
 
   historyIconCircleTeal: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#0f2942', alignItems: 'center', justifyContent: 'center' },
-  medSearchFilterRow: { flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 12 },
-  medSearchInputBox: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
-  medSearchTextInput: { flex: 1, fontSize: 12, color: '#0f172a', padding: 0 },
-  medFilterPillBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
-  medFilterPillText: { fontSize: 11, fontWeight: '700', color: '#334155' },
-  overviewSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, marginBottom: 8 },
-  overviewCardsGridThree: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  overviewSingleBoxCard: { flex: 1, backgroundColor: '#ffffff', borderRadius: 14, padding: 10, borderWidth: 1, borderColor: '#e2e8f0', gap: 4 },
-  overviewBoxIconHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  iconBoxLightGrey: { width: 24, height: 24, borderRadius: 8, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
-  overviewBoxLabelTitle: { fontSize: 9, fontWeight: '800', color: '#64748b' },
-  overviewBoxBigValText: { fontSize: 12, fontWeight: '800', color: '#0f172a' },
+  medicalHistoryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#061a29', paddingHorizontal: 20, paddingVertical: 20, marginHorizontal: -18, marginTop: -18, marginBottom: 18 },
+  medicalHistoryIconBox: { width: 68, height: 68, borderRadius: 22, backgroundColor: '#12d6c2', alignItems: 'center', justifyContent: 'center', shadowColor: '#12d6c2', shadowOpacity: 0.28, shadowRadius: 10, elevation: 5 },
+  medicalHistoryTitle: { fontSize: 24, fontWeight: '800', color: '#ffffff', letterSpacing: -0.4 },
+  medicalHistorySub: { fontSize: 14, color: '#cbd5e1', fontWeight: '500', marginTop: 5 },
+  medicalHistoryCloseBtn: { width: 54, height: 54, borderRadius: 27, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' },
+  medicalHistoryFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingHorizontal: 16, paddingVertical: 12, marginHorizontal: -18, marginBottom: -18, marginTop: 12 },
+  medicalHistoryPrivacy: { fontSize: 11, color: '#94a3b8' },
+  medicalHistoryFooterClose: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#061a29', borderRadius: 16, paddingHorizontal: 24, paddingVertical: 13 },
+  medicalHistoryFooterCloseText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
+  medSearchFilterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 18 },
+  medSearchInputBox: { width: '100%', flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12 },
+  medSearchTextInput: { flex: 1, fontSize: 15, color: '#0f172a', padding: 0 },
+  medFilterPillBtn: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 13 },
+  medFilterPillText: { fontSize: 14, fontWeight: '500', color: '#334155' },
+  overviewSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 6, marginBottom: 14 },
+  overviewCardsGridThree: { gap: 12, marginBottom: 24 },
+  overviewSingleBoxCard: { backgroundColor: '#ffffff', borderRadius: 20, padding: 18, borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#64748b', shadowOpacity: 0.08, shadowRadius: 7, elevation: 2, gap: 8 },
+  overviewBoxIconHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  iconBoxLightGrey: { width: 64, height: 64, borderRadius: 18, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
+  overviewBoxLabelTitle: { fontSize: 13, fontWeight: '500', color: '#94a3b8', letterSpacing: 0.3 },
+  overviewBoxBigValText: { fontSize: 19, fontWeight: '600', color: '#0f172a', marginLeft: 78, marginTop: -34 },
   visitRowCardItem: { backgroundColor: '#ffffff', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#e2e8f0', gap: 6 },
   visitCardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   visitCardReasonTitle: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
@@ -2825,12 +3081,357 @@ const styles = StyleSheet.create({
   visitMedChip: { backgroundColor: '#f0fdf4', borderWidth: 1, borderColor: '#bbf7d0', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   visitMedChipText: { fontSize: 11, color: '#16a34a', fontWeight: '700' },
 
-  consultHeaderLight: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#e6f4f1', paddingHorizontal: 16, paddingVertical: 14, borderTopLeftRadius: 24, borderTopRightRadius: 24, marginHorizontal: -18, marginTop: -18, marginBottom: 12 },
+  consultHeaderLight: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#e6f4f1', paddingHorizontal: 20, paddingVertical: 18, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#cfe8e4' },
   consultTitleDark: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
   consultSubDark: { fontSize: 12, color: '#64748b' },
   consultIconCircleTeal: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#ccfbf1', alignItems: 'center', justifyContent: 'center' },
   consultCardFull: { backgroundColor: '#ffffff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#e2e8f0', gap: 10 },
-  consultFooterLight: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingHorizontal: 16, paddingVertical: 12, marginHorizontal: -18, marginBottom: -18, marginTop: 12, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },
+  consultFooterLight: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingHorizontal: 16, paddingVertical: 12, marginTop: 12 },
+});
+
+/* ── Medical History modal styles (matches web MedicalHistoryDialog) ── */
+const mhStyles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#0f172a',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginHorizontal: -18,
+    marginTop: -18,
+    marginBottom: 16,
+  },
+  headerLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#2dd4bf',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0d9488',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: -0.3,
+  },
+  headerSubRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  headerPatientName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  headerCodeBadge: {
+    backgroundColor: 'rgba(45, 212, 191, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(45, 212, 191, 0.2)',
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  headerCodeBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#5eead4',
+  },
+  headerMeta: {
+    fontSize: 12,
+    color: '#94a3b8',
+    fontWeight: '500',
+  },
+  headerCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10,
+  },
+
+  scrollContent: {
+    gap: 12,
+    paddingBottom: 20,
+  },
+
+  /* Search bar */
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#0f172a',
+    padding: 0,
+  },
+
+  /* Filter pills */
+  filterRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  filterPill: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  filterPillText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#334155',
+  },
+
+  /* Section headers */
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  sectionIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#ccfbf1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: -0.2,
+  },
+  sectionSub: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 1,
+  },
+  sectionCount: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  sectionCountBadge: {
+    backgroundColor: '#ccfbf1',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 28,
+  },
+  sectionCountBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0d9488',
+  },
+
+  /* Patient overview info cards */
+  infoCardsContainer: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#64748b',
+    shadowOpacity: 0.06,
+    shadowRadius: 5,
+    elevation: 1,
+  },
+  infoCardIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoCardContent: {
+    flex: 1,
+  },
+  infoCardLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  infoCardValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+
+  /* Record cards (visits + lab reports) */
+  recordCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 6,
+  },
+  recordCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  recordCardTitle: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginRight: 8,
+  },
+  statusBadgeGreen: {
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  statusBadgeGreenText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#16a34a',
+  },
+  recordMetaRow: {
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'center',
+  },
+  recordMetaText: {
+    fontSize: 11,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+
+  noteBox: {
+    backgroundColor: '#fff7ed',
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+    marginTop: 2,
+  },
+  noteText: {
+    fontSize: 11,
+    color: '#c2410c',
+    fontWeight: '600',
+  },
+
+  medChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
+  },
+  medChip: {
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  medChipText: {
+    fontSize: 11,
+    color: '#16a34a',
+    fontWeight: '700',
+  },
+
+  /* Empty state */
+  emptyBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 22,
+    backgroundColor: '#f8fafc',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#e2e8f0',
+  },
+  emptyText: {
+    fontSize: 13,
+    color: '#94a3b8',
+    fontWeight: '500',
+  },
+
+  /* Footer */
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: -18,
+    marginBottom: -18,
+    marginTop: 12,
+  },
+  footerPrivacy: {
+    fontSize: 11,
+    color: '#94a3b8',
+  },
+  footerCloseBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#0f172a',
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+  footerCloseBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });
 
 export default PatientsScreen;

@@ -57,6 +57,16 @@ export async function updatePatientApi(
   });
 }
 
+export async function deletePatientApi(
+  token: string,
+  id: number,
+): Promise<ApiResponse<void>> {
+  return apiFetch<void>(`/patients/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export async function getPatientBillingSummaryApi(token: string, id: number): Promise<ApiResponse<any>> {
   return apiFetch<any>(`/patients/${id}/billing-summary`, {
     method: 'GET',

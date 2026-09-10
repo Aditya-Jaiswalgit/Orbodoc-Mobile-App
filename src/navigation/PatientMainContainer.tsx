@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Image,
   Modal,
@@ -16,10 +16,7 @@ import {
   CalendarIcon,
   DashboardIcon,
   DrawerBellIcon,
-  DrawerCalendarIcon,
   DrawerCreditCardIcon,
-  DrawerFlaskIcon,
-  DrawerGridIcon,
   DrawerLogoutIcon,
   DrawerUsersIcon,
   DrawerVideoIcon,
@@ -29,10 +26,12 @@ import {
   ReceiptIcon,
   VideoCamIcon,
 } from '../components/common/CustomIcons';
+import { Menu, X } from 'lucide-react-native';
 import { useAuthContext } from '../context/AuthContext';
+import { getMobileMenuItems } from './mobileMenu';
 import { useNotifications } from '../hooks/useNotifications';
 import { PatientDashboardScreen } from '../screens/dashboards/PatientDashboardScreen';
-import AppointmentsScreen from '../screens/patient/AppointmentsScreen';
+import PatientAppointmentsManagerScreen from '../screens/patient/PatientAppointmentsManagerScreen';
 import BookAppointmentScreen from '../screens/patient/BookAppointmentScreen';
 import LabTestsScreen from '../screens/patient/LabTestsScreen';
 import MedicineBillingScreen from '../screens/patient/MedicineBillingScreen';
@@ -63,10 +62,10 @@ interface MenuItem {
 const renderDrawerIcon = (id: string, color: string, size: number = 20) => {
   switch (id) {
     case 'dashboard':
-      return <DrawerGridIcon color={color} size={size} />;
+      return <DashboardIcon color={color} size={size} />;
     case 'book_appointment':
     case 'appointments':
-      return <DrawerCalendarIcon color={color} size={size} />;
+      return <CalendarIcon color={color} size={size} />;
     case 'patients':
     case 'profile':
       return <DrawerUsersIcon color={color} size={size} />;
@@ -76,11 +75,11 @@ const renderDrawerIcon = (id: string, color: string, size: number = 20) => {
     case 'video_services':
       return <DrawerVideoIcon color={color} size={size} />;
     case 'lab_tests':
-      return <DrawerFlaskIcon color={color} size={size} />;
+      return <LabTubeIcon color={color} size={size} />;
     case 'notifications':
       return <DrawerBellIcon color={color} size={size} />;
     default:
-      return <DrawerGridIcon color={color} size={size} />;
+      return <DashboardIcon color={color} size={size} />;
   }
 };
 
@@ -111,22 +110,15 @@ const renderTabVectorIcon = (tab: PatientTabType, color: string, size: number = 
 export const PatientMainContainer = () => {
   const [activeTab, setActiveTab] = useState<PatientTabType>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { user, logout } = useAuthContext();
+  const { user, logout, permissions } = useAuthContext();
   const { unreadCount } = useNotifications();
 
-  const patientName = user?.fullName || user?.full_name || 'bulbul';
+  const patientName = user?.fullName || user?.full_name || 'Patient';
 
-  const MENU_ITEMS: MenuItem[] = [
-    { id: 'dashboard', label: 'Patient Dashboard' },
-    { id: 'book_appointment', label: 'Book Appointment' },
-    { id: 'patients', label: 'Patients' },
-    { id: 'appointments', label: 'Appointments' },
-    { id: 'treatment_billing', label: 'Treatment Billing' },
-    { id: 'medicine_billing', label: 'Medicine Billing' },
-    { id: 'video_services', label: 'Video Services' },
-    { id: 'lab_tests', label: 'Lab Tests' },
-    { id: 'notifications', label: 'Notifications' },
-  ];
+  const menuItems = useMemo(
+    () => getMobileMenuItems('patient', permissions) as MenuItem[],
+    [permissions],
+  );
 
   const [hideBottomBar, setHideBottomBar] = useState<boolean>(false);
 
@@ -150,7 +142,14 @@ export const PatientMainContainer = () => {
       case 'patients':
         return <PatientsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'appointments':
-        return <AppointmentsScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
+        return (
+          <PatientAppointmentsManagerScreen
+            onOpenDrawer={openDrawer}
+            onOpenNotifications={openNotifications}
+            onToggleTabBar={setHideBottomBar}
+            onNavigateScreen={(screen) => setActiveTab(screen as PatientTabType)}
+          />
+        );
       case 'treatment_billing':
         return <TreatmentBillingScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onToggleTabBar={setHideBottomBar} />;
       case 'medicine_billing':
@@ -215,7 +214,7 @@ export const PatientMainContainer = () => {
             style={styles.tabItemCenter}
             onPress={() => setDrawerOpen(true)}>
             <View style={styles.centerFab}>
-              <Text style={styles.fabIcon}>☰</Text>
+              <Menu color="#ffffff" size={23} strokeWidth={2.7} />
             </View>
             <Text style={styles.fabLabel}>Menu</Text>
           </TouchableOpacity>
@@ -295,7 +294,7 @@ export const PatientMainContainer = () => {
                     onPress={() => setDrawerOpen(false)}
                     style={styles.darkCloseBtn}
                     activeOpacity={0.7}>
-                    <Text style={styles.darkCloseBtnText}>✕</Text>
+                    <X color="#20e3d3" size={19} strokeWidth={2.25} />
                   </TouchableOpacity>
                 </View>
 
@@ -304,7 +303,7 @@ export const PatientMainContainer = () => {
 
                 {/* Navigation Menu Links */}
                 <View style={styles.menuList}>
-                  {MENU_ITEMS.map((item) => {
+                  {menuItems.map((item) => {
                     const isActive = activeTab === item.id;
                     return (
                       <TouchableOpacity
@@ -323,7 +322,7 @@ export const PatientMainContainer = () => {
                             styles.menuIconContainer,
                             isActive && styles.menuIconContainerActive,
                           ]}>
-                          {renderDrawerIcon(item.id, '#2dd4bf', 20)}
+                          {renderDrawerIcon(item.id, '#20d8cb', 17)}
                         </View>
 
                         <Text
@@ -348,7 +347,7 @@ export const PatientMainContainer = () => {
                   logout();
                 }}>
                 <View style={styles.logoutIconContainer}>
-                  <DrawerLogoutIcon color="#2dd4bf" size={20} />
+                  <DrawerLogoutIcon color="#20d8cb" size={17} />
                 </View>
                 <Text style={styles.drawerLogoutText}>Logout</Text>
               </TouchableOpacity>
@@ -489,13 +488,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.65)',
   },
   drawerSheet: {
-    width: '75%',
-    maxWidth: 300,
+    width: '70%',
+    maxWidth: 255,
     height: '100%',
-    backgroundColor: '#071624',
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 12 : 50,
-    paddingBottom: Platform.OS === 'android' ? 24 : 36,
+    backgroundColor: '#071827',
+    paddingHorizontal: 12,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 8 : 16,
+    paddingBottom: Platform.OS === 'android' ? 12 : 20,
     shadowColor: '#000',
     shadowOffset: { width: 8, height: 0 },
     shadowOpacity: 0.5,
@@ -512,23 +511,26 @@ const styles = StyleSheet.create({
   drawerTopHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    marginTop: 4,
+    marginBottom: 12,
+    marginTop: 0,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(148, 163, 184, 0.13)',
   },
   logoSquircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 42,
+    height: 42,
+    borderRadius: 13,
     backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 10,
     overflow: 'hidden',
     padding: 3,
   },
   logoImage: {
-    width: 38,
-    height: 38,
+    width: 36,
+    height: 36,
   },
   userCol: {
     flex: 1,
@@ -538,21 +540,21 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '700',
-    letterSpacing: 0.2,
+    letterSpacing: 0,
   },
   userRoleText: {
-    color: '#94a3b8',
+    color: '#aab8c6',
     fontSize: 13,
     marginTop: 2,
     fontWeight: '500',
   },
   darkCloseBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: '#0c273e',
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: '#0a2738',
     borderWidth: 1,
-    borderColor: '#193b58',
+    borderColor: '#174153',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -565,10 +567,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#2dd4bf',
-    letterSpacing: 1.5,
-    marginTop: 14,
-    marginBottom: 14,
-    paddingHorizontal: 2,
+    letterSpacing: 1.4,
+    marginTop: 2,
+    marginBottom: 9,
+    paddingHorizontal: 8,
   },
   menuList: {
     gap: 2,
@@ -576,47 +578,50 @@ const styles = StyleSheet.create({
   menuItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
-    paddingHorizontal: 8,
-    borderRadius: 18,
-    borderWidth: 1.5,
+    height: 38,
+    paddingHorizontal: 7,
+    borderRadius: 11,
+    borderWidth: 1,
     borderColor: 'transparent',
-    marginBottom: 3,
+    marginBottom: 1,
   },
   menuItemRowActive: {
-    backgroundColor: 'rgba(45, 212, 191, 0.12)',
-    borderColor: '#2dd4bf',
+    backgroundColor: 'rgba(7, 93, 104, 0.46)',
+    borderColor: 'rgba(24, 202, 190, 0.48)',
+    borderLeftWidth: 3,
+    borderLeftColor: '#14d9ca',
   },
   menuIconContainer: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 27,
+    height: 27,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
-    backgroundColor: '#0c2636',
-    borderWidth: 0,
+    marginRight: 9,
+    backgroundColor: '#082b3a',
+    borderWidth: 1,
+    borderColor: 'rgba(45, 212, 191, 0.08)',
     shadowColor: '#2dd4bf',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.65,
-    shadowRadius: 8,
-    elevation: 6,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 10px rgba(45, 212, 191, 0.4)' } as any) : {}),
+    shadowOpacity: 0.38,
+    shadowRadius: 6,
+    elevation: 4,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 9px rgba(20, 235, 216, 0.28)' } as any) : {}),
   },
   menuIconContainerActive: {
-    backgroundColor: 'rgba(45, 212, 191, 0.22)',
+    backgroundColor: 'rgba(10, 129, 135, 0.47)',
     shadowColor: '#2dd4bf',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 12,
-    elevation: 8,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 14px rgba(45, 212, 191, 0.65)' } as any) : {}),
+    shadowOpacity: 0.72,
+    shadowRadius: 8,
+    elevation: 6,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 12px rgba(20, 235, 216, 0.48)' } as any) : {}),
   },
   menuItemLabel: {
     flex: 1,
     fontSize: 14.5,
     fontWeight: '600',
-    color: '#f1f5f9',
+    color: '#c9d5df',
   },
   menuItemLabelActive: {
     color: '#ffffff',
@@ -625,24 +630,26 @@ const styles = StyleSheet.create({
   drawerLogoutRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    gap: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 7,
+    gap: 9,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(148, 163, 184, 0.12)',
   },
   logoutIconContainer: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 27,
+    height: 27,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0c2636',
+    backgroundColor: '#082b3a',
     borderWidth: 0,
     shadowColor: '#2dd4bf',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.65,
-    shadowRadius: 8,
-    elevation: 6,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 10px rgba(45, 212, 191, 0.4)' } as any) : {}),
+    shadowOpacity: 0.38,
+    shadowRadius: 6,
+    elevation: 4,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 9px rgba(20, 235, 216, 0.28)' } as any) : {}),
   },
   drawerLogoutText: {
     color: '#ffffff',

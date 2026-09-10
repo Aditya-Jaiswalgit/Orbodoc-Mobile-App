@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, NativeModules, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { PaymentStep, RazorpayPaymentResponse } from '../../hooks/usePaymentCheckout';
-import { CreateOrderResponse } from '../../api/paymentApi';
+import { BillPaymentOrderResponse, CreateOrderResponse } from '../../api/paymentApi';
 
 interface Props {
   visible: boolean; amount: number; title: string; step: PaymentStep; loading: boolean;
-  error: string | null; newBalance: number | null; orderDetails: CreateOrderResponse | null;
-  allowAmountEdit?: boolean; onSetAmount: (amount: number) => void; onStartPayment: (amountOverride?: number) => void;
+  error: string | null; newBalance: number | null; orderDetails: CreateOrderResponse | BillPaymentOrderResponse | null;
+  allowAmountEdit?: boolean; autoOpenCheckout?: boolean; onSetAmount: (amount: number) => void; onStartPayment: (amountOverride?: number) => void;
   onConfirmPayment: (payment: RazorpayPaymentResponse) => void; onClose: () => void;
 }
 
@@ -21,9 +21,10 @@ const loadWebCheckout = () => new Promise<void>((resolve, reject) => {
 });
 
 export const PaymentCheckoutModal: React.FC<Props> = ({ visible, amount, title, step, loading, error, newBalance, orderDetails,
-  allowAmountEdit = false, onSetAmount, onStartPayment, onConfirmPayment, onClose }) => {
+  allowAmountEdit = false, autoOpenCheckout = false, onSetAmount, onStartPayment, onConfirmPayment, onClose }) => {
   const [input, setInput] = useState(String(amount));
   const [opening, setOpening] = useState(false);
+  const openedOrderRef = useRef<string | null>(null);
   useEffect(() => setInput(String(amount)), [amount, visible]);
 
   const start = () => { const parsed = Number(input); if (allowAmountEdit && (!Number.isFinite(parsed) || parsed <= 0)) return; if (allowAmountEdit) onSetAmount(parsed); onStartPayment(allowAmountEdit ? parsed : undefined); };
@@ -53,6 +54,13 @@ export const PaymentCheckoutModal: React.FC<Props> = ({ visible, amount, title, 
     }
     finally { setOpening(false); }
   };
+
+  useEffect(() => {
+    const orderId = orderDetails?.order_id;
+    if (!autoOpenCheckout || !visible || step !== 'checkout' || !orderId || opening || openedOrderRef.current === orderId) return;
+    openedOrderRef.current = orderId;
+    void openRazorpay();
+  }, [autoOpenCheckout, visible, step, orderDetails?.order_id, opening]);
 
   const isSuccess = step === 'success'; const isVerifying = step === 'verifying'; const canClose = !loading && !opening;
   return <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>

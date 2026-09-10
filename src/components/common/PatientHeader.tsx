@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Image,
@@ -13,13 +13,12 @@ import {
 } from 'react-native';
 import { useAuthContext } from '../../context/AuthContext';
 import { useNotifications } from '../../hooks/useNotifications';
-import {
-  BellNotificationIcon,
-  ChevronDownIcon,
-  EnvelopePlusIcon,
-  HamburgerMenuIcon,
-} from './CustomIcons';
-import { getIconPngUri } from '../../utils/pixelIconEngine';
+import { Bell, ChevronDown, Menu, WalletCards } from 'lucide-react-native';
+import { changePasswordApi } from '../../api/authApi';
+import { getWalletBalanceApi } from '../../api/paymentApi';
+import { usePaymentCheckout } from '../../hooks/usePaymentCheckout';
+import { PaymentCheckoutModal } from '../payment/PaymentCheckoutModal';
+import { WalletRechargeModal } from '../payment/WalletRechargeModal';
 
 interface PatientHeaderProps {
   onOpenDrawer?: () => void;
@@ -34,7 +33,7 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
   onNavigateProfile,
   showLogo = true,
 }) => {
-  const { user, logout } = useAuthContext();
+  const { user, token, logout } = useAuthContext();
   const { unreadCount } = useNotifications();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -44,12 +43,41 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pwdSubmitting, setPwdSubmitting] = useState(false);
+  const [walletOpen, setWalletOpen] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const payment = usePaymentCheckout();
 
   const statusBarHeight = StatusBar.currentHeight || 36;
   const patientName = user?.fullName || user?.full_name || 'Patient';
   const initial = patientName.charAt(0).toUpperCase();
 
-  const handleChangePassword = () => {
+  const loadWalletBalance = useCallback(async () => {
+    if (!token) return;
+    setWalletLoading(true);
+    try {
+      const response = await getWalletBalanceApi(token);
+      if (response.success && response.data) setWalletBalance(Number(response.data.balance || 0));
+    } finally {
+      setWalletLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    void loadWalletBalance();
+  }, [loadWalletBalance]);
+
+  const openWallet = () => {
+    void loadWalletBalance();
+    setWalletOpen(true);
+  };
+
+  const continueWalletRecharge = (amount: number) => {
+    setWalletOpen(false);
+    payment.openCheckout(amount, { autoStart: true });
+  };
+
+  const handleChangePassword = async () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
       Alert.alert('Validation Error', 'Please fill in all password fields.');
       return;
@@ -63,15 +91,27 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
       return;
     }
 
+    if (!token) {
+      Alert.alert('Session expired', 'Please sign in again to change your password.');
+      return;
+    }
+
     setPwdSubmitting(true);
-    setTimeout(() => {
+    try {
+      const result = await changePasswordApi(token, oldPassword, newPassword);
+      if (!result.success) {
+        Alert.alert('Unable to change password', result.message || 'Please try again.');
+        return;
+      }
       setPwdSubmitting(false);
       setShowChangePasswordModal(false);
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
       Alert.alert('Success', 'Password changed successfully!');
-    }, 800);
+    } finally {
+      setPwdSubmitting(false);
+    }
   };
 
   return (
@@ -88,7 +128,7 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
             style={styles.menuIconButton}
             activeOpacity={0.7}
             onPress={onOpenDrawer}>
-            <HamburgerMenuIcon color="#334155" size={20} />
+            <Menu color="#334155" size={20} />
           </TouchableOpacity>
 
           {showLogo && (
@@ -102,17 +142,13 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
 
         {/* Right Section: Envelope+ button, Bell with (1), Profile Avatar Pill */}
         <View style={styles.rightSection}>
-          {/* Message / Compose button with yellow + badge */}
+          {/* Wallet recharge button */}
           <TouchableOpacity
             style={styles.envelopeBtn}
             activeOpacity={0.8}
-            onPress={onOpenNotifications}>
+            onPress={openWallet}>
             <View style={styles.envelopeInnerCircle}>
-              <Image
-                source={{ uri: getIconPngUri('envelope', '#ffffff') }}
-                style={{ width: 14, height: 14 }}
-                resizeMode="contain"
-              />
+              <WalletCards color="#ffffff" size={15} strokeWidth={2.2} />
               <View style={styles.envelopePlusBadge}>
                 <Text style={styles.envelopePlusText}>+</Text>
               </View>
@@ -124,7 +160,7 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
             style={styles.notificationBell}
             activeOpacity={0.8}
             onPress={onOpenNotifications}>
-            <BellNotificationIcon color="#334155" size={20} />
+            <Bell color="#334155" size={20} />
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : '1'}</Text>
             </View>
@@ -138,10 +174,34 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
             <View style={styles.avatarCircle}>
               <Text style={styles.avatarText}>{initial}</Text>
             </View>
-            <ChevronDownIcon color="#64748b" size={14} />
+            <ChevronDown color="#64748b" size={14} />
           </TouchableOpacity>
         </View>
       </View>
+
+      <WalletRechargeModal
+        visible={walletOpen}
+        balance={walletBalance}
+        balanceLoading={walletLoading}
+        onClose={() => setWalletOpen(false)}
+        onContinue={continueWalletRecharge}
+      />
+      <PaymentCheckoutModal
+        visible={payment.visible}
+        amount={payment.amount}
+        title={payment.title}
+        step={payment.step}
+        loading={payment.loading}
+        error={payment.error}
+        newBalance={payment.newBalance}
+        orderDetails={payment.orderDetails}
+        allowAmountEdit
+        autoOpenCheckout={payment.autoOpenCheckout}
+        onSetAmount={payment.setAmount}
+        onStartPayment={payment.startPayment}
+        onConfirmPayment={(result) => payment.confirmPayment(result, loadWalletBalance)}
+        onClose={payment.closeCheckout}
+      />
 
       {/* Dropdown Menu Modal */}
       <Modal

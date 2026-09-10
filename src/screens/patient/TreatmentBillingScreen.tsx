@@ -109,6 +109,7 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
 }) => {
   const { user } = useAuthContext();
   const { bills, loading, refreshBills, fetchBillDetails } = useTreatmentBills();
+  const clinicName = String(user?.clinic_name || user?.clinicName || 'Your clinic');
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('All Status');
@@ -207,7 +208,7 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
     const cleanPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
     const pendingAmt = bill.due_amount !== undefined ? Number(bill.due_amount) : Math.max(0, Number(bill.total_amount || 0) - Number(bill.paid_amount || 0));
     const msg = encodeURIComponent(
-      `*Aarogya Care Clinic - Treatment Bill*\n` +
+      `*${clinicName} - Treatment Bill*\n` +
       `Bill No: ${bill.bill_number || '#' + bill.id}\n` +
       `Patient: ${bill.patient_name || 'Patient'}\n` +
       `Total: ₹${Number(bill.total_amount || 0).toFixed(2)}\n` +
@@ -215,7 +216,7 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
       `Pending: ₹${pendingAmt.toFixed(2)}\n` +
       `Status: ${(bill.status || 'Pending').toUpperCase()}\n` +
       `Date: ${formatCardDate(bill.created_at || (bill as any).bill_date)}\n\n` +
-      `Thank you for choosing Aarogya Care Clinic!`
+      `Thank you for choosing ${clinicName}!`
     );
     const nativeUrl = cleanPhone ? `whatsapp://send?phone=${cleanPhone}&text=${msg}` : `whatsapp://send?text=${msg}`;
     const webUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${msg}` : `https://api.whatsapp.com/send?text=${msg}`;
@@ -230,7 +231,7 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
   };
 
   const handleShareEmail = (bill: TreatmentBill) => {
-    const subject = encodeURIComponent(`Treatment Bill ${bill.bill_number || '#' + bill.id} - Aarogya Care Clinic`);
+    const subject = encodeURIComponent(`Treatment Bill ${bill.bill_number || '#' + bill.id} - ${clinicName}`);
     const pendingAmt = bill.due_amount !== undefined ? Number(bill.due_amount) : Math.max(0, Number(bill.total_amount || 0) - Number(bill.paid_amount || 0));
     const body = encodeURIComponent(
       `Dear ${bill.patient_name || 'Patient'},\n\n` +
@@ -241,7 +242,7 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
       `Paid Amount: ₹${Number(bill.paid_amount || 0).toFixed(2)}\n` +
       `Pending Amount: ₹${pendingAmt.toFixed(2)}\n` +
       `Status: ${bill.status}\n\n` +
-      `Warm Regards,\nAarogya Care Clinic`
+      `Warm Regards,\n${clinicName}`
     );
     Linking.openURL(`mailto:?subject=${subject}&body=${body}`).catch(() => {
       Alert.alert('Notice', 'Email client not configured.');
@@ -286,8 +287,9 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
       return idMatch || phoneMatch || nameMatch;
     });
 
-    // If personal bills exist, return only those; otherwise if in test mode return user bills
-    return personal.length > 0 ? personal : bills;
+    // This is a patient screen: never expose another patient's bills if an API
+    // response is broader than the logged-in patient's own records.
+    return personal;
   }, [bills, user]);
 
   const filteredBills = useMemo(() => {
@@ -680,23 +682,6 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
                   </TouchableOpacity>
                 </View>
 
-                {/* 1. Edit Bill */}
-                <TouchableOpacity
-                  style={styles.actionMenuItemRow}
-                  activeOpacity={0.65}
-                  onPress={() => {
-                    setShowActionMenuModal(false);
-                    if (actionMenuBill) {
-                      setEditTargetBill(actionMenuBill);
-                      setShowEditBillModal(true);
-                    }
-                  }}>
-                  <View style={styles.actionMenuItemIconBox}>
-                    <BillingSlidersIcon color="#334155" size={20} strokeWidth={1.8} />
-                  </View>
-                  <Text style={styles.actionMenuItemText}>Edit Bill</Text>
-                </TouchableOpacity>
-
                 {/* 2. Share on WhatsApp */}
                 <TouchableOpacity
                   style={styles.actionMenuItemRow}
@@ -739,21 +724,6 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
                   <Text style={styles.actionMenuItemText}>Add Payment</Text>
                 </TouchableOpacity>
 
-                {/* 5. Cancel Bill */}
-                <TouchableOpacity
-                  style={styles.actionMenuItemRow}
-                  activeOpacity={0.65}
-                  onPress={() => {
-                    setShowActionMenuModal(false);
-                    if (actionMenuBill) handleCancelBill(actionMenuBill);
-                  }}>
-                  <View style={styles.actionMenuItemIconBox}>
-                    <BillingAlertCancelIcon color="#ef4444" size={20} strokeWidth={1.8} />
-                  </View>
-                  <Text style={[styles.actionMenuItemText, styles.actionMenuItemTextCancel]}>
-                    Cancel Bill
-                  </Text>
-                </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>
           </View>
@@ -768,7 +738,7 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
           invoiceType="treatment"
           invoiceNumber={selectedBill.bill_number || `TB-C71-2026-0000${selectedBill.id}`}
           invoiceDate={selectedBill.created_at ? String(selectedBill.created_at).split('T')[0] : undefined}
-          clinicName={(selectedBill as any).clinic_name || 'Aarogya Care Clinic'}
+          clinicName={(selectedBill as any).clinic_name || clinicName}
           patientName={selectedBill.patient_name || 'Patient'}
           patientPhone={selectedBill.patient_phone || '-'}
           doctorName={(selectedBill as any).doctor_name || 'Dr. Rahul Sharma'}

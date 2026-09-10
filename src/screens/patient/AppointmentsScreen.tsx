@@ -36,6 +36,7 @@ import {
 import { useAppointments } from '../../hooks/useAppointments';
 import { Appointment } from '../../types/clinicTypes';
 import { ColumnsModal, ColumnItem } from '../../components/common/ColumnsModal';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 
 interface AppointmentsScreenProps {
   onOpenDrawer?: () => void;
@@ -136,15 +137,16 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
     setSearchQuery('');
     setDateFilter('');
     setActiveTabFilter('all');
-    setVisibleCount(5);
+    setCurrentPage(1);
   };
 
   // Card active state (green/teal border on click)
   const [isCardActive, setIsCardActive] = useState<boolean>(false);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
 
-  // Pagination / Load More (5 at a time)
-  const [visibleCount, setVisibleCount] = useState<number>(5);
+  // Render exactly five API appointments per page after all filters are applied.
+  const APPOINTMENTS_PER_PAGE = 5;
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   // Column management modal
   const [showColumnsModal, setShowColumnsModal] = useState<boolean>(false);
@@ -199,7 +201,7 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
       const date = formatTableDate(appt.appointment_date);
       const time = appt.appointment_time || appt.time_slot || '10:00 AM';
       await Share.share({
-        message: `Appointment with ${doc} on ${date} at ${time}. Clinic: ${appt.clinic_name || 'Aarogya Care Clinic'}`,
+        message: `Appointment with ${doc} on ${date} at ${time}. Clinic: ${appt.clinic_name || 'Clinic unavailable'}`,
         title: 'Appointment Details',
       });
     } catch (e) {
@@ -281,12 +283,20 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
     });
   }, [appointments, selectedClinic, selectedStatus, selectedDoctor, dateFilter, searchQuery]);
 
-  // Slice visible appointments (5 at a time)
-  const visibleAppointments = filteredAppointments.slice(0, visibleCount);
+  const totalPages = Math.max(1, Math.ceil(filteredAppointments.length / APPOINTMENTS_PER_PAGE));
+  const firstAppointmentIndex = (currentPage - 1) * APPOINTMENTS_PER_PAGE;
+  const visibleAppointments = filteredAppointments.slice(
+    firstAppointmentIndex,
+    firstAppointmentIndex + APPOINTMENTS_PER_PAGE,
+  );
 
-  const handleLoadMore = () => {
-    setVisibleCount((prev) => prev + 5);
-  };
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedClinic, selectedStatus, selectedDoctor, dateFilter, searchQuery, activeTabFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   const renderStatusBadge = (status?: string) => {
     const s = String(status || '').toLowerCase();
@@ -337,6 +347,51 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
         <Text style={styles.modeTextInPerson}>In Person</Text>
       </View>
     );
+  };
+
+  const tableColumns = [
+    { id: 'patient_name', label: 'Patient Name', width: 150 },
+    { id: 'phone', label: 'Phone No', width: 125 },
+    { id: 'patient_code', label: 'Patient Code', width: 120 },
+    { id: 'date', label: 'Date', width: 115 },
+    { id: 'time', label: 'Time', width: 100 },
+    { id: 'mode', label: 'Consultation Mode', width: 145 },
+    { id: 'doctor', label: 'Doctor Name', width: 155 },
+    { id: 'clinic', label: 'Clinic', width: 150 },
+    { id: 'specialization', label: 'Specialization', width: 135 },
+    { id: 'status', label: 'Status', width: 115 },
+    { id: 'reason', label: 'Reason', width: 145 },
+    { id: 'notes', label: 'Notes', width: 145 },
+    { id: 'duration', label: 'Duration', width: 105 },
+    { id: 'share', label: 'Share', width: 105 },
+  ];
+
+  const renderAppointmentTableCell = (item: Appointment, columnId: string) => {
+    const patientName = item.patient_name || (item as any).patient?.full_name || '-';
+    const patientPhone = item.patient_phone || (item as any).patient?.phone || '-';
+    const patientCode = (item as any).patient_code || (item as any).patient?.patient_code || (item.patient_id ? `PT-${String(item.patient_id).padStart(5, '0')}` : '-');
+    const doctorNameRaw = item.doctor_name || (item as any).doctor?.full_name || '-';
+    const doctorName = doctorNameRaw !== '-' && !String(doctorNameRaw).toLowerCase().startsWith('dr') ? `Dr ${doctorNameRaw}` : doctorNameRaw;
+    const clinicName = item.clinic_name || (item as any).clinic?.name || '-';
+    const specialization = item.doctor_specialization || (item as any).doctor?.specialization || '-';
+    switch (columnId) {
+      case 'patient_name':
+        return <View style={styles.tablePatientCell}><View style={styles.tableAvatar}><PatientUserIcon size={15} color="#0d9488" /></View><Text style={styles.tablePatientText} numberOfLines={1}>{patientName}</Text></View>;
+      case 'phone': return <Text style={styles.tableMutedText}>{patientPhone}</Text>;
+      case 'patient_code': return <Text style={styles.tableCodeText}>{patientCode}</Text>;
+      case 'date': return <Text style={styles.tableValueText}>{formatTableDate(item.appointment_date)}</Text>;
+      case 'time': return <Text style={styles.tableValueText}>{item.appointment_time || item.time_slot || '-'}</Text>;
+      case 'mode': return renderModeBadge(item.consultation_mode, item.type);
+      case 'doctor': return <View><Text style={styles.tableValueText} numberOfLines={1}>{doctorName}</Text><Text style={styles.tableClinicSubText} numberOfLines={1}>{clinicName}</Text></View>;
+      case 'clinic': return <Text style={styles.tableValueText} numberOfLines={2}>{clinicName}</Text>;
+      case 'specialization': return <Text style={styles.tableMutedText} numberOfLines={1}>{specialization}</Text>;
+      case 'status': return renderStatusBadge(item.status);
+      case 'reason': return <Text style={styles.tableValueText} numberOfLines={2}>{item.reason || '-'}</Text>;
+      case 'notes': return <Text style={styles.tableMutedText} numberOfLines={2}>{item.notes || '-'}</Text>;
+      case 'duration': return <Text style={styles.tableValueText}>{(item as any).duration_minutes ? `${(item as any).duration_minutes} mins` : (item as any).duration || '-'}</Text>;
+      case 'share': return <TouchableOpacity style={styles.tableShareBtn} onPress={() => handleShareAppointment(item)}><ShareLinkIcon size={12} color="#0d9488" /><Text style={styles.tableShareText}>Share</Text></TouchableOpacity>;
+      default: return null;
+    }
   };
 
   return (
@@ -500,7 +555,7 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
                     value={searchQuery}
                     onChangeText={(t) => {
                       setSearchQuery(t);
-                      setVisibleCount(5);
+                      setCurrentPage(1);
                     }}
                   />
                 </View>
@@ -570,7 +625,35 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
                 <Text style={styles.emptySub}>Try adjusting your filters or search query.</Text>
               </View>
             ) : (
-              <View style={styles.apptsListContainer}>
+              <>
+                <View style={styles.tableOuter}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator>
+                    <View>
+                      <View style={styles.tableHeaderRow}>
+                        {tableColumns.filter((column) => selectedColumns.includes(column.id)).map((column) => (
+                          <View key={column.id} style={[styles.tableColumnHeader, { width: column.width }]}>
+                            <Text style={styles.tableHeaderText}>{column.label}</Text>
+                          </View>
+                        ))}
+                      </View>
+                      {visibleAppointments.map((item, index) => (
+                        <TouchableOpacity
+                          key={item.id ? `patient-table-${item.id}` : `patient-table-${index}`}
+                          activeOpacity={0.85}
+                          onPress={() => setSelectedRowId(item.id)}
+                          style={[styles.tableDataRow, selectedRowId === item.id && styles.tableDataRowSelected]}>
+                          {tableColumns.filter((column) => selectedColumns.includes(column.id)).map((column) => (
+                            <View key={column.id} style={[styles.tableDataCell, { width: column.width }]}>
+                              {renderAppointmentTableCell(item, column.id)}
+                            </View>
+                          ))}
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </ScrollView>
+                </View>
+
+                <View style={[styles.apptsListContainer, styles.hiddenAppointmentCards]}>
                 {visibleAppointments.map((item, idx) => {
                   const rawDocName = item.doctor_name || (item as any).doctor?.full_name || (item as any).doctor?.name || '';
                   const docName = rawDocName ? (rawDocName.toLowerCase().startsWith('dr') ? rawDocName : `Dr ${rawDocName}`) : 'Doctor';
@@ -648,25 +731,33 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
                     </TouchableOpacity>
                   );
                 })}
-              </View>
+                </View>
+              </>
             )}
 
             {/* ─── PAGINATION: LOAD MORE (5 AT A TIME) ─── */}
             {filteredAppointments.length > 0 && (
               <View style={styles.paginationBox}>
                 <Text style={styles.showingCountText}>
-                  Showing {Math.min(visibleCount, filteredAppointments.length)} of {filteredAppointments.length} appointments
+                  Showing {firstAppointmentIndex + 1} to {Math.min(firstAppointmentIndex + APPOINTMENTS_PER_PAGE, filteredAppointments.length)} of {filteredAppointments.length} appointments
                 </Text>
-
-                {filteredAppointments.length > visibleCount && (
+                <View style={styles.paginationActionsRow}>
                   <TouchableOpacity
-                    style={styles.loadMoreBtn}
-                    activeOpacity={0.8}
-                    onPress={handleLoadMore}>
-                    <ChevronDownIcon size={14} color="#ffffff" strokeWidth={2} />
-                    <Text style={styles.loadMoreBtnText}>Load More</Text>
+                    style={[styles.paginationNavBtn, currentPage === 1 && styles.paginationNavBtnDisabled]}
+                    disabled={currentPage === 1}
+                    onPress={() => setCurrentPage((page) => Math.max(1, page - 1))}>
+                    <ChevronLeft size={17} color={currentPage === 1 ? '#94a3b8' : '#0f766e'} />
+                    <Text style={[styles.paginationNavText, currentPage === 1 && styles.paginationNavTextDisabled]}>Previous</Text>
                   </TouchableOpacity>
-                )}
+                  <Text style={styles.paginationPageText}>Page {currentPage} of {totalPages}</Text>
+                  <TouchableOpacity
+                    style={[styles.paginationNavBtn, currentPage === totalPages && styles.paginationNavBtnDisabled]}
+                    disabled={currentPage === totalPages}
+                    onPress={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}>
+                    <Text style={[styles.paginationNavText, currentPage === totalPages && styles.paginationNavTextDisabled]}>Next</Text>
+                    <ChevronRight size={17} color={currentPage === totalPages ? '#94a3b8' : '#0f766e'} />
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
           </View>
@@ -702,7 +793,7 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
                     onPress={() => {
                       setSelectedClinic(c);
                       setShowClinicPicker(false);
-                      setVisibleCount(5);
+                      setCurrentPage(1);
                     }}>
                     <Text style={[styles.pickerItemText, selectedClinic === c && styles.pickerItemTextActive]}>
                       {c}
@@ -734,7 +825,7 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
                   onPress={() => {
                     setSelectedStatus(s);
                     setShowStatusPicker(false);
-                    setVisibleCount(5);
+                    setCurrentPage(1);
                   }}>
                   <Text style={[styles.pickerItemText, selectedStatus === s && styles.pickerItemTextActive]}>
                     {s}
@@ -766,7 +857,7 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
                     onPress={() => {
                       setSelectedDoctor(d);
                       setShowDoctorPicker(false);
-                      setVisibleCount(5);
+                      setCurrentPage(1);
                     }}>
                     <Text style={[styles.pickerItemText, selectedDoctor === d && styles.pickerItemTextActive]}>
                       {d}
@@ -800,7 +891,7 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
                   onPress={() => {
                     setDateFilter('');
                     setShowDatePicker(false);
-                    setVisibleCount(5);
+                    setCurrentPage(1);
                   }}>
                   <Text style={styles.dialogClearBtnText}>Clear</Text>
                 </TouchableOpacity>
@@ -808,7 +899,7 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
                   style={styles.dialogApplyBtn}
                   onPress={() => {
                     setShowDatePicker(false);
-                    setVisibleCount(5);
+                    setCurrentPage(1);
                   }}>
                   <Text style={styles.dialogApplyBtnText}>Apply</Text>
                 </TouchableOpacity>
@@ -1379,6 +1470,29 @@ const styles = StyleSheet.create({
     color: '#64748b',
     fontWeight: '500',
   },
+  tableOuter: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 16, overflow: 'hidden' },
+  tableHeaderRow: { flexDirection: 'row', backgroundColor: '#f8fafc', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', paddingVertical: 12, paddingHorizontal: 8 },
+  tableColumnHeader: { paddingHorizontal: 6, justifyContent: 'center' },
+  tableHeaderText: { fontSize: 12.5, color: '#334155', fontWeight: '700' },
+  tableDataRow: { flexDirection: 'row', minHeight: 92, paddingVertical: 13, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: '#e2e8f0', backgroundColor: '#ffffff', alignItems: 'center' },
+  tableDataRowSelected: { backgroundColor: '#f0fdfa', borderBottomColor: '#99f6e4' },
+  tableDataCell: { paddingHorizontal: 6, justifyContent: 'center' },
+  tablePatientCell: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tableAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#e6fffa', alignItems: 'center', justifyContent: 'center' },
+  tablePatientText: { flex: 1, fontSize: 13, color: '#0f172a', fontWeight: '700' },
+  tableValueText: { fontSize: 12.5, color: '#0f172a', fontWeight: '600' },
+  tableMutedText: { fontSize: 12.5, color: '#64748b', fontWeight: '500' },
+  tableCodeText: { fontSize: 12, color: '#0d9488', fontWeight: '700' },
+  tableClinicSubText: { fontSize: 11, color: '#64748b', marginTop: 3 },
+  tableShareBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 4, backgroundColor: '#ecfdf5', borderWidth: 1, borderColor: '#a7f3d0', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
+  tableShareText: { color: '#0d9488', fontSize: 11, fontWeight: '700' },
+  hiddenAppointmentCards: { display: 'none' },
+  paginationActionsRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  paginationNavBtn: { minWidth: 94, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, backgroundColor: '#ecfdf5', borderWidth: 1, borderColor: '#99f6e4', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 9 },
+  paginationNavBtnDisabled: { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' },
+  paginationNavText: { fontSize: 12, color: '#0f766e', fontWeight: '700' },
+  paginationNavTextDisabled: { color: '#94a3b8' },
+  paginationPageText: { flex: 1, fontSize: 11.5, color: '#64748b', fontWeight: '600', textAlign: 'center' },
   loadMoreBtn: {
     flexDirection: 'row',
     alignItems: 'center',

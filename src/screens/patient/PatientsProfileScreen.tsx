@@ -9,6 +9,20 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import {
+  Activity,
+  Building2,
+  CalendarDays,
+  Edit3,
+  HeartPulse,
+  History,
+  Mail,
+  Phone,
+  Pill,
+  ShieldCheck,
+  UserRound,
+  UsersRound,
+} from 'lucide-react-native';
 import { PatientHeader } from '../../components/common/PatientHeader';
 import { usePatientProfile } from '../../hooks/usePatientProfile';
 
@@ -23,8 +37,9 @@ export const PatientsProfileScreen: React.FC<PatientsProfileScreenProps> = ({
   onOpenNotifications = () => {},
   onToggleTabBar,
 }) => {
-  const { profile, updateProfile } = usePatientProfile();
+  const { profile, loading, error, updateProfile } = usePatientProfile();
   const [showEditModal, setShowEditModal] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (onToggleTabBar) {
@@ -45,9 +60,27 @@ export const PatientsProfileScreen: React.FC<PatientsProfileScreenProps> = ({
   }, [profile]);
 
   const handleSaveProfile = async () => {
-    await updateProfile(formData);
-    setShowEditModal(false);
-    Alert.alert('Success', 'Profile information updated successfully!');
+    if (!formData.full_name?.trim()) {
+      Alert.alert('Required', 'Please enter your full name.');
+      return;
+    }
+    if (formData.phone && !/^[6-9]\d{9}$/.test(formData.phone.replace(/\D/g, ''))) {
+      Alert.alert('Invalid phone', 'Enter a valid 10-digit mobile number.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const result = await updateProfile(formData);
+      if (!result.success) {
+        Alert.alert('Unable to update profile', result.message || 'Please try again.');
+        return;
+      }
+      setShowEditModal(false);
+      Alert.alert('Success', 'Profile information updated successfully.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const initial = (profile.full_name || 'B').charAt(0).toUpperCase();
@@ -62,6 +95,7 @@ export const PatientsProfileScreen: React.FC<PatientsProfileScreenProps> = ({
           <View style={styles.titleCol}>
             <View style={styles.titleWithIcon}>
               <Text style={styles.titleIcon}>👤</Text>
+              <UserRound color="#0d9488" size={21} />
               <Text style={styles.pageTitle}>My Profile</Text>
             </View>
             <Text style={styles.pageSub}>View and manage your personal information</Text>
@@ -69,6 +103,7 @@ export const PatientsProfileScreen: React.FC<PatientsProfileScreenProps> = ({
 
           <TouchableOpacity style={styles.editProfileBtn} onPress={() => { setFormData({ ...profile }); setShowEditModal(true); }}>
             <Text style={styles.editBtnIcon}>📝</Text>
+            <Edit3 color="#ffffff" size={14} />
             <Text style={styles.editBtnText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
@@ -90,6 +125,7 @@ export const PatientsProfileScreen: React.FC<PatientsProfileScreenProps> = ({
 
               <View style={styles.clinicRow}>
                 <Text style={styles.clinicIcon}>🏢</Text>
+                <Building2 color="#0d9488" size={14} />
                 <Text style={styles.clinicNameText}>{profile.clinic_name}</Text>
               </View>
             </View>
@@ -98,11 +134,13 @@ export const PatientsProfileScreen: React.FC<PatientsProfileScreenProps> = ({
           <View style={styles.contactStripRow}>
             <View style={styles.contactItemPill}>
               <Text style={styles.contactIcon}>✉️</Text>
+              <Mail color="#0d9488" size={14} />
               <Text style={styles.contactText}>{profile.email}</Text>
             </View>
 
             <View style={styles.contactItemPill}>
               <Text style={styles.contactIcon}>📞</Text>
+              <Phone color="#0d9488" size={14} />
               <Text style={styles.contactText}>{profile.phone}</Text>
             </View>
           </View>
@@ -114,72 +152,84 @@ export const PatientsProfileScreen: React.FC<PatientsProfileScreenProps> = ({
             <View style={styles.sectionHeaderIconCircle}>
               <Text style={styles.sectionHeaderIcon}>🩵</Text>
             </View>
+            <HeartPulse color="#0d9488" size={16} />
             <Text style={styles.sectionTitle}>Patient & Medical Information</Text>
           </View>
 
           <View style={styles.gridContainer}>
             <View style={styles.gridCard}>
               <Text style={styles.cardIcon}>👤</Text>
+              <UserRound color="#0d9488" size={16} />
               <Text style={styles.cardLabel}>Gender</Text>
               <Text style={styles.cardValue}>{profile.gender}</Text>
             </View>
 
             <View style={styles.gridCard}>
               <Text style={styles.cardIcon}>📅</Text>
+              <CalendarDays color="#0d9488" size={16} />
               <Text style={styles.cardLabel}>Date of Birth</Text>
               <Text style={styles.cardValue}>{profile.dob}</Text>
             </View>
 
             <View style={styles.gridCard}>
               <Text style={styles.cardIcon}>🔢</Text>
+              <Activity color="#0d9488" size={16} />
               <Text style={styles.cardLabel}>Age</Text>
               <Text style={styles.cardValue}>{profile.age}</Text>
             </View>
 
             <View style={styles.gridCard}>
               <Text style={styles.cardIcon}>🩸</Text>
+              <HeartPulse color="#dc2626" size={16} />
               <Text style={styles.cardLabel}>Blood Group</Text>
               <Text style={styles.cardValue}>{profile.blood_group}</Text>
             </View>
 
             <View style={styles.gridCard}>
               <Text style={styles.cardIcon}>⚠️</Text>
+              <ShieldCheck color="#d97706" size={16} />
               <Text style={styles.cardLabel}>Allergies</Text>
               <Text style={styles.cardValue}>{profile.allergies}</Text>
             </View>
 
             <View style={styles.gridCard}>
               <Text style={styles.cardIcon}>📈</Text>
+              <Activity color="#0d9488" size={16} />
               <Text style={styles.cardLabel}>Chronic Conditions</Text>
               <Text style={styles.cardValue}>{profile.chronic_conditions}</Text>
             </View>
 
             <View style={styles.gridCard}>
               <Text style={styles.cardIcon}>🩺</Text>
+              <History color="#0d9488" size={16} />
               <Text style={styles.cardLabel}>Medical History</Text>
               <Text style={styles.cardValue}>{profile.medical_history}</Text>
             </View>
 
             <View style={styles.gridCard}>
               <Text style={styles.cardIcon}>💊</Text>
+              <Pill color="#0d9488" size={16} />
               <Text style={styles.cardLabel}>Current Medications</Text>
               <Text style={styles.cardValue}>{profile.current_medications}</Text>
             </View>
 
             <View style={styles.gridCard}>
               <Text style={styles.cardIcon}>👤</Text>
+              <UsersRound color="#0d9488" size={16} />
               <Text style={styles.cardLabel}>Emergency Contact</Text>
               <Text style={styles.cardValue}>{profile.emergency_contact}</Text>
             </View>
 
             <View style={styles.gridCard}>
               <Text style={styles.cardIcon}>📞</Text>
+              <Phone color="#0d9488" size={16} />
               <Text style={styles.cardLabel}>Emergency Phone</Text>
               <Text style={styles.cardValue}>{profile.emergency_phone}</Text>
             </View>
 
             <View style={styles.gridCard}>
               <Text style={styles.cardIcon}>🛡️</Text>
+              <ShieldCheck color="#0d9488" size={16} />
               <Text style={styles.cardLabel}>Relation</Text>
               <Text style={styles.cardValue}>{profile.relation}</Text>
             </View>
@@ -192,15 +242,19 @@ export const PatientsProfileScreen: React.FC<PatientsProfileScreenProps> = ({
             <View style={styles.sectionHeaderIconCircle}>
               <Text style={styles.sectionHeaderIcon}>🛡️</Text>
             </View>
+            <ShieldCheck color="#0d9488" size={16} />
             <Text style={styles.sectionTitle}>Account Information</Text>
           </View>
 
           <View style={styles.accountCard}>
             <Text style={styles.cardIcon}>🏢</Text>
+            <Building2 color="#0d9488" size={16} />
             <Text style={styles.cardLabel}>Clinic</Text>
             <Text style={styles.cardValue}>{profile.clinic_name}</Text>
           </View>
         </View>
+        {loading ? <Text style={styles.loadingText}>Refreshing profile…</Text> : null}
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
 
       {/* Edit Profile Modal */}
@@ -290,14 +344,53 @@ export const PatientsProfileScreen: React.FC<PatientsProfileScreenProps> = ({
                   onChangeText={(val) => setFormData({ ...formData, relation: val })}
                 />
               </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Allergies</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={formData.allergies}
+                  onChangeText={(allergies) => setFormData({ ...formData, allergies })}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Chronic Conditions</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={formData.chronic_conditions}
+                  onChangeText={(chronic_conditions) => setFormData({ ...formData, chronic_conditions })}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Medical History</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={formData.medical_history}
+                  onChangeText={(medical_history) => setFormData({ ...formData, medical_history })}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Current Medications</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={formData.current_medications}
+                  onChangeText={(current_medications) => setFormData({ ...formData, current_medications })}
+                />
+              </View>
             </ScrollView>
 
             <View style={styles.modalBtnRow}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowEditModal(false)}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile}>
-                <Text style={styles.saveBtnText}>Save Profile</Text>
+              <TouchableOpacity
+                style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+                disabled={saving}
+                onPress={handleSaveProfile}>
+                <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save Profile'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -319,7 +412,7 @@ const styles = StyleSheet.create({
   },
   titleCol: { flex: 1 },
   titleWithIcon: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  titleIcon: { fontSize: 20 },
+  titleIcon: { display: 'none' },
   pageTitle: { fontSize: 22, fontWeight: '800', color: '#0f172a' },
   pageSub: { fontSize: 12, color: '#64748b', marginTop: 2 },
   editProfileBtn: {
@@ -331,7 +424,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     gap: 6,
   },
-  editBtnIcon: { fontSize: 13, color: '#ffffff' },
+  editBtnIcon: { display: 'none' },
   editBtnText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
 
   mainProfileCard: {
@@ -364,7 +457,7 @@ const styles = StyleSheet.create({
   },
   patientBadgeText: { color: '#ffffff', fontSize: 10, fontWeight: '800' },
   clinicRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  clinicIcon: { fontSize: 13 },
+  clinicIcon: { display: 'none' },
   clinicNameText: { fontSize: 13, color: '#64748b', fontWeight: '600' },
 
   contactStripRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
@@ -381,7 +474,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 150,
   },
-  contactIcon: { fontSize: 13 },
+  contactIcon: { display: 'none' },
   contactText: { fontSize: 12, fontWeight: '700', color: '#334155' },
 
   sectionContainer: { marginBottom: 20, gap: 12 },
@@ -394,7 +487,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sectionHeaderIcon: { fontSize: 14 },
+  sectionHeaderIcon: { display: 'none' },
   sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
 
   gridContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -416,7 +509,7 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 4,
   },
-  cardIcon: { fontSize: 16, marginBottom: 2 },
+  cardIcon: { display: 'none' },
   cardLabel: { fontSize: 11, fontWeight: '700', color: '#64748b' },
   cardValue: { fontSize: 13, fontWeight: '800', color: '#0f172a' },
 
@@ -465,7 +558,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
   },
+  saveBtnDisabled: { opacity: 0.65 },
   saveBtnText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
+  loadingText: { color: '#64748b', fontSize: 12, textAlign: 'center', marginBottom: 12 },
+  errorText: { color: '#b91c1c', fontSize: 12, textAlign: 'center', marginBottom: 12 },
 });
 
 export default PatientsProfileScreen;

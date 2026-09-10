@@ -20,9 +20,11 @@ export async function getTodayAppointmentsApi(token: string): Promise<ApiRespons
 export async function getAvailableSlotsApi(
   token: string,
   doctorId: number,
-  date: string
+  date: string,
+  clinicId?: number
 ): Promise<ApiResponse<string[]>> {
-  return apiFetch<string[]>(`/appointments/slots?doctor_id=${doctorId}&date=${date}`, {
+  const clinicQuery = clinicId ? `&clinic_id=${clinicId}` : '';
+  return apiFetch<string[]>(`/appointments/slots?doctor_id=${doctorId}&date=${date}${clinicQuery}`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   });

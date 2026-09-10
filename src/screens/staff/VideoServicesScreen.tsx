@@ -199,30 +199,8 @@ export const VideoServicesScreen: React.FC<Props> = ({
     );
   });
 
-  // Base history with doctor filtering
-  const baseHistory = (() => {
-    if (consultancyHistory && consultancyHistory.length > 0) {
-      return isDoc ? consultancyHistory.filter(matchesDoctor) : consultancyHistory;
-    }
-    if (isClinicAdmin) {
-      return defaultConsultancyHistory;
-    }
-    if (isDoc) {
-      const filtered = defaultConsultancyHistory.filter(matchesDoctor);
-      if (filtered.length > 0) return filtered;
-      const docDisplay = currentDoctorName
-        ? (currentDoctorName.startsWith('Dr') ? currentDoctorName : `Dr. ${currentDoctorName}`).replace(' ', '\n') + '\n-'
-        : 'Dr. Dr\nVerma\n-';
-      return [
-        {
-          ...defaultConsultancyHistory[0],
-          doctor_name: docDisplay,
-          doctor_id: currentDoctorId || 1,
-        },
-      ];
-    }
-    return defaultConsultancyHistory;
-  })();
+  // API-only history; doctors are restricted to their own consultations.
+  const baseHistory = isDoc ? consultancyHistory.filter(matchesDoctor) : consultancyHistory;
 
   const filteredHistory = baseHistory.filter((item: any) => {
     const q = searchQuery.toLowerCase().trim();
@@ -233,30 +211,8 @@ export const VideoServicesScreen: React.FC<Props> = ({
     );
   });
 
-  // Base billing with doctor filtering (doctors only see own billing; clinic admin sees all)
-  const baseBilling = (() => {
-    if (videoBilling && videoBilling.length > 0) {
-      return isDoc ? videoBilling.filter(matchesDoctor) : videoBilling;
-    }
-    if (isClinicAdmin) {
-      return defaultVideoBilling;
-    }
-    if (isDoc) {
-      const filtered = defaultVideoBilling.filter(matchesDoctor);
-      if (filtered.length > 0) return filtered;
-      const docDisplay = currentDoctorName
-        ? (currentDoctorName.startsWith('Dr') ? currentDoctorName : `Dr. ${currentDoctorName}`).replace(' ', '\n') + '\n-'
-        : 'Dr. Dr\nVerma\n-';
-      return [
-        {
-          ...defaultVideoBilling[0],
-          doctor_name: docDisplay,
-          doctor_id: currentDoctorId || 1,
-        },
-      ];
-    }
-    return defaultVideoBilling;
-  })();
+  // API-only billing; doctors are restricted to their own billable calls.
+  const baseBilling = isDoc ? videoBilling.filter(matchesDoctor) : videoBilling;
 
   const filteredBilling = baseBilling.filter((item: any) => {
     const q = searchQuery.toLowerCase().trim();

@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 import { useAuthContext } from '../../context/AuthContext';
 import { useNotifications } from '../../hooks/useNotifications';
-import { BellNotificationIcon, ChevronDownIcon } from './CustomIcons';
-import { getIconPngUri } from '../../utils/pixelIconEngine';
+import { Bell, ChevronDown } from 'lucide-react-native';
+import { changePasswordApi } from '../../api/authApi';
 
 interface StaffHeaderProps {
   onOpenDrawer?: () => void;
@@ -33,7 +33,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
   showLogo = true,
   showRolePill = true,
 }) => {
-  const { user, logout } = useAuthContext();
+  const { user, token, logout } = useAuthContext();
   const { unreadCount } = useNotifications();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -84,7 +84,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
 
   const badgeTheme = getRoleBadgeColor(roleName);
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
       Alert.alert('Validation Error', 'Please fill in all password fields.');
       return;
@@ -98,15 +98,27 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
       return;
     }
 
+    if (!token) {
+      Alert.alert('Session expired', 'Please sign in again to change your password.');
+      return;
+    }
+
     setPwdSubmitting(true);
-    setTimeout(() => {
+    try {
+      const result = await changePasswordApi(token, oldPassword, newPassword);
+      if (!result.success) {
+        Alert.alert('Unable to change password', result.message || 'Please try again.');
+        return;
+      }
       setPwdSubmitting(false);
       setShowChangePasswordModal(false);
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
       Alert.alert('Success', 'Password changed successfully!');
-    }, 800);
+    } finally {
+      setPwdSubmitting(false);
+    }
   };
 
   return (
@@ -161,7 +173,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             style={styles.notificationBell}
             activeOpacity={0.8}
             onPress={onOpenNotifications}>
-            <BellNotificationIcon color="#334155" size={18} />
+            <Bell color="#334155" size={18} />
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : '1'}</Text>
             </View>
@@ -175,7 +187,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             <View style={styles.avatarCircle}>
               <Text style={[styles.avatarText, { fontSize: 13 }]}>{initial}</Text>
             </View>
-            <ChevronDownIcon color="#64748b" size={14} />
+            <ChevronDown color="#64748b" size={14} />
           </TouchableOpacity>
         </View>
       </View>

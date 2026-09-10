@@ -12,6 +12,8 @@ export type StaffRole =
 export interface Clinic {
   id: number;
   name: string;
+  image_url?: string;
+  logo_url?: string;
   code?: string;
   email: string;
   phone: string;

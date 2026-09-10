@@ -28,6 +28,7 @@ export async function getDoctorsByClinicApi(
           specialization: d.specialty || d.specialization || 'General Physician',
           qualification: d.qualification || '',
           consultation_fee: Number(d.consultation_fee ?? d.fee ?? d.consultationFee ?? 0),
+          profile_photo: d.image_url || d.profile_photo_url || d.profile_photo || undefined,
           is_active: true,
         }));
         return {
@@ -51,6 +52,7 @@ export async function getDoctorsByClinicApi(
         .filter((d: any) => Number(d.clinic_id) === Number(clinicId))
         .map((d: any) => ({
           ...d,
+          profile_photo: d.profile_photo || d.profile_photo_url || d.image_url || undefined,
           qualification: d.qualification || '',
           consultation_fee: Number(d.consultation_fee ?? d.fee ?? d.consultationFee ?? 0),
         }));
@@ -77,6 +79,7 @@ export async function getDoctorsByClinicApi(
         .filter((d: any) => Number(d.clinic_id) === Number(clinicId))
         .map((d: any) => ({
           ...d,
+          profile_photo: d.profile_photo || d.profile_photo_url || d.image_url || undefined,
           qualification: d.qualification || '',
           consultation_fee: Number(d.consultation_fee ?? d.fee ?? d.consultationFee ?? 0),
         }));

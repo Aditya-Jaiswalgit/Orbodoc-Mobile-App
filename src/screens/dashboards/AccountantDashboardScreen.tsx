@@ -2,6 +2,8 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
 
+import { ReceiptIcon } from '../../components/common/CustomIcons';
+
 interface Props {
   onOpenDrawer: () => void;
   onOpenNotifications?: () => void;
@@ -34,14 +36,14 @@ export const AccountantDashboardScreen: React.FC<Props> = ({
           <TouchableOpacity
             style={styles.treatBtn}
             onPress={() => onNavigateScreen('treatment_billing')}>
-            <Text style={styles.btnIcon}>💳</Text>
+            <ReceiptIcon size={18} color="#ffffff" strokeWidth={2} />
             <Text style={styles.treatBtnText}>Treatment Bills</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.medBtn}
             onPress={() => onNavigateScreen('medicine_billing')}>
-            <Text style={styles.btnIcon}>🧾</Text>
+            <ReceiptIcon size={18} color="#0f172a" strokeWidth={2} />
             <Text style={styles.medBtnText}>Medicine Bills</Text>
           </TouchableOpacity>
         </View>

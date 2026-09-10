@@ -14,6 +14,7 @@ import {
   StethoscopeIcon,
   WalletOutlineIcon,
 } from '../../components/common/CustomIcons';
+import { PhoneCall } from 'lucide-react-native';
 import { useVideoServices } from '../../hooks/useVideoServices';
 import { useVideoCall } from '../../hooks/useVideoCall';
 import { usePaymentCheckout } from '../../hooks/usePaymentCheckout';
@@ -23,8 +24,10 @@ import { PaymentCheckoutModal } from '../../components/payment/PaymentCheckoutMo
 interface VideoServicesScreenProps {
   onOpenDrawer?: () => void;
   onOpenNotifications?: () => void;
+  onToggleTabBar?: (hide: boolean) => void;
 }
 
+/* Legacy fixture intentionally disabled: video history is loaded only from the API.
 const defaultHistoryCalls = [
   {
     id: 108,
@@ -62,10 +65,10 @@ const defaultHistoryCalls = [
     final_pay: '₹0.00',
     status: 'complete',
   },
-];
+]; */
 
 const formatHistoryDate = (dateStr?: string): string => {
-  if (!dateStr) return '05 Sep 2026';
+  if (!dateStr) return '—';
   try {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
@@ -78,7 +81,7 @@ const formatHistoryDate = (dateStr?: string): string => {
 };
 
 const formatClinicName = (name?: string): string => {
-  if (!name) return 'Aarogya\nCare\nClinic';
+  if (!name) return 'Clinic unavailable';
   return name.trim().split(/\s+/).join('\n');
 };
 
@@ -146,8 +149,7 @@ export const VideoServicesScreen: React.FC<VideoServicesScreenProps> = ({
     });
   };
 
-  const displayCompletedCalls =
-    completedCalls && completedCalls.length > 0 ? completedCalls : defaultHistoryCalls;
+  const displayCompletedCalls = completedCalls || [];
 
   return (
     <View style={styles.container}>
@@ -233,32 +235,83 @@ export const VideoServicesScreen: React.FC<VideoServicesScreenProps> = ({
               <Text style={styles.dottedEmptyText}>No active video appointments found.</Text>
             </View>
           ) : (
-            <View style={styles.callsList}>
-              {activeCalls.map((item, idx) => (
-                <View key={item.id ? `call-${item.id}-${idx}` : `call-${idx}`} style={styles.callRowCard}>
-                  <View style={styles.callCardHeader}>
-                    <View style={styles.docAvatarCircle}>
-                      <StethoscopeIcon color="#0d9488" size={20} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.docName}>{item.doctor_name || 'Doctor'}</Text>
-                      <Text style={styles.docSub}>{item.specialization || 'Video Consultation'}</Text>
-                    </View>
-                    <View style={styles.approvedBadgePill}>
-                      <Text style={styles.approvedBadgeText}>{item.status || 'Approved'}</Text>
-                    </View>
+            <View style={styles.videoTableCardContainer}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                nestedScrollEnabled={true}
+                contentContainerStyle={styles.videoTableScrollContent}>
+                <View>
+                  {/* Table Header Row */}
+                  <View style={styles.videoTableHeaderRow}>
+                    <Text style={[styles.videoTableHeaderCol, styles.videoColDoctor]}>Doctor</Text>
+                    <Text style={[styles.videoTableHeaderCol, styles.videoColStatus]}>Status</Text>
+                    <Text style={[styles.videoTableHeaderCol, styles.videoColPayment]}>Payment</Text>
+                    <Text style={[styles.videoTableHeaderCol, styles.videoColDateTime]}>Date & Time</Text>
+                    <Text style={[styles.videoTableHeaderCol, styles.videoColAction]}>Action</Text>
                   </View>
 
-                  <View style={styles.callMetaRow}>
-                    <Text style={styles.callMetaText}>📅 {item.appointment_date}</Text>
-                    <Text style={styles.callMetaText}>⏰ {item.appointment_time}</Text>
-                  </View>
+                  {/* Table Body Rows */}
+                  {activeCalls.map((item: any, idx: number) => {
+                    const docName = item.doctor_name || 'Doctor';
+                    const apptId = item.id ? `#${item.id}` : '#114';
+                    const clinicName = item.clinic_name || 'Aarogya Care Clinic';
+                    const reason = item.reason || item.specialization || 'Video consultation';
+                    const statusText = item.status ? String(item.status).toLowerCase() : 'approved';
+                    const isPaymentReady = ['confirmed', 'in_call', 'completed', 'paid', 'ready', 'success'].includes(
+                      String(item.payment_status || item.paymentStatus || '').toLowerCase()
+                    );
+                    const paymentText = isPaymentReady ? 'Ready' : 'Pending';
+                    const dateStr = formatHistoryDate(item.appointment_date || item.date);
+                    const timeStr = item.appointment_time || item.time || '00:00:00';
 
-                  <TouchableOpacity style={styles.joinCallBtn} onPress={() => handleJoinVideoCall(item)}>
-                    <Text style={styles.joinCallBtnText}>📹 Join Video Call</Text>
-                  </TouchableOpacity>
+                    return (
+                      <View
+                        key={item.id ? `call-${item.id}-${idx}` : `call-${idx}`}
+                        style={[styles.videoTableRow, idx > 0 && styles.videoTableRowBorder]}>
+                        {/* Doctor Column */}
+                        <View style={[styles.videoColDoctor, { alignItems: 'flex-start' }]}>
+                          <Text style={styles.tableDocName}>{docName}</Text>
+                          <View style={styles.idBadgePill}>
+                            <Text style={styles.idBadgeText}>{apptId}</Text>
+                          </View>
+                          <Text style={styles.tableClinicText}>{clinicName}</Text>
+                          {reason ? <Text style={styles.tableReasonText}>{reason}</Text> : null}
+                        </View>
+
+                        {/* Status Column */}
+                        <View style={[styles.videoColStatus, { alignItems: 'flex-start' }]}>
+                          <View style={styles.approvedBadgePill}>
+                            <Text style={styles.approvedBadgeText}>{statusText}</Text>
+                          </View>
+                        </View>
+
+                        {/* Payment Column */}
+                        <View style={styles.videoColPayment}>
+                          <Text style={styles.tablePaymentText}>{paymentText}</Text>
+                        </View>
+
+                        {/* Date & Time Column */}
+                        <View style={styles.videoColDateTime}>
+                          <Text style={styles.tableDateText}>{dateStr} •</Text>
+                          <Text style={styles.tableTimeText}>{timeStr}</Text>
+                        </View>
+
+                        {/* Action Column */}
+                        <View style={[styles.videoColAction, { alignItems: 'flex-start' }]}>
+                          <TouchableOpacity
+                            activeOpacity={0.8}
+                            style={styles.joinCallTableBtn}
+                            onPress={() => handleJoinVideoCall(item)}>
+                            <PhoneCall color="#ffffff" size={15} strokeWidth={2.2} />
+                            <Text style={styles.joinCallTableBtnText}>Join Call</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  })}
                 </View>
-              ))}
+              </ScrollView>
             </View>
           )
         ) : activeTab === 'history' ? (
@@ -274,11 +327,11 @@ export const VideoServicesScreen: React.FC<VideoServicesScreenProps> = ({
 
             {/* Table Rows */}
             {displayCompletedCalls.map((item: any, idx: number) => {
-              const docName = item.doctor_name || 'Dr Verma';
-              const idBadge = item.id ? `#${item.id}` : `#${108 - idx * 4}`;
-              const clinicName = item.clinic_name || 'Aarogya Care Clinic';
+              const docName = item.doctor_name || 'Doctor';
+              const idBadge = item.id ? `#${item.id}` : '—';
+              const clinicName = item.clinic_name || 'Clinic unavailable';
               const dateStr = formatHistoryDate(item.appointment_date || item.date);
-              const timeStr = item.appointment_time || item.time || '10:00:00';
+              const timeStr = item.appointment_time || item.time || '—';
               const payStr = item.final_pay || (item.amount ? `₹${Number(item.amount).toFixed(2)}` : '₹0.00');
 
               return (
@@ -314,6 +367,9 @@ export const VideoServicesScreen: React.FC<VideoServicesScreenProps> = ({
                 </View>
               );
             })}
+            {displayCompletedCalls.length === 0 ? (
+              <Text style={styles.emptyHistoryText}>No completed video consultations yet.</Text>
+            ) : null}
           </View>
         ) : (
           /* TAB 3: Wallet (White card with top-up button) */
@@ -525,73 +581,100 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  /* Active calls list */
-  callsList: {
-    gap: 12,
-  },
-  callRowCard: {
+  /* TAB 1: Video Calls Table Card (Matches web UI) */
+  videoTableCardContainer: {
     backgroundColor: '#ffffff',
     borderRadius: 14,
-    padding: 14,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    gap: 10,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
   },
-  callCardHeader: {
+  videoTableScrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  videoTableHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
   },
-  docAvatarCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#ccfbf1',
-    alignItems: 'center',
-    justifyContent: 'center',
+  videoTableHeaderCol: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#5c6f84',
   },
-  docName: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0f172a',
+  videoTableRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 14,
   },
-  docSub: {
+  videoTableRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  videoColDoctor: {
+    width: 160,
+    paddingRight: 10,
+  },
+  videoColStatus: {
+    width: 110,
+    paddingRight: 10,
+  },
+  videoColPayment: {
+    width: 100,
+    paddingRight: 10,
+  },
+  videoColDateTime: {
+    width: 145,
+    paddingRight: 10,
+  },
+  videoColAction: {
+    width: 130,
+  },
+  tableReasonText: {
     fontSize: 12,
+    color: '#94a3b8',
+    marginTop: 2,
+  },
+  tablePaymentText: {
+    fontSize: 13.5,
     color: '#64748b',
+    fontWeight: '500',
   },
   approvedBadgePill: {
-    backgroundColor: '#dcfce7',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
+    backgroundColor: '#0d9488',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
   },
   approvedBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#16a34a',
-  },
-  callMetaRow: {
-    flexDirection: 'row',
-    gap: 16,
-    backgroundColor: '#f8fafc',
-    padding: 8,
-    borderRadius: 8,
-  },
-  callMetaText: {
-    fontSize: 12,
+    color: '#ffffff',
+    fontSize: 11.5,
     fontWeight: '700',
-    color: '#334155',
+    textTransform: 'lowercase',
   },
-  joinCallBtn: {
+  joinCallTableBtn: {
     backgroundColor: '#0d9488',
-    borderRadius: 10,
-    paddingVertical: 10,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
   },
-  joinCallBtnText: {
+  joinCallTableBtnText: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 
   /* TAB 2: History Card */
@@ -677,6 +760,12 @@ const styles = StyleSheet.create({
   tablePayText: {
     fontSize: 13,
     color: '#62758d',
+  },
+  emptyHistoryText: {
+    color: '#64748b',
+    fontSize: 13,
+    textAlign: 'center',
+    paddingVertical: 24,
   },
 
   /* TAB 3: Wallet Card */

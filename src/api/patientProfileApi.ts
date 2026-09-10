@@ -66,14 +66,17 @@ export async function updatePatientProfileApi(
   patientId: number,
   data: Partial<PatientProfileData>
 ): Promise<ApiResponse<PatientProfileData>> {
-  const res = await apiFetch<PatientProfileData>(`/patients/${patientId}`, {
+  // A patient can always update their own account through the authenticated
+  // profile endpoint. This is also the endpoint used by the web application.
+  const res = await apiFetch<PatientProfileData>('/auth/profile', {
     method: 'PUT',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: JSON.stringify(data),
   });
 
-  if (!res.success) {
-    return apiFetch<PatientProfileData>('/auth/profile', {
+  // Retain the patient endpoint as a compatibility fallback for older APIs.
+  if (!res.success && patientId) {
+    return apiFetch<PatientProfileData>(`/patients/${patientId}`, {
       method: 'PUT',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: JSON.stringify(data),

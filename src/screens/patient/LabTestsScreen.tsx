@@ -41,6 +41,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
     activeCount,
     reportsCount,
     loading,
+    error,
     lastRefreshed,
     refreshLabTests,
   } = useLabTests();
@@ -48,16 +49,12 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
   const { clinics } = useClinics();
 
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedClinicName, setSelectedClinicName] = useState<string>(
-    clinics[0]?.name || 'Maihar City Dental Care'
-  );
+  const [selectedClinicName, setSelectedClinicName] = useState<string>('');
   const [showClinicPicker, setShowClinicPicker] = useState<boolean>(false);
 
   useEffect(() => {
-    if (clinics && clinics.length > 0 && selectedClinicName === 'Maihar City Dental Care') {
-      const match = clinics.find((c) => c.name.toLowerCase().includes('maihar'));
-      if (match) setSelectedClinicName(match.name);
-      else if (clinics[0]?.name) setSelectedClinicName(clinics[0].name);
+    if (clinics.length > 0 && !selectedClinicName) {
+      setSelectedClinicName(clinics[0].name);
     }
   }, [clinics]);
 
@@ -73,6 +70,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
     };
   }, [onToggleTabBar]);
 
+  const selectedClinic = clinics.find((clinic) => clinic.name === selectedClinicName);
   const filteredLabTests = labTests.filter((t) => {
     const q = searchQuery.toLowerCase().trim();
     const pid = String(t.patient_code || t.patient_id || '').toLowerCase();
@@ -80,7 +78,9 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
     const phone = (t.patient_phone || '').toLowerCase();
     const testName = (t.test_name || '').toLowerCase();
 
-    return q === '' || pid.includes(q) || name.includes(q) || phone.includes(q) || testName.includes(q);
+    const clinicMatches = !selectedClinic?.id || !t.clinic_id || Number(t.clinic_id) === Number(selectedClinic.id);
+    const searchMatches = q === '' || pid.includes(q) || name.includes(q) || phone.includes(q) || testName.includes(q);
+    return clinicMatches && searchMatches;
   });
 
   const getStatusBadgeStyle = (statusStr?: string) => {
@@ -135,7 +135,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
             activeOpacity={0.8}
             onPress={() => setShowClinicPicker(true)}>
             <Text style={styles.clinicDropdownText} numberOfLines={1}>
-              {selectedClinicName}
+              {selectedClinicName || 'Select a clinic'}
             </Text>
             <ChevronDownIcon size={18} color="#64748b" strokeWidth={2} />
           </TouchableOpacity>
@@ -176,7 +176,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
           <View style={styles.showingDataRow}>
             <View style={styles.greenDot} />
             <Text style={styles.showingDataLabel}>Showing data for </Text>
-            <Text style={styles.showingDataClinic}>{selectedClinicName}</Text>
+            <Text style={styles.showingDataClinic}>{selectedClinicName || 'all available clinics'}</Text>
           </View>
         </View>
 
@@ -235,6 +235,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
 
           {/* Divider Line */}
           <View style={styles.accentDividerLine} />
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           {/* Empty State / List */}
           {loading ? (
@@ -325,7 +326,9 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
           onPress={() => setShowClinicPicker(false)}>
           <View style={styles.pickerModalContent}>
             <Text style={styles.pickerModalTitle}>Select Healthcare Clinic</Text>
-            {(clinics.length > 0 ? clinics.map((c) => c.name) : ['Maihar City Dental Care']).map((cName) => (
+            {clinics.length === 0 ? (
+              <Text style={styles.emptyPickerText}>No clinics are currently available.</Text>
+            ) : clinics.map((c) => c.name).map((cName) => (
               <TouchableOpacity
                 key={cName}
                 style={styles.pickerOptionRow}
@@ -431,6 +434,8 @@ const styles = StyleSheet.create({
   greenDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#10b981' },
   showingDataLabel: { fontSize: 12, color: '#64748b' },
   showingDataClinic: { fontSize: 12, fontWeight: '700', color: '#0f172a' },
+  errorText: { color: '#b91c1c', fontSize: 12, marginBottom: 12 },
+  emptyPickerText: { color: '#64748b', fontSize: 13, paddingVertical: 16, textAlign: 'center' },
 
   /* ─── CARD 3: MAIN LAB TESTS CARD ─── */
   mainLabCard: {

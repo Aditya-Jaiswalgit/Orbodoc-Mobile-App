@@ -141,15 +141,15 @@ export const useVideoServices = () => {
                 .filter(isVideoMode)
                 .map((a: any, idx: number) => ({
                   id: a.id || idx + 1,
-                  patient_id: patientId || 1,
-                  doctor_name: a.doctor_name || a.doctorName || 'Doctor',
-                  specialization: a.specialization || 'Video Consultation',
-                  clinic_name: a.clinic_name || 'Aarogya Care Clinic',
-                  appointment_date: a.appointment_date || a.date || new Date().toISOString().split('T')[0],
-                  appointment_time: a.appointment_time || a.time || '10:00 AM',
-                  status: a.status || 'approved',
+                  patient_id: patientId,
+                  doctor_name: a.doctor_name || a.doctorName || '',
+                  specialization: a.specialization || '',
+                  clinic_name: a.clinic_name || '',
+                  appointment_date: a.appointment_date || a.date || '',
+                  appointment_time: a.appointment_time || a.time || '',
+                  status: a.status || '',
                   consultation_mode: 'video',
-                  reason: a.reason || 'Video Consultation',
+                  reason: a.reason || '',
                 }));
             }
           } catch (e) {}
@@ -166,7 +166,7 @@ export const useVideoServices = () => {
           const patientPhone = String((user as any)?.phone || (user as any)?.phoneNumber || '').trim();
           const patientName = String((user as any)?.full_name || (user as any)?.fullName || (user as any)?.name || '').trim().toLowerCase();
 
-          videoOnly = videoOnly.filter((a: any) => {
+          const filtered = videoOnly.filter((a: any) => {
             const aPatientId = Number(a.patient_id || a.user_id || a.patient?.id || a.patient?.user_id);
             if (aPatientId && patientId && Number(aPatientId) === Number(patientId)) return true;
 
@@ -182,6 +182,9 @@ export const useVideoServices = () => {
 
             return false;
           });
+
+          // If the patient token already returned appointments from the server, keep them if client-side filter is too strict
+          videoOnly = filtered.length > 0 ? filtered : videoOnly;
         }
 
         setVideoAppointments(videoOnly);
@@ -262,15 +265,15 @@ export const useVideoServices = () => {
               return {
                 id: Number(item.id),
                 bill_number: item.bill_number || `VCB-${item.id}`,
-                patient_name: item.patient_name || item.patientName || 'bulbul',
+                patient_name: item.patient_name || item.patientName || '',
                 doctor_id: Number(item.doctor_id || doctorId || 0),
-                doctor_name: item.doctor_name || item.doctorName || 'Dr. Verma',
+                doctor_name: item.doctor_name || item.doctorName || '',
                 amount: Number(item.gross_amount ?? item.amount ?? item.total_amount ?? 0),
                 due_amount: Number(item.due_amount ?? item.pending_amount ?? (isSettledPaid ? 0 : (item.amount ?? 0))),
                 payment_status: isSettledPaid ? 'paid' : (isPending ? 'pending' : 'no_bill'),
-                date: item.created_at ? String(item.created_at).split('T')[0] : (item.appointment_date || '05 Sep 2026'),
-                time: item.appointment_time || item.time || '10:00:00',
-                patient_phone: item.patient_phone || item.phone || '8922334455',
+                date: item.created_at ? String(item.created_at).split('T')[0] : (item.appointment_date || ''),
+                time: item.appointment_time || item.time || '',
+                patient_phone: item.patient_phone || item.phone || '',
               };
             });
             setVideoBilling(videoCallBills);
@@ -307,8 +310,8 @@ export const useVideoServices = () => {
           ? statsFromApi.waiting_to_call
           : waitingAppts.length;
 
-      const finalRevenue = paidVideoRevenue > 0 ? paidVideoRevenue : (statsFromApi.video_revenue_collected || 5594.08);
-      const finalPending = pendingVideoBillsCount > 0 ? pendingVideoBillsCount : (statsFromApi.pending_payment_count || 2);
+      const finalRevenue = paidVideoRevenue > 0 ? paidVideoRevenue : (statsFromApi.video_revenue_collected || 0);
+      const finalPending = pendingVideoBillsCount > 0 ? pendingVideoBillsCount : (statsFromApi.pending_payment_count || 0);
 
       setStats({
         today_video_appointments: finalToday,
@@ -334,12 +337,12 @@ export const useVideoServices = () => {
   }, [token, user]);
 
   const joinVideoCall = async (appointmentId: number) => {
-    if (!token) return { success: true, room_id: `room-${appointmentId}` };
+    if (!token) return { success: false, message: 'Authentication required' };
     try {
       const res = await joinVideoCallApi(token, appointmentId);
-      return res.success ? res.data : { room_id: `room-${appointmentId}` };
+      return res.success ? { success: true, ...res.data } : { success: false, message: res.message || 'Unable to join video call' };
     } catch (e) {
-      return { room_id: `room-${appointmentId}` };
+      return { success: false, message: 'Unable to join video call' };
     }
   };
 

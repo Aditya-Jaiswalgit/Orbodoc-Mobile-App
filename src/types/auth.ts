@@ -14,6 +14,9 @@ export interface UserClinic {
   id: number;
   name: string;
   is_primary?: number;
+  logo_url?: string;
+  logo?: string;
+  clinic_logo_url?: string;
 }
 
 export interface AuthUser {
@@ -38,6 +41,8 @@ export interface AuthUser {
   specialization?: string;
   qualification?: string;
   profilePhoto?: string;
+  clinicLogo?: string;
+  clinic_logo_url?: string;
   userId?: number;
   patient_id?: number;
   is_doctor?: number | boolean | string;
@@ -55,6 +60,7 @@ export interface AuthResponseData {
   user: AuthUser;
   permissions?: Record<string, any>;
   plan?: Record<string, any>;
+  activeClinicId?: number;
 }
 
 export interface ApiResponse<T = any> {

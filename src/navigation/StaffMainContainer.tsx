@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Image,
   Modal,
@@ -29,7 +29,10 @@ import {
   PatientUserIcon,
   ReceiptIcon,
 } from '../components/common/CustomIcons';
+import { Menu, X } from 'lucide-react-native';
 import { useAuthContext } from '../context/AuthContext';
+import { getMobileMenuItems, getMobileRole } from './mobileMenu';
+import { useNotifications } from '../hooks/useNotifications';
 
 import AccountantDashboardScreen from '../screens/dashboards/AccountantDashboardScreen';
 import ClinicAdminDashboardScreen from '../screens/dashboards/ClinicAdminDashboardScreen';
@@ -151,8 +154,9 @@ const resolveStaffRole = (user: any): string => {
 };
 
 export const StaffMainContainer = () => {
-  const { user, logout } = useAuthContext();
-  const staffRole = resolveStaffRole(user);
+  const { user, logout, permissions, activeClinicId, switchClinic } = useAuthContext();
+  const staffRole = getMobileRole(user);
+  const { unreadCount } = useNotifications();
 
   const [activeTab, setActiveTab] = useState<StaffTabType>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -249,7 +253,10 @@ export const StaffMainContainer = () => {
     }
   };
 
-  const menuItems = getMenuItemsForRole(staffRole);
+  const menuItems = useMemo(
+    () => getMobileMenuItems(staffRole, permissions) as MenuItem[],
+    [permissions, staffRole],
+  );
 
   const renderActiveScreen = () => {
     switch (activeTab) {
@@ -400,7 +407,7 @@ export const StaffMainContainer = () => {
         {/* FAB Menu Button */}
         <TouchableOpacity style={styles.tabItemCenter} onPress={() => setDrawerOpen(true)}>
           <View style={styles.centerFab}>
-            <Text style={styles.fabIcon}>☰</Text>
+            <Menu color="#ffffff" size={23} strokeWidth={2.7} />
           </View>
           <Text style={styles.fabLabel}>Menu</Text>
         </TouchableOpacity>
@@ -422,9 +429,11 @@ export const StaffMainContainer = () => {
         <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('notifications')}>
           <View style={styles.tabIconWrapper}>
             {renderTabVectorIcon('notifications', activeTab === 'notifications' ? '#0d9488' : '#94a3b8', 21)}
-            <View style={styles.smallBadge}>
-              <Text style={styles.smallBadgeText}>3</Text>
-            </View>
+            {unreadCount > 0 && (
+              <View style={styles.smallBadge}>
+                <Text style={styles.smallBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              </View>
+            )}
           </View>
           <Text style={[styles.tabLabel, activeTab === 'notifications' && styles.tabLabelActive]}>
             Alerts
@@ -464,14 +473,42 @@ export const StaffMainContainer = () => {
                     <Text style={styles.userRoleText}>
                       {staffRole.includes('doctor') ? 'Doctor' : staffRole.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                     </Text>
+                    {user?.clinicName || user?.clinic_name ? (
+                      <Text style={styles.clinicNameText} numberOfLines={1}>
+                        {user.clinicName || user.clinic_name}
+                      </Text>
+                    ) : null}
                   </View>
                   <TouchableOpacity
                     onPress={() => setDrawerOpen(false)}
                     style={styles.darkCloseBtn}
                     activeOpacity={0.7}>
-                    <Text style={styles.darkCloseBtnText}>✕</Text>
+                    <X color="#20e3d3" size={19} strokeWidth={2.25} />
                   </TouchableOpacity>
                 </View>
+
+                {user?.clinics && user.clinics.length > 1 ? (
+                  <View style={styles.clinicSwitcher}>
+                    <Text style={styles.clinicSwitcherTitle}>SWITCH CLINIC</Text>
+                    {user.clinics.map((clinic) => {
+                      const isActiveClinic = Number(clinic.id) === Number(activeClinicId);
+                      return (
+                        <TouchableOpacity
+                          key={clinic.id}
+                          style={[styles.clinicOption, isActiveClinic && styles.clinicOptionActive]}
+                          disabled={isActiveClinic}
+                          onPress={async () => {
+                            const result = await switchClinic(Number(clinic.id));
+                            if (result.success) setDrawerOpen(false);
+                          }}>
+                          <Text style={[styles.clinicOptionText, isActiveClinic && styles.clinicOptionTextActive]} numberOfLines={1}>
+                            {clinic.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ) : null}
 
                 {/* Role Category Title */}
                 <Text style={styles.categoryTitleText}>
@@ -572,11 +609,11 @@ const styles = StyleSheet.create({
   },
   backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)' },
   drawerSheet: {
-    width: '78%',
-    maxWidth: 300,
+    width: '73%',
+    maxWidth: 280,
     height: '100%',
-    backgroundColor: '#071622',
-    paddingHorizontal: 16,
+    backgroundColor: '#061a29',
+    paddingHorizontal: 14,
     paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 12 : 50,
     paddingBottom: Platform.OS === 'android' ? 24 : 36,
     shadowColor: '#000',
@@ -597,6 +634,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 18,
     marginTop: 4,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(45, 212, 191, 0.12)',
   },
   logoSquircle: {
     width: 44,
@@ -634,6 +674,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontWeight: '500',
   },
+  clinicNameText: { color: '#5eead4', fontSize: 11, marginTop: 3, fontWeight: '600' },
+  clinicSwitcher: { marginBottom: 14 },
+  clinicSwitcherTitle: { color: '#94a3b8', fontSize: 10, fontWeight: '800', letterSpacing: 1.2, marginBottom: 7 },
+  clinicOption: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 9, backgroundColor: '#0c2636', marginBottom: 5 },
+  clinicOptionActive: { backgroundColor: 'rgba(45, 212, 191, 0.18)', borderWidth: 1, borderColor: '#2dd4bf' },
+  clinicOptionText: { color: '#cbd5e1', fontSize: 12, fontWeight: '600' },
+  clinicOptionTextActive: { color: '#ffffff' },
   darkCloseBtn: {
     width: 38,
     height: 38,
@@ -666,14 +713,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 48,
     paddingHorizontal: 8,
-    borderRadius: 18,
-    borderWidth: 1.5,
+    borderRadius: 14,
+    borderWidth: 1,
     borderColor: 'transparent',
     marginBottom: 3,
   },
   menuItemRowActive: {
-    backgroundColor: 'rgba(45, 212, 191, 0.12)',
-    borderColor: '#2dd4bf',
+    backgroundColor: 'rgba(13, 148, 136, 0.24)',
+    borderColor: 'rgba(45, 212, 191, 0.58)',
+    borderLeftWidth: 4,
+    borderLeftColor: '#19e0cf',
   },
   menuIconContainer: {
     width: 34,
@@ -682,23 +731,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-    backgroundColor: '#0c2636',
-    borderWidth: 0,
+    backgroundColor: '#062a3a',
+    borderWidth: 1,
+    borderColor: 'rgba(45, 212, 191, 0.08)',
     shadowColor: '#2dd4bf',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.65,
     shadowRadius: 8,
     elevation: 6,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 10px rgba(45, 212, 191, 0.4)' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 13px rgba(20, 235, 216, 0.38)' } as any) : {}),
   },
   menuIconContainerActive: {
-    backgroundColor: 'rgba(45, 212, 191, 0.22)',
+    backgroundColor: 'rgba(13, 148, 136, 0.42)',
     shadowColor: '#2dd4bf',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
     shadowRadius: 12,
     elevation: 8,
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 14px rgba(45, 212, 191, 0.65)' } as any) : {}),
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 0 16px rgba(20, 235, 216, 0.72)' } as any) : {}),
   },
   menuItemLabel: {
     flex: 1,

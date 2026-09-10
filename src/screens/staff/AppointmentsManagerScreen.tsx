@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { PatientHeader } from '../../components/common/PatientHeader';
 import {
   CalendarIcon,
   ChevronDownIcon,
@@ -29,12 +30,16 @@ import {
 import { useAppointments } from '../../hooks/useAppointments';
 import { Appointment } from '../../types/clinicTypes';
 import { ColumnsModal, ColumnItem } from '../../components/common/ColumnsModal';
+import { InlineCalendarPicker } from '../../components/common/InlineCalendarPicker';
+import { Check, ChevronLeft, ChevronRight } from 'lucide-react-native';
 
 interface Props {
   onOpenDrawer: () => void;
   onOpenNotifications?: () => void;
   onNavigateScreen?: (screen: string) => void;
   onToggleTabBar?: (hide: boolean) => void;
+  /** Keeps the staff appointment workspace styling while using the patient shell. */
+  isPatientView?: boolean;
 }
 
 export const APPOINTMENT_COLUMNS: ColumnItem[] = [
@@ -97,6 +102,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
   onOpenNotifications,
   onNavigateScreen = () => {},
   onToggleTabBar,
+  isPatientView = false,
 }) => {
   const {
     appointments,
@@ -118,8 +124,9 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
   const [isCardActive, setIsCardActive] = useState<boolean>(false);
   const [selectedRowId, setSelectedRowId] = useState<number | null>(null);
 
-  // Pagination / Load More (5 at a time)
-  const [visibleCount, setVisibleCount] = useState<number>(5);
+  // Server data remains fully loaded for filters; render exactly five rows per page.
+  const APPOINTMENTS_PER_PAGE = 5;
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   // Column management modal
   const [showColumnsModal, setShowColumnsModal] = useState<boolean>(false);
@@ -262,12 +269,20 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
     });
   }, [appointments, selectedClinic, selectedStatus, selectedDoctor, dateFilter, searchQuery]);
 
-  // Slice visible appointments (5 at a time)
-  const visibleAppointments = filteredAppointments.slice(0, visibleCount);
+  const totalPages = Math.max(1, Math.ceil(filteredAppointments.length / APPOINTMENTS_PER_PAGE));
+  const firstAppointmentIndex = (currentPage - 1) * APPOINTMENTS_PER_PAGE;
+  const visibleAppointments = filteredAppointments.slice(
+    firstAppointmentIndex,
+    firstAppointmentIndex + APPOINTMENTS_PER_PAGE,
+  );
 
-  const handleLoadMore = () => {
-    setVisibleCount((prev) => prev + 5);
-  };
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedClinic, selectedStatus, selectedDoctor, dateFilter, searchQuery]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   const handleUpdateStatus = async (newStatus: Appointment['status']) => {
     if (!selectedApptForStatus) return;
@@ -337,12 +352,20 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
   return (
     <TouchableWithoutFeedback onPress={() => setIsCardActive(false)}>
       <View style={styles.container}>
-        <StaffHeader
-          onOpenDrawer={onOpenDrawer}
-          onOpenNotifications={onOpenNotifications}
-          showLogo={false}
-          showRolePill={false}
-        />
+        {isPatientView ? (
+          <PatientHeader
+            onOpenDrawer={onOpenDrawer}
+            onOpenNotifications={onOpenNotifications}
+            showLogo={false}
+          />
+        ) : (
+          <StaffHeader
+            onOpenDrawer={onOpenDrawer}
+            onOpenNotifications={onOpenNotifications}
+            showLogo={false}
+            showRolePill={false}
+          />
+        )}
 
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -362,12 +385,14 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
               </Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.bookBtn}
-              activeOpacity={0.8}
-              onPress={() => onNavigateScreen('book_appointment')}>
-              <Text style={styles.bookBtnText}>+ Book Appointment</Text>
-            </TouchableOpacity>
+            {!isPatientView && (
+              <TouchableOpacity
+                style={styles.bookBtn}
+                activeOpacity={0.8}
+                onPress={() => onNavigateScreen('book_appointment')}>
+                <Text style={styles.bookBtnText}>+ Book Appointment</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Clinic Dropdown Button */}
@@ -382,7 +407,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
           {/* ─── ALL APPOINTMENTS CARD (GREEN BORDER ONLY ON CLICK) ─── */}
           <TouchableOpacity
             activeOpacity={1}
-            style={[styles.mainCard, isCardActive && styles.mainCardActive]}
+            style={[styles.mainCard, !isPatientView && isCardActive && styles.mainCardActive]}
             onPress={() => setIsCardActive(true)}>
             <Text style={styles.cardHeading}>All Appointments</Text>
             <Text style={styles.cardSubheading}>Book and track appointments in one page</Text>
@@ -425,7 +450,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                 onFocus={() => setIsCardActive(true)}
                 onChangeText={(t) => {
                   setSearchQuery(t);
-                  setVisibleCount(5);
+                  setCurrentPage(1);
                 }}
               />
             </View>
@@ -436,11 +461,33 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
               activeOpacity={0.8}
               onPress={() => {
                 setIsCardActive(true);
-                setShowStatusPicker(true);
+                setShowStatusPicker((visible) => !visible);
               }}>
               <Text style={styles.filterDropdownText}>{selectedStatus}</Text>
               <ChevronDownIcon size={14} color="#64748b" />
             </TouchableOpacity>
+            {showStatusPicker && (
+              <View style={styles.inlineStatusMenu}>
+                {['All Status', 'Pending', 'Approved', 'Completed', 'Cancelled'].map((status) => {
+                  const selected = selectedStatus === status;
+                  return (
+                    <TouchableOpacity
+                      key={status}
+                      style={[styles.inlineStatusOption, selected && styles.inlineStatusOptionSelected]}
+                      onPress={() => {
+                        setSelectedStatus(status);
+                        setCurrentPage(1);
+                        setShowStatusPicker(false);
+                      }}>
+                      <View style={styles.statusCheckSlot}>
+                        {selected && <Check color="#0f9488" size={15} strokeWidth={2.5} />}
+                      </View>
+                      <Text style={[styles.inlineStatusOptionText, selected && styles.inlineStatusOptionTextSelected]}>{status}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
 
             {/* All Doctors Dropdown */}
             <TouchableOpacity
@@ -476,6 +523,16 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                 </TouchableOpacity>
               ) : null}
             </TouchableOpacity>
+            {showDatePicker && (
+              <InlineCalendarPicker
+                value={dateFilter}
+                onSelect={(date) => {
+                  setDateFilter(date);
+                  setCurrentPage(1);
+                }}
+                onClose={() => setShowDatePicker(false)}
+              />
+            )}
 
             {/* ─── HORIZONTALLY SCROLLABLE TABLE ─── */}
             {loading ? (
@@ -733,18 +790,27 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
             {filteredAppointments.length > 0 && (
               <View style={styles.paginationBox}>
                 <Text style={styles.showingCountText}>
-                  Showing {Math.min(visibleCount, filteredAppointments.length)} of {filteredAppointments.length} appointments
+                  Showing {firstAppointmentIndex + 1} to {Math.min(firstAppointmentIndex + APPOINTMENTS_PER_PAGE, filteredAppointments.length)} of {filteredAppointments.length} appointments
                 </Text>
-
-                {filteredAppointments.length > visibleCount && (
+                <View style={styles.paginationActionsRow}>
                   <TouchableOpacity
-                    style={styles.loadMoreBtn}
+                    style={[styles.paginationNavBtn, currentPage === 1 && styles.paginationNavBtnDisabled]}
+                    disabled={currentPage === 1}
                     activeOpacity={0.8}
-                    onPress={handleLoadMore}>
-                    <ChevronDownIcon size={14} color="#ffffff" />
-                    <Text style={styles.loadMoreBtnText}>Load More</Text>
+                    onPress={() => setCurrentPage((page) => Math.max(1, page - 1))}>
+                    <ChevronLeft size={17} color={currentPage === 1 ? '#94a3b8' : '#0f766e'} />
+                    <Text style={[styles.paginationNavText, currentPage === 1 && styles.paginationNavTextDisabled]}>Previous</Text>
                   </TouchableOpacity>
-                )}
+                  <Text style={styles.paginationPageText}>Page {currentPage} of {totalPages}</Text>
+                  <TouchableOpacity
+                    style={[styles.paginationNavBtn, currentPage === totalPages && styles.paginationNavBtnDisabled]}
+                    disabled={currentPage === totalPages}
+                    activeOpacity={0.8}
+                    onPress={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}>
+                    <Text style={[styles.paginationNavText, currentPage === totalPages && styles.paginationNavTextDisabled]}>Next</Text>
+                    <ChevronRight size={17} color={currentPage === totalPages ? '#94a3b8' : '#0f766e'} />
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
           </TouchableOpacity>
@@ -780,7 +846,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                     onPress={() => {
                       setSelectedClinic(c);
                       setShowClinicPicker(false);
-                      setVisibleCount(5);
+                      setCurrentPage(1);
                     }}>
                     <Text style={[styles.pickerItemText, selectedClinic === c && styles.pickerItemTextActive]}>
                       {c}
@@ -788,37 +854,6 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            </View>
-          </View>
-        </Modal>
-
-        {/* ─── STATUS PICKER BOTTOM SHEET ─── */}
-        <Modal visible={showStatusPicker} transparent animationType="slide" onRequestClose={() => setShowStatusPicker(false)}>
-          <View style={styles.modalBackdrop}>
-            <TouchableWithoutFeedback onPress={() => setShowStatusPicker(false)}>
-              <View style={StyleSheet.absoluteFillObject} />
-            </TouchableWithoutFeedback>
-            <View style={styles.pickerSheet}>
-              <View style={styles.sheetHeader}>
-                <Text style={styles.sheetTitle}>Select Status</Text>
-                <TouchableOpacity onPress={() => setShowStatusPicker(false)}>
-                  <Text style={styles.sheetClose}>✕</Text>
-                </TouchableOpacity>
-              </View>
-              {['All Status', 'Scheduled', 'In Progress', 'Complete', 'Cancel'].map((s) => (
-                <TouchableOpacity
-                  key={s}
-                  style={[styles.pickerItem, selectedStatus === s && styles.pickerItemActive]}
-                  onPress={() => {
-                    setSelectedStatus(s);
-                    setShowStatusPicker(false);
-                    setVisibleCount(5);
-                  }}>
-                  <Text style={[styles.pickerItemText, selectedStatus === s && styles.pickerItemTextActive]}>
-                    {s}
-                  </Text>
-                </TouchableOpacity>
-              ))}
             </View>
           </View>
         </Modal>
@@ -844,7 +879,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                     onPress={() => {
                       setSelectedDoctor(d);
                       setShowDoctorPicker(false);
-                      setVisibleCount(5);
+                      setCurrentPage(1);
                     }}>
                     <Text style={[styles.pickerItemText, selectedDoctor === d && styles.pickerItemTextActive]}>
                       {d}
@@ -856,44 +891,6 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
           </View>
         </Modal>
 
-        {/* ─── DATE FILTER MODAL ─── */}
-        <Modal visible={showDatePicker} transparent animationType="fade" onRequestClose={() => setShowDatePicker(false)}>
-          <View style={styles.modalBackdrop}>
-            <TouchableWithoutFeedback onPress={() => setShowDatePicker(false)}>
-              <View style={StyleSheet.absoluteFillObject} />
-            </TouchableWithoutFeedback>
-            <View style={styles.dialogCard}>
-              <Text style={styles.dialogTitle}>Filter by Date</Text>
-              <Text style={styles.dialogSub}>Enter appointment date (YYYY-MM-DD)</Text>
-              <TextInput
-                style={styles.dialogInput}
-                placeholder="e.g. 2026-09-08"
-                placeholderTextColor="#94a3b8"
-                value={dateFilter}
-                onChangeText={setDateFilter}
-              />
-              <View style={styles.dialogActions}>
-                <TouchableOpacity
-                  style={styles.dialogClearBtn}
-                  onPress={() => {
-                    setDateFilter('');
-                    setShowDatePicker(false);
-                    setVisibleCount(5);
-                  }}>
-                  <Text style={styles.dialogClearBtnText}>Clear</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.dialogApplyBtn}
-                  onPress={() => {
-                    setShowDatePicker(false);
-                    setVisibleCount(5);
-                  }}>
-                  <Text style={styles.dialogApplyBtnText}>Apply</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
 
         {/* ─── UPDATE APPOINTMENT STATUS MODAL (FOR STAFF) ─── */}
         <Modal visible={showUpdateStatusModal} transparent animationType="slide" onRequestClose={() => setShowUpdateStatusModal(false)}>
@@ -1050,6 +1047,32 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   filterDropdownText: { fontSize: 13, color: '#334155', fontWeight: '500' },
+  inlineStatusMenu: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    marginTop: -4,
+    marginBottom: 10,
+    paddingVertical: 5,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 15,
+  },
+  inlineStatusOption: {
+    minHeight: 29,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    gap: 2,
+  },
+  inlineStatusOptionSelected: { backgroundColor: '#d9f5f2' },
+  statusCheckSlot: { width: 18, alignItems: 'center' },
+  inlineStatusOptionText: { color: '#334155', fontSize: 12.5, fontWeight: '500' },
+  inlineStatusOptionTextSelected: { color: '#0f9488', fontWeight: '700' },
 
   dateFilterInputBox: {
     flexDirection: 'row',
@@ -1322,6 +1345,43 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: '#64748b',
     fontWeight: '500',
+  },
+  paginationActionsRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  paginationNavBtn: {
+    minWidth: 94,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#99f6e4',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  paginationNavBtnDisabled: {
+    backgroundColor: '#f8fafc',
+    borderColor: '#e2e8f0',
+  },
+  paginationNavText: {
+    fontSize: 12,
+    color: '#0f766e',
+    fontWeight: '700',
+  },
+  paginationNavTextDisabled: { color: '#94a3b8' },
+  paginationPageText: {
+    flex: 1,
+    color: '#64748b',
+    fontSize: 11.5,
+    textAlign: 'center',
+    fontWeight: '600',
   },
   loadMoreBtn: {
     flexDirection: 'row',

@@ -1,6 +1,8 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { TestTube2 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { useLabTests } from '../../hooks/useLabTests';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -13,6 +15,13 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({
   onOpenNotifications,
   onNavigateScreen = () => {},
 }) => {
+  const { labTests, activeCount, reportsCount, loading, error, refreshLabTests } = useLabTests();
+  const pendingCount = useMemo(
+    () => labTests.filter((test) => ['ordered', 'pending'].includes(String(test.status || '').toLowerCase())).length,
+    [labTests],
+  );
+  const recentTests = useMemo(() => labTests.slice(0, 6), [labTests]);
+
   return (
     <View style={styles.container}>
       <StaffHeader
@@ -21,7 +30,10 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({
         title="Pathology & Diagnostics Lab"
       />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refreshLabTests} colors={['#0d9488']} />}>
         {/* Banner */}
         <View style={styles.heroCard}>
           <Text style={styles.heroBadge}>LAB DIAGNOSTICS CONTROL</Text>
@@ -40,42 +52,48 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({
         {/* KPIs */}
         <View style={styles.kpiGrid}>
           <View style={[styles.kpiBox, { backgroundColor: '#f0fdf4' }]}>
-            <Text style={styles.kpiVal}>14</Text>
+            <Text style={styles.kpiVal}>{pendingCount}</Text>
             <Text style={styles.kpiLab}>Pending Orders</Text>
           </View>
           <View style={[styles.kpiBox, { backgroundColor: '#eff6ff' }]}>
-            <Text style={styles.kpiVal}>6</Text>
+            <Text style={styles.kpiVal}>{activeCount}</Text>
             <Text style={styles.kpiLab}>Samples Collected</Text>
           </View>
           <View style={[styles.kpiBox, { backgroundColor: '#faf5ff' }]}>
-            <Text style={styles.kpiVal}>8</Text>
+            <Text style={styles.kpiVal}>{reportsCount}</Text>
             <Text style={styles.kpiLab}>Reports Ready</Text>
           </View>
         </View>
 
         {/* Pending Tests List */}
         <Text style={styles.sectionTitle}>Recent Test Orders</Text>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {loading && labTests.length === 0 ? (
+          <ActivityIndicator color="#0d9488" size="large" style={{ marginVertical: 28 }} />
+        ) : recentTests.length === 0 ? (
+          <View style={styles.emptyState}>
+            <TestTube2 color="#94a3b8" size={28} />
+            <Text style={styles.emptyStateText}>No lab test orders yet.</Text>
+          </View>
+        ) : (
         <View style={styles.testList}>
-          {[
-            { id: 101, patient: 'Sunita Sharma', test: 'Complete Blood Count (CBC)', doctor: 'Dr. Ramesh Sharma', status: 'ordered' },
-            { id: 102, patient: 'Rahul Verma', test: 'Lipid Profile & HbA1c', doctor: 'Dr. Ananya Roy', status: 'sample_collected' },
-            { id: 103, patient: 'Pooja Gupta', test: 'Thyroid Function (T3/T4/TSH)', doctor: 'Dr. Vikram Patel', status: 'completed' },
-          ].map((t) => (
+          {recentTests.map((t) => (
             <View key={t.id} style={styles.testRow}>
               <View style={styles.testIconBox}>
                 <Text style={styles.testIcon}>🧪</Text>
               </View>
               <View style={styles.testDetails}>
-                <Text style={styles.patientName}>{t.patient}</Text>
-                <Text style={styles.testName}>{t.test}</Text>
-                <Text style={styles.docSub}>Ordered by: {t.doctor}</Text>
+                <Text style={styles.patientName}>{t.patient_name || 'Patient'}</Text>
+                <Text style={styles.testName}>{t.test_name || 'Diagnostic test'}</Text>
+                <Text style={styles.docSub}>Ordered by: {t.doctor_name || 'Doctor'}</Text>
               </View>
               <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>{t.status.replace('_', ' ')}</Text>
+                <Text style={styles.statusText}>{String(t.status || 'pending').replace('_', ' ')}</Text>
               </View>
             </View>
           ))}
         </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -115,6 +133,9 @@ const styles = StyleSheet.create({
   docSub: { fontSize: 11, color: '#64748b', marginTop: 1 },
   statusBadge: { backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   statusText: { color: '#334155', fontSize: 10, fontWeight: '800', textTransform: 'capitalize' },
+  errorText: { color: '#b91c1c', fontSize: 12, marginBottom: 12 },
+  emptyState: { alignItems: 'center', gap: 10, paddingVertical: 32, backgroundColor: '#ffffff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+  emptyStateText: { color: '#64748b', fontSize: 13 },
 });
 
 export default LabTechnicianDashboardScreen;

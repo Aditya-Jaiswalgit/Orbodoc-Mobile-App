@@ -23,6 +23,7 @@ import {
   ViewDetailsIcon,
 } from '../../components/common/CustomIcons';
 import { useMedicineBills } from '../../hooks/useMedicineBills';
+import { useAuthContext } from '../../context/AuthContext';
 import { MedicineBill } from '../../api/medicineBillApi';
 import { PaymentCheckoutModal } from '../../components/payment/PaymentCheckoutModal';
 import { usePaymentCheckout } from '../../hooks/usePaymentCheckout';
@@ -76,6 +77,7 @@ export const MedicineBillingScreen: React.FC<MedicineBillingScreenProps> = ({
   onOpenNotifications = () => {},
   onToggleTabBar,
 }) => {
+  const { user } = useAuthContext();
   const { bills, loading, refreshBills, fetchBillDetails } = useMedicineBills();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedColumns, setSelectedColumns] = useState<string[]>(DEFAULT_MEDICINE_BILL_COLUMNS);
@@ -115,7 +117,22 @@ export const MedicineBillingScreen: React.FC<MedicineBillingScreenProps> = ({
     });
   };
 
-  const filteredBills = bills.filter((b) => {
+  const myBills = bills.filter((b) => {
+    const userId = user?.patient_id || user?.id || user?.userId;
+    const userPhone = String(user?.phone || '').replace(/\D/g, '');
+    const userName = String(user?.fullName || user?.full_name || '').trim().toLowerCase();
+    const billPatientId = (b as any).patient_id || (b as any).patient?.id;
+    const billPhone = String(b.patient_phone || (b as any).patient?.phone || '').replace(/\D/g, '');
+    const billName = String(b.patient_name || (b as any).patient?.full_name || '').trim().toLowerCase();
+
+    return Boolean(
+      (userId && billPatientId && String(userId) === String(billPatientId)) ||
+      (userPhone && billPhone && userPhone === billPhone) ||
+      (userName && billName && (userName === billName || userName.includes(billName) || billName.includes(userName)))
+    );
+  });
+
+  const filteredBills = myBills.filter((b) => {
     const q = searchQuery.toLowerCase().trim();
     const billNo = (b.bill_number || `#${b.id}`).toLowerCase();
     const name = (b.patient_name || '').toLowerCase();

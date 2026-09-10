@@ -149,9 +149,14 @@ export const useNotifications = () => {
 
   const updateSubCategories = async (categories: string[]) => {
     try {
-      await updateNotificationSubscriptionsApi(token, categories);
-      fetchNotificationData();
-    } catch (e) {}
+      const res = await updateNotificationSubscriptionsApi(token, categories);
+      if (res.success) {
+        await fetchNotificationData();
+      }
+      return res;
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Unable to update notification preferences' };
+    }
   };
 
   useEffect(() => {

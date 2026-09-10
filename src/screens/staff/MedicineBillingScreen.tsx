@@ -16,7 +16,6 @@ import { useMedicineBills } from '../../hooks/useMedicineBills';
 import { MedicineBill, MedicineBillItem } from '../../api/medicineBillApi';
 import { InvoiceModal } from '../../components/billing/InvoiceModal';
 import {
-  BillBanknoteIcon,
   BillingEyeIcon,
   ColumnsIcon,
   MoreVerticalIcon,
@@ -300,7 +299,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({
         {/* Header Section matching Screenshot 1 */}
         <View style={styles.topHeaderSection}>
           <View style={styles.topTitleRow}>
-            <BillBanknoteIcon color="#0f172a" size={24} strokeWidth={2} />
+            <ReceiptIcon color="#0f172a" size={24} strokeWidth={2} />
             <Text style={styles.topPageTitle}>Medicine Bills</Text>
           </View>
           <Text style={styles.topSubtitleText}>Manage medicine bills and payments</Text>
@@ -340,7 +339,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({
         <View style={styles.allBillsCard}>
           {/* Header row: [$] All Bills (count) */}
           <View style={styles.allBillsTitleRow}>
-            <BillBanknoteIcon color="#0f172a" size={20} strokeWidth={2} />
+            <ReceiptIcon color="#0f172a" size={20} strokeWidth={2} />
             <Text style={styles.allBillsTitle}>All Bills ({filteredBills.length})</Text>
           </View>
 

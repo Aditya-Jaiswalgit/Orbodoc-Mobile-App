@@ -69,19 +69,32 @@ export const usePatientProfile = () => {
   }, [fetchProfile]);
 
   const updateProfile = async (updatedData: Partial<PatientProfileData>) => {
-    setProfile((prev) => ({ ...prev, ...updatedData }));
     if (!token) return { success: true };
     try {
       const patientId = Number(user?.userId || user?.id || user?.patient_id || 1);
+      const optionalValue = (value?: string | number) => {
+        const normalized = String(value ?? '').trim();
+        return normalized && normalized !== 'Not specified' && normalized !== 'None reported'
+          ? normalized
+          : undefined;
+      };
       const apiPayload = {
-        ...updatedData,
-        emergency_contact_name: updatedData.emergency_contact,
-        emergency_contact: updatedData.emergency_phone,
-        emergency_relation: updatedData.relation,
+        full_name: optionalValue(updatedData.full_name),
+        phone: optionalValue(updatedData.phone),
+        gender: optionalValue(updatedData.gender),
+        date_of_birth: optionalValue(updatedData.dob),
+        blood_group: optionalValue(updatedData.blood_group),
+        allergies: optionalValue(updatedData.allergies),
+        chronic_conditions: optionalValue(updatedData.chronic_conditions),
+        medical_history: optionalValue(updatedData.medical_history),
+        current_medications: optionalValue(updatedData.current_medications),
+        emergency_contact_name: optionalValue(updatedData.emergency_contact),
+        emergency_contact: optionalValue(updatedData.emergency_phone),
+        emergency_relation: optionalValue(updatedData.relation),
       };
       const res = await updatePatientProfileApi(token, patientId, apiPayload);
       if (res.success) {
-        fetchProfile();
+        await fetchProfile();
       }
       return res;
     } catch (err: any) {

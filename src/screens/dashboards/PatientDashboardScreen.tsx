@@ -7,16 +7,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowUpRightIcon,
   CalendarClockIcon,
   CalendarIcon,
   CalendarPlusIcon,
   CheckCircleIcon,
-  IndianRupeeIcon,
-  ReceiptBillIcon,
   ReportDocIcon,
 } from '../../components/common/CustomIcons';
+import { IndianRupee, ReceiptText } from 'lucide-react-native';
 import { PatientHeader } from '../../components/common/PatientHeader';
 import { useAuthContext } from '../../context/AuthContext';
 import { usePatientDashboard } from '../../hooks/usePatientDashboard';
@@ -39,10 +39,10 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
   const { dashboardData, refreshing, onRefresh } = usePatientDashboard(token);
   const { bills: treatmentBills } = useTreatmentBills();
 
-  const patientName = user?.fullName || user?.full_name || 'bulbul';
-  const firstName = (user?.first_name || patientName.split(' ')[0] || 'bulbul').toLowerCase();
+  const patientName = user?.fullName || user?.full_name || 'Patient';
+  const firstName = ((user as any)?.first_name || patientName.split(' ')[0] || 'Patient').toLowerCase();
 
-  // Time-based greeting (e.g. Good afternoon, bulbul!)
+  // Time-based greeting based on the signed-in patient's name.
   const currentHour = new Date().getHours();
   let timeGreeting = 'Good afternoon';
   if (currentHour < 12) {
@@ -61,7 +61,13 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
   const upcomingCount = dashboardData?.upcoming_appointments?.length || 0;
   const labReportsCount = dashboardData?.recent_lab_reports?.length || 0;
 
-  const allBills = treatmentBills.length > 0 ? treatmentBills : (dashboardData?.recent_bills || []);
+  // The dashboard endpoint is already patient-scoped. Do not accidentally show
+  // another patient's bills when the generic billing endpoint is available.
+  const patientId = Number((user as any)?.patient_id || (user as any)?.patient?.id || 0);
+  const fallbackBills = treatmentBills.filter((bill: any) =>
+    patientId > 0 && Number(bill.patient_id || bill.patient?.id || 0) === patientId,
+  );
+  const allBills = dashboardData?.recent_bills ?? fallbackBills;
   const billsCount = allBills.length;
 
   const paidBillsCount = allBills.filter(b => {
@@ -98,7 +104,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#059669']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#16b8ac']} />
         }>
 
         {/* 1. Patient Welcome Greeting (Photo 1) */}
@@ -112,9 +118,9 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
         </View>
 
         {/* 2. Today Date Card (Photo 1) */}
-        <View style={styles.dateCard}>
+        <LinearGradient colors={['#ffffff', '#ecfdf9']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.dateCard}>
           <View style={styles.dateIconBox}>
-            <CalendarIcon color="#0d9488" size={20} />
+            <CalendarIcon color="#16b8ac" size={24} strokeWidth={2.25} />
           </View>
           <View style={styles.dateTextCol}>
             <View style={styles.todayTagRow}>
@@ -123,12 +129,12 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
             </View>
             <Text style={styles.dateTextString}>{formattedDate}</Text>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* 3. Book Appointment Banner Card (Photo 1) */}
-        <View style={styles.appointmentBannerCard}>
+        <LinearGradient colors={['#f8fffe', '#dffbf7']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.appointmentBannerCard}>
           <View style={styles.bannerHeaderRow}>
-            <CalendarPlusIcon color="#0f766e" size={20} />
+            <CalendarPlusIcon color="#16b8ac" size={25} strokeWidth={2.25} />
             <Text style={styles.bannerTitle}>Book an Appointment</Text>
           </View>
           <Text style={styles.bannerSubtitle}>
@@ -140,11 +146,12 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
             onPress={() => onNavigateTab('book_appointment')}>
             <Text style={styles.findDoctorBtnText}>Find Clinic & Doctor</Text>
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
 
         {/* 4. Metric Cards - Vertical Stack (Photo 1 & Photo 2) */}
         {/* Card 1: Upcoming Appointments */}
         <View style={styles.metricCard}>
+          <View pointerEvents="none" style={styles.metricGlow} />
           <View style={styles.metricLeftCol}>
             <Text style={styles.metricTitle}>Upcoming Appointments</Text>
             <Text style={styles.metricValue}>{upcomingCount}</Text>
@@ -153,16 +160,17 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
               style={styles.metricLinkRow}
               onPress={() => onNavigateTab('appointments')}>
               <Text style={styles.metricLinkText}>View details</Text>
-              <ArrowUpRightIcon color="#0d9488" size={13} />
+              <ArrowUpRightIcon color="#16b8ac" size={15} strokeWidth={2.3} />
             </TouchableOpacity>
           </View>
           <View style={[styles.metricIconBox, { backgroundColor: '#f0fdfa' }]}>
-            <CalendarIcon color="#0d9488" size={26} />
+            <CalendarIcon color="#16b8ac" size={28} strokeWidth={2.25} />
           </View>
         </View>
 
         {/* Card 2: Lab Reports */}
         <View style={styles.metricCard}>
+          <View pointerEvents="none" style={styles.metricGlow} />
           <View style={styles.metricLeftCol}>
             <Text style={styles.metricTitle}>Lab Reports</Text>
             <Text style={styles.metricValue}>{labReportsCount}</Text>
@@ -171,16 +179,17 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
               style={styles.metricLinkRow}
               onPress={() => onNavigateTab('lab_tests')}>
               <Text style={styles.metricLinkText}>View details</Text>
-              <ArrowUpRightIcon color="#0d9488" size={13} />
+              <ArrowUpRightIcon color="#16b8ac" size={15} strokeWidth={2.3} />
             </TouchableOpacity>
           </View>
           <View style={[styles.metricIconBox, { backgroundColor: '#f0fdfa' }]}>
-            <ReportDocIcon color="#0d9488" size={26} />
+            <ReportDocIcon color="#16b8ac" size={28} strokeWidth={2.25} />
           </View>
         </View>
 
         {/* Card 3: Bills */}
         <View style={styles.metricCard}>
+          <View pointerEvents="none" style={[styles.metricGlow, styles.metricGlowAmber]} />
           <View style={styles.metricLeftCol}>
             <Text style={styles.metricTitle}>Bills</Text>
             <Text style={styles.metricValue}>{billsCount}</Text>
@@ -189,16 +198,17 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
               style={styles.metricLinkRow}
               onPress={() => onNavigateTab('treatment_billing')}>
               <Text style={styles.metricLinkText}>View details</Text>
-              <ArrowUpRightIcon color="#0d9488" size={13} />
+              <ArrowUpRightIcon color="#16b8ac" size={15} strokeWidth={2.3} />
             </TouchableOpacity>
           </View>
-          <View style={[styles.metricIconBox, { backgroundColor: '#fef3c7' }]}>
-            <IndianRupeeIcon color="#d97706" size={26} />
+          <View style={[styles.metricIconBox, { backgroundColor: '#fff4d7' }]}>
+            <IndianRupee color="#ffad28" size={29} strokeWidth={2.3} />
           </View>
         </View>
 
         {/* Card 4: Paid Bills */}
         <View style={styles.metricCard}>
+          <View pointerEvents="none" style={styles.metricGlow} />
           <View style={styles.metricLeftCol}>
             <Text style={styles.metricTitle}>Paid Bills</Text>
             <Text style={styles.metricValue}>{paidBillsCount}</Text>
@@ -207,16 +217,17 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
               style={styles.metricLinkRow}
               onPress={() => onNavigateTab('treatment_billing')}>
               <Text style={styles.metricLinkText}>View details</Text>
-              <ArrowUpRightIcon color="#0d9488" size={13} />
+              <ArrowUpRightIcon color="#16b8ac" size={15} strokeWidth={2.3} />
             </TouchableOpacity>
           </View>
           <View style={[styles.metricIconBox, { backgroundColor: '#dcfce7' }]}>
-            <CheckCircleIcon color="#16a34a" size={26} />
+            <CheckCircleIcon color="#42c98c" size={29} strokeWidth={2.25} />
           </View>
         </View>
 
         {/* 5. Care Overview Section (Photo 2) */}
-        <View style={styles.careSectionCard}>
+        <LinearGradient colors={['#ffffff', '#ffffff', '#e9fffb']} locations={[0, 0.52, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.careSectionCard}>
+          <View pointerEvents="none" style={styles.careGlow} />
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionHeaderTextCol}>
               <Text style={styles.tagLabelCare}>CARE OVERVIEW</Text>
@@ -226,7 +237,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
               </Text>
             </View>
             <View style={styles.careBadgeSquare}>
-              <CalendarClockIcon color="#ffffff" size={26} />
+              <CalendarClockIcon color="#ffffff" size={27} strokeWidth={2.25} />
             </View>
           </View>
 
@@ -252,7 +263,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
             </View>
           ) : (
             <View style={styles.emptyStateDashedBox}>
-              <CalendarPlusIcon color="#0d9488" size={32} />
+              <CalendarPlusIcon color="#16b8ac" size={34} strokeWidth={2.2} />
               <Text style={styles.emptyTitle}>No upcoming appointment</Text>
               <Text style={styles.emptySubtext}>
                 Book a consultation whenever you need care.
@@ -281,13 +292,14 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
             onPress={() => onNavigateTab('appointments')}>
             <View style={styles.footerLinkRow}>
               <Text style={styles.footerLinkTextEmerald}>View appointments</Text>
-              <ArrowUpRightIcon color="#0f766e" size={15} />
+              <ArrowUpRightIcon color="#11aaa1" size={17} strokeWidth={2.4} />
             </View>
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
 
         {/* 6. Billing Overview Section (Photo 2 & Photo 3) */}
-        <View style={styles.billingSectionCard}>
+        <LinearGradient colors={['#ffffff', '#ffffff', '#fff8dd']} locations={[0, 0.52, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.billingSectionCard}>
+          <View pointerEvents="none" style={styles.billingGlow} />
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionHeaderTextCol}>
               <Text style={styles.tagLabelBilling}>BILLING OVERVIEW</Text>
@@ -297,7 +309,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
               </Text>
             </View>
             <View style={styles.billingBadgeSquare}>
-              <ReceiptBillIcon color="#ffffff" size={26} />
+              <ReceiptText color="#ffffff" size={27} strokeWidth={2.25} />
             </View>
           </View>
 
@@ -323,7 +335,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
           <View style={styles.progressCard}>
             <View style={styles.progressTitleRow}>
               <View style={styles.progressLabelRow}>
-                <CheckCircleIcon color="#10b981" size={16} />
+                <CheckCircleIcon color="#42c98c" size={18} strokeWidth={2.25} />
                 <Text style={styles.progressCheckText}>Payment progress</Text>
               </View>
               <Text style={styles.progressPercentText}>{progressPercent}%</Text>
@@ -344,10 +356,10 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
             onPress={() => onNavigateTab('treatment_billing')}>
             <View style={styles.footerLinkRow}>
               <Text style={styles.footerLinkTextAmber}>View billing history</Text>
-              <ArrowUpRightIcon color="#b45309" size={15} />
+              <ArrowUpRightIcon color="#d88b1a" size={17} strokeWidth={2.4} />
             </View>
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
 
       </ScrollView>
     </View>
@@ -357,7 +369,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f7f9fa',
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -390,7 +402,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0fdf9',
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#99f6e4',
+    borderColor: '#c9f5f0',
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 16,
@@ -400,7 +412,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: '#ccfbf1',
+    backgroundColor: '#e3f8f5',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -417,12 +429,12 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#0d9488',
+    backgroundColor: '#16b8ac',
   },
   todayTagText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0f766e',
+    color: '#0fa79d',
     letterSpacing: 0.8,
   },
   dateTextString: {
@@ -436,7 +448,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0fdfa',
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: '#ccfbf1',
+    borderColor: '#d2f6f2',
     padding: 16,
     marginBottom: 16,
   },
@@ -458,7 +470,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   findDoctorBtn: {
-    backgroundColor: '#0d9488',
+    backgroundColor: '#10b7aa',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
@@ -488,6 +500,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 4,
     elevation: 1.5,
+    overflow: 'hidden',
+  },
+  metricGlow: {
+    position: 'absolute',
+    width: 132,
+    height: 132,
+    borderRadius: 66,
+    right: -72,
+    top: -38,
+    backgroundColor: 'rgba(219, 252, 248, 0.88)',
+  },
+  metricGlowAmber: {
+    backgroundColor: 'rgba(255, 247, 218, 0.82)',
   },
   metricLeftCol: {
     flex: 1,
@@ -512,7 +537,7 @@ const styles = StyleSheet.create({
   metricLinkText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0d9488',
+    color: '#16b8ac',
   },
   metricIconBox: {
     width: 58,
@@ -525,7 +550,7 @@ const styles = StyleSheet.create({
   rupeeIconText: {
     fontSize: 26,
     fontWeight: '700',
-    color: '#d97706',
+    color: '#d88b1a',
   },
 
   /* 5. Care Overview Section */
@@ -533,10 +558,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0fdfa',
     borderRadius: 22,
     borderWidth: 1.5,
-    borderColor: '#ccfbf1',
+    borderColor: '#d1f6f2',
     padding: 18,
     marginVertical: 6,
     marginBottom: 18,
+    overflow: 'hidden',
+    shadowColor: '#70ded4',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 3,
+  },
+  careGlow: {
+    position: 'absolute',
+    width: 190,
+    height: 190,
+    right: -95,
+    top: -70,
+    borderRadius: 95,
+    backgroundColor: 'rgba(211, 250, 246, 0.64)',
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -551,14 +591,14 @@ const styles = StyleSheet.create({
   tagLabelCare: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0f766e',
+    color: '#11aaa1',
     letterSpacing: 0.8,
     marginBottom: 4,
   },
   tagLabelBilling: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#b45309',
+    color: '#d88b1a',
     letterSpacing: 0.8,
     marginBottom: 4,
   },
@@ -577,7 +617,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 14,
-    backgroundColor: '#0f766e',
+    backgroundColor: '#11aaa1',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -585,7 +625,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 14,
-    backgroundColor: '#f59e0b',
+    backgroundColor: '#ffad28',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -595,7 +635,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#99f6e4',
+    borderColor: '#c9f5f0',
     borderStyle: 'dashed',
     paddingVertical: 22,
     paddingHorizontal: 16,
@@ -620,7 +660,7 @@ const styles = StyleSheet.create({
   nextVisitCard: {
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#ccfbf1',
+    borderColor: '#d2f6f2',
     borderRadius: 14,
     padding: 14,
     marginBottom: 14,
@@ -642,7 +682,7 @@ const styles = StyleSheet.create({
   nextVisitMetaText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0d9488',
+    color: '#16b8ac',
     marginTop: 2,
   },
   nextVisitClinic: {
@@ -691,12 +731,12 @@ const styles = StyleSheet.create({
   footerLinkTextEmerald: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0f766e',
+    color: '#11aaa1',
   },
   footerLinkTextAmber: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#b45309',
+    color: '#d88b1a',
   },
 
   /* 6. Billing Overview Section */
@@ -704,20 +744,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 22,
     borderWidth: 1.5,
-    borderColor: '#fef3c7',
+    borderColor: '#f9e8b6',
     padding: 18,
     marginBottom: 30,
-    shadowColor: '#f59e0b',
+    shadowColor: '#ffd788',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
+    overflow: 'hidden',
+  },
+  billingGlow: {
+    position: 'absolute',
+    width: 190,
+    height: 190,
+    right: -100,
+    bottom: -82,
+    borderRadius: 95,
+    backgroundColor: 'rgba(255, 226, 141, 0.28)',
   },
   billingTotalBilledBox: {
     backgroundColor: '#ffffff',
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#fef3c7',
+    borderColor: '#f9e8b6',
     padding: 16,
     marginBottom: 10,
   },
@@ -725,7 +775,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#ccfbf1',
+    borderColor: '#d2f6f2',
     padding: 16,
     marginBottom: 10,
   },
@@ -749,7 +799,7 @@ const styles = StyleSheet.create({
   billingStatPaidText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#059669',
+    color: '#2bad79',
   },
 
   /* Payment Progress Card */
@@ -791,7 +841,7 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#10b981',
+    backgroundColor: '#42c98c',
     borderRadius: 4,
   },
   progressFooterRow: {
