@@ -4,6 +4,7 @@ import {
   Alert,
   Modal,
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -85,6 +86,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({
 
   // Modals & Bottom Sheets
   const [showColumnsModal, setShowColumnsModal] = useState(false);
+  const [columnsAnchorY, setColumnsAnchorY] = useState<number | undefined>(undefined);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
@@ -374,7 +376,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({
           <TouchableOpacity
             style={styles.columnsTriggerBtn}
             activeOpacity={0.8}
-            onPress={() => setShowColumnsModal(true)}>
+            onPress={(event) => { setColumnsAnchorY(event.nativeEvent.pageY); setShowColumnsModal(true); }}>
             <ColumnsIcon size={16} color="#0f172a" />
             <Text style={styles.columnsTriggerBtnText}>Columns</Text>
           </TouchableOpacity>
@@ -595,6 +597,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({
       {/* ─── REUSABLE COLUMNS MODAL (EXACT 14 COLUMNS FROM SCREENSHOTS 3 & 4) ─── */}
       <ColumnsModal
         visible={showColumnsModal}
+        anchorY={columnsAnchorY}
         onClose={() => setShowColumnsModal(false)}
         title="Show / Hide Columns"
         columns={MEDICINE_INVENTORY_COLUMNS}
@@ -606,12 +609,10 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({
       <Modal
         visible={showCategoryPicker}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowCategoryPicker(false)}>
         <View style={styles.pickerBackdrop}>
-          <TouchableWithoutFeedback onPress={() => setShowCategoryPicker(false)}>
-            <View style={StyleSheet.absoluteFillObject} />
-          </TouchableWithoutFeedback>
+          <Pressable style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} onPress={() => setShowCategoryPicker(false)} />
           <View style={styles.pickerBottomSheet}>
             <View style={styles.sheetDragHandle} />
             <View style={styles.sheetHeader}>
@@ -652,12 +653,10 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({
       <Modal
         visible={showStatusPicker}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowStatusPicker(false)}>
         <View style={styles.pickerBackdrop}>
-          <TouchableWithoutFeedback onPress={() => setShowStatusPicker(false)}>
-            <View style={StyleSheet.absoluteFillObject} />
-          </TouchableWithoutFeedback>
+          <Pressable style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} onPress={() => setShowStatusPicker(false)} />
           <View style={styles.pickerBottomSheet}>
             <View style={styles.sheetDragHandle} />
             <View style={styles.sheetHeader}>
@@ -698,11 +697,10 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({
       <Modal
         visible={actionMenuVisible}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setActionMenuVisible(false)}>
-        <TouchableWithoutFeedback onPress={() => setActionMenuVisible(false)}>
           <View style={styles.pickerBackdrop}>
-            <TouchableWithoutFeedback>
+            <Pressable style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} onPress={() => setActionMenuVisible(false)} />
               <View style={styles.pickerBottomSheet}>
                 <View style={styles.sheetDragHandle} />
                 <View style={styles.sheetHeader}>
@@ -748,9 +746,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({
                   <Text style={styles.actionRowText}>View Full Medicine Details</Text>
                 </TouchableOpacity>
               </View>
-            </TouchableWithoutFeedback>
           </View>
-        </TouchableWithoutFeedback>
       </Modal>
 
       {/* ─── ADJUST STOCK MODAL ─── */}
@@ -1212,24 +1208,24 @@ const styles = StyleSheet.create({
   pickerBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    padding: 16,
   },
   pickerBottomSheet: {
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
     paddingHorizontal: 18,
     paddingTop: 10,
     paddingBottom: Platform.OS === 'ios' ? 34 : 20,
     maxHeight: '80%',
   },
   sheetDragHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#cbd5e1',
-    alignSelf: 'center',
-    marginBottom: 10,
+    display: 'none',
   },
   sheetHeader: {
     flexDirection: 'row',

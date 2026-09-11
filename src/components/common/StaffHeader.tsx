@@ -15,6 +15,7 @@ import { useAuthContext } from '../../context/AuthContext';
 import { useNotifications } from '../../hooks/useNotifications';
 import { Bell, ChevronDown } from 'lucide-react-native';
 import { changePasswordApi } from '../../api/authApi';
+import { NotificationPreviewModal } from './NotificationPreviewModal';
 
 interface StaffHeaderProps {
   onOpenDrawer?: () => void;
@@ -38,6 +39,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showNotificationsPreview, setShowNotificationsPreview] = useState(false);
 
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -172,11 +174,13 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
           <TouchableOpacity
             style={styles.notificationBell}
             activeOpacity={0.8}
-            onPress={onOpenNotifications}>
+            onPress={() => setShowNotificationsPreview(true)}>
             <Bell color="#334155" size={18} />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : '1'}</Text>
-            </View>
+            {unreadCount > 0 ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              </View>
+            ) : null}
           </TouchableOpacity>
 
           {/* Profile Avatar Pill with Chevron */}
@@ -191,6 +195,12 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
           </TouchableOpacity>
         </View>
       </View>
+
+      <NotificationPreviewModal
+        visible={showNotificationsPreview}
+        onClose={() => setShowNotificationsPreview(false)}
+        onViewAll={onOpenNotifications}
+      />
 
       {/* Dropdown Menu Modal */}
       <Modal

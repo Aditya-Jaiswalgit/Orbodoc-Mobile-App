@@ -813,7 +813,7 @@ export const LabManagementScreen: React.FC<Props> = ({
       {/* ─── ADD LAB REPORT BOTTOM SHEET MODAL (Screenshots 3 & 4) ─── */}
       <Modal
         visible={reportModalVisible}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={() => setReportModalVisible(false)}>
         <View style={styles.bottomSheetOverlay}>
@@ -976,7 +976,7 @@ export const LabManagementScreen: React.FC<Props> = ({
       {/* ─── LAB REPORT OVERVIEW MODAL (Triggered by 👁 View - Exact Match to User Screenshots) ─── */}
       <Modal
         visible={viewModalVisible}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={() => setViewModalVisible(false)}>
         <View style={styles.bottomSheetOverlay}>
@@ -1731,7 +1731,8 @@ const styles = StyleSheet.create({
   /* ─── Bottom Sheet Modal (Screenshots 3 & 4) ─── */
   bottomSheetOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    padding: 16,
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
   },
   bottomSheetBackdrop: {
@@ -1741,6 +1742,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
     maxHeight: '88%',
     paddingTop: 16,
     position: 'relative',
@@ -1911,6 +1916,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
     maxHeight: '94%',
     paddingTop: 16,
     paddingBottom: Platform.OS === 'ios' ? 34 : 16,

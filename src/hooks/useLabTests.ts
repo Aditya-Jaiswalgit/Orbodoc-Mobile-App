@@ -67,7 +67,15 @@ export const useLabTests = () => {
       setError(err.message || 'Error loading lab diagnostic data');
     } finally {
       setLoading(false);
-      setLastRefreshed(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      setLastRefreshed(new Date().toLocaleString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      }));
     }
   }, [token, user]);
 

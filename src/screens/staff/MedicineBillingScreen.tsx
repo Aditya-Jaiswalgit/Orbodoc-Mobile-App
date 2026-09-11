@@ -71,6 +71,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [columnsModalVisible, setColumnsModalVisible] = useState(false);
+  const [columnsAnchorY, setColumnsAnchorY] = useState<number | undefined>(undefined);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
 
@@ -347,7 +348,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({
           <TouchableOpacity
             style={styles.columnsBtn}
             activeOpacity={0.8}
-            onPress={() => setColumnsModalVisible(true)}>
+            onPress={(event) => { setColumnsAnchorY(event.nativeEvent.pageY); setColumnsModalVisible(true); }}>
             <ColumnsIcon size={16} color="#0f172a" />
             <Text style={styles.columnsBtnText}>Columns</Text>
           </TouchableOpacity>
@@ -545,6 +546,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({
       {/* 1. COLUMNS MODAL matching Screenshots 2 & 3 */}
       <MedicineColumnsModal
         visible={columnsModalVisible}
+        anchorY={columnsAnchorY}
         columns={columns}
         onClose={() => setColumnsModalVisible(false)}
         onToggleColumn={handleToggleColumn}

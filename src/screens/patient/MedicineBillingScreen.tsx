@@ -82,6 +82,7 @@ export const MedicineBillingScreen: React.FC<MedicineBillingScreenProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedColumns, setSelectedColumns] = useState<string[]>(DEFAULT_MEDICINE_BILL_COLUMNS);
   const [showColumnsModal, setShowColumnsModal] = useState(false);
+  const [columnsAnchorY, setColumnsAnchorY] = useState<number | undefined>(undefined);
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
 
   const [selectedBill, setSelectedBill] = useState<MedicineBill | null>(null);
@@ -247,7 +248,7 @@ export const MedicineBillingScreen: React.FC<MedicineBillingScreenProps> = ({
           <TouchableOpacity
             style={styles.columnsBtn}
             activeOpacity={0.8}
-            onPress={() => setShowColumnsModal(true)}>
+            onPress={(event) => { setColumnsAnchorY(event.nativeEvent.pageY); setShowColumnsModal(true); }}>
             <ColumnsIcon size={16} color="#0f172a" />
             <Text style={styles.columnsBtnText}>Columns</Text>
           </TouchableOpacity>
@@ -368,6 +369,7 @@ export const MedicineBillingScreen: React.FC<MedicineBillingScreenProps> = ({
       {/* ─── COLUMNS MODAL ─── */}
       <ColumnsModal
         visible={showColumnsModal}
+        anchorY={columnsAnchorY}
         onClose={() => setShowColumnsModal(false)}
         title="Show / Hide Columns"
         columns={MEDICINE_BILL_COLUMNS}

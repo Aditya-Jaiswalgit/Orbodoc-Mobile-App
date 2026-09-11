@@ -5,6 +5,7 @@ import {
   Linking,
   Modal,
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -115,6 +116,7 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('All Status');
   const [showStatusPicker, setShowStatusPicker] = useState<boolean>(false);
   const [showColumnsModal, setShowColumnsModal] = useState<boolean>(false);
+  const [columnsAnchorY, setColumnsAnchorY] = useState<number | undefined>(undefined);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(DEFAULT_TREATMENT_BILL_COLUMNS);
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
@@ -135,7 +137,6 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
   useEffect(() => {
     if (onToggleTabBar) {
       const isAnyModalOpen =
-        showStatusPicker ||
         showColumnsModal ||
         showBillDetailModal ||
         showActionMenuModal ||
@@ -144,7 +145,6 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
       onToggleTabBar(isAnyModalOpen);
     }
   }, [
-    showStatusPicker,
     showColumnsModal,
     showBillDetailModal,
     showActionMenuModal,
@@ -428,19 +428,28 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
           </View>
 
           {/* ─── STATUS FILTER DROPDOWN BUTTON ─── */}
-          <TouchableOpacity
-            style={styles.statusPickerBtn}
-            activeOpacity={0.8}
-            onPress={() => setShowStatusPicker(true)}>
-            <Text style={styles.statusPickerText}>{statusFilter}</Text>
-            <ChevronDownIcon size={16} color="#64748b" />
-          </TouchableOpacity>
+          <View style={[styles.inlineStatusWrapper, showStatusPicker && styles.inlineStatusWrapperActive]}>
+            <TouchableOpacity style={styles.statusPickerBtn} activeOpacity={0.8} onPress={() => setShowStatusPicker((open) => !open)}>
+              <Text style={styles.statusPickerText}>{statusFilter}</Text>
+              <ChevronDownIcon size={16} color="#64748b" />
+            </TouchableOpacity>
+            {showStatusPicker && (
+              <View style={styles.inlineStatusMenu}>
+                {['All Status', 'Pending', 'Paid', 'Partially Paid', 'Cancelled'].map((status) => {
+                  const selected = statusFilter === status;
+                  return <TouchableOpacity key={status} style={[styles.inlineStatusOption, selected && styles.inlineStatusOptionSelected]} onPress={() => { setStatusFilter(status); setShowStatusPicker(false); setVisibleCount(5); }}>
+                    <Text style={[styles.inlineStatusText, selected && styles.inlineStatusTextSelected]}>{selected ? '✓  ' : '    '}{status}</Text>
+                  </TouchableOpacity>;
+                })}
+              </View>
+            )}
+          </View>
 
           {/* ─── COLUMNS BUTTON ─── */}
           <TouchableOpacity
             style={styles.columnsBtn}
             activeOpacity={0.8}
-            onPress={() => setShowColumnsModal(true)}>
+            onPress={(event) => { setColumnsAnchorY(event.nativeEvent.pageY); setShowColumnsModal(true); }}>
             <ColumnsIcon size={16} color="#0f172a" />
             <Text style={styles.columnsBtnText}>Columns</Text>
           </TouchableOpacity>
@@ -611,6 +620,7 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
       {/* ─── COLUMNS MODAL (EXACT 14 COLUMNS FROM REFERENCE) ─── */}
       <ColumnsModal
         visible={showColumnsModal}
+        anchorY={columnsAnchorY}
         onClose={() => setShowColumnsModal(false)}
         title="Show / Hide Columns"
         columns={TREATMENT_BILL_COLUMNS}
@@ -620,9 +630,9 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
 
       {/* ─── STATUS PICKER BOTTOM SHEET ─── */}
       <Modal
-        visible={showStatusPicker}
+        visible={false}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowStatusPicker(false)}>
         <View style={styles.modalBackdrop}>
           <TouchableWithoutFeedback onPress={() => setShowStatusPicker(false)}>
@@ -657,11 +667,10 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
       <Modal
         visible={showActionMenuModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowActionMenuModal(false)}>
-        <TouchableWithoutFeedback onPress={() => setShowActionMenuModal(false)}>
           <View style={styles.actionMenuBackdrop}>
-            <TouchableWithoutFeedback>
+            <Pressable style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} onPress={() => setShowActionMenuModal(false)} />
               <View style={styles.actionMenuBottomSheet}>
                 <View style={styles.bottomSheetDragHandle} />
 
@@ -725,9 +734,7 @@ export const TreatmentBillingScreen: React.FC<TreatmentBillingScreenProps> = ({
                 </TouchableOpacity>
 
               </View>
-            </TouchableWithoutFeedback>
           </View>
-        </TouchableWithoutFeedback>
       </Modal>
 
       {/* ─── INVOICE DETAILS MODAL ─── */}
@@ -903,6 +910,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#0f172a',
   },
+  inlineStatusWrapper: { position: 'relative', zIndex: 5 },
+  inlineStatusWrapperActive: { zIndex: 30, elevation: 30 },
+  inlineStatusMenu: { position: 'absolute', top: 48, left: 0, right: 0, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 10, paddingVertical: 4, shadowColor: '#334155', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.16, shadowRadius: 8, elevation: 12 },
+  inlineStatusOption: { minHeight: 32, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 7, marginHorizontal: 3 },
+  inlineStatusOptionSelected: { backgroundColor: '#dff7f4' },
+  inlineStatusText: { color: '#334155', fontSize: 13, fontWeight: '500' },
+  inlineStatusTextSelected: { color: '#0d9488', fontWeight: '700' },
 
   /* Columns Button */
   columnsBtn: {
@@ -1122,7 +1136,8 @@ const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    padding: 16,
     zIndex: 99999,
     elevation: 99999,
   },
@@ -1130,11 +1145,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    borderRadius: 20,
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: Platform.OS === 'ios' ? 38 : 28,
     maxHeight: '65%',
     width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
     zIndex: 100000,
     elevation: 100000,
   },
@@ -1179,14 +1197,18 @@ const styles = StyleSheet.create({
   actionMenuBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.55)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    padding: 16,
     zIndex: 99999,
   },
   actionMenuBottomSheet: {
     width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    borderRadius: 20,
     paddingTop: 8,
     paddingBottom: Platform.OS === 'ios' ? 38 : 26,
     paddingHorizontal: 16,
@@ -1197,13 +1219,7 @@ const styles = StyleSheet.create({
     elevation: 20,
   },
   bottomSheetDragHandle: {
-    width: 42,
-    height: 4.5,
-    borderRadius: 3,
-    backgroundColor: '#cbd5e1',
-    alignSelf: 'center',
-    marginTop: 6,
-    marginBottom: 12,
+    display: 'none',
   },
   bottomSheetHeaderRow: {
     flexDirection: 'row',

@@ -23,6 +23,7 @@ import {
 } from '../../components/common/CustomIcons';
 import { useLabTests } from '../../hooks/useLabTests';
 import { useClinics } from '../../hooks/useClinics';
+import { FloatingDropdown } from '../../components/common/FloatingDropdown';
 
 interface LabTestsScreenProps {
   onOpenDrawer?: () => void;
@@ -51,18 +52,20 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedClinicName, setSelectedClinicName] = useState<string>('');
   const [showClinicPicker, setShowClinicPicker] = useState<boolean>(false);
+  const [clinicAnchor, setClinicAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const clinicFieldRef = React.useRef<View>(null);
+  const openClinicDropdown = () => {
+    clinicFieldRef.current?.measureInWindow((x, y, width, height) => {
+      setClinicAnchor({ x, y, width, height });
+      setShowClinicPicker(true);
+    });
+  };
 
   useEffect(() => {
     if (clinics.length > 0 && !selectedClinicName) {
       setSelectedClinicName(clinics[0].name);
     }
   }, [clinics]);
-
-  useEffect(() => {
-    if (onToggleTabBar) {
-      onToggleTabBar(showClinicPicker);
-    }
-  }, [showClinicPicker, onToggleTabBar]);
 
   useEffect(() => {
     return () => {
@@ -108,6 +111,8 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
       />
 
       <ScrollView
+        nestedScrollEnabled
+        scrollEnabled
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -130,15 +135,28 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
 
         {/* ─── CARD 1: CLINIC SELECTOR + REFRESH BUTTON ─── */}
         <View style={styles.topControlsContainer}>
-          <TouchableOpacity
-            style={styles.clinicDropdownBtn}
-            activeOpacity={0.8}
-            onPress={() => setShowClinicPicker(true)}>
-            <Text style={styles.clinicDropdownText} numberOfLines={1}>
-              {selectedClinicName || 'Select a clinic'}
-            </Text>
-            <ChevronDownIcon size={18} color="#64748b" strokeWidth={2} />
-          </TouchableOpacity>
+          <View ref={clinicFieldRef} collapsable={false} style={[styles.clinicDropdownWrapper, showClinicPicker && styles.clinicDropdownWrapperActive]}>
+            <TouchableOpacity style={styles.clinicDropdownBtn} activeOpacity={0.8} onPress={openClinicDropdown}>
+              <Text style={styles.clinicDropdownText} numberOfLines={1}>{selectedClinicName || 'Select a clinic'}</Text>
+              <ChevronDownIcon size={18} color="#64748b" strokeWidth={2} />
+            </TouchableOpacity>
+            {false && showClinicPicker && (
+              <View style={styles.clinicOptionsMenu}>
+                <ScrollView
+                  nestedScrollEnabled
+                  scrollEnabled
+                  keyboardShouldPersistTaps="handled"
+                  style={styles.clinicOptionsScroll}
+                  contentContainerStyle={styles.clinicOptionsContent}
+                  showsVerticalScrollIndicator>
+                  {clinics.length === 0 ? <Text style={styles.emptyPickerText}>No clinics are currently available.</Text> : clinics.map((clinic) => {
+                    const selected = clinic.name === selectedClinicName;
+                    return <TouchableOpacity key={String(clinic.id)} style={[styles.clinicOptionRow, selected && styles.clinicOptionRowSelected]} onPress={() => { setSelectedClinicName(clinic.name); setShowClinicPicker(false); }}><Text style={[styles.clinicOptionText, selected && styles.clinicOptionTextSelected]}>{selected ? '✓  ' : '    '}{clinic.name}</Text></TouchableOpacity>;
+                  })}
+                </ScrollView>
+              </View>
+            )}
+          </View>
 
           <TouchableOpacity
             style={styles.refreshMintBtn}
@@ -149,7 +167,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
           </TouchableOpacity>
 
           <Text style={styles.lastRefreshedText}>
-            Last refreshed: {lastRefreshed || '9 Sept 2026, 4:47:57 pm'}
+            Last refreshed: {lastRefreshed || 'Not refreshed yet'}
           </Text>
         </View>
 
@@ -314,9 +332,26 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
         </View>
       </ScrollView>
 
+      <FloatingDropdown
+        visible={showClinicPicker}
+        anchorX={clinicAnchor?.x}
+        anchorY={clinicAnchor?.y}
+        anchorWidth={clinicAnchor?.width}
+        anchorHeight={clinicAnchor?.height}
+        options={clinics.map((clinic) => ({ id: String(clinic.id), label: clinic.name }))}
+        selectedId={String(clinics.find((clinic) => clinic.name === selectedClinicName)?.id || '')}
+        searchPlaceholder="Search clinic..."
+        onClose={() => setShowClinicPicker(false)}
+        onSelect={(id) => {
+          const clinic = clinics.find((item) => String(item.id) === id);
+          if (clinic) setSelectedClinicName(clinic.name);
+          setShowClinicPicker(false);
+        }}
+      />
+
       {/* ─── CLINIC SELECTION MODAL ─── */}
       <Modal
-        visible={showClinicPicker}
+        visible={false}
         transparent
         animationType="fade"
         onRequestClose={() => setShowClinicPicker(false)}>
@@ -436,6 +471,15 @@ const styles = StyleSheet.create({
   showingDataClinic: { fontSize: 12, fontWeight: '700', color: '#0f172a' },
   errorText: { color: '#b91c1c', fontSize: 12, marginBottom: 12 },
   emptyPickerText: { color: '#64748b', fontSize: 13, paddingVertical: 16, textAlign: 'center' },
+  clinicDropdownWrapper: { position: 'relative', zIndex: 4 },
+  clinicDropdownWrapperActive: { zIndex: 40, elevation: 30 },
+  clinicOptionsMenu: { position: 'absolute', top: 50, left: 0, right: 0, height: 220, overflow: 'hidden', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 10, paddingVertical: 4, shadowColor: '#334155', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.16, shadowRadius: 8, elevation: 20 },
+  clinicOptionsScroll: { flex: 1 },
+  clinicOptionsContent: { paddingBottom: 4 },
+  clinicOptionRow: { minHeight: 38, justifyContent: 'center', paddingHorizontal: 12, marginHorizontal: 3, borderRadius: 7 },
+  clinicOptionRowSelected: { backgroundColor: '#dff7f4' },
+  clinicOptionText: { color: '#334155', fontSize: 13, fontWeight: '500' },
+  clinicOptionTextSelected: { color: '#0d9488', fontWeight: '700' },
 
   /* ─── CARD 3: MAIN LAB TESTS CARD ─── */
   mainLabCard: {

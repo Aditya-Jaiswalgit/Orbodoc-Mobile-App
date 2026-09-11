@@ -1,12 +1,13 @@
 import React from 'react';
 import {
   Modal,
+  Dimensions,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 
@@ -23,6 +24,8 @@ interface ColumnsModalProps {
   columns: ColumnItem[];
   selectedIds: string[];
   onToggle: (id: string) => void;
+  /** Y coordinate of the Columns trigger. Keeps this a real drop-up, not a sheet. */
+  anchorY?: number;
 }
 
 export const ColumnsModal: React.FC<ColumnsModalProps> = ({
@@ -32,40 +35,51 @@ export const ColumnsModal: React.FC<ColumnsModalProps> = ({
   columns,
   selectedIds,
   onToggle,
+  anchorY,
 }) => {
+  const screenHeight = Dimensions.get('window').height;
+  const longestLabelLength = Math.max(title.length, ...columns.map((column) => column.label.length));
+  // Compact enough for small phones, while allowing the widest column label to fit.
+  const dropdownWidth = Math.min(240, Math.max(190, Math.ceil(longestLabelLength * 6.8) + 58));
+  const desiredHeight = Math.min(360, 57 + columns.length * 37);
+  const spaceAbove = Math.max(0, (anchorY || 0) - 18);
+  const spaceBelow = Math.max(0, screenHeight - (anchorY || 0) - 42);
+  const openBelow = anchorY !== undefined && spaceAbove < Math.min(desiredHeight, 230);
+  const positionStyle = anchorY === undefined
+    ? styles.defaultPosition
+    : openBelow
+      // When an upward popover would reach the header, keep it under the Columns button.
+      ? { top: Math.max(12, anchorY + 28), maxHeight: Math.min(desiredHeight, Math.max(150, spaceBelow)) }
+      : { bottom: Math.max(12, screenHeight - anchorY + 30), maxHeight: Math.min(desiredHeight, spaceAbove) };
   return (
     <Modal
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={onClose}>
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}>
-        <TouchableOpacity
-          activeOpacity={1}
-          style={styles.dropdownCard}
-          onPress={(e) => {
-            if (e && typeof e.stopPropagation === 'function') {
-              e.stopPropagation();
-            }
-          }}>
+      onRequestClose={onClose}
+      >
+      <View style={styles.overlay}>
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        <View style={[styles.dropdownCard, { width: dropdownWidth }, positionStyle]}>
           <View style={styles.headerRow}>
             <Text style={styles.titleText}>{title}</Text>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={onClose}
-              style={styles.closeBtn}>
+              style={styles.closeBtn}
+            >
               <Text style={styles.closeBtnText}>✕</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView
+            nestedScrollEnabled
+            scrollEnabled
             showsVerticalScrollIndicator={false}
             style={styles.scrollList}
-            contentContainerStyle={styles.scrollContent}>
-            {columns.map((col) => {
+            contentContainerStyle={styles.scrollContent}
+          >
+            {columns.map(col => {
               const isChecked = selectedIds.includes(col.id);
 
               return (
@@ -74,7 +88,8 @@ export const ColumnsModal: React.FC<ColumnsModalProps> = ({
                   <TouchableOpacity
                     activeOpacity={0.65}
                     style={styles.optionRow}
-                    onPress={() => onToggle(col.id)}>
+                    onPress={() => onToggle(col.id)}
+                  >
                     <View style={styles.checkCol}>
                       {isChecked ? (
                         <Text style={styles.checkMark}>✓</Text>
@@ -86,7 +101,8 @@ export const ColumnsModal: React.FC<ColumnsModalProps> = ({
                       style={[
                         styles.labelText,
                         isChecked && styles.labelTextChecked,
-                      ]}>
+                      ]}
+                    >
                       {col.label}
                     </Text>
                   </TouchableOpacity>
@@ -94,8 +110,8 @@ export const ColumnsModal: React.FC<ColumnsModalProps> = ({
               );
             })}
           </ScrollView>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 };
@@ -103,16 +119,16 @@ export const ColumnsModal: React.FC<ColumnsModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.35)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    backgroundColor: 'transparent',
     zIndex: 99999,
     elevation: 99999,
   },
+  backdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   dropdownCard: {
-    width: '100%',
-    maxWidth: 285,
+    // The runtime width is calculated from the title and visible labels.
+    maxHeight: '45%',
+    position: 'absolute',
+    right: 16,
     backgroundColor: '#ffffff',
     borderRadius: 14,
     borderWidth: 1,
@@ -134,6 +150,7 @@ const styles = StyleSheet.create({
       } as any,
     }),
   },
+  defaultPosition: { bottom: 88 },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -157,7 +174,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   scrollList: {
-    maxHeight: 380,
+    maxHeight: 290,
+    flexShrink: 1,
   },
   scrollContent: {
     paddingVertical: 6,

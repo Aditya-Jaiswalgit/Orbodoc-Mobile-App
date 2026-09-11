@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -25,6 +25,8 @@ import {
 import { BadgeCheck, Building2, CalendarDays, Check, Clock3, Globe2, MapPin, Monitor, Search, ShieldCheck, X } from 'lucide-react-native';
 import { PatientHeader } from '../../components/common/PatientHeader';
 import { InlineCalendarPicker } from '../../components/common/InlineCalendarPicker';
+import { FloatingDropdown } from '../../components/common/FloatingDropdown';
+import { useOutsideTapDismiss } from '../../components/common/useOutsideTapDismiss';
 import { useAuthContext } from '../../context/AuthContext';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useClinics } from '../../hooks/useClinics';
@@ -140,9 +142,61 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
   const [showTimeOptions, setShowTimeOptions] = useState(false);
   const [timeSearch, setTimeSearch] = useState('');
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [modeDropdownAnchor, setModeDropdownAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [timeDropdownAnchor, setTimeDropdownAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const modeFieldRef = React.useRef<View>(null);
+  const modeMenuRef = React.useRef<View>(null);
+  const dateFieldRef = React.useRef<View>(null);
+  const calendarMenuRef = React.useRef<View>(null);
+  const timeFieldRef = React.useRef<View>(null);
+  const timeMenuRef = React.useRef<View>(null);
+  const dismissSchedulePickerOnOutsideTap = useOutsideTapDismiss(useMemo(() => [
+    { id: 'mode', open: showModePicker, refs: [modeFieldRef, modeMenuRef], dismiss: () => setShowModePicker(false) },
+    { id: 'date', open: showInlineCalendar, refs: [dateFieldRef, calendarMenuRef], dismiss: () => setShowInlineCalendar(false) },
+    { id: 'time', open: showTimeOptions, refs: [timeFieldRef, timeMenuRef], dismiss: () => setShowTimeOptions(false) },
+  ], [showModePicker, showInlineCalendar, showTimeOptions]));
 
   const [showStatePicker, setShowStatePicker] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
+  const [stateAnchorY, setStateAnchorY] = useState<number | undefined>(undefined);
+  const [cityAnchorY, setCityAnchorY] = useState<number | undefined>(undefined);
+  const [stateAnchorX, setStateAnchorX] = useState<number | undefined>(undefined);
+  const [cityAnchorX, setCityAnchorX] = useState<number | undefined>(undefined);
+  const [stateAnchorWidth, setStateAnchorWidth] = useState<number | undefined>(undefined);
+  const [cityAnchorWidth, setCityAnchorWidth] = useState<number | undefined>(undefined);
+  const stateSelectRef = React.useRef<View>(null);
+  const citySelectRef = React.useRef<View>(null);
+
+  const openStateDropdown = () => {
+    stateSelectRef.current?.measureInWindow((x, y, width, height) => {
+      setStateAnchorX(x); setStateAnchorY(y); setStateAnchorWidth(width); setShowStatePicker(true); setShowCityPicker(false);
+    });
+  };
+  const openCityDropdown = () => {
+    citySelectRef.current?.measureInWindow((x, y, width, height) => {
+      setCityAnchorX(x); setCityAnchorY(y); setCityAnchorWidth(width); setShowCityPicker(true); setShowStatePicker(false);
+    });
+  };
+  const [stateSearch, setStateSearch] = useState('');
+  const [citySearch, setCitySearch] = useState('');
+
+  const openModeDropdown = () => {
+    modeFieldRef.current?.measureInWindow((x, y, width, height) => {
+      setModeDropdownAnchor({ x, y, width, height });
+      setShowModePicker(true);
+      setShowTimeOptions(false);
+      setShowInlineCalendar(false);
+    });
+  };
+
+  const openTimeDropdown = () => {
+    timeFieldRef.current?.measureInWindow((x, y, width, height) => {
+      setTimeDropdownAnchor({ x, y, width, height });
+      setShowTimeOptions(true);
+      setShowModePicker(false);
+      setShowInlineCalendar(false);
+    });
+  };
 
   useEffect(() => {
     if (onToggleTabBar) {
@@ -151,9 +205,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
         showDatePicker ||
         showSlotPicker ||
         showScheduleModal ||
-        showSuccessModal ||
-        showStatePicker ||
-        showCityPicker;
+        showSuccessModal;
       onToggleTabBar(isAnyModalOpen);
     }
   }, [
@@ -162,8 +214,6 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
     showSlotPicker,
     showScheduleModal,
     showSuccessModal,
-    showStatePicker,
-    showCityPicker,
     onToggleTabBar,
   ]);
 
@@ -177,6 +227,12 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
 
   const selectedState = statesList.find((state) => state.id === selectedStateId);
   const selectedCity = citiesList.find((city) => city.id === selectedCityId);
+  const filteredStates = statesList.filter((state) =>
+    state.state_name.toLowerCase().includes(stateSearch.trim().toLowerCase()),
+  );
+  const filteredCities = citiesList.filter((city) =>
+    city.city_name.toLowerCase().includes(citySearch.trim().toLowerCase()),
+  );
 
   const filteredClinics = clinics.filter((c) => {
     const matchesState =
@@ -201,6 +257,28 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
       (d.department && d.department.toLowerCase().includes(doctorSearch.toLowerCase()));
     return matchesClinic && matchesSearch;
   });
+
+  const isVideoEnabled = Boolean(
+    selectedDoctor?.is_video_enabled === true ||
+    selectedDoctor?.is_video_enabled === 1 ||
+    selectedDoctor?.is_video_enabled === '1' ||
+    String(selectedDoctor?.is_video_enabled || '').toLowerCase() === 'true',
+  );
+  const isIndependentVideoDoctor = String(selectedDoctor?.doctor_type || '').toLowerCase() === 'independent_doctor';
+  const availableConsultationModes = isIndependentVideoDoctor && isVideoEnabled
+    ? ['Video Call']
+    : isVideoEnabled
+      ? ['In Person', 'Video Call']
+      : ['In Person'];
+
+  useEffect(() => {
+    if (!selectedDoctor) return;
+    if (isIndependentVideoDoctor && isVideoEnabled) {
+      setConsultationMode('Video Call');
+    } else if (!isVideoEnabled) {
+      setConsultationMode('In Person');
+    }
+  }, [selectedDoctor, isIndependentVideoDoctor, isVideoEnabled]);
 
   const handleSelectClinic = (clinic: Clinic) => {
     setSelectedClinic(clinic);
@@ -330,6 +408,8 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
       />
 
       <ScrollView
+        nestedScrollEnabled
+        disableScrollViewPanResponder
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
@@ -457,52 +537,69 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
             {/* Filter Inputs Section */}
             <View style={styles.filtersSection}>
               {/* STATE */}
-              <View style={styles.filterFieldGroup}>
+              <View style={[styles.filterFieldGroup, styles.inlineLocationWrapper, showStatePicker && styles.inlineLocationWrapperActive]}>
                 <Text style={styles.filterFieldLabel}>STATE</Text>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  style={styles.filterSelectBox}
-                  onPress={() => setShowStatePicker(true)}>
-                  <Text
-                    style={[
-                      styles.filterSelectBoxText,
-                      !selectedState && styles.filterSelectBoxPlaceholder,
-                    ]}
-                    numberOfLines={1}>
-                    {selectedState ? selectedState.state_name : 'Select state'}
-                  </Text>
-                  <ChevronsUpDownIcon size={14} color="#94a3b8" />
-                </TouchableOpacity>
+                <View ref={stateSelectRef} collapsable={false}>
+                  <TouchableOpacity onLayout={(event) => setStateAnchorWidth(event.nativeEvent.layout.width)} activeOpacity={0.8} style={styles.filterSelectBox} onPress={openStateDropdown}>
+                    <Text style={[styles.filterSelectBoxText, !selectedState && styles.filterSelectBoxPlaceholder]} numberOfLines={1}>{selectedState ? selectedState.state_name : 'Select state'}</Text>
+                    <ChevronsUpDownIcon size={14} color="#94a3b8" />
+                  </TouchableOpacity>
+                </View>
+                {false && showStatePicker && (
+                  <View style={styles.inlineLocationMenu}>
+                    <View style={styles.inlineLocationSearch}>
+                      <Search size={15} color="#94a3b8" />
+                      <TextInput value={stateSearch} onChangeText={setStateSearch} placeholder="Search state..." placeholderTextColor="#94a3b8" style={styles.inlineLocationSearchInput} />
+                    </View>
+                    <ScrollView
+                      style={styles.inlineLocationScroll}
+                      nestedScrollEnabled
+                      scrollEnabled
+                      showsVerticalScrollIndicator
+                      keyboardShouldPersistTaps="handled"
+                      contentContainerStyle={styles.inlineLocationScrollContent}>
+                      {filteredStates.map((state) => {
+                        const selected = selectedStateId === state.id;
+                        return <TouchableOpacity key={state.id} style={[styles.inlineLocationOption, selected && styles.inlineLocationOptionSelected]} onPress={() => { setSelectedStateId(state.id); setSelectedCityId(null); setStateSearch(''); setShowStatePicker(false); }}>
+                          <Text style={[styles.inlineLocationText, selected && styles.inlineLocationTextSelected]}>{selected ? '✓  ' : '    '}{state.state_name}</Text>
+                        </TouchableOpacity>;
+                      })}
+                    </ScrollView>
+                  </View>
+                )}
               </View>
 
               {/* CITY */}
-              <View style={styles.filterFieldGroup}>
+              <View style={[styles.filterFieldGroup, styles.inlineLocationWrapper, showCityPicker && styles.inlineLocationWrapperActive]}>
                 <Text style={styles.filterFieldLabel}>CITY</Text>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  style={styles.filterSelectBox}
-                  onPress={() => {
-                    if (!selectedStateId) {
-                      setShowStatePicker(true);
-                    } else {
-                      setShowCityPicker(true);
-                    }
-                  }}>
-                  <Text
-                    style={[
-                      styles.filterSelectBoxText,
-                      (!selectedState || !selectedCity) &&
-                        styles.filterSelectBoxPlaceholder,
-                    ]}
-                    numberOfLines={1}>
-                    {!selectedState
-                      ? 'Select state first'
-                      : !selectedCity
-                      ? 'Select city'
-                      : selectedCity.city_name}
-                  </Text>
-                  <ChevronsUpDownIcon size={14} color="#94a3b8" />
-                </TouchableOpacity>
+                <View ref={citySelectRef} collapsable={false}>
+                  <TouchableOpacity onLayout={(event) => setCityAnchorWidth(event.nativeEvent.layout.width)} activeOpacity={0.8} style={styles.filterSelectBox} onPress={() => { if (!selectedStateId) openStateDropdown(); else openCityDropdown(); }}>
+                    <Text style={[styles.filterSelectBoxText, (!selectedState || !selectedCity) && styles.filterSelectBoxPlaceholder]} numberOfLines={1}>{!selectedState ? 'Select state first' : !selectedCity ? 'Select city' : selectedCity.city_name}</Text>
+                    <ChevronsUpDownIcon size={14} color="#94a3b8" />
+                  </TouchableOpacity>
+                </View>
+                {false && showCityPicker && selectedStateId && (
+                  <View style={styles.inlineLocationMenu}>
+                    <View style={styles.inlineLocationSearch}>
+                      <Search size={15} color="#94a3b8" />
+                      <TextInput value={citySearch} onChangeText={setCitySearch} placeholder="Search city..." placeholderTextColor="#94a3b8" style={styles.inlineLocationSearchInput} />
+                    </View>
+                    <ScrollView
+                      style={styles.inlineLocationScroll}
+                      nestedScrollEnabled
+                      scrollEnabled
+                      showsVerticalScrollIndicator
+                      keyboardShouldPersistTaps="handled"
+                      contentContainerStyle={styles.inlineLocationScrollContent}>
+                      {filteredCities.map((city) => {
+                        const selected = selectedCityId === city.id;
+                        return <TouchableOpacity key={city.id} style={[styles.inlineLocationOption, selected && styles.inlineLocationOptionSelected]} onPress={() => { setSelectedCityId(city.id); setCitySearch(''); setShowCityPicker(false); }}>
+                          <Text style={[styles.inlineLocationText, selected && styles.inlineLocationTextSelected]}>{selected ? '✓  ' : '    '}{city.city_name}</Text>
+                        </TouchableOpacity>;
+                      })}
+                    </ScrollView>
+                  </View>
+                )}
               </View>
 
               {/* CLINIC SEARCH */}
@@ -705,7 +802,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
         )}
 
         {/* STEP 3: SCHEDULE & CONFIRM APPOINTMENT */}
-        {false && currentStep === 3 && selectedClinic && selectedDoctor && (
+        {currentStep === 3 && selectedClinic && selectedDoctor && false && (
           <View style={styles.mainCard}>
             {/* Summary Top Card */}
             <View style={styles.summaryBox}>
@@ -714,9 +811,9 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
               <View style={styles.summaryRow}>
                 <View style={styles.summaryCol}>
                   <Text style={styles.summaryLabel}>CLINIC</Text>
-                  <Text style={styles.summaryVal}>🏥 {selectedClinic.name}</Text>
+                  <Text style={styles.summaryVal}>🏥 {selectedClinic!.name}</Text>
                   <Text style={styles.summarySub}>
-                    📍 {selectedClinic.city}, {selectedClinic.state}
+                    📍 {selectedClinic!.city}, {selectedClinic!.state}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => setCurrentStep(1)}>
@@ -727,9 +824,9 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
               <View style={[styles.summaryRow, { marginTop: 10 }]}>
                 <View style={styles.summaryCol}>
                   <Text style={styles.summaryLabel}>DOCTOR</Text>
-                  <Text style={styles.summaryVal}>🩺 {selectedDoctor.full_name}</Text>
+                  <Text style={styles.summaryVal}>🩺 {selectedDoctor!.full_name}</Text>
                   <Text style={styles.summarySub}>
-                    {selectedDoctor.specialization || selectedDoctor.department || 'General Physician'}
+                    {selectedDoctor!.specialization || selectedDoctor!.department || 'General Physician'}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => setCurrentStep(2)}>
@@ -840,14 +937,37 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
         </View>
       </ScrollView>
 
+      <FloatingDropdown
+        visible={showStatePicker}
+        anchorY={stateAnchorY}
+        anchorX={stateAnchorX}
+        anchorWidth={stateAnchorWidth}
+        options={statesList.map((state) => ({ id: String(state.id), label: state.state_name }))}
+        selectedId={selectedStateId ? String(selectedStateId) : ''}
+        searchPlaceholder="Search state..."
+        onClose={() => setShowStatePicker(false)}
+        onSelect={(id) => { setSelectedStateId(Number(id)); setSelectedCityId(null); setShowStatePicker(false); }}
+      />
+      <FloatingDropdown
+        visible={showCityPicker && Boolean(selectedStateId)}
+        anchorY={cityAnchorY}
+        anchorX={cityAnchorX}
+        anchorWidth={cityAnchorWidth}
+        options={citiesList.map((city) => ({ id: String(city.id), label: city.city_name }))}
+        selectedId={selectedCityId ? String(selectedCityId) : ''}
+        searchPlaceholder="Search city..."
+        onClose={() => setShowCityPicker(false)}
+        onSelect={(id) => { setSelectedCityId(Number(id)); setShowCityPicker(false); }}
+      />
+
       {/* Step 3 is a focused modal, matching the responsive web booking flow. */}
       <Modal
         visible={showScheduleModal && Boolean(selectedClinic && selectedDoctor)}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={handleCloseScheduleSheet}>
         <View style={styles.scheduleOverlay}>
-          <View style={styles.scheduleModalCard}>
+          <View style={styles.scheduleModalCard} onTouchStart={dismissSchedulePickerOnOutsideTap}>
             <LinearGradient
               colors={['#042f2e', '#115e59', '#0e7490']}
               locations={[0, 0.56, 1]}
@@ -867,15 +987,17 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
             </LinearGradient>
 
             <ScrollView style={styles.scheduleModalBody} keyboardShouldPersistTaps="handled">
-              <View style={styles.formGroup}>
+              <View ref={modeFieldRef} collapsable={false} style={styles.formGroup}>
                 <Text style={styles.scheduleFieldLabel}><Monitor color="#0f172a" size={14} /> Consultation Mode <Text style={styles.asterisk}>*</Text></Text>
-                <TouchableOpacity style={styles.formPickerBtn} onPress={() => setShowModePicker(true)}>
-                  <Text style={styles.formPickerBtnText}>{consultationMode === 'Video Call' ? 'Video Call' : 'In Person'}</Text>
-                  <ChevronsUpDownIcon size={16} color="#64748b" />
-                </TouchableOpacity>
+                <View style={[styles.inlineBookingDropWrapper, showModePicker && styles.inlineBookingDropWrapperActive]}>
+                  <TouchableOpacity style={styles.formPickerBtn} onPress={openModeDropdown}>
+                    <Text style={styles.formPickerBtnText}>{consultationMode === 'Video Call' ? 'Video Call' : 'In Person'}</Text>
+                    <ChevronsUpDownIcon size={16} color="#64748b" />
+                  </TouchableOpacity>
+                </View>
               </View>
 
-              <View style={styles.formGroup}>
+              <View ref={dateFieldRef} collapsable={false} style={styles.formGroup}>
                 <Text style={styles.scheduleFieldLabel}><CalendarDays color="#0f172a" size={14} /> Appointment Date <Text style={styles.asterisk}>*</Text></Text>
                 <TouchableOpacity style={styles.formPickerBtn} onPress={() => { setShowInlineCalendar((current) => !current); setShowTimeOptions(false); }}>
                   <CalendarDays color="#334155" size={16} />
@@ -883,21 +1005,23 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
                   <ChevronsUpDownIcon size={16} color="#64748b" />
                 </TouchableOpacity>
                 {showInlineCalendar ? (
+                  <View ref={calendarMenuRef} collapsable={false}>
                   <InlineCalendarPicker
                     value={selectedDate}
                     minimumDate={new Date().toISOString().slice(0, 10)}
                     onSelect={(date) => setSelectedDate(date)}
                     onClose={() => setShowInlineCalendar(false)}
                   />
+                  </View>
                 ) : null}
               </View>
 
-              <View style={styles.formGroup}>
+              <View ref={timeFieldRef} collapsable={false} style={styles.formGroup}>
                 <Text style={styles.scheduleFieldLabel}><Clock3 color="#0f172a" size={14} /> Appointment Time <Text style={styles.asterisk}>*</Text></Text>
                 <TouchableOpacity
                   disabled={Boolean(slotError)}
                   style={[styles.formPickerBtn, Boolean(slotError) && styles.formPickerDisabled]}
-                  onPress={() => { setShowTimeOptions((current) => !current); setShowInlineCalendar(false); }}>
+                  onPress={openTimeDropdown}>
                   <Clock3 color="#94a3b8" size={16} />
                   <Text style={[styles.formPickerBtnText, !selectedTimeSlot && styles.placeholderPickerText]}>
                     {slotsLoading ? 'Loading available slots…' : selectedTimeSlot || 'Select time slot'}
@@ -910,14 +1034,6 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
                     <TouchableOpacity onPress={() => setSlotReloadKey((current) => current + 1)} hitSlop={6}>
                       <Text style={styles.providerUnavailableRetry}>Retry</Text>
                     </TouchableOpacity>
-                  </View>
-                ) : null}
-                {showTimeOptions ? (
-                  <View style={styles.timeOptionsCard}>
-                    <View style={styles.timeSearchRow}><Search color="#94a3b8" size={16} /><TextInput value={timeSearch} onChangeText={setTimeSearch} placeholder="Search time slot..." placeholderTextColor="#94a3b8" style={styles.timeSearchInput} /></View>
-                    <ScrollView style={styles.timeOptionsList} nestedScrollEnabled>
-                      {slotsLoading ? <ActivityIndicator color="#0d9488" style={{ marginVertical: 16 }} /> : filteredTimeSlots.length === 0 ? <Text style={styles.noSlotsText}>No available slots found.</Text> : filteredTimeSlots.map((slot) => <TouchableOpacity key={slot} style={[styles.timeOption, selectedTimeSlot === slot && styles.timeOptionSelected]} onPress={() => { setSelectedTimeSlot(slot); setShowTimeOptions(false); setTimeSearch(''); }}><Text style={[styles.timeOptionText, selectedTimeSlot === slot && styles.timeOptionTextSelected]}>{slot}</Text></TouchableOpacity>)}
-                    </ScrollView>
                   </View>
                 ) : null}
               </View>
@@ -947,8 +1063,34 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
         </View>
       </Modal>
 
+      <FloatingDropdown
+        visible={showScheduleModal && showModePicker}
+        anchorX={modeDropdownAnchor?.x}
+        anchorY={modeDropdownAnchor?.y}
+        anchorWidth={modeDropdownAnchor?.width}
+        anchorHeight={modeDropdownAnchor?.height}
+        options={availableConsultationModes.map((mode) => ({ id: mode, label: mode }))}
+        selectedId={consultationMode}
+        showSearch={false}
+        onClose={() => setShowModePicker(false)}
+        onSelect={(mode) => { setConsultationMode(mode as 'In Person' | 'Video Call'); setShowModePicker(false); }}
+      />
+
+      <FloatingDropdown
+        visible={showScheduleModal && showTimeOptions}
+        anchorX={timeDropdownAnchor?.x}
+        anchorY={timeDropdownAnchor?.y}
+        anchorWidth={timeDropdownAnchor?.width}
+        anchorHeight={timeDropdownAnchor?.height}
+        options={availableSlots.map((slot) => ({ id: slot, label: slot }))}
+        selectedId={selectedTimeSlot}
+        searchPlaceholder="Search time slot..."
+        onClose={() => setShowTimeOptions(false)}
+        onSelect={(slot) => { setSelectedTimeSlot(slot); setShowTimeOptions(false); setTimeSearch(''); }}
+      />
+
       {/* State Picker Modal */}
-      <Modal visible={showStatePicker} transparent animationType="fade" onRequestClose={() => setShowStatePicker(false)}>
+      <Modal visible={false} transparent animationType="fade" onRequestClose={() => setShowStatePicker(false)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowStatePicker(false)}>
           <View style={styles.modalBox}>
             <Text style={styles.modalBoxTitle}>Select State</Text>
@@ -973,7 +1115,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
       </Modal>
 
       {/* City Picker Modal */}
-      <Modal visible={showCityPicker} transparent animationType="fade" onRequestClose={() => setShowCityPicker(false)}>
+      <Modal visible={false} transparent animationType="fade" onRequestClose={() => setShowCityPicker(false)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowCityPicker(false)}>
           <View style={styles.modalBox}>
             <Text style={styles.modalBoxTitle}>Select City</Text>
@@ -997,7 +1139,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
       </Modal>
 
       {/* Consultation Mode Picker Modal */}
-      <Modal visible={showModePicker} transparent animationType="fade" onRequestClose={() => setShowModePicker(false)}>
+      <Modal visible={false} transparent animationType="fade" onRequestClose={() => setShowModePicker(false)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowModePicker(false)}>
           <View style={styles.modalBox}>
             <Text style={styles.modalBoxTitle}>Consultation Mode</Text>
@@ -1019,7 +1161,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
       </Modal>
 
       {/* Date Picker Modal */}
-      <Modal visible={showDatePicker} transparent animationType="slide" onRequestClose={() => setShowDatePicker(false)}>
+      <Modal visible={showDatePicker} transparent animationType="fade" onRequestClose={() => setShowDatePicker(false)}>
         <View style={styles.modalBackdrop}>
           <TouchableWithoutFeedback onPress={() => setShowDatePicker(false)}>
             <View style={StyleSheet.absoluteFill} />
@@ -1036,7 +1178,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
       </Modal>
 
       {/* Time Slot Picker Modal */}
-      <Modal visible={showSlotPicker} transparent animationType="slide" onRequestClose={() => setShowSlotPicker(false)}>
+      <Modal visible={showSlotPicker} transparent animationType="fade" onRequestClose={() => setShowSlotPicker(false)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowSlotPicker(false)}>
           <View style={[styles.modalBox, { maxHeight: '75%' }]}>
             <Text style={styles.modalBoxTitle}>Select Time Slot</Text>
@@ -1093,7 +1235,7 @@ export const BookAppointmentScreen: React.FC<BookAppointmentScreenProps> = ({
       </Modal>
 
       {/* Success Modal */}
-      <Modal visible={showSuccessModal} transparent animationType="slide" onRequestClose={() => setShowSuccessModal(false)}>
+      <Modal visible={showSuccessModal} transparent animationType="fade" onRequestClose={() => setShowSuccessModal(false)}>
         <View style={styles.modalBackdropDark}>
           <View style={styles.successModalCard}>
             <View style={styles.successIconCircle}>
@@ -1144,7 +1286,7 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
   bookingFlowShell: {
-    overflow: 'hidden',
+    overflow: 'visible',
     borderWidth: 1.5,
     borderColor: '#2dd4bf',
     borderRadius: 12,
@@ -1363,6 +1505,17 @@ const styles = StyleSheet.create({
   filterFieldGroup: {
     gap: 4,
   },
+  inlineLocationWrapper: { position: 'relative', zIndex: 2 },
+  inlineLocationWrapperActive: { zIndex: 30, elevation: 30 },
+  inlineLocationMenu: { position: 'absolute', top: 67, left: 0, right: 0, height: 262, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 10, paddingVertical: 4, zIndex: 50, shadowColor: '#334155', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.16, shadowRadius: 8, elevation: 20 },
+  inlineLocationSearch: { height: 39, marginHorizontal: 7, marginTop: 4, marginBottom: 5, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, backgroundColor: '#ffffff' },
+  inlineLocationSearchInput: { flex: 1, height: '100%', color: '#334155', fontSize: 12.5, paddingVertical: 0 },
+  inlineLocationScroll: { height: 205, flexGrow: 0 },
+  inlineLocationScrollContent: { paddingBottom: 4 },
+  inlineLocationOption: { minHeight: 34, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 7, marginHorizontal: 3 },
+  inlineLocationOptionSelected: { backgroundColor: '#dff7f4' },
+  inlineLocationText: { color: '#334155', fontSize: 13, fontWeight: '500' },
+  inlineLocationTextSelected: { color: '#0d9488', fontWeight: '700' },
   filterFieldLabel: {
     fontSize: 10.5,
     fontWeight: '800',
@@ -1776,6 +1929,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#0f172a',
   },
+  inlineBookingDropWrapper: { position: 'relative', zIndex: 5 },
+  inlineBookingDropWrapperActive: { zIndex: 30, elevation: 30 },
+  inlineBookingDropMenu: { position: 'absolute', top: 40, left: 0, right: 0, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 10, paddingVertical: 4, shadowColor: '#334155', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.16, shadowRadius: 8, elevation: 12 },
+  inlineBookingDropOption: { minHeight: 34, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 7, marginHorizontal: 3 },
+  inlineBookingDropOptionSelected: { backgroundColor: '#dff7f4' },
+  inlineBookingDropText: { color: '#334155', fontSize: 13, fontWeight: '500' },
+  inlineBookingDropTextSelected: { color: '#0d9488', fontWeight: '700' },
   formPickerDisabled: {
     backgroundColor: '#f8fafc',
     opacity: 0.72,
@@ -1811,7 +1971,8 @@ const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    padding: 16,
   },
   modalBackdropDark: {
     flex: 1,
@@ -1824,6 +1985,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    borderRadius: 20,
     padding: 20,
     width: '100%',
     maxWidth: 520,
@@ -1864,8 +2026,8 @@ const styles = StyleSheet.create({
   },
   noSlotsText: { color: '#64748b', fontSize: 13, textAlign: 'center', paddingVertical: 20 },
 
-  scheduleOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.72)', justifyContent: 'flex-end' },
-  scheduleModalCard: { width: '100%', maxWidth: 430, height: '99%', alignSelf: 'center', backgroundColor: '#f8fafc', borderTopLeftRadius: 10, borderTopRightRadius: 10, overflow: 'visible' },
+  scheduleOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.72)', justifyContent: 'center', padding: 12 },
+  scheduleModalCard: { width: '100%', maxWidth: 430, maxHeight: '94%', alignSelf: 'center', backgroundColor: '#f8fafc', borderRadius: 16, overflow: 'hidden' },
   scheduleModalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 18, borderTopLeftRadius: 10, borderTopRightRadius: 10 },
   scheduleHeaderIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.16)' },
   scheduleModalTitle: { color: '#ffffff', fontSize: 18, fontWeight: '800' },

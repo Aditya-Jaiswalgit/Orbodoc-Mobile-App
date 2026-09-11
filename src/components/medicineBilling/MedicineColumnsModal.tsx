@@ -1,11 +1,12 @@
 import React from 'react';
 import {
   Modal,
+  Dimensions,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 
@@ -45,6 +46,7 @@ interface Props {
   columns: MedicineColumnVisibilityState;
   onClose: () => void;
   onToggleColumn: (key: MedicineColumnKey) => void;
+  anchorY?: number;
 }
 
 const COLUMN_ITEMS: Array<{ key: MedicineColumnKey; label: string }> = [
@@ -68,15 +70,16 @@ export const MedicineColumnsModal: React.FC<Props> = ({
   columns,
   onClose,
   onToggleColumn,
+  anchorY,
 }) => {
+  const screenHeight = Dimensions.get('window').height;
+  const popoverPosition = anchorY === undefined ? { bottom: 88 } : { bottom: Math.max(12, screenHeight - anchorY + 30) };
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <TouchableWithoutFeedback onPress={onClose}>
-          <View style={styles.backdrop} />
-        </TouchableWithoutFeedback>
+        <Pressable style={styles.backdrop} onPress={onClose} />
 
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, popoverPosition]}>
           {/* Header matching Screenshot 2 */}
           <View style={styles.header}>
             <Text style={styles.title}>Show / Hide Columns</Text>
@@ -113,18 +116,17 @@ export const MedicineColumnsModal: React.FC<Props> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    backgroundColor: 'transparent',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   modalContainer: {
     width: '100%',
-    maxWidth: 340,
-    maxHeight: '80%',
+    maxWidth: 300,
+    maxHeight: '68%',
+    position: 'absolute',
+    right: 16,
     backgroundColor: '#ffffff',
     borderRadius: 14,
     overflow: 'hidden',
@@ -144,8 +146,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f1f5f9',
   },
   title: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 13.5,
+    fontWeight: '800',
     color: '#0f172a',
   },
   closeText: {
@@ -154,26 +156,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   listContainer: {
+    maxHeight: 360,
     paddingVertical: 8,
   },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 16,
   },
   checkCol: {
-    width: 24,
+    width: 20,
     alignItems: 'flex-start',
     justifyContent: 'center',
   },
   checkMark: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '800',
     color: '#0f172a',
   },
   itemLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#475569',
   },
   itemLabelActive: {

@@ -30,6 +30,7 @@ import {
   ReceiptIcon,
 } from '../components/common/CustomIcons';
 import { Menu, X } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthContext } from '../context/AuthContext';
 import { getMobileMenuItems, getMobileRole } from './mobileMenu';
 import { useNotifications } from '../hooks/useNotifications';
@@ -154,6 +155,9 @@ const resolveStaffRole = (user: any): string => {
 };
 
 export const StaffMainContainer = () => {
+  const insets = useSafeAreaInsets();
+  const footerInset = Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 0);
+  const bottomBarHeight = 65 + footerInset;
   const { user, logout, permissions, activeClinicId, switchClinic } = useAuthContext();
   const staffRole = getMobileRole(user);
   const { unreadCount } = useNotifications();
@@ -375,11 +379,11 @@ export const StaffMainContainer = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.screenContainer}>{renderActiveScreen()}</View>
+      <View style={[styles.screenContainer, !hideBottomBar && !drawerOpen && { paddingBottom: bottomBarHeight }]}>{renderActiveScreen()}</View>
 
       {/* ─── STAFF BOTTOM TAB BAR ─── */}
       {!hideBottomBar && !drawerOpen && (
-        <View style={styles.bottomTabBar}>
+        <View style={[styles.bottomTabBar, { height: bottomBarHeight, paddingBottom: footerInset }]}>
         <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('dashboard')}>
           <View style={styles.tabIconWrapper}>
             {renderTabVectorIcon('dashboard', activeTab === 'dashboard' ? '#0d9488' : '#94a3b8', 21)}

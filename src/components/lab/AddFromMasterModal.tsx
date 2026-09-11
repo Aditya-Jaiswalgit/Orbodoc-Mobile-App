@@ -108,7 +108,7 @@ export const AddFromMasterModal: React.FC<AddFromMasterModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <TouchableWithoutFeedback onPress={onClose}>
           <View style={styles.backdrop} />
@@ -382,7 +382,8 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    padding: 16,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -391,6 +392,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
+    borderRadius: 18,
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
     maxHeight: '94%',
     paddingBottom: Platform.OS === 'ios' ? 24 : 14,
   },

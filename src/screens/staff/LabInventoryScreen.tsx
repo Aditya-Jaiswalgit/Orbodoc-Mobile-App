@@ -83,6 +83,7 @@ export const LabInventoryScreen: React.FC<LabInventoryScreenProps> = ({
     actions: true,
   });
   const [columnsModalVisible, setColumnsModalVisible] = useState(false);
+  const [columnsAnchorY, setColumnsAnchorY] = useState<number | undefined>(undefined);
 
   // Edit Test Modal state (Screenshot 4 of earlier request)
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -373,7 +374,7 @@ export const LabInventoryScreen: React.FC<LabInventoryScreenProps> = ({
           <TouchableOpacity
             style={styles.columnsBtn}
             activeOpacity={0.7}
-            onPress={() => setColumnsModalVisible(true)}>
+            onPress={(event) => { setColumnsAnchorY(event.nativeEvent.pageY); setColumnsModalVisible(true); }}>
             <ColumnsIcon size={16} color="#0f172a" strokeWidth={1.8} />
             <Text style={styles.columnsBtnText}>Columns</Text>
           </TouchableOpacity>
@@ -409,6 +410,7 @@ export const LabInventoryScreen: React.FC<LabInventoryScreenProps> = ({
       {/* ─── SHOW / HIDE COLUMNS MODAL (Screenshot 3) ─── */}
       <ColumnsVisibilityModal
         visible={columnsModalVisible}
+        anchorY={columnsAnchorY}
         columns={columns}
         onClose={() => setColumnsModalVisible(false)}
         onToggleColumn={toggleColumn}

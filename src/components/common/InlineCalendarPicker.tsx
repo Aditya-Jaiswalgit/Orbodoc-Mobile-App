@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { CalendarDays, ChevronLeft, ChevronRight, ChevronsUpDown } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, ChevronsUpDown } from 'lucide-react-native';
 
 interface InlineCalendarPickerProps {
   value?: string;
@@ -164,12 +164,6 @@ export const InlineCalendarPicker: React.FC<InlineCalendarPickerProps> = ({
         })}
       </View>
 
-      {onClose && (
-        <TouchableOpacity style={styles.closeRow} onPress={onClose}>
-          <CalendarDays size={14} color="#0f9488" />
-          <Text style={styles.closeText}>Close calendar</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 };
@@ -191,11 +185,9 @@ const styles = StyleSheet.create({
   weekday: { width: '14.285%', textAlign: 'center', fontSize: 10.5, color: '#94a3b8', fontWeight: '600' },
   daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   dayButton: { width: '14.285%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 9 },
-  dayButtonSelected: { backgroundColor: '#d9f5f2' },
+  dayButtonSelected: { backgroundColor: '#effcfb', borderWidth: 1.5, borderColor: '#14b8a6' },
   dayText: { fontSize: 11.5, color: '#475569', fontWeight: '500' },
   dayTextOutside: { color: '#cbd5e1' },
   dayTextDisabled: { color: '#dbe4ec' },
   dayTextSelected: { color: '#0f9488', fontWeight: '800' },
-  closeRow: { flexDirection: 'row', alignSelf: 'flex-end', alignItems: 'center', gap: 5, marginTop: 5, padding: 4 },
-  closeText: { color: '#0f9488', fontSize: 11, fontWeight: '700' },
 });

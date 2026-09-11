@@ -238,7 +238,7 @@ export const EditBillModal: React.FC<EditBillModalProps> = ({
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="fade"
       onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -595,18 +595,22 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    padding: 16,
   },
   backdropTouch: {
     ...StyleSheet.absoluteFillObject,
   },
   modalContainer: {
     width: '100%',
-    height: '92%',
+    maxWidth: 520,
+    alignSelf: 'center',
+    maxHeight: '92%',
     maxHeight: '94%',
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -8 },
@@ -614,12 +618,7 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 24,
   },
-  dragHandleContainer: {
-    alignItems: 'center',
-    paddingTop: 10,
-    paddingBottom: 8,
-    backgroundColor: '#ffffff',
-  },
+  dragHandleContainer: { display: 'none' },
   dragHandleBar: {
     width: 44,
     height: 4.5,

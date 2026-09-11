@@ -36,7 +36,8 @@ import {
 import { useAppointments } from '../../hooks/useAppointments';
 import { Appointment } from '../../types/clinicTypes';
 import { ColumnsModal, ColumnItem } from '../../components/common/ColumnsModal';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { useOutsideTapDismiss } from '../../components/common/useOutsideTapDismiss';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react-native';
 
 interface AppointmentsScreenProps {
   onOpenDrawer?: () => void;
@@ -150,6 +151,7 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
 
   // Column management modal
   const [showColumnsModal, setShowColumnsModal] = useState<boolean>(false);
+  const [columnsAnchorY, setColumnsAnchorY] = useState<number | undefined>(undefined);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(DEFAULT_APPOINTMENT_COLUMNS);
 
   // Picker modals
@@ -157,22 +159,29 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
   const [showStatusPicker, setShowStatusPicker] = useState<boolean>(false);
   const [showDoctorPicker, setShowDoctorPicker] = useState<boolean>(false);
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
+  const [clinicSearch, setClinicSearch] = useState('');
+  const [doctorSearch, setDoctorSearch] = useState('');
+  const clinicFieldRef = React.useRef<View>(null);
+  const clinicMenuRef = React.useRef<View>(null);
+  const statusFieldRef = React.useRef<View>(null);
+  const statusMenuRef = React.useRef<View>(null);
+  const doctorFieldRef = React.useRef<View>(null);
+  const doctorMenuRef = React.useRef<View>(null);
+  const dismissInlinePickerOnOutsideTap = useOutsideTapDismiss(useMemo(() => [
+    { id: 'clinic', open: showClinicPicker, refs: [clinicFieldRef, clinicMenuRef], dismiss: () => setShowClinicPicker(false) },
+    { id: 'status', open: showStatusPicker, refs: [statusFieldRef, statusMenuRef], dismiss: () => setShowStatusPicker(false) },
+    { id: 'doctor', open: showDoctorPicker, refs: [doctorFieldRef, doctorMenuRef], dismiss: () => setShowDoctorPicker(false) },
+  ], [showClinicPicker, showStatusPicker, showDoctorPicker]));
 
   // Hide footer bottom bar whenever any bottom sheet or modal is open
   useEffect(() => {
     if (onToggleTabBar) {
       const isAnyModalOpen =
-        showClinicPicker ||
-        showStatusPicker ||
-        showDoctorPicker ||
         showDatePicker ||
         showColumnsModal;
       onToggleTabBar(isAnyModalOpen);
     }
   }, [
-    showClinicPicker,
-    showStatusPicker,
-    showDoctorPicker,
     showDatePicker,
     showColumnsModal,
     onToggleTabBar,
@@ -227,6 +236,8 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
     });
     return ['All Clinics', ...Array.from(cls)];
   }, [appointments]);
+  const visibleClinicOptions = clinicOptions.filter((option) => option.toLowerCase().includes(clinicSearch.trim().toLowerCase()));
+  const visibleDoctorOptions = doctorOptions.filter((option) => option.toLowerCase().includes(doctorSearch.trim().toLowerCase()));
 
   // Filtered Appointments
   const filteredAppointments = useMemo(() => {
@@ -396,7 +407,7 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
 
   return (
     <TouchableWithoutFeedback onPress={() => setIsCardActive(false)}>
-      <View style={styles.container}>
+      <View style={styles.container} onTouchStart={dismissInlinePickerOnOutsideTap}>
         {/* ─── HEADER: HAMBURGER ON LEFT (NO LOGO), NOTIFICATION & AVATAR ON RIGHT ─── */}
         <PatientHeader
           showLogo={false}
@@ -406,6 +417,8 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
         />
 
         <ScrollView
+          nestedScrollEnabled
+          disableScrollViewPanResponder
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           refreshControl={
@@ -502,45 +515,68 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
             {/* Filter Inputs Section */}
             <View style={styles.filtersSection}>
               {/* CLINIC */}
-              <View style={styles.filterFieldGroup}>
+              <View ref={clinicFieldRef} collapsable={false} style={[styles.filterFieldGroup, styles.inlineFilterWrapper, showClinicPicker && styles.inlineFilterWrapperActive]}>
                 <Text style={styles.filterFieldLabel}>CLINIC</Text>
                 <TouchableOpacity
                   activeOpacity={0.8}
                   style={styles.filterSelectBox}
-                  onPress={() => setShowClinicPicker(true)}>
+                  onPress={() => { setClinicSearch(''); setShowClinicPicker((open) => !open); setShowStatusPicker(false); setShowDoctorPicker(false); }}>
                   <Text style={styles.filterSelectBoxText} numberOfLines={1}>
                     {selectedClinic}
                   </Text>
                   <ChevronsUpDownIcon size={14} color="#94a3b8" />
                 </TouchableOpacity>
+                {showClinicPicker && (
+                  <View ref={clinicMenuRef} collapsable={false} style={styles.inlineFilterMenu}>
+                    <View style={styles.inlineFilterSearch}><Search size={15} color="#94a3b8" /><TextInput value={clinicSearch} onChangeText={setClinicSearch} placeholder="Search clinic..." placeholderTextColor="#94a3b8" style={styles.inlineFilterSearchInput} /></View>
+                    <ScrollView nestedScrollEnabled showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" style={styles.inlineFilterOptions} contentContainerStyle={styles.inlineFilterOptionsContent}>
+                      {visibleClinicOptions.map((clinic) => <TouchableOpacity key={clinic} style={[styles.inlineFilterOption, selectedClinic === clinic && styles.inlineFilterOptionActive]} onPress={() => { setSelectedClinic(clinic); setCurrentPage(1); setShowClinicPicker(false); }}><Text style={[styles.inlineFilterOptionText, selectedClinic === clinic && styles.inlineFilterOptionTextActive]}>{selectedClinic === clinic ? '✓  ' : '    '}{clinic}</Text></TouchableOpacity>)}
+                    </ScrollView>
+                  </View>
+                )}
               </View>
 
               {/* STATUS */}
-              <View style={styles.filterFieldGroup}>
+              <View ref={statusFieldRef} collapsable={false} style={[styles.filterFieldGroup, styles.inlineFilterWrapper, showStatusPicker && styles.inlineFilterWrapperActive]}>
                 <Text style={styles.filterFieldLabel}>STATUS</Text>
                 <TouchableOpacity
                   activeOpacity={0.8}
                   style={styles.filterSelectBox}
-                  onPress={() => setShowStatusPicker(true)}>
+                  onPress={() => { setShowStatusPicker((open) => !open); setShowClinicPicker(false); setShowDoctorPicker(false); }}>
                   <Text style={styles.filterSelectBoxText} numberOfLines={1}>
                     {selectedStatus}
                   </Text>
                   <ChevronsUpDownIcon size={14} color="#94a3b8" />
                 </TouchableOpacity>
+                {showStatusPicker && (
+                  <View ref={statusMenuRef} collapsable={false} style={styles.inlineFilterMenu}>
+                    <ScrollView nestedScrollEnabled showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" style={styles.inlineFilterOptions} contentContainerStyle={styles.inlineFilterOptionsContent}>
+                      {['All Status', 'Scheduled', 'In Progress', 'Complete', 'Cancel'].map((status) => <TouchableOpacity key={status} style={[styles.inlineFilterOption, selectedStatus === status && styles.inlineFilterOptionActive]} onPress={() => { setSelectedStatus(status); setCurrentPage(1); setShowStatusPicker(false); }}><Text style={[styles.inlineFilterOptionText, selectedStatus === status && styles.inlineFilterOptionTextActive]}>{selectedStatus === status ? '✓  ' : '    '}{status}</Text></TouchableOpacity>)}
+                    </ScrollView>
+                  </View>
+                )}
               </View>
 
               {/* DOCTOR */}
-              <View style={styles.filterFieldGroup}>
+              <View ref={doctorFieldRef} collapsable={false} style={[styles.filterFieldGroup, styles.inlineFilterWrapper, showDoctorPicker && styles.inlineFilterWrapperActive]}>
                 <Text style={styles.filterFieldLabel}>DOCTOR</Text>
                 <TouchableOpacity
                   activeOpacity={0.8}
                   style={styles.filterSelectBox}
-                  onPress={() => setShowDoctorPicker(true)}>
+                  onPress={() => { setDoctorSearch(''); setShowDoctorPicker((open) => !open); setShowClinicPicker(false); setShowStatusPicker(false); }}>
                   <Text style={styles.filterSelectBoxText} numberOfLines={1}>
                     {selectedDoctor}
                   </Text>
                   <ChevronsUpDownIcon size={14} color="#94a3b8" />
                 </TouchableOpacity>
+                {showDoctorPicker && (
+                  <View ref={doctorMenuRef} collapsable={false} style={styles.inlineFilterMenu}>
+                    <View style={styles.inlineFilterSearch}><Search size={15} color="#94a3b8" /><TextInput value={doctorSearch} onChangeText={setDoctorSearch} placeholder="Search doctor..." placeholderTextColor="#94a3b8" style={styles.inlineFilterSearchInput} /></View>
+                    <ScrollView nestedScrollEnabled showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" style={styles.inlineFilterOptions} contentContainerStyle={styles.inlineFilterOptionsContent}>
+                      {visibleDoctorOptions.map((doctor) => <TouchableOpacity key={doctor} style={[styles.inlineFilterOption, selectedDoctor === doctor && styles.inlineFilterOptionActive]} onPress={() => { setSelectedDoctor(doctor); setCurrentPage(1); setShowDoctorPicker(false); }}><Text style={[styles.inlineFilterOptionText, selectedDoctor === doctor && styles.inlineFilterOptionTextActive]}>{selectedDoctor === doctor ? '✓  ' : '    '}{doctor}</Text></TouchableOpacity>)}
+                    </ScrollView>
+                  </View>
+                )}
               </View>
 
               {/* APPOINTMENT SEARCH */}
@@ -589,7 +625,7 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
               <TouchableOpacity
                 style={styles.columnsBtn}
                 activeOpacity={0.8}
-                onPress={() => setShowColumnsModal(true)}>
+                onPress={(event) => { setColumnsAnchorY(event.nativeEvent.pageY); setShowColumnsModal(true); }}>
                 <ColumnsIcon size={15} color="#0f172a" />
                 <Text style={styles.columnsBtnText}>Columns</Text>
               </TouchableOpacity>
@@ -766,6 +802,7 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
         {/* ─── REUSABLE COLUMNS MODAL (EXACT 14 COLUMNS FROM REFERENCE) ─── */}
         <ColumnsModal
           visible={showColumnsModal}
+          anchorY={columnsAnchorY}
           onClose={() => setShowColumnsModal(false)}
           columns={APPOINTMENT_COLUMNS}
           selectedIds={selectedColumns}
@@ -773,7 +810,7 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
         />
 
         {/* ─── CLINIC PICKER BOTTOM SHEET ─── */}
-        <Modal visible={showClinicPicker} transparent animationType="slide" onRequestClose={() => setShowClinicPicker(false)}>
+        <Modal visible={false} transparent animationType="fade" onRequestClose={() => setShowClinicPicker(false)}>
           <View style={styles.modalBackdrop}>
             <TouchableWithoutFeedback onPress={() => setShowClinicPicker(false)}>
               <View style={StyleSheet.absoluteFillObject} />
@@ -806,7 +843,7 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
         </Modal>
 
         {/* ─── STATUS PICKER BOTTOM SHEET ─── */}
-        <Modal visible={showStatusPicker} transparent animationType="slide" onRequestClose={() => setShowStatusPicker(false)}>
+        <Modal visible={false} transparent animationType="fade" onRequestClose={() => setShowStatusPicker(false)}>
           <View style={styles.modalBackdrop}>
             <TouchableWithoutFeedback onPress={() => setShowStatusPicker(false)}>
               <View style={StyleSheet.absoluteFillObject} />
@@ -837,7 +874,7 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
         </Modal>
 
         {/* ─── DOCTOR PICKER BOTTOM SHEET ─── */}
-        <Modal visible={showDoctorPicker} transparent animationType="slide" onRequestClose={() => setShowDoctorPicker(false)}>
+        <Modal visible={false} transparent animationType="fade" onRequestClose={() => setShowDoctorPicker(false)}>
           <View style={styles.modalBackdrop}>
             <TouchableWithoutFeedback onPress={() => setShowDoctorPicker(false)}>
               <View style={StyleSheet.absoluteFillObject} />
@@ -1105,6 +1142,17 @@ const styles = StyleSheet.create({
   filterFieldGroup: {
     gap: 4,
   },
+  inlineFilterWrapper: { position: 'relative', zIndex: 2 },
+  inlineFilterWrapperActive: { zIndex: 40, elevation: 30 },
+  inlineFilterMenu: { position: 'absolute', top: 67, left: 0, right: 0, height: 262, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 10, paddingVertical: 4, zIndex: 60, shadowColor: '#334155', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.16, shadowRadius: 8, elevation: 25 },
+  inlineFilterSearch: { height: 39, marginHorizontal: 7, marginTop: 4, marginBottom: 5, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, backgroundColor: '#ffffff' },
+  inlineFilterSearchInput: { flex: 1, height: '100%', color: '#334155', fontSize: 12.5, paddingVertical: 0 },
+  inlineFilterOptions: { height: 205, flexGrow: 0 },
+  inlineFilterOptionsContent: { paddingBottom: 4 },
+  inlineFilterOption: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 12, marginHorizontal: 3, borderRadius: 7 },
+  inlineFilterOptionActive: { backgroundColor: '#dff7f4' },
+  inlineFilterOptionText: { color: '#334155', fontSize: 13, fontWeight: '500' },
+  inlineFilterOptionTextActive: { color: '#0d9488', fontWeight: '700' },
   filterFieldLabel: {
     fontSize: 10.5,
     fontWeight: '800',
@@ -1325,7 +1373,8 @@ const styles = StyleSheet.create({
   cardActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    padding: 16,
     marginTop: 6,
   },
   shareActionBtn: {
@@ -1526,11 +1575,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    borderRadius: 20,
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: Platform.OS === 'ios' ? 38 : 28,
     maxHeight: '60%',
     width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
     zIndex: 100000,
     elevation: 100000,
   },

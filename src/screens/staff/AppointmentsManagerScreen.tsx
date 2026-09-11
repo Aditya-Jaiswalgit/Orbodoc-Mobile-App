@@ -30,7 +30,9 @@ import {
 import { useAppointments } from '../../hooks/useAppointments';
 import { Appointment } from '../../types/clinicTypes';
 import { ColumnsModal, ColumnItem } from '../../components/common/ColumnsModal';
+import { FloatingDropdown } from '../../components/common/FloatingDropdown';
 import { InlineCalendarPicker } from '../../components/common/InlineCalendarPicker';
+import { useOutsideTapDismiss } from '../../components/common/useOutsideTapDismiss';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react-native';
 
 interface Props {
@@ -130,6 +132,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
 
   // Column management modal
   const [showColumnsModal, setShowColumnsModal] = useState<boolean>(false);
+  const [columnsAnchorY, setColumnsAnchorY] = useState<number | undefined>(undefined);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(DEFAULT_APPOINTMENT_COLUMNS);
 
   // Picker modals
@@ -137,6 +140,33 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
   const [showStatusPicker, setShowStatusPicker] = useState<boolean>(false);
   const [showDoctorPicker, setShowDoctorPicker] = useState<boolean>(false);
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
+  const [clinicAnchorY, setClinicAnchorY] = useState<number | undefined>(undefined);
+  const [doctorAnchorY, setDoctorAnchorY] = useState<number | undefined>(undefined);
+  const [clinicAnchorX, setClinicAnchorX] = useState<number | undefined>(undefined);
+  const [doctorAnchorX, setDoctorAnchorX] = useState<number | undefined>(undefined);
+  const [clinicAnchorWidth, setClinicAnchorWidth] = useState<number | undefined>(undefined);
+  const [doctorAnchorWidth, setDoctorAnchorWidth] = useState<number | undefined>(undefined);
+  const clinicSelectRef = React.useRef<any>(null);
+  const doctorSelectRef = React.useRef<any>(null);
+  const statusFieldRef = React.useRef<View>(null);
+  const statusMenuRef = React.useRef<View>(null);
+  const calendarFieldRef = React.useRef<View>(null);
+  const calendarMenuRef = React.useRef<View>(null);
+  const dismissInlinePickerOnOutsideTap = useOutsideTapDismiss(useMemo(() => [
+    { id: 'appointment-status', open: showStatusPicker, refs: [statusFieldRef, statusMenuRef], dismiss: () => setShowStatusPicker(false) },
+    { id: 'appointment-date', open: showDatePicker, refs: [calendarFieldRef, calendarMenuRef], dismiss: () => setShowDatePicker(false) },
+  ], [showStatusPicker, showDatePicker]));
+
+  const openClinicDropdown = () => {
+    clinicSelectRef.current?.measureInWindow((x: number, y: number, width: number) => {
+      setClinicAnchorX(x); setClinicAnchorY(y); setClinicAnchorWidth(width); setShowClinicPicker(true); setShowDoctorPicker(false);
+    });
+  };
+  const openDoctorDropdown = () => {
+    doctorSelectRef.current?.measureInWindow((x: number, y: number, width: number) => {
+      setDoctorAnchorX(x); setDoctorAnchorY(y); setDoctorAnchorWidth(width); setShowDoctorPicker(true); setShowClinicPicker(false);
+    });
+  };
 
   // Status update modal for staff
   const [selectedApptForStatus, setSelectedApptForStatus] = useState<Appointment | null>(null);
@@ -146,18 +176,12 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
   useEffect(() => {
     if (onToggleTabBar) {
       const isAnyModalOpen =
-        showClinicPicker ||
-        showStatusPicker ||
-        showDoctorPicker ||
         showDatePicker ||
         showColumnsModal ||
         showUpdateStatusModal;
       onToggleTabBar(isAnyModalOpen);
     }
   }, [
-    showClinicPicker,
-    showStatusPicker,
-    showDoctorPicker,
     showDatePicker,
     showColumnsModal,
     showUpdateStatusModal,
@@ -351,7 +375,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
 
   return (
     <TouchableWithoutFeedback onPress={() => setIsCardActive(false)}>
-      <View style={styles.container}>
+      <View style={styles.container} onTouchStart={dismissInlinePickerOnOutsideTap}>
         {isPatientView ? (
           <PatientHeader
             onOpenDrawer={onOpenDrawer}
@@ -368,6 +392,8 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
         )}
 
         <ScrollView
+          nestedScrollEnabled
+          disableScrollViewPanResponder
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           refreshControl={
@@ -396,18 +422,21 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
           </View>
 
           {/* Clinic Dropdown Button */}
-          <TouchableOpacity
-            style={styles.clinicSelectBtn}
-            activeOpacity={0.8}
-            onPress={() => setShowClinicPicker(true)}>
-            <Text style={styles.clinicSelectBtnText}>{selectedClinic}</Text>
-            <ChevronDownIcon size={16} color="#64748b" />
-          </TouchableOpacity>
+          <View style={[styles.inlinePickerWrapper, showClinicPicker && styles.inlinePickerWrapperActive]}>
+            <TouchableOpacity
+              ref={clinicSelectRef}
+              style={[styles.clinicSelectBtn, showClinicPicker && styles.dropdownTriggerActive]}
+              activeOpacity={0.8}
+              onPress={() => { setIsCardActive(true); openClinicDropdown(); }}>
+              <Text style={styles.clinicSelectBtnText}>{selectedClinic}</Text>
+              <ChevronDownIcon size={16} color="#64748b" />
+            </TouchableOpacity>
+          </View>
 
           {/* ─── ALL APPOINTMENTS CARD (GREEN BORDER ONLY ON CLICK) ─── */}
           <TouchableOpacity
             activeOpacity={1}
-            style={[styles.mainCard, !isPatientView && isCardActive && styles.mainCardActive]}
+            style={[styles.mainCard, isCardActive && styles.mainCardActive]}
             onPress={() => setIsCardActive(true)}>
             <Text style={styles.cardHeading}>All Appointments</Text>
             <Text style={styles.cardSubheading}>Book and track appointments in one page</Text>
@@ -431,8 +460,9 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
             <TouchableOpacity
               style={styles.columnsBtn}
               activeOpacity={0.75}
-              onPress={() => {
+              onPress={(event) => {
                 setIsCardActive(true);
+                setColumnsAnchorY(event.nativeEvent.pageY);
                 setShowColumnsModal(true);
               }}>
               <ColumnsIcon size={16} color="#0f172a" />
@@ -456,18 +486,19 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
             </View>
 
             {/* All Status Dropdown */}
-            <TouchableOpacity
-              style={styles.filterDropdown}
-              activeOpacity={0.8}
-              onPress={() => {
-                setIsCardActive(true);
-                setShowStatusPicker((visible) => !visible);
-              }}>
-              <Text style={styles.filterDropdownText}>{selectedStatus}</Text>
-              <ChevronDownIcon size={14} color="#64748b" />
-            </TouchableOpacity>
-            {showStatusPicker && (
-              <View style={styles.inlineStatusMenu}>
+            <View ref={statusFieldRef} collapsable={false}>
+              <TouchableOpacity
+                style={[styles.filterDropdown, showStatusPicker && styles.dropdownTriggerActive]}
+                activeOpacity={0.8}
+                onPress={() => {
+                  setIsCardActive(true);
+                  setShowStatusPicker((visible) => !visible);
+                }}>
+                <Text style={styles.filterDropdownText}>{selectedStatus}</Text>
+                <ChevronDownIcon size={14} color="#64748b" />
+              </TouchableOpacity>
+              {showStatusPicker && (
+              <View ref={statusMenuRef} collapsable={false} style={styles.inlineStatusMenu}>
                 {['All Status', 'Pending', 'Approved', 'Completed', 'Cancelled'].map((status) => {
                   const selected = selectedStatus === status;
                   return (
@@ -488,20 +519,22 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                 })}
               </View>
             )}
+            </View>
 
             {/* All Doctors Dropdown */}
-            <TouchableOpacity
-              style={styles.filterDropdown}
-              activeOpacity={0.8}
-              onPress={() => {
-                setIsCardActive(true);
-                setShowDoctorPicker(true);
-              }}>
-              <Text style={styles.filterDropdownText}>{selectedDoctor}</Text>
-              <ChevronDownIcon size={14} color="#64748b" />
-            </TouchableOpacity>
+            <View style={[styles.inlinePickerWrapper, showDoctorPicker && styles.inlinePickerWrapperActive]}>
+              <TouchableOpacity
+                ref={doctorSelectRef}
+                style={[styles.filterDropdown, showDoctorPicker && styles.dropdownTriggerActive]}
+                activeOpacity={0.8}
+                onPress={() => { setIsCardActive(true); openDoctorDropdown(); }}>
+                <Text style={styles.filterDropdownText}>{selectedDoctor}</Text>
+                <ChevronDownIcon size={14} color="#64748b" />
+              </TouchableOpacity>
+            </View>
 
             {/* Filter by Date Input / Button */}
+            <View ref={calendarFieldRef} collapsable={false}>
             <TouchableOpacity
               style={styles.dateFilterInputBox}
               activeOpacity={0.8}
@@ -523,7 +556,9 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                 </TouchableOpacity>
               ) : null}
             </TouchableOpacity>
+            </View>
             {showDatePicker && (
+              <View ref={calendarMenuRef} collapsable={false}>
               <InlineCalendarPicker
                 value={dateFilter}
                 onSelect={(date) => {
@@ -532,6 +567,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                 }}
                 onClose={() => setShowDatePicker(false)}
               />
+              </View>
             )}
 
             {/* ─── HORIZONTALLY SCROLLABLE TABLE ─── */}
@@ -819,14 +855,37 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
         {/* ─── REUSABLE COLUMNS MODAL (EXACT 14 COLUMNS FROM REFERENCE) ─── */}
         <ColumnsModal
           visible={showColumnsModal}
+          anchorY={columnsAnchorY}
           onClose={() => setShowColumnsModal(false)}
           columns={APPOINTMENT_COLUMNS}
           selectedIds={selectedColumns}
           onToggle={handleToggleColumn}
         />
+        <FloatingDropdown
+          visible={showClinicPicker}
+          anchorY={clinicAnchorY}
+          anchorX={clinicAnchorX}
+          anchorWidth={clinicAnchorWidth}
+          options={clinicOptions.map((label) => ({ id: label, label }))}
+          selectedId={selectedClinic}
+          searchPlaceholder="Search clinic..."
+          onClose={() => setShowClinicPicker(false)}
+          onSelect={(clinic) => { setSelectedClinic(clinic); setCurrentPage(1); setShowClinicPicker(false); }}
+        />
+        <FloatingDropdown
+          visible={showDoctorPicker}
+          anchorY={doctorAnchorY}
+          anchorX={doctorAnchorX}
+          anchorWidth={doctorAnchorWidth}
+          options={doctorOptions.map((label) => ({ id: label, label }))}
+          selectedId={selectedDoctor}
+          searchPlaceholder="Search doctor..."
+          onClose={() => setShowDoctorPicker(false)}
+          onSelect={(doctor) => { setSelectedDoctor(doctor); setCurrentPage(1); setShowDoctorPicker(false); }}
+        />
 
         {/* ─── CLINIC PICKER BOTTOM SHEET ─── */}
-        <Modal visible={showClinicPicker} transparent animationType="slide" onRequestClose={() => setShowClinicPicker(false)}>
+        <Modal visible={false} transparent animationType="fade" onRequestClose={() => setShowClinicPicker(false)}>
           <View style={styles.modalBackdrop}>
             <TouchableWithoutFeedback onPress={() => setShowClinicPicker(false)}>
               <View style={StyleSheet.absoluteFillObject} />
@@ -859,7 +918,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
         </Modal>
 
         {/* ─── DOCTOR PICKER BOTTOM SHEET ─── */}
-        <Modal visible={showDoctorPicker} transparent animationType="slide" onRequestClose={() => setShowDoctorPicker(false)}>
+        <Modal visible={false} transparent animationType="fade" onRequestClose={() => setShowDoctorPicker(false)}>
           <View style={styles.modalBackdrop}>
             <TouchableWithoutFeedback onPress={() => setShowDoctorPicker(false)}>
               <View style={StyleSheet.absoluteFillObject} />
@@ -893,7 +952,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
 
 
         {/* ─── UPDATE APPOINTMENT STATUS MODAL (FOR STAFF) ─── */}
-        <Modal visible={showUpdateStatusModal} transparent animationType="slide" onRequestClose={() => setShowUpdateStatusModal(false)}>
+        <Modal visible={showUpdateStatusModal} transparent animationType="fade" onRequestClose={() => setShowUpdateStatusModal(false)}>
           <View style={styles.modalBackdrop}>
             <TouchableWithoutFeedback onPress={() => setShowUpdateStatusModal(false)}>
               <View style={StyleSheet.absoluteFillObject} />
@@ -965,6 +1024,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   clinicSelectBtnText: { fontSize: 13.5, fontWeight: '600', color: '#334155' },
+  inlinePickerWrapper: { position: 'relative', zIndex: 4 },
+  inlinePickerWrapperActive: { zIndex: 50, elevation: 30 },
+  inlinePickerMenu: { position: 'absolute', top: 50, left: 0, right: 0, height: 220, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 10, paddingVertical: 4, shadowColor: '#334155', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.16, shadowRadius: 8, elevation: 25, zIndex: 60 },
+  inlinePickerScroll: { height: 210, flexGrow: 0 },
+  inlinePickerScrollContent: { paddingBottom: 4 },
+  inlinePickerOption: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 12, marginHorizontal: 3, borderRadius: 7 },
+  inlinePickerOptionActive: { backgroundColor: '#dff7f4' },
+  inlinePickerOptionText: { color: '#334155', fontSize: 13, fontWeight: '500' },
+  inlinePickerOptionTextActive: { color: '#0d9488', fontWeight: '700' },
+  dropdownTriggerActive: { borderWidth: 1.5, borderColor: '#14b8a6', backgroundColor: '#f0fdfa' },
 
   /* Main Card (Subtle border normally, green/teal border when clicked) */
   mainCard: {
@@ -1408,7 +1477,8 @@ const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    padding: 16,
     zIndex: 99999,
     elevation: 99999,
   },
@@ -1416,11 +1486,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    borderRadius: 20,
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: Platform.OS === 'ios' ? 38 : 28,
     maxHeight: '60%',
     width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
     zIndex: 100000,
     elevation: 100000,
   },

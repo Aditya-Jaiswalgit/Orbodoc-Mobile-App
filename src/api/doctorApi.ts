@@ -28,6 +28,12 @@ export async function getDoctorsByClinicApi(
           specialization: d.specialty || d.specialization || 'General Physician',
           qualification: d.qualification || '',
           consultation_fee: Number(d.consultation_fee ?? d.fee ?? d.consultationFee ?? 0),
+          is_video_enabled:
+            d.is_video_enabled === true ||
+            d.isVideoEnabled === true ||
+            d.video_enabled === true ||
+            Number(d.is_video_enabled ?? d.isVideoEnabled ?? d.video_enabled ?? 0) === 1,
+          doctor_type: String(d.doctor_type ?? d.doctorType ?? 'clinic_doctor'),
           profile_photo: d.image_url || d.profile_photo_url || d.profile_photo || undefined,
           is_active: true,
         }));

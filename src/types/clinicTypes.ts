@@ -43,6 +43,9 @@ export interface StaffMember {
   specialization?: string;
   qualification?: string;
   consultation_fee?: number;
+  /** Backend capability flags used when a patient books a consultation. */
+  is_video_enabled?: boolean | number | string;
+  doctor_type?: string;
   is_active: boolean;
   profile_photo?: string;
   created_at?: string;

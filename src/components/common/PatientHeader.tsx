@@ -19,12 +19,15 @@ import { getWalletBalanceApi } from '../../api/paymentApi';
 import { usePaymentCheckout } from '../../hooks/usePaymentCheckout';
 import { PaymentCheckoutModal } from '../payment/PaymentCheckoutModal';
 import { WalletRechargeModal } from '../payment/WalletRechargeModal';
+import { NotificationPreviewModal } from './NotificationPreviewModal';
 
 interface PatientHeaderProps {
   onOpenDrawer?: () => void;
   onOpenNotifications?: () => void;
   onNavigateProfile?: () => void;
   showLogo?: boolean;
+  /** Kept for header-call compatibility; patients do not render a role pill. */
+  showRolePill?: boolean;
 }
 
 export const PatientHeader: React.FC<PatientHeaderProps> = ({
@@ -32,12 +35,14 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
   onOpenNotifications,
   onNavigateProfile,
   showLogo = true,
+  showRolePill: _showRolePill = false,
 }) => {
   const { user, token, logout } = useAuthContext();
   const { unreadCount } = useNotifications();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showNotificationsPreview, setShowNotificationsPreview] = useState(false);
 
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -159,11 +164,13 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
           <TouchableOpacity
             style={styles.notificationBell}
             activeOpacity={0.8}
-            onPress={onOpenNotifications}>
+            onPress={() => setShowNotificationsPreview(true)}>
             <Bell color="#334155" size={20} />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : '1'}</Text>
-            </View>
+            {unreadCount > 0 ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              </View>
+            ) : null}
           </TouchableOpacity>
 
           {/* Profile Avatar (Click to open dropdown tab) with Chevron */}
@@ -201,6 +208,11 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
         onStartPayment={payment.startPayment}
         onConfirmPayment={(result) => payment.confirmPayment(result, loadWalletBalance)}
         onClose={payment.closeCheckout}
+      />
+      <NotificationPreviewModal
+        visible={showNotificationsPreview}
+        onClose={() => setShowNotificationsPreview(false)}
+        onViewAll={onOpenNotifications}
       />
 
       {/* Dropdown Menu Modal */}

@@ -1,6 +1,8 @@
 import React from 'react';
 import {
   Modal,
+  Dimensions,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -24,6 +26,7 @@ interface ColumnsVisibilityModalProps {
   onClose: () => void;
   columns: ColumnVisibilityState;
   onToggleColumn: (key: keyof ColumnVisibilityState) => void;
+  anchorY?: number;
 }
 
 const COLUMN_DEFINITIONS: { key: keyof ColumnVisibilityState; label: string }[] = [
@@ -42,16 +45,20 @@ export const ColumnsVisibilityModal: React.FC<ColumnsVisibilityModalProps> = ({
   onClose,
   columns,
   onToggleColumn,
+  anchorY,
 }) => {
+  const screenHeight = Dimensions.get('window').height;
+  const popoverPosition = anchorY === undefined ? { bottom: 88 } : { bottom: Math.max(12, screenHeight - anchorY + 30) };
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.popoverCard}>
+            <View style={[styles.popoverCard, popoverPosition]}>
               <Text style={styles.popoverTitle}>Show / Hide Columns</Text>
               <View style={styles.divider} />
 
+              <ScrollView style={styles.optionList} showsVerticalScrollIndicator={false} nestedScrollEnabled>
               {COLUMN_DEFINITIONS.map((item) => {
                 const isChecked = columns[item.key];
                 return (
@@ -69,6 +76,7 @@ export const ColumnsVisibilityModal: React.FC<ColumnsVisibilityModalProps> = ({
                   </TouchableOpacity>
                 );
               })}
+              </ScrollView>
             </View>
           </TouchableWithoutFeedback>
         </View>
@@ -80,14 +88,13 @@ export const ColumnsVisibilityModal: React.FC<ColumnsVisibilityModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.35)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
+    backgroundColor: 'transparent',
   },
   popoverCard: {
-    width: '84%',
-    maxWidth: 320,
+    width: 300,
+    maxHeight: '68%',
+    position: 'absolute',
+    right: 16,
     backgroundColor: '#ffffff',
     borderRadius: 14,
     paddingVertical: 14,
@@ -112,6 +119,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9',
     marginBottom: 8,
   },
+  optionList: { maxHeight: 360 },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -27,6 +27,7 @@ import {
   VideoCamIcon,
 } from '../components/common/CustomIcons';
 import { Menu, X } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthContext } from '../context/AuthContext';
 import { getMobileMenuItems } from './mobileMenu';
 import { useNotifications } from '../hooks/useNotifications';
@@ -108,6 +109,9 @@ const renderTabVectorIcon = (tab: PatientTabType, color: string, size: number = 
 };
 
 export const PatientMainContainer = () => {
+  const insets = useSafeAreaInsets();
+  const footerInset = Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 0);
+  const bottomBarHeight = 65 + footerInset;
   const [activeTab, setActiveTab] = useState<PatientTabType>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { user, logout, permissions } = useAuthContext();
@@ -175,11 +179,11 @@ export const PatientMainContainer = () => {
   return (
     <View style={styles.container}>
       {/* Dynamic Screen Content */}
-      <View style={styles.screenContainer}>{renderActiveScreen()}</View>
+      <View style={[styles.screenContainer, !hideBottomBar && !drawerOpen && { paddingBottom: bottomBarHeight }]}>{renderActiveScreen()}</View>
 
       {/* Bottom Tab Bar */}
       {!hideBottomBar && !drawerOpen && (
-        <View style={styles.bottomTabBar}>
+        <View style={[styles.bottomTabBar, { height: bottomBarHeight, paddingBottom: footerInset }]}>
           <TouchableOpacity
             style={styles.tabItem}
             onPress={() => setActiveTab('dashboard')}>

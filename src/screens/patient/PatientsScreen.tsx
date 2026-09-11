@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Modal,
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -36,20 +38,28 @@ import { PatientModel } from '../../types/clinicTypes';
 import { useAuthContext } from '../../context/AuthContext';
 import { bookAppointmentApi } from '../../api/appointmentApi';
 import { ColumnsModal, ColumnItem } from '../../components/common/ColumnsModal';
+import { InlineCalendarPicker } from '../../components/common/InlineCalendarPicker';
+import { useOutsideTapDismiss } from '../../components/common/useOutsideTapDismiss';
 import {
   CalendarDays,
   ContactRound,
   Droplets,
+  Eye,
+  FileText,
   FlaskConical,
   HeartPulse,
   Mail,
   MapPin,
   Pencil,
   Phone,
+  RotateCcw,
   Search,
   ShieldAlert,
   ShieldCheck,
+  SquarePen,
+  Stethoscope,
   UserRound,
+  UserRoundPlus,
   X,
 } from 'lucide-react-native';
 
@@ -168,6 +178,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
   const [bloodGroupFilter, setBloodGroupFilter] = useState<string>('All Blood Groups');
   const [statusFilter, setStatusFilter] = useState<string>('All Status');
   const [registrationDateFilter, setRegistrationDateFilter] = useState<string>('');
+  const [showRegistrationCalendar, setShowRegistrationCalendar] = useState<boolean>(false);
   const [activePanel, setActivePanel] = useState<'filters' | 'patients' | 'total' | 'active' | 'inactive' | 'today' | 'week' | null>(null);
 
   const [selectedPatient, setSelectedPatient] = useState<PatientModel | null>(null);
@@ -186,8 +197,12 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
   const canAddPatient = normalizedRole !== 'patient' && hasPatientPermission('can_add');
   const canEditPatient = normalizedRole !== 'patient' && hasPatientPermission('can_edit');
   const canDeletePatient = normalizedRole !== 'patient' && hasPatientPermission('can_delete');
+  // Booking from another patient's action menu belongs only to doctors.
+  const canBookPatientAppointment = normalizedRole === 'doctor';
 
   const [showActionMenuModal, setShowActionMenuModal] = useState<boolean>(false);
+  const [actionMenuAnchor, setActionMenuAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const actionMenuTriggerRefs = React.useRef<Record<string, any>>({});
   const [showViewDetailsModal, setShowViewDetailsModal] = useState<boolean>(false);
   const [showEditPatientModal, setShowEditPatientModal] = useState<boolean>(false);
   const [isCreatingPatient, setIsCreatingPatient] = useState<boolean>(false);
@@ -241,38 +256,43 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
   const [showStatusPicker, setShowStatusPicker] = useState<boolean>(false);
   const [showEditBloodPicker, setShowEditBloodPicker] = useState<boolean>(false);
   const [showColumnsModal, setShowColumnsModal] = useState<boolean>(false);
+  const [columnsAnchorY, setColumnsAnchorY] = useState<number | undefined>(undefined);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(DEFAULT_PATIENT_COLUMNS);
+  const genderFieldRef = React.useRef<View>(null);
+  const genderMenuRef = React.useRef<View>(null);
+  const bloodFieldRef = React.useRef<View>(null);
+  const bloodMenuRef = React.useRef<View>(null);
+  const statusFieldRef = React.useRef<View>(null);
+  const statusMenuRef = React.useRef<View>(null);
+  const registrationDateFieldRef = React.useRef<View>(null);
+  const registrationCalendarRef = React.useRef<View>(null);
+  const dismissInlinePickerOnOutsideTap = useOutsideTapDismiss(React.useMemo(() => [
+    { id: 'gender', open: showGenderPicker, refs: [genderFieldRef, genderMenuRef], dismiss: () => setShowGenderPicker(false) },
+    { id: 'blood', open: showBloodPicker, refs: [bloodFieldRef, bloodMenuRef], dismiss: () => setShowBloodPicker(false) },
+    { id: 'status', open: showStatusPicker, refs: [statusFieldRef, statusMenuRef], dismiss: () => setShowStatusPicker(false) },
+    { id: 'registration-date', open: showRegistrationCalendar, refs: [registrationDateFieldRef, registrationCalendarRef], dismiss: () => setShowRegistrationCalendar(false) },
+  ], [showGenderPicker, showBloodPicker, showStatusPicker, showRegistrationCalendar]));
 
   // Hide footer bottom bar whenever any modal or bottom sheet is open
   useEffect(() => {
     if (onToggleTabBar) {
       const isAnyModalOpen =
-        showActionMenuModal ||
         showViewDetailsModal ||
         showEditPatientModal ||
         showConsultationsModal ||
         showPrescriptionsModal ||
         showMedicalHistoryModal ||
         showBookAppointmentModal ||
-        showGenderPicker ||
-        showBloodPicker ||
-        showStatusPicker ||
-        showEditBloodPicker ||
         showColumnsModal;
       onToggleTabBar(isAnyModalOpen);
     }
   }, [
-    showActionMenuModal,
     showViewDetailsModal,
     showEditPatientModal,
     showConsultationsModal,
     showPrescriptionsModal,
     showMedicalHistoryModal,
     showBookAppointmentModal,
-    showGenderPicker,
-    showBloodPicker,
-    showStatusPicker,
-    showEditBloodPicker,
     showColumnsModal,
     onToggleTabBar,
   ]);
@@ -296,6 +316,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
     setBloodGroupFilter('All Blood Groups');
     setStatusFilter('All Status');
     setRegistrationDateFilter('');
+    setShowRegistrationCalendar(false);
   };
 
   const handleStatPress = (panel: 'total' | 'active' | 'inactive' | 'today' | 'week') => {
@@ -370,6 +391,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
     if (!targetPatient) return;
 
     if (actionType === 'book_appointment') {
+      if (!canBookPatientAppointment) return;
       const todayStr = new Date().toISOString().split('T')[0];
       setBookingDate(todayStr);
       setBookingTime('10:00:00');
@@ -580,7 +602,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
   const activeDisplayPatient = selectedPatient || patients[0];
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onTouchStart={dismissInlinePickerOnOutsideTap}>
       <PatientHeader showLogo={false} onOpenDrawer={onOpenDrawer} onOpenNotifications={onOpenNotifications} />
 
       <ScrollView
@@ -651,8 +673,8 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
 
             {/* Card 4: New This Week */}
             <TouchableOpacity activeOpacity={0.86} style={[styles.statCard, activePanel === 'week' && styles.surfaceActive]} onPress={() => handleStatPress('week')}>
-              <View style={[styles.statIconBox, { backgroundColor: '#fff7ed' }]}>
-                <UserPlusIcon color="#ea580c" size={20} />
+              <View style={[styles.statIconBox, { backgroundColor: '#fff7ed' }]}> 
+                <UserRoundPlus color="#f59e0b" size={20} strokeWidth={2} />
               </View>
               <View style={styles.statContentCol}>
                 <Text style={styles.statNumber}>{stats.newThisWeek}</Text>
@@ -678,45 +700,71 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
           </View>
 
           {/* Row 2: All Genders & All Blood Groups */}
-          <View style={styles.filterDropdownsRow}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={styles.filterDropdownBtn}
-              onPress={() => setShowGenderPicker(true)}>
-              <Text style={styles.filterDropdownText} numberOfLines={1}>{genderFilter}</Text>
-              <ChevronDownIcon size={14} color="#94a3b8" />
-            </TouchableOpacity>
+          <View style={[styles.filterDropdownsRow, (showGenderPicker || showBloodPicker) && styles.filterDropdownsRowActive]}>
+            <View ref={genderFieldRef} collapsable={false} style={[styles.inlineDropdownWrapper, showGenderPicker && styles.inlineDropdownWrapperActive]}>
+              <TouchableOpacity activeOpacity={0.8} style={styles.filterDropdownBtn} onPress={() => { setShowGenderPicker((open) => !open); setShowBloodPicker(false); setShowStatusPicker(false); }}>
+                <Text style={styles.filterDropdownText} numberOfLines={1}>{genderFilter}</Text>
+                <ChevronDownIcon size={14} color="#94a3b8" />
+              </TouchableOpacity>
+              {showGenderPicker && (
+                <View ref={genderMenuRef} collapsable={false} style={styles.inlineDropdownMenu}>
+                  {['All Genders', 'Male', 'Female', 'Other'].map((gender) => {
+                    const selected = genderFilter === gender;
+                    return <TouchableOpacity key={gender} style={[styles.inlineDropdownOption, selected && styles.inlineDropdownOptionSelected]} onPress={() => { setGenderFilter(gender); setShowGenderPicker(false); }}>
+                      <Text style={[styles.inlineDropdownOptionText, selected && styles.inlineDropdownOptionTextSelected]}>{selected ? '✓  ' : '    '}{gender}</Text>
+                    </TouchableOpacity>;
+                  })}
+                </View>
+              )}
+            </View>
 
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={styles.filterDropdownBtn}
-              onPress={() => setShowBloodPicker(true)}>
-              <Text style={styles.filterDropdownText} numberOfLines={1}>{bloodGroupFilter}</Text>
-              <ChevronDownIcon size={14} color="#94a3b8" />
-            </TouchableOpacity>
+            <View ref={bloodFieldRef} collapsable={false} style={[styles.inlineDropdownWrapper, showBloodPicker && styles.inlineDropdownWrapperActive]}>
+              <TouchableOpacity activeOpacity={0.8} style={styles.filterDropdownBtn} onPress={() => { setShowBloodPicker((open) => !open); setShowGenderPicker(false); setShowStatusPicker(false); }}>
+                <Text style={styles.filterDropdownText} numberOfLines={1}>{bloodGroupFilter}</Text>
+                <ChevronDownIcon size={14} color="#94a3b8" />
+              </TouchableOpacity>
+              {showBloodPicker && (
+                <View ref={bloodMenuRef} collapsable={false} style={styles.inlineDropdownMenu}>
+                  {['All Blood Groups', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'N/A'].map((bloodGroup) => {
+                    const selected = bloodGroupFilter === bloodGroup;
+                    return <TouchableOpacity key={bloodGroup} style={[styles.inlineDropdownOption, selected && styles.inlineDropdownOptionSelected]} onPress={() => { setBloodGroupFilter(bloodGroup); setShowBloodPicker(false); }}>
+                      <Text style={[styles.inlineDropdownOptionText, selected && styles.inlineDropdownOptionTextSelected]}>{selected ? '✓  ' : '    '}{bloodGroup}</Text>
+                    </TouchableOpacity>;
+                  })}
+                </View>
+              )}
+            </View>
           </View>
 
           {/* Row 3: All Status & Registration Date */}
-          <View style={styles.filterDropdownsRow}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={styles.filterDropdownBtn}
-              onPress={() => setShowStatusPicker(true)}>
-              <Text style={styles.filterDropdownText} numberOfLines={1}>{statusFilter}</Text>
-              <ChevronDownIcon size={14} color="#94a3b8" />
-            </TouchableOpacity>
+          <View style={[styles.filterDropdownsRow, (showStatusPicker || showRegistrationCalendar) && styles.filterDropdownsRowActive]}>
+            <View ref={statusFieldRef} collapsable={false} style={[styles.inlineDropdownWrapper, showStatusPicker && styles.inlineDropdownWrapperActive]}>
+              <TouchableOpacity activeOpacity={0.8} style={styles.filterDropdownBtn} onPress={() => { setShowStatusPicker((open) => !open); setShowGenderPicker(false); setShowBloodPicker(false); }}>
+                <Text style={styles.filterDropdownText} numberOfLines={1}>{statusFilter}</Text>
+                <ChevronDownIcon size={14} color="#94a3b8" />
+              </TouchableOpacity>
+              {showStatusPicker && (
+                <View ref={statusMenuRef} collapsable={false} style={styles.inlineDropdownMenu}>
+                  {['All Status', 'Active', 'Inactive'].map((status) => {
+                    const selected = statusFilter === status;
+                    return <TouchableOpacity key={status} style={[styles.inlineDropdownOption, selected && styles.inlineDropdownOptionSelected]} onPress={() => { setStatusFilter(status); setShowStatusPicker(false); }}>
+                      <Text style={[styles.inlineDropdownOptionText, selected && styles.inlineDropdownOptionTextSelected]}>{selected ? '✓  ' : '    '}{status}</Text>
+                    </TouchableOpacity>;
+                  })}
+                </View>
+              )}
+            </View>
 
-            <View style={[styles.filterDropdownBtn, { flex: 1.2, justifyContent: 'flex-start', gap: 8 }]}>
-              <CalendarIcon size={15} color="#94a3b8" />
-              <TextInput
-                style={styles.registrationDateInput}
-                placeholder="Registration date"
-                placeholderTextColor="#94a3b8"
-                value={registrationDateFilter}
-                onChangeText={setRegistrationDateFilter}
-                keyboardType="numbers-and-punctuation"
-                maxLength={10}
-              />
+            <View ref={registrationDateFieldRef} collapsable={false} style={[styles.inlineDateWrapper, showRegistrationCalendar && styles.inlineDropdownWrapperActive, { flex: 1.2 }]}>
+              <TouchableOpacity style={[styles.filterDropdownBtn, { justifyContent: 'flex-start', gap: 8 }]} activeOpacity={0.8} onPress={() => setShowRegistrationCalendar((open) => !open)}>
+                <CalendarIcon size={15} color="#94a3b8" />
+                <Text style={[styles.registrationDateInput, !registrationDateFilter && styles.registrationDatePlaceholder]}>{registrationDateFilter || 'Registration date'}</Text>
+              </TouchableOpacity>
+              {showRegistrationCalendar && (
+                <View ref={registrationCalendarRef} collapsable={false} style={styles.inlineRegistrationCalendar}>
+                  <InlineCalendarPicker value={registrationDateFilter} onSelect={setRegistrationDateFilter} onClose={() => setShowRegistrationCalendar(false)} />
+                </View>
+              )}
             </View>
           </View>
 
@@ -732,7 +780,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
             <TouchableOpacity
               activeOpacity={0.8}
               style={styles.columnsBtn}
-              onPress={() => setShowColumnsModal(true)}>
+              onPress={(event) => { setColumnsAnchorY(event.nativeEvent.pageY); setShowColumnsModal(true); }}>
               <ColumnsIcon size={15} color="#0f172a" />
               <Text style={styles.columnsBtnText}>Columns</Text>
             </TouchableOpacity>
@@ -788,11 +836,15 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
 
                         {selectedColumns.includes('actions') && (
                           <TouchableOpacity
+                            ref={(ref) => { actionMenuTriggerRefs.current[String(item.id)] = ref; }}
                             activeOpacity={0.7}
                             style={styles.moreActionBtn}
                             onPress={() => {
                               setSelectedPatient(item);
-                              setShowActionMenuModal(true);
+                              actionMenuTriggerRefs.current[String(item.id)]?.measureInWindow((x: number, y: number, width: number, height: number) => {
+                                setActionMenuAnchor({ x, y, width, height });
+                                setShowActionMenuModal(true);
+                              });
                             }}>
                             <MoreVerticalIcon size={18} color="#0f172a" />
                           </TouchableOpacity>
@@ -953,8 +1005,26 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
         </View>
       </ScrollView>
 
-      {/* Actions Bottom Sheet Modal */}
-      <Modal visible={showActionMenuModal} transparent animationType="slide" onRequestClose={() => setShowActionMenuModal(false)}>
+      {/* Compact action popover anchored to the card's 3-dot button. */}
+      <Modal visible={showActionMenuModal} transparent animationType="fade" onRequestClose={() => setShowActionMenuModal(false)}>
+        <View style={styles.actionPopoverOverlay}>
+          <Pressable style={styles.actionPopoverBackdrop} onPress={() => setShowActionMenuModal(false)} />
+          <View style={[styles.actionPopover, {
+            top: Math.min((actionMenuAnchor?.y || 0) + (actionMenuAnchor?.height || 36) + 4, Dimensions.get('window').height - 246),
+            left: Math.max(8, (actionMenuAnchor?.x || 0) + (actionMenuAnchor?.width || 0) - 136),
+          }]}>
+            <Text style={styles.actionPopoverTitle}>Actions</Text>
+            <TouchableOpacity style={styles.actionPopoverRow} onPress={() => handleOpenAction('details')}><Eye color="#334155" size={15} strokeWidth={1.9} /><Text style={styles.actionPopoverText}>View Details</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.actionPopoverRow} onPress={() => handleOpenAction('edit')}><SquarePen color="#334155" size={15} strokeWidth={1.9} /><Text style={styles.actionPopoverText}>Edit Patient</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.actionPopoverRow} onPress={() => handleOpenAction('consultation')}><Stethoscope color="#334155" size={15} strokeWidth={1.9} /><Text style={styles.actionPopoverText}>Consultation</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.actionPopoverRow} onPress={() => handleOpenAction('prescription')}><FileText color="#334155" size={15} strokeWidth={1.9} /><Text style={styles.actionPopoverText}>Prescription</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.actionPopoverRow} onPress={() => handleOpenAction('history')}><RotateCcw color="#334155" size={15} strokeWidth={1.9} /><Text style={styles.actionPopoverText}>Medical History</Text></TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Legacy action sheet is kept disabled; actions now use the anchored popup above. */}
+      <Modal visible={false} transparent animationType="fade" onRequestClose={() => setShowActionMenuModal(false)}>
         <View style={styles.sheetOverlay}>
           <TouchableWithoutFeedback onPress={() => setShowActionMenuModal(false)}>
             <View style={StyleSheet.absoluteFillObject} />
@@ -968,6 +1038,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
               </TouchableOpacity>
             </View>
 
+            {canBookPatientAppointment && (
             <TouchableOpacity
               style={[styles.actionOptionRow, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}
               onPress={() => handleOpenAction('book_appointment')}>
@@ -976,6 +1047,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                 Book Appointment
               </Text>
             </TouchableOpacity>
+            )}
 
             <TouchableOpacity style={styles.actionOptionRow} onPress={() => handleOpenAction('details')}>
               <ViewDetailsIcon color="#334155" size={18} />
@@ -1020,14 +1092,14 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
       <Modal
         visible={showViewDetailsModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowViewDetailsModal(false)}>
         <View style={styles.sheetOverlay}>
           <TouchableWithoutFeedback onPress={() => setShowViewDetailsModal(false)}>
             <View style={StyleSheet.absoluteFillObject} />
           </TouchableWithoutFeedback>
 
-          <View style={styles.bottomSheetContainer}>
+          <View style={styles.viewDetailsModalCard}>
             <View style={styles.viewDetailsHeader}>
               <View style={styles.viewDetailsTopRow}>
               <View style={styles.headerLeftRow}>
@@ -1046,7 +1118,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
               </View>
 
               <TouchableOpacity style={styles.viewDetailsCloseBtn} onPress={() => setShowViewDetailsModal(false)}>
-                <X color="#475569" size={25} strokeWidth={2.1} />
+                <X color="#0d9488" size={15} strokeWidth={2} />
               </TouchableOpacity>
               </View>
 
@@ -1181,7 +1253,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
       <Modal
         visible={showEditPatientModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowEditPatientModal(false)}>
         <View style={styles.sheetOverlay}>
           <TouchableWithoutFeedback onPress={() => setShowEditPatientModal(false)}>
@@ -1264,12 +1336,22 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                   </View>
                 </View>
 
-                <View style={[styles.inputGroup, { flex: 1 }]}>
+                <View style={[styles.inputGroup, styles.editBloodDropdownWrapper, { flex: 1 }]}>
                   <Text style={styles.inputLabelReq}>Blood Group</Text>
-                  <TouchableOpacity style={styles.dropdownPickerBtn} onPress={() => setShowEditBloodPicker(true)}>
+                  <TouchableOpacity style={styles.dropdownPickerBtn} onPress={() => setShowEditBloodPicker((open) => !open)}>
                     <Text style={styles.dropdownPickerText}>{editBloodGroup || 'Select blood group'}</Text>
                     <Text style={styles.dropdownArrow}>▼</Text>
                   </TouchableOpacity>
+                  {showEditBloodPicker && (
+                    <View style={styles.editBloodInlineMenu}>
+                      {['Select blood group', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'N/A'].map((bloodGroup) => {
+                        const selected = editBloodGroup === bloodGroup;
+                        return <TouchableOpacity key={bloodGroup} style={[styles.inlineDropdownOption, selected && styles.inlineDropdownOptionSelected]} onPress={() => { setEditBloodGroup(bloodGroup); setShowEditBloodPicker(false); }}>
+                          <Text style={[styles.inlineDropdownOptionText, selected && styles.inlineDropdownOptionTextSelected]}>{selected ? '✓  ' : '    '}{bloodGroup}</Text>
+                        </TouchableOpacity>;
+                      })}
+                    </View>
+                  )}
                 </View>
               </View>
 
@@ -1388,14 +1470,14 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
       <Modal
         visible={showConsultationsModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowConsultationsModal(false)}>
         <View style={styles.sheetOverlay}>
           <TouchableWithoutFeedback onPress={() => setShowConsultationsModal(false)}>
             <View style={StyleSheet.absoluteFillObject} />
           </TouchableWithoutFeedback>
 
-          <View style={styles.bottomSheetContainer}>
+          <View style={styles.consultModalCard}>
             {(() => {
               const filteredConsultations = (consultationList || []).filter((c: any) => {
                 if (!consultSearchQuery.trim()) return true;
@@ -1434,8 +1516,8 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                     <ActivityIndicator size="large" color="#0d9488" style={{ marginVertical: 40 }} />
                   ) : (
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.sheetContentScroll, styles.recordScrollContent]}>
-                      {/* Search & Filters Row */}
-                      <View style={styles.medSearchFilterRow}>
+                      {/* Search & filters are only needed after visits are available. */}
+                      {filteredConsultations.length > 0 ? <View style={styles.medSearchFilterRow}>
                         <View style={styles.medSearchInputBox}>
                           <Search color="#94a3b8" size={20} strokeWidth={2} style={{ marginRight: 8 }} />
                           <TextInput
@@ -1454,15 +1536,15 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                           <Text style={styles.medFilterPillText}>All dates</Text>
                           <Text style={{ fontSize: 9, color: '#94a3b8', marginLeft: 4 }}>▼</Text>
                         </View>
-                      </View>
+                      </View> : null}
 
                       {filteredConsultations.length === 0 ? (
-                        <View style={styles.emptyPrescBody}>
-                          <View style={styles.prescEmptyCircle}>
+                        <View style={styles.modalEmptyFill}>
+                          <View style={styles.referenceEmptyIcon}>
                             <StethoscopeIcon color="#0d9488" size={32} />
                           </View>
-                          <Text style={styles.emptyTitle}>No consultations found</Text>
-                          <Text style={styles.emptySub}>No consultation history records found for this patient.</Text>
+                          <Text style={styles.referenceEmptyTitle}>No consultations yet</Text>
+                          <Text style={styles.referenceEmptySub}>Consultation history will appear here.</Text>
                         </View>
                       ) : (
                         <View style={{ gap: 14 }}>
@@ -1555,9 +1637,10 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
 
                   {/* Footer Row */}
                   <View style={styles.consultFooterLight}>
-                    <Text style={styles.prescFooterSecText}>Showing {filteredConsultations.length} records</Text>
-                    <TouchableOpacity style={styles.tealCloseBtn} onPress={() => setShowConsultationsModal(false)}>
-                      <Text style={styles.tealCloseBtnText}>✕ Close</Text>
+                    {filteredConsultations.length > 0 ? <Text style={styles.prescFooterSecText}>Showing {filteredConsultations.length} records</Text> : null}
+                    <TouchableOpacity style={[styles.tealCloseBtn, filteredConsultations.length === 0 && styles.fullWidthCloseBtn]} onPress={() => setShowConsultationsModal(false)}>
+                      <X color="#ffffff" size={15} strokeWidth={2.2} />
+                      <Text style={styles.tealCloseBtnText}>Close</Text>
                     </TouchableOpacity>
                   </View>
                 </>
@@ -1571,14 +1654,14 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
       <Modal
         visible={showPrescriptionsModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowPrescriptionsModal(false)}>
         <View style={styles.sheetOverlay}>
           <TouchableWithoutFeedback onPress={() => setShowPrescriptionsModal(false)}>
             <View style={StyleSheet.absoluteFillObject} />
           </TouchableWithoutFeedback>
 
-          <View style={styles.bottomSheetContainer}>
+          <View style={styles.recordModalCard}>
             {/* Header Row */}
             <View style={styles.prescHeaderDark}>
               <View style={styles.headerLeftRow}>
@@ -1605,15 +1688,27 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
               </View>
             </View>
 
+            <View style={styles.prescriptionTabs}>
+              <View style={[styles.prescriptionTab, styles.prescriptionTabActive]}>
+                <FileText color="#ffffff" size={14} strokeWidth={2} />
+                <Text style={[styles.prescriptionTabText, styles.prescriptionTabTextActive]}>History</Text>
+                <View style={styles.prescriptionTabCount}><Text style={styles.prescriptionTabCountText}>{prescriptionList.length}</Text></View>
+              </View>
+              <View style={styles.prescriptionTab}>
+                <FileText color="#64748b" size={14} strokeWidth={2} />
+                <Text style={styles.prescriptionTabText}>Details</Text>
+              </View>
+            </View>
+
             {modalLoading ? (
               <ActivityIndicator size="large" color="#0d9488" style={{ marginVertical: 40 }} />
             ) : prescriptionList.length === 0 ? (
-              <View style={styles.emptyPrescBody}>
-                <View style={styles.prescEmptyCircle}>
-                  <PrescriptionIcon color="#0d9488" size={32} />
+              <View style={styles.modalEmptyFill}>
+                <View style={styles.referenceEmptyIcon}>
+                  <PrescriptionIcon color="#94a3b8" size={28} />
                 </View>
-                <Text style={styles.emptyTitle}>No prescriptions found</Text>
-                <Text style={styles.emptySub}>No prescription records found for this patient.</Text>
+                <Text style={styles.referenceEmptyTitle}>No prescriptions found</Text>
+                <Text style={styles.referenceEmptySub}>New prescriptions will appear here.</Text>
               </View>
             ) : (
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.sheetContentScroll, styles.recordScrollContent]}>
@@ -1821,7 +1916,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
       <Modal
         visible={showMedicalHistoryModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowMedicalHistoryModal(false)}>
         <View style={styles.sheetOverlay}>
           <TouchableWithoutFeedback onPress={() => setShowMedicalHistoryModal(false)}>
@@ -1974,7 +2069,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                             <Droplets color="#94a3b8" size={20} strokeWidth={2} />
                           </View>
                           <View style={mhStyles.infoCardContent}>
-                            <Text style={[mhStyles.infoCardLabel, { color: '#0d9488' }]}>BLOOD GROUP</Text>
+                            <Text style={[mhStyles.infoCardLabel, { color: '#94a3b8' }]}>BLOOD GROUP</Text>
                             <Text style={mhStyles.infoCardValue}>
                               {medPatient?.blood_group || activeDisplayPatient?.blood_group || 'Not recorded'}
                             </Text>
@@ -1987,7 +2082,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                             <ShieldAlert color="#94a3b8" size={20} strokeWidth={2} />
                           </View>
                           <View style={mhStyles.infoCardContent}>
-                            <Text style={[mhStyles.infoCardLabel, { color: '#0d9488' }]}>ALLERGIES</Text>
+                            <Text style={[mhStyles.infoCardLabel, { color: '#94a3b8' }]}>ALLERGIES</Text>
                             <Text style={mhStyles.infoCardValue}>
                               {medPatient?.allergies || activeDisplayPatient?.allergies || 'None reported'}
                             </Text>
@@ -1995,12 +2090,12 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
                         </View>
 
                         {/* Emergency Contact */}
-                        <View style={mhStyles.infoCard}>
+                        <View style={[mhStyles.infoCard, mhStyles.emergencyInfoCard]}>
                           <View style={mhStyles.infoCardIconBox}>
                             <ContactRound color="#94a3b8" size={20} strokeWidth={2} />
                           </View>
                           <View style={mhStyles.infoCardContent}>
-                            <Text style={[mhStyles.infoCardLabel, { color: '#f43f5e' }]}>EMERGENCY CONTACT</Text>
+                            <Text style={[mhStyles.infoCardLabel, { color: '#94a3b8' }]}>EMERGENCY CONTACT</Text>
                             <Text style={mhStyles.infoCardValue} numberOfLines={2}>
                               {emergencyFormatted}
                             </Text>
@@ -2163,9 +2258,9 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
 
       {/* Book Appointment Bottom Sheet Modal */}
       <Modal
-        visible={showBookAppointmentModal}
+        visible={canBookPatientAppointment && showBookAppointmentModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowBookAppointmentModal(false)}>
         <View style={styles.sheetOverlay}>
           <TouchableWithoutFeedback onPress={() => setShowBookAppointmentModal(false)}>
@@ -2370,7 +2465,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
       </Modal>
 
       {/* Edit Blood Group Picker Bottom Sheet Modal */}
-      <Modal visible={showEditBloodPicker} transparent animationType="slide" onRequestClose={() => setShowEditBloodPicker(false)}>
+      <Modal visible={false} transparent animationType="fade" onRequestClose={() => setShowEditBloodPicker(false)}>
         <View style={styles.sheetOverlay}>
           <TouchableWithoutFeedback onPress={() => setShowEditBloodPicker(false)}>
             <View style={StyleSheet.absoluteFillObject} />
@@ -2401,7 +2496,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
       </Modal>
 
       {/* Gender Filter Picker Bottom Sheet Modal */}
-      <Modal visible={showGenderPicker} transparent animationType="slide" onRequestClose={() => setShowGenderPicker(false)}>
+      <Modal visible={false} transparent animationType="fade" onRequestClose={() => setShowGenderPicker(false)}>
         <View style={styles.sheetOverlay}>
           <TouchableWithoutFeedback onPress={() => setShowGenderPicker(false)}>
             <View style={StyleSheet.absoluteFillObject} />
@@ -2432,7 +2527,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
       </Modal>
 
       {/* Blood Group Filter Picker Bottom Sheet Modal */}
-      <Modal visible={showBloodPicker} transparent animationType="slide" onRequestClose={() => setShowBloodPicker(false)}>
+      <Modal visible={false} transparent animationType="fade" onRequestClose={() => setShowBloodPicker(false)}>
         <View style={styles.sheetOverlay}>
           <TouchableWithoutFeedback onPress={() => setShowBloodPicker(false)}>
             <View style={StyleSheet.absoluteFillObject} />
@@ -2463,7 +2558,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
       </Modal>
 
       {/* Status Filter Picker Bottom Sheet Modal */}
-      <Modal visible={showStatusPicker} transparent animationType="slide" onRequestClose={() => setShowStatusPicker(false)}>
+      <Modal visible={false} transparent animationType="fade" onRequestClose={() => setShowStatusPicker(false)}>
         <View style={styles.sheetOverlay}>
           <TouchableWithoutFeedback onPress={() => setShowStatusPicker(false)}>
             <View style={StyleSheet.absoluteFillObject} />
@@ -2500,6 +2595,7 @@ export const PatientsScreen: React.FC<PatientsScreenProps> = ({
         columns={PATIENT_COLUMNS}
         selectedIds={selectedColumns}
         onToggle={handleToggleColumn}
+        anchorY={columnsAnchorY}
       />
     </View>
   );
@@ -2595,6 +2691,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
+    overflow: 'visible',
+    zIndex: 10,
   },
   searchInputBox: {
     height: 44,
@@ -2616,6 +2714,50 @@ const styles = StyleSheet.create({
   filterDropdownsRow: {
     flexDirection: 'row',
     gap: 8,
+    zIndex: 1,
+  },
+  filterDropdownsRowActive: { zIndex: 20, elevation: 20 },
+  inlineDropdownWrapper: { flex: 1, position: 'relative' },
+  inlineDropdownWrapperActive: { zIndex: 30, elevation: 30 },
+  inlineDropdownMenu: {
+    position: 'absolute',
+    top: 44,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingVertical: 4,
+    shadowColor: '#334155',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    elevation: 12,
+  },
+  inlineDropdownOption: { minHeight: 28, justifyContent: 'center', paddingHorizontal: 10, borderRadius: 7, marginHorizontal: 3 },
+  inlineDropdownOptionSelected: { backgroundColor: '#dff7f4' },
+  inlineDropdownOptionText: { color: '#334155', fontSize: 12, fontWeight: '500' },
+  inlineDropdownOptionTextSelected: { color: '#0d9488', fontWeight: '700' },
+  inlineDateWrapper: { position: 'relative', zIndex: 5 },
+  inlineRegistrationCalendar: { position: 'absolute', top: 44, right: 0, width: 260, zIndex: 40, elevation: 20 },
+  editBloodDropdownWrapper: { position: 'relative', zIndex: 20, elevation: 20 },
+  editBloodInlineMenu: {
+    position: 'absolute',
+    top: 67,
+    left: 0,
+    right: 0,
+    zIndex: 40,
+    elevation: 20,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 10,
+    paddingVertical: 4,
+    shadowColor: '#334155',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
   },
   filterDropdownBtn: {
     flex: 1,
@@ -2635,6 +2777,7 @@ const styles = StyleSheet.create({
     color: '#334155',
   },
   registrationDateInput: { flex: 1, fontSize: 12, fontWeight: '600', color: '#334155', padding: 0 },
+  registrationDatePlaceholder: { color: '#94a3b8' },
   filterActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2737,8 +2880,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   moreActionBtn: {
-    padding: 4,
-    marginTop: -2,
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#dff7f4',
+    marginTop: -3,
   },
   patientFieldsList: {
     gap: 8,
@@ -2802,6 +2950,12 @@ const styles = StyleSheet.create({
   pickerOptionSelected: { color: '#0d9488', fontWeight: '800' },
 
   actionMenuCard: { backgroundColor: '#ffffff', borderRadius: 18, padding: 18, width: '100%', maxWidth: 300, gap: 4, zIndex: 100000, elevation: 100000 },
+  actionPopoverOverlay: { flex: 1, backgroundColor: 'transparent' },
+  actionPopoverBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
+  actionPopover: { position: 'absolute', width: 136, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, paddingVertical: 5, shadowColor: '#0f172a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.16, shadowRadius: 8, elevation: 20 },
+  actionPopoverTitle: { paddingHorizontal: 12, paddingTop: 4, paddingBottom: 6, color: '#334155', fontSize: 12, fontWeight: '800' },
+  actionPopoverRow: { minHeight: 31, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 11 },
+  actionPopoverText: { color: '#475569', fontSize: 12, fontWeight: '500' },
   actionMenuTitle: { fontSize: 15, fontWeight: '800', color: '#0f172a', marginBottom: 10, textAlign: 'center' },
   actionOptionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10, backgroundColor: '#f8fafc', marginVertical: 2 },
   actionOptionHighlight: { backgroundColor: '#ccfbf1' },
@@ -2812,49 +2966,49 @@ const styles = StyleSheet.create({
   closeActionBtn: { backgroundColor: '#f1f5f9', borderRadius: 10, paddingVertical: 10, alignItems: 'center', marginTop: 10 },
   closeActionBtnText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
 
-  sheetOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'flex-end', zIndex: 99999, elevation: 99999 },
+  sheetOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.72)', justifyContent: 'center', alignItems: 'center', padding: 10, zIndex: 99999, elevation: 99999 },
   viewDetailsOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.78)', justifyContent: 'center', alignItems: 'center', padding: 16, zIndex: 99999, elevation: 99999 },
   recordModalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.78)', justifyContent: 'center', alignItems: 'center', padding: 16, zIndex: 99999, elevation: 99999 },
-  recordModalCard: { width: '100%', maxWidth: 480, maxHeight: '88%', backgroundColor: '#f8fafc', borderRadius: 22, overflow: 'hidden', elevation: 18 },
-  bottomSheetContainer: { backgroundColor: '#eef4f4', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18, paddingBottom: Platform.OS === 'ios' ? 40 : 30, maxHeight: '88%', width: '100%', zIndex: 100000, elevation: 100000 },
-  pickerBottomSheetContainer: { backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 18, paddingBottom: Platform.OS === 'ios' ? 40 : 30, maxHeight: '80%', width: '100%', zIndex: 100000, elevation: 100000 },
+  recordModalCard: { width: '100%', maxWidth: 420, height: '94%', maxHeight: '96%', backgroundColor: '#f8fafc', borderRadius: 12, overflow: 'hidden', elevation: 18 },
+  bottomSheetContainer: { backgroundColor: '#f8fafc', borderRadius: 14, padding: 10, paddingBottom: Platform.OS === 'ios' ? 24 : 10, height: '96%', maxHeight: '97%', width: '100%', maxWidth: 520, alignSelf: 'center', zIndex: 100000, elevation: 100000 },
+  pickerBottomSheetContainer: { backgroundColor: '#ffffff', borderRadius: 20, paddingHorizontal: 20, paddingTop: 18, paddingBottom: Platform.OS === 'ios' ? 40 : 30, maxHeight: '80%', width: '100%', maxWidth: 440, alignSelf: 'center', zIndex: 100000, elevation: 100000 },
   sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   headerRightActionsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  activePillBadge: { backgroundColor: '#d1fae5', borderRadius: 15, paddingHorizontal: 17, paddingVertical: 9 },
-  activePillText: { color: '#059669', fontSize: 15, fontWeight: '600' },
-  editInfoBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 14, paddingHorizontal: 20, paddingVertical: 10, shadowColor: '#64748b', shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
-  editInfoBtnText: { fontSize: 16, fontWeight: '600', color: '#0f172a' },
+  activePillBadge: { backgroundColor: '#d1fae5', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 },
+  activePillText: { color: '#059669', fontSize: 11, fontWeight: '700' },
+  editInfoBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe4eb', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 6, shadowColor: '#64748b', shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
+  editInfoBtnText: { fontSize: 12, fontWeight: '600', color: '#0f172a' },
   closeCircleBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' },
   closeCircleText: { fontSize: 14, color: '#475569', fontWeight: 'bold' },
   sheetContentScroll: { gap: 12, paddingBottom: 20 },
   recordScrollContent: { paddingHorizontal: 14, paddingBottom: 20 },
   cardsGridTwoCol: { gap: 12 },
-  detailCard: { backgroundColor: '#ffffff', borderRadius: 18, borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden', paddingBottom: 4 },
+  detailCard: { backgroundColor: '#ffffff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', overflow: 'hidden', paddingBottom: 4 },
   contactCardHighlight: { borderColor: '#2dd4bf', borderWidth: 1.5 },
-  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 13, backgroundColor: '#effbf9', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  cardHeaderIconBox: { width: 46, height: 46, borderRadius: 14, backgroundColor: '#dff8f3', alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a' },
-  detailDataRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 14, marginHorizontal: 14, marginTop: 10, paddingHorizontal: 14, paddingVertical: 13, gap: 12 },
-  dataLabel: { fontSize: 15, color: '#718096', fontWeight: '500', flex: 1 },
-  dataLabelIcon: { fontSize: 15, color: '#718096', fontWeight: '500' },
+  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#effbf9', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  cardHeaderIconBox: { width: 30, height: 30, borderRadius: 10, backgroundColor: '#dff8f3', alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontSize: 12, fontWeight: '800', color: '#0f172a' },
+  detailDataRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 9, marginHorizontal: 10, marginTop: 7, paddingHorizontal: 10, paddingVertical: 9, gap: 10 },
+  dataLabel: { fontSize: 11, color: '#718096', fontWeight: '500', flex: 1 },
+  dataLabelIcon: { fontSize: 11, color: '#718096', fontWeight: '500' },
   dataLabelIconRow: { flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1 },
-  dataValBold: { fontSize: 15, fontWeight: '700', color: '#0f172a', flexShrink: 1, textAlign: 'right' },
+  dataValBold: { fontSize: 11, fontWeight: '700', color: '#0f172a', flexShrink: 1, textAlign: 'right' },
   billingSummaryRowGrid: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
   billingSummaryItem: { flex: 1, gap: 2 },
   billingItemLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
   billingItemValTeal: { fontSize: 13, fontWeight: '800', color: '#0d9488' },
 
-  viewDetailsModalCard: { width: '100%', maxWidth: 480, backgroundColor: '#f8fafc', borderRadius: 22, overflow: 'hidden', maxHeight: '88%', elevation: 18 },
-  viewDetailsHeader: { backgroundColor: '#effbf9', paddingHorizontal: 28, paddingTop: 28, paddingBottom: 22, borderBottomWidth: 1, borderBottomColor: '#cfe8e4' },
+  viewDetailsModalCard: { width: '100%', maxWidth: 420, height: '94%', backgroundColor: '#eef4f4', borderRadius: 12, overflow: 'hidden', maxHeight: '96%', elevation: 18 },
+  viewDetailsHeader: { backgroundColor: '#e6f2f1', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#d5e5e4' },
   viewDetailsTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  viewDetailsActionsRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 22 },
-  viewDetailsCloseBtn: { padding: 4, marginTop: -4, marginRight: -5 },
+  viewDetailsActionsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
+  viewDetailsCloseBtn: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: '#0d9488', alignItems: 'center', justifyContent: 'center', marginTop: -2 },
   headerLeftRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  avatarBigCircle: { width: 76, height: 76, borderRadius: 22, backgroundColor: '#ccefeb', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#b5e5df' },
-  avatarBigLetter: { fontSize: 32, fontWeight: '800', color: '#0d9488' },
+  avatarBigCircle: { width: 52, height: 52, borderRadius: 15, backgroundColor: '#ccefeb', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#b5e5df' },
+  avatarBigLetter: { fontSize: 20, fontWeight: '800', color: '#0d9488' },
   headerTitleCol: {},
-  viewDetailsName: { fontSize: 27, fontWeight: '800', color: '#0f172a' },
-  viewDetailsCode: { fontSize: 17, color: '#718096', fontWeight: '500', marginTop: 4 },
+  viewDetailsName: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
+  viewDetailsCode: { fontSize: 12, color: '#718096', fontWeight: '500', marginTop: 3 },
   headerRightRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activeBadgePill: { backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
   activeBadgePillText: { fontSize: 11, fontWeight: '800', color: '#16a34a' },
@@ -2863,7 +3017,7 @@ const styles = StyleSheet.create({
   closeModalCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
   closeModalCircleText: { fontSize: 14, fontWeight: 'bold', color: '#64748b' },
 
-  viewDetailsBodyGrid: { padding: 14, gap: 14, paddingBottom: 28 },
+  viewDetailsBodyGrid: { padding: 10, gap: 12, paddingBottom: 20 },
   gridDetailsCard: { backgroundColor: '#ffffff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#e2e8f0', gap: 8 },
   cardHeaderIconText: { fontSize: 16 },
   cardHeaderTitle: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
@@ -2873,7 +3027,7 @@ const styles = StyleSheet.create({
 
   editModalCard: { width: '100%', maxWidth: 480, backgroundColor: '#ffffff', borderRadius: 20, overflow: 'hidden', maxHeight: '90%' },
   editModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  editBottomSheetContainer: { width: '100%', maxHeight: '92%', backgroundColor: '#ffffff', borderTopLeftRadius: 14, borderTopRightRadius: 14, overflow: 'hidden', borderTopWidth: 3, borderTopColor: '#0d9488' },
+  editBottomSheetContainer: { width: '100%', maxWidth: 520, alignSelf: 'center', maxHeight: '92%', backgroundColor: '#ffffff', borderRadius: 14, overflow: 'hidden', borderTopWidth: 3, borderTopColor: '#0d9488' },
   editSheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   editSheetCloseBtn: { padding: 6, marginRight: -4 },
   editModalHeaderTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a' },
@@ -2907,7 +3061,7 @@ const styles = StyleSheet.create({
   updateTealBtn: { flex: 1, alignItems: 'center', backgroundColor: '#0d9488', borderRadius: 10, paddingVertical: 11 },
   updateTealBtnText: { fontSize: 13, fontWeight: '800', color: '#ffffff' },
 
-  consultModalCard: { width: '100%', maxWidth: 460, backgroundColor: '#f8fafc', borderRadius: 20, overflow: 'hidden', maxHeight: '85%' },
+  consultModalCard: { width: '100%', maxWidth: 420, height: '94%', backgroundColor: '#f8fafc', borderRadius: 12, overflow: 'hidden', maxHeight: '96%' },
   consultHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#073b3a', paddingHorizontal: 16, paddingVertical: 14 },
   consultIconCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center' },
   consultTitle: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
@@ -2938,12 +3092,13 @@ const styles = StyleSheet.create({
   boxValTime: { fontSize: 11, fontWeight: '600', color: '#64748b', marginTop: 2 },
   feeValText: { fontSize: 16, fontWeight: '800', color: '#15803d', marginTop: 2 },
   consultFooter: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#ffffff', alignItems: 'flex-end', borderTopWidth: 1, borderTopColor: '#f1f5f9' },
-  tealCloseBtn: { backgroundColor: '#0d9488', paddingHorizontal: 18, paddingVertical: 9, borderRadius: 10 },
+  tealCloseBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#0d9488', paddingHorizontal: 18, paddingVertical: 9, borderRadius: 10 },
+  fullWidthCloseBtn: { flex: 1 },
   tealCloseBtnText: { color: '#ffffff', fontSize: 13, fontWeight: '800' },
 
-  prescModalCard: { width: '100%', maxWidth: 460, backgroundColor: '#071624', borderRadius: 20, overflow: 'hidden', maxHeight: '85%' },
+  prescModalCard: { width: '100%', maxWidth: 420, height: '94%', backgroundColor: '#071624', borderRadius: 12, overflow: 'hidden', maxHeight: '96%' },
   prescHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#1e293b' },
-  prescIconCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#0f2942', alignItems: 'center', justifyContent: 'center' },
+  prescIconCircle: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#22d3c5', alignItems: 'center', justifyContent: 'center' },
   prescTitle: { fontSize: 18, fontWeight: '800', color: '#ffffff' },
   prescSub: { fontSize: 12, color: '#94a3b8' },
   prescBodySplit: { backgroundColor: '#ffffff', padding: 30, alignItems: 'center', justifyContent: 'center' },
@@ -2951,10 +3106,17 @@ const styles = StyleSheet.create({
   prescEmptyCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#ccfbf1', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   prescEmptyTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
   prescEmptySub: { fontSize: 12, color: '#64748b', textAlign: 'center' },
-  prescFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#071624', paddingHorizontal: 16, paddingVertical: 12 },
+  prescFooterRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingHorizontal: 12, paddingVertical: 10 },
   prescFooterSecText: { fontSize: 11, color: '#64748b' },
   darkCloseBtn: { backgroundColor: '#1e293b', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
   darkCloseBtnText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
+  prescriptionTabs: { flexDirection: 'row', gap: 4, backgroundColor: '#ffffff', paddingHorizontal: 4, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  prescriptionTab: { flex: 1, minHeight: 34, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 9 },
+  prescriptionTabActive: { backgroundColor: '#0f172a' },
+  prescriptionTabText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
+  prescriptionTabTextActive: { color: '#ffffff' },
+  prescriptionTabCount: { minWidth: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e2e8f0' },
+  prescriptionTabCountText: { fontSize: 10, fontWeight: '800', color: '#334155' },
 
   historyModalCard: { width: '100%', maxWidth: 460, backgroundColor: '#ffffff', borderRadius: 20, overflow: 'hidden', maxHeight: '88%' },
   historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#071624', paddingHorizontal: 16, paddingVertical: 14 },
@@ -3022,7 +3184,6 @@ const styles = StyleSheet.create({
   diagSymptomGrid: { flexDirection: 'row', gap: 10 },
   gridBoxItem: { flex: 1, backgroundColor: '#ffffff', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#e2e8f0', gap: 4 },
   boxLabelHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  gridBoxLabel: { fontSize: 10, fontWeight: '800', color: '#64748b' },
   gridBoxValueText: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
 
   clinicalAdviceCard: { backgroundColor: '#ffffff', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#e2e8f0', gap: 4 },
@@ -3081,10 +3242,14 @@ const styles = StyleSheet.create({
   visitMedChip: { backgroundColor: '#f0fdf4', borderWidth: 1, borderColor: '#bbf7d0', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   visitMedChipText: { fontSize: 11, color: '#16a34a', fontWeight: '700' },
 
-  consultHeaderLight: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#e6f4f1', paddingHorizontal: 20, paddingVertical: 18, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#cfe8e4' },
-  consultTitleDark: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
-  consultSubDark: { fontSize: 12, color: '#64748b' },
-  consultIconCircleTeal: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#ccfbf1', alignItems: 'center', justifyContent: 'center' },
+  consultHeaderLight: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#e6f4f1', paddingHorizontal: 12, paddingVertical: 12, marginBottom: 0, borderBottomWidth: 1, borderBottomColor: '#cfe8e4' },
+  consultTitleDark: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
+  consultSubDark: { fontSize: 11, color: '#64748b', marginTop: 2 },
+  consultIconCircleTeal: { width: 42, height: 42, borderRadius: 13, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center' },
+  modalEmptyFill: { flex: 1, minHeight: 330, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 28 },
+  referenceEmptyIcon: { width: 52, height: 52, borderRadius: 14, backgroundColor: '#eef3f7', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  referenceEmptyTitle: { fontSize: 14, fontWeight: '800', color: '#1e293b', textAlign: 'center' },
+  referenceEmptySub: { fontSize: 11, color: '#64748b', textAlign: 'center', marginTop: 5 },
   consultCardFull: { backgroundColor: '#ffffff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#e2e8f0', gap: 10 },
   consultFooterLight: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingHorizontal: 16, paddingVertical: 12, marginTop: 12 },
 });
@@ -3096,22 +3261,22 @@ const mhStyles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#0f172a',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    marginHorizontal: -18,
-    marginTop: -18,
-    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginHorizontal: -10,
+    marginTop: -10,
+    marginBottom: 10,
   },
   headerLeft: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 9,
   },
   headerIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: '#2dd4bf',
     alignItems: 'center',
     justifyContent: 'center',
@@ -3121,7 +3286,7 @@ const mhStyles = StyleSheet.create({
     elevation: 4,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '800',
     color: '#ffffff',
     letterSpacing: -0.3,
@@ -3134,7 +3299,7 @@ const mhStyles = StyleSheet.create({
     marginTop: 4,
   },
   headerPatientName: {
-    fontSize: 13,
+    fontSize: 10,
     fontWeight: '700',
     color: '#ffffff',
   },
@@ -3147,19 +3312,19 @@ const mhStyles = StyleSheet.create({
     paddingVertical: 2,
   },
   headerCodeBadgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: '#5eead4',
   },
   headerMeta: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#94a3b8',
     fontWeight: '500',
   },
   headerCloseBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
@@ -3180,14 +3345,14 @@ const mhStyles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 14,
+    borderRadius: 9,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 10,
+    paddingVertical: 8,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 12,
     color: '#0f172a',
     padding: 0,
   },
@@ -3205,12 +3370,12 @@ const mhStyles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+    borderRadius: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   filterPillText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '500',
     color: '#334155',
   },
@@ -3219,26 +3384,26 @@ const mhStyles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 8,
-    marginBottom: 10,
+    gap: 9,
+    marginTop: 6,
+    marginBottom: 8,
   },
   sectionIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     backgroundColor: '#ccfbf1',
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '800',
     color: '#0f172a',
     letterSpacing: -0.2,
   },
   sectionSub: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#64748b',
     marginTop: 1,
   },
@@ -3270,10 +3435,10 @@ const mhStyles = StyleSheet.create({
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 10,
     backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 12,
+    padding: 10,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     shadowColor: '#64748b',
@@ -3281,10 +3446,11 @@ const mhStyles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 1,
   },
+  emergencyInfoCard: { borderColor: '#55d8d0', borderWidth: 1.2 },
   infoCardIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     backgroundColor: '#f1f5f9',
     alignItems: 'center',
     justifyContent: 'center',
@@ -3293,13 +3459,13 @@ const mhStyles = StyleSheet.create({
     flex: 1,
   },
   infoCardLabel: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '600',
     letterSpacing: 0.5,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   infoCardValue: {
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '600',
     color: '#0f172a',
   },
@@ -3387,15 +3553,15 @@ const mhStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 22,
+    paddingVertical: 18,
     backgroundColor: '#f8fafc',
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: '#e2e8f0',
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: 11,
     color: '#94a3b8',
     fontWeight: '500',
   },
@@ -3408,28 +3574,29 @@ const mhStyles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginHorizontal: -18,
-    marginBottom: -18,
-    marginTop: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginHorizontal: -10,
+    marginBottom: -10,
+    marginTop: 8,
   },
   footerPrivacy: {
     fontSize: 11,
     color: '#94a3b8',
+    display: 'none',
   },
   footerCloseBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
     backgroundColor: '#0f172a',
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    borderRadius: 9,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   footerCloseBtnText: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '600',
   },
 });

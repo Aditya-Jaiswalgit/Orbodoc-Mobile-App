@@ -328,7 +328,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({ onOpenDrawer = () =
       </Modal>
 
       {/* Manage Subscriptions Slide-Up Bottom Sheet */}
-      <Modal visible={subModalVisible} animationType="slide" transparent={true} onRequestClose={() => setSubModalVisible(false)}>
+      <Modal visible={subModalVisible} animationType="fade" transparent={true} onRequestClose={() => setSubModalVisible(false)}>
         <View style={styles.sheetModalBg}>
           <View style={styles.manageSubSheetCard}>
             <View style={styles.sheetDragHandle} />
@@ -651,28 +651,27 @@ const styles = StyleSheet.create({
   sheetModalBg: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    padding: 16,
     alignItems: 'center',
     paddingBottom: 0,
   },
   manageSubSheetCard: {
     width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    borderRadius: 20,
+    borderRadius: 20,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     maxHeight: '92%',
     overflow: 'hidden',
   },
   sheetDragHandle: {
-    width: 44,
-    height: 5,
-    backgroundColor: '#cbd5e1',
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginTop: 10,
-    marginBottom: 4,
+    display: 'none',
   },
   sheetHeaderRow: {
     flexDirection: 'row',

@@ -1,10 +1,10 @@
 import React from 'react';
 import {
   Modal,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { MedicineBill } from '../../api/medicineBillApi';
@@ -28,11 +28,9 @@ export const MedicineBillActionModal: React.FC<Props> = ({
   if (!bill) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <TouchableWithoutFeedback onPress={onClose}>
-          <View style={styles.backdrop} />
-        </TouchableWithoutFeedback>
+        <Pressable style={styles.backdrop} onPress={onClose} />
 
         <View style={styles.sheetContainer}>
           {/* Drag Handle */}
@@ -93,7 +91,8 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    padding: 16,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -102,6 +101,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
     paddingHorizontal: 20,
     paddingBottom: 34,
     shadowColor: '#000',
@@ -111,8 +114,7 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   dragHandleBox: {
-    alignItems: 'center',
-    paddingVertical: 10,
+    display: 'none',
   },
   dragHandle: {
     width: 40,
