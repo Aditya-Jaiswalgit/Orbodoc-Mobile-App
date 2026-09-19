@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useAuthContext } from '../../context/AuthContext';
-import { BellNotificationIcon } from './CustomIcons';
+import { BellNotificationIcon, Menu } from './CustomIcons';
 
 interface PatientHeaderProps {
   onOpenDrawer: () => void;
@@ -27,7 +27,7 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
 
   return (
     <View style={styles.headerContainer}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent={true} />
+      <StatusBar barStyle="dark-content" />
       {Platform.OS === 'android' && (
         <View style={{ height: statusBarHeight, backgroundColor: '#ffffff' }} />
       )}
@@ -39,7 +39,7 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
             style={styles.menuIconButton}
             activeOpacity={0.8}
             onPress={onOpenDrawer}>
-            <Text style={styles.menuIconText}>☰</Text>
+            <Menu size={20} color="#0d9488" />
           </TouchableOpacity>
 
           <Image

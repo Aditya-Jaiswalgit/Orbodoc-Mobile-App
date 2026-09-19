@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { Appointment } from '../../types/clinicTypes';
+import { showSuccessToast } from '../../utils/toast';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -37,7 +38,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
     setAppointments(prev =>
       prev.map(a => (a.id === id ? { ...a, status: newStatus } : a))
     );
-    Alert.alert('Status Updated', `Appointment #${id} status changed to ${newStatus.toUpperCase()}`);
+    showSuccessToast('Status Updated', `Appointment #${id} status changed to ${newStatus.toUpperCase()}`);
   };
 
   const cancelAppt = (id: number) => {

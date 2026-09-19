@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -13,8 +13,10 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { UserRoleType } from '../../types/auth';
+import { showErrorToast, showSuccessToast } from '../../utils/toast';
 
 export const LoginScreen = () => {
   const insets = useSafeAreaInsets();
@@ -26,6 +28,12 @@ export const LoginScreen = () => {
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const { loading, error, clearError, loginStaff, loginPatient } = useAuth();
+
+  useEffect(() => {
+    if (error) {
+      showErrorToast('Login Failed', error);
+    }
+  }, [error]);
 
   const handleRoleChange = (role: UserRoleType) => {
     setActiveRole(role);
@@ -39,35 +47,47 @@ export const LoginScreen = () => {
 
     if (activeRole === 'staff') {
       if (!email.trim()) {
-        setValidationError('Please enter your email address');
+        const errMsg = 'Please enter your email address';
+        setValidationError(errMsg);
+        showErrorToast('Input Required', errMsg);
         return;
       }
       if (!password) {
-        setValidationError('Please enter your password');
+        const errMsg = 'Please enter your password';
+        setValidationError(errMsg);
+        showErrorToast('Input Required', errMsg);
         return;
       }
 
       const result = await loginStaff({ email, password });
       if (result) {
-        Alert.alert('Login Successful', `Welcome back, ${result.user.fullName || result.user.full_name || 'Staff User'}!`);
+        const name = result.user?.fullName || (result.user as any)?.full_name || 'Staff User';
+        showSuccessToast('Login Successful! 🎉', `Welcome back, ${name}`);
       }
     } else {
       if (!phone.trim()) {
-        setValidationError('Please enter your 10-digit mobile number');
+        const errMsg = 'Please enter your 10-digit mobile number';
+        setValidationError(errMsg);
+        showErrorToast('Input Required', errMsg);
         return;
       }
       if (phone.trim().length !== 10) {
-        setValidationError('Mobile number must be exactly 10 digits');
+        const errMsg = 'Mobile number must be exactly 10 digits';
+        setValidationError(errMsg);
+        showErrorToast('Invalid Input', errMsg);
         return;
       }
       if (!password) {
-        setValidationError('Please enter your password');
+        const errMsg = 'Please enter your password';
+        setValidationError(errMsg);
+        showErrorToast('Input Required', errMsg);
         return;
       }
 
       const result = await loginPatient({ phone, password });
       if (result) {
-        Alert.alert('Login Successful', `Welcome back, ${result.user.fullName || result.user.full_name || 'Patient'}!`);
+        const name = result.user?.fullName || (result.user as any)?.full_name || 'Patient';
+        showSuccessToast('Login Successful! 🎉', `Welcome back, ${name}`);
       }
     }
   };
@@ -76,7 +96,7 @@ export const LoginScreen = () => {
 
   return (
     <SafeAreaView style={[styles.container, { paddingTop: Platform.OS === 'android' ? Math.max(insets.top, 24) : insets.top }]} edges={['top', 'left', 'right']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" translucent={true} />
+      <StatusBar barStyle="dark-content" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}>
@@ -147,7 +167,8 @@ export const LoginScreen = () => {
             {/* Error Banner */}
             {displayError ? (
               <View style={styles.errorBanner}>
-                <Text style={styles.errorBannerText}>⚠️ {displayError}</Text>
+                <AlertCircle size={18} color="#dc2626" />
+                <Text style={styles.errorBannerText}>{displayError}</Text>
               </View>
             ) : null}
 
@@ -210,8 +231,14 @@ export const LoginScreen = () => {
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeButton}>
-                  <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+                  style={styles.eyeButton}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  {showPassword ? (
+                    <EyeOff size={20} color="#64748b" />
+                  ) : (
+                    <Eye size={20} color="#64748b" />
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -325,6 +352,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: '#fef2f2',
     borderWidth: 1,
     borderColor: '#fecaca',
@@ -333,6 +363,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorBannerText: {
+    flex: 1,
     color: '#dc2626',
     fontSize: 13,
     fontWeight: '600',

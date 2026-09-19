@@ -20,6 +20,9 @@ import {
   MedicinePillIcon,
   PatientUserIcon,
   VideoCamIcon,
+  Menu,
+  X,
+  LogOut,
 } from '../components/common/CustomIcons';
 import { useAuthContext } from '../context/AuthContext';
 import { PatientDashboardScreen } from '../screens/dashboards/PatientDashboardScreen';
@@ -172,7 +175,7 @@ export const PatientMainContainer = () => {
           style={styles.tabItemCenter}
           onPress={() => setDrawerOpen(true)}>
           <View style={styles.centerFab}>
-            <Text style={styles.fabIcon}>☰</Text>
+            <Menu size={22} color="#ffffff" />
           </View>
           <Text style={styles.fabLabel}>Menu</Text>
         </TouchableOpacity>
@@ -235,7 +238,7 @@ export const PatientMainContainer = () => {
                   <TouchableOpacity
                     onPress={() => setDrawerOpen(false)}
                     style={styles.closeBtn}>
-                    <Text style={styles.closeBtnText}>✕</Text>
+                    <X size={20} color="#94a3b8" />
                   </TouchableOpacity>
                 </View>
 
@@ -304,7 +307,7 @@ export const PatientMainContainer = () => {
                     setDrawerOpen(false);
                     logout();
                   }}>
-                  <Text style={styles.logoutBtnIcon}>🚪</Text>
+                  <LogOut size={18} color="#ef4444" />
                   <Text style={styles.logoutBtnText}>Logout Account</Text>
                 </TouchableOpacity>
               </ScrollView>

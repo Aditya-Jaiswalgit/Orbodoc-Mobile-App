@@ -19,6 +19,9 @@ import {
   LabTubeIcon,
   MedicinePillIcon,
   PatientUserIcon,
+  Menu,
+  X,
+  LogOut,
 } from '../components/common/CustomIcons';
 import { useAuthContext } from '../context/AuthContext';
 
@@ -192,7 +195,7 @@ export const StaffMainContainer = () => {
       case 'appointments':
         return <AppointmentsManagerScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
       case 'book_appointment':
-        return <BookAppointmentScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} />;
+        return <BookAppointmentScreen onOpenDrawer={openDrawer} />;
       case 'prescriptions':
         return <PrescriptionsScreen onOpenDrawer={openDrawer} />;
       case 'pharmacy_inventory':
@@ -271,7 +274,7 @@ export const StaffMainContainer = () => {
         {/* FAB Menu Button */}
         <TouchableOpacity style={styles.tabItemCenter} onPress={() => setDrawerOpen(true)}>
           <View style={styles.centerFab}>
-            <Text style={styles.fabIcon}>☰</Text>
+            <Menu size={22} color="#ffffff" />
           </View>
           <Text style={styles.fabLabel}>Menu</Text>
         </TouchableOpacity>
@@ -316,7 +319,7 @@ export const StaffMainContainer = () => {
                 <View style={styles.drawerHeader}>
                   <Text style={styles.categoryTitle}>{staffRole.replace('_', ' ').toUpperCase()}</Text>
                   <TouchableOpacity onPress={() => setDrawerOpen(false)} style={styles.closeBtn}>
-                    <Text style={styles.closeBtnText}>✕</Text>
+                    <X size={20} color="#94a3b8" />
                   </TouchableOpacity>
                 </View>
 
@@ -368,7 +371,7 @@ export const StaffMainContainer = () => {
                     setDrawerOpen(false);
                     logout();
                   }}>
-                  <Text style={styles.logoutBtnIcon}>🚪</Text>
+                  <LogOut size={18} color="#ef4444" />
                   <Text style={styles.logoutBtnText}>Logout Staff Account</Text>
                 </TouchableOpacity>
               </ScrollView>

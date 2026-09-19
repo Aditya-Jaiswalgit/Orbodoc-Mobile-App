@@ -84,6 +84,17 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        externalNativeBuild {
+            cmake {
+                arguments "-DCMAKE_OBJECT_PATH_MAX=240"
+            }
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "../../node_modules/react-native/ReactAndroid/cmake-utils/default-app-setup/CMakeLists.txt"
+            buildStagingDirectory "C:/tmp/rn-cxx-build"
+        }
     }
     signingConfigs {
         debug {

@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useAuthContext } from '../../context/AuthContext';
-import { BellNotificationIcon } from './CustomIcons';
+import { BellNotificationIcon, Menu } from './CustomIcons';
 
 interface StaffHeaderProps {
   onOpenDrawer: () => void;
@@ -68,7 +68,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             style={styles.menuIconButton}
             activeOpacity={0.8}
             onPress={onOpenDrawer}>
-            <Text style={styles.menuIconText}>☰</Text>
+            <Menu size={20} color="#0d9488" />
           </TouchableOpacity>
 
           {title ? (
