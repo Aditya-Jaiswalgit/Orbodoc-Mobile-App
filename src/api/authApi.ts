@@ -39,3 +39,38 @@ export async function loginPatientApi(
     }),
   });
 }
+
+/**
+ * Switch Active Clinic API call (Multi-clinic)
+ * Route: POST /api/auth/switch-clinic
+ * Body: { clinicId }
+ */
+export async function switchClinicApi(
+  clinicId: number
+): Promise<ApiResponse<AuthResponseData>> {
+  return apiFetch<AuthResponseData>('/auth/switch-clinic', {
+    method: 'POST',
+    body: JSON.stringify({ clinicId }),
+  });
+}
+
+/**
+ * Fetch User Profile API call
+ * Route: GET /api/auth/profile
+ */
+export async function fetchProfileApi(): Promise<ApiResponse<any>> {
+  return apiFetch('/auth/profile', {
+    method: 'GET',
+  });
+}
+
+/**
+ * Fetch My Assigned Clinics API call
+ * Route: GET /api/clinics/my-clinics
+ */
+export async function fetchMyClinicsApi(): Promise<ApiResponse<any>> {
+  return apiFetch('/clinics/my-clinics', {
+    method: 'GET',
+  });
+}
+

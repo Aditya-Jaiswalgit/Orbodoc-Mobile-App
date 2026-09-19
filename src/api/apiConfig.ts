@@ -5,6 +5,16 @@ export const BASE_URL = 'https://api.orbodoc.com/api';
 
 export const API_TIMEOUT = 15000; // 15 seconds
 
+let globalAuthToken: string | null = null;
+
+export function setGlobalAuthToken(token: string | null) {
+  globalAuthToken = token;
+}
+
+export function getGlobalAuthToken(): string | null {
+  return globalAuthToken;
+}
+
 export async function apiFetch<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -14,6 +24,7 @@ export async function apiFetch<T>(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
+    ...(globalAuthToken ? { Authorization: `Bearer ${globalAuthToken}` } : {}),
     ...((options.headers as Record<string, string>) || {}),
   };
 

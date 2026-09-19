@@ -10,11 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {
-  BillingCardIcon,
-  CalendarIcon,
-  LabTubeIcon,
-} from '../../components/common/CustomIcons';
+import { Calendar, CreditCard, TestTube } from 'lucide-react-native';
 import { PatientHeader } from '../../components/common/PatientHeader';
 import { useAuthContext } from '../../context/AuthContext';
 import { usePatientDashboard } from '../../hooks/usePatientDashboard';
@@ -67,7 +63,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
         <View style={styles.appointmentBannerCard}>
           <View style={styles.bannerTextSection}>
             <View style={styles.bannerTitleRow}>
-              <CalendarIcon color="#0f766e" size={20} />
+              <Calendar color="#0f766e" size={20} />
               <Text style={styles.bannerTitle}>Book an Appointment</Text>
             </View>
             <Text style={styles.bannerSubtitle}>
@@ -94,7 +90,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
                 <Text style={styles.kpiValue}>{upcomingCount}</Text>
               </View>
               <View style={[styles.kpiIconBox, { backgroundColor: '#e6fffa' }]}>
-                <CalendarIcon color="#0d9488" size={18} />
+                <Calendar color="#0d9488" size={18} />
               </View>
             </View>
             <TouchableOpacity style={styles.kpiLinkRow}>
@@ -110,7 +106,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
                 <Text style={styles.kpiValue}>{labReportsCount}</Text>
               </View>
               <View style={[styles.kpiIconBox, { backgroundColor: '#e6fffa' }]}>
-                <LabTubeIcon color="#0d9488" size={18} />
+                <TestTube color="#0d9488" size={18} />
               </View>
             </View>
             <TouchableOpacity style={styles.kpiLinkRow}>
@@ -126,7 +122,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
                 <Text style={styles.kpiValue}>{billsCount}</Text>
               </View>
               <View style={[styles.kpiIconBox, { backgroundColor: '#fef3c7' }]}>
-                <BillingCardIcon color="#d97706" size={18} />
+                <CreditCard color="#d97706" size={18} />
               </View>
             </View>
             <TouchableOpacity style={styles.kpiLinkRow}>
@@ -142,7 +138,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
                 <Text style={styles.kpiValue}>{paidBillsCount}</Text>
               </View>
               <View style={[styles.kpiIconBox, { backgroundColor: '#dcfce7' }]}>
-                <BillingCardIcon color="#16a34a" size={18} />
+                <CreditCard color="#16a34a" size={18} />
               </View>
             </View>
             <TouchableOpacity style={styles.kpiLinkRow}>
@@ -163,13 +159,13 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
               </Text>
             </View>
             <View style={styles.careBadgeCircle}>
-              <CalendarIcon color="#ffffff" size={20} />
+              <Calendar color="#ffffff" size={20} />
             </View>
           </View>
 
           {/* Empty State Box */}
           <View style={styles.emptyStateBox}>
-            <CalendarIcon color="#94a3b8" size={32} />
+            <Calendar color="#94a3b8" size={32} />
             <Text style={styles.emptyTitle}>No upcoming appointment</Text>
             <Text style={styles.emptySubtext}>Book a consultation whenever you need care.</Text>
           </View>

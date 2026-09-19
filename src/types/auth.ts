@@ -53,3 +53,20 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
 }
+
+export interface AuthContextType {
+  user: AuthUser | null;
+  token: string | null;
+  userType: UserRoleType | null;
+  role: string;
+  activeClinicId: number | null;
+  activeClinicName: string;
+  assignedClinics: UserClinic[];
+  isMultiClinic: boolean;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  saveAuthSession: (data: AuthResponseData, userType: UserRoleType) => void;
+  switchClinic: (clinicId: number) => Promise<boolean>;
+  logout: () => void;
+}
+

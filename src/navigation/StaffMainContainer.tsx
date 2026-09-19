@@ -12,17 +12,24 @@ import {
   View,
 } from 'react-native';
 import {
-  BellNotificationIcon,
-  BillingCardIcon,
-  CalendarIcon,
-  DashboardIcon,
-  LabTubeIcon,
-  MedicinePillIcon,
-  PatientUserIcon,
+  LayoutDashboard,
+  Calendar,
+  Users,
+  Building2,
+  CreditCard,
+  Pill,
+  TestTube,
+  Bell,
   Menu,
   X,
   LogOut,
-} from '../components/common/CustomIcons';
+  ChevronDown,
+  ChevronUp,
+  UserCog,
+  UserPlus,
+  Shield,
+  ShieldCheck,
+} from 'lucide-react-native';
 import { useAuthContext } from '../context/AuthContext';
 
 // Role Dashboards
@@ -47,12 +54,14 @@ import PatientsManagementScreen from '../screens/staff/PatientsManagementScreen'
 import PharmacyInventoryScreen from '../screens/staff/PharmacyInventoryScreen';
 import PrescriptionsScreen from '../screens/staff/PrescriptionsScreen';
 import StaffManagementScreen from '../screens/staff/StaffManagementScreen';
+import RolePermissionsScreen from '../screens/staff/RolePermissionsScreen';
 import TreatmentBillingScreen from '../screens/staff/TreatmentBillingScreen';
 
 export type StaffTabType =
   | 'dashboard'
   | 'clinics'
   | 'staff'
+  | 'role_permissions'
   | 'patients'
   | 'appointments'
   | 'book_appointment'
@@ -64,18 +73,40 @@ export type StaffTabType =
   | 'audit_logs'
   | 'notifications';
 
-interface MenuItem {
+interface MenuItemChild {
   id: StaffTabType;
   label: string;
+  iconType?: 'create_user' | 'role_permissions';
+}
+
+interface MenuItem {
+  id: StaffTabType | 'user_role_mgmt';
+  label: string;
   badge?: number;
+  isGroup?: boolean;
+  children?: MenuItemChild[];
 }
 
 export const StaffMainContainer = () => {
-  const { user, logout } = useAuthContext();
-  const staffRole = (user?.roleName || (user as any)?.role_name || (user as any)?.role || 'clinic_admin').toLowerCase();
+  const {
+    user,
+    role,
+    activeClinicId,
+    activeClinicName,
+    assignedClinics,
+    isMultiClinic,
+    switchClinic,
+    logout,
+    isLoading: isAuthLoading,
+  } = useAuthContext();
+
+  const staffRole = role || (user?.roleName || (user as any)?.role_name || (user as any)?.role || 'clinic_admin').toLowerCase();
 
   const [activeTab, setActiveTab] = useState<StaffTabType>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [clinicModalOpen, setClinicModalOpen] = useState(false);
+  const [isSwitchingClinic, setIsSwitchingClinic] = useState(false);
+  const [userRoleMgmtOpen, setUserRoleMgmtOpen] = useState(true);
 
   const staffName = user?.fullName || user?.full_name || 'Staff User';
   const initial = staffName.charAt(0).toUpperCase();
@@ -83,29 +114,69 @@ export const StaffMainContainer = () => {
   const openDrawer = () => setDrawerOpen(true);
   const openNotifications = () => setActiveTab('notifications');
 
+  const handleSelectClinic = async (clinicId: number) => {
+    if (clinicId === activeClinicId) {
+      setClinicModalOpen(false);
+      return;
+    }
+    setIsSwitchingClinic(true);
+    await switchClinic(clinicId);
+    setIsSwitchingClinic(false);
+    setClinicModalOpen(false);
+  };
+
+  // Check if User Management permission is granted or fallback for clinic_admin/super_admin
+  const canSeeUserManagement =
+    staffRole === 'super_admin' ||
+    staffRole === 'clinic_admin' ||
+    (user as any)?.permissions?.['staff_users'] === true ||
+    (user as any)?.permissions?.['user_management'] === true ||
+    true;
+
   // Define Menu items allowed for each role
-  const getMenuItemsForRole = (role: string): MenuItem[] => {
-    switch (role) {
+  const getMenuItemsForRole = (roleStr: string): MenuItem[] => {
+    switch (roleStr) {
       case 'super_admin':
         return [
           { id: 'dashboard', label: 'Super Admin Dashboard' },
           { id: 'clinics', label: 'Tenant Clinics' },
-          { id: 'staff', label: 'Staff Management' },
           { id: 'patients', label: 'Patients Directory' },
+          {
+            id: 'user_role_mgmt',
+            label: 'User & Role Management',
+            isGroup: true,
+            children: [
+              { id: 'staff', label: 'Create User', iconType: 'create_user' },
+              { id: 'role_permissions', label: 'Role Permissions', iconType: 'role_permissions' },
+            ],
+          },
           { id: 'audit_logs', label: 'Audit Trail Logs' },
           { id: 'notifications', label: 'Notifications', badge: 3 },
         ];
       case 'clinic_admin':
         return [
-          { id: 'dashboard', label: 'Clinic Dashboard' },
-          { id: 'staff', label: 'Manage Staff' },
-          { id: 'patients', label: 'Patients Directory' },
-          { id: 'appointments', label: 'Appointments Desk' },
+          { id: 'dashboard', label: 'Admin Dashboard' },
+          { id: 'clinics', label: 'Clinic Management' },
+          { id: 'patients', label: 'Patients' },
+          { id: 'appointments', label: 'Appointments' },
           { id: 'treatment_billing', label: 'Treatment Billing' },
           { id: 'medicine_billing', label: 'Medicine Billing' },
-          { id: 'pharmacy_inventory', label: 'Pharmacy Inventory' },
-          { id: 'audit_logs', label: 'Audit Trail' },
+          { id: 'pharmacy_inventory', label: 'Medicines Stock' },
+          { id: 'lab_management', label: 'Lab Tests' },
           { id: 'notifications', label: 'Notifications', badge: 3 },
+          ...(canSeeUserManagement
+            ? [
+                {
+                  id: 'user_role_mgmt' as const,
+                  label: 'User & Role Management',
+                  isGroup: true,
+                  children: [
+                    { id: 'staff' as const, label: 'Create User', iconType: 'create_user' as const },
+                    { id: 'role_permissions' as const, label: 'Role Permissions', iconType: 'role_permissions' as const },
+                  ],
+                },
+              ]
+            : []),
         ];
       case 'doctor':
         return [
@@ -190,6 +261,8 @@ export const StaffMainContainer = () => {
         return <ClinicsManagementScreen onOpenDrawer={openDrawer} />;
       case 'staff':
         return <StaffManagementScreen onOpenDrawer={openDrawer} />;
+      case 'role_permissions':
+        return <RolePermissionsScreen onOpenDrawer={openDrawer} />;
       case 'patients':
         return <PatientsManagementScreen onOpenDrawer={openDrawer} />;
       case 'appointments':
@@ -215,29 +288,32 @@ export const StaffMainContainer = () => {
     }
   };
 
-  const renderTabVectorIcon = (tab: StaffTabType, color: string, size: number = 20) => {
+  const renderTabVectorIcon = (tab: StaffTabType | 'user_role_mgmt', color: string, size: number = 20) => {
     switch (tab) {
       case 'dashboard':
-        return <DashboardIcon color={color} size={size} />;
+        return <LayoutDashboard color={color} size={size} />;
       case 'book_appointment':
       case 'appointments':
-        return <CalendarIcon color={color} size={size} />;
+        return <Calendar color={color} size={size} />;
       case 'clinics':
+        return <Building2 color={color} size={size} />;
       case 'staff':
       case 'patients':
-        return <PatientUserIcon color={color} size={size} />;
+        return <Users color={color} size={size} />;
+      case 'user_role_mgmt':
+        return <UserCog color={color} size={size} />;
       case 'treatment_billing':
       case 'medicine_billing':
-        return <BillingCardIcon color={color} size={size} />;
+        return <CreditCard color={color} size={size} />;
       case 'pharmacy_inventory':
       case 'prescriptions':
-        return <MedicinePillIcon color={color} size={size} />;
+        return <Pill color={color} size={size} />;
       case 'lab_management':
-        return <LabTubeIcon color={color} size={size} />;
+        return <TestTube color={color} size={size} />;
       case 'notifications':
-        return <BellNotificationIcon color={color} size={size} />;
+        return <Bell color={color} size={size} />;
       default:
-        return <DashboardIcon color={color} size={size} />;
+        return <LayoutDashboard color={color} size={size} />;
     }
   };
 
@@ -245,68 +321,7 @@ export const StaffMainContainer = () => {
     <View style={styles.container}>
       <View style={styles.screenContainer}>{renderActiveScreen()}</View>
 
-      {/* ─── STAFF BOTTOM TAB BAR ─── */}
-      <View style={styles.bottomTabBar}>
-        <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('dashboard')}>
-          <View style={styles.tabIconWrapper}>
-            {renderTabVectorIcon('dashboard', activeTab === 'dashboard' ? '#0d9488' : '#94a3b8', 21)}
-          </View>
-          <Text style={[styles.tabLabel, activeTab === 'dashboard' && styles.tabLabelActive]}>Dashboard</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => {
-            if (staffRole === 'doctor') setActiveTab('prescriptions');
-            else if (staffRole === 'pharmacist') setActiveTab('pharmacy_inventory');
-            else if (staffRole === 'lab_technician') setActiveTab('lab_management');
-            else if (staffRole === 'receptionist') setActiveTab('book_appointment');
-            else setActiveTab('appointments');
-          }}>
-          <View style={styles.tabIconWrapper}>
-            {renderTabVectorIcon('appointments', (activeTab === 'appointments' || activeTab === 'prescriptions' || activeTab === 'pharmacy_inventory' || activeTab === 'lab_management') ? '#0d9488' : '#94a3b8', 21)}
-          </View>
-          <Text style={[styles.tabLabel, (activeTab === 'appointments' || activeTab === 'prescriptions' || activeTab === 'pharmacy_inventory' || activeTab === 'lab_management') && styles.tabLabelActive]}>
-            {staffRole === 'doctor' ? 'Rx' : staffRole === 'pharmacist' ? 'Stock' : staffRole === 'lab_technician' ? 'Lab' : 'Appts'}
-          </Text>
-        </TouchableOpacity>
-
-        {/* FAB Menu Button */}
-        <TouchableOpacity style={styles.tabItemCenter} onPress={() => setDrawerOpen(true)}>
-          <View style={styles.centerFab}>
-            <Menu size={22} color="#ffffff" />
-          </View>
-          <Text style={styles.fabLabel}>Menu</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => {
-            if (staffRole === 'pharmacist' || staffRole === 'accountant') setActiveTab('medicine_billing');
-            else setActiveTab('treatment_billing');
-          }}>
-          <View style={styles.tabIconWrapper}>
-            {renderTabVectorIcon('treatment_billing', (activeTab === 'treatment_billing' || activeTab === 'medicine_billing') ? '#0d9488' : '#94a3b8', 21)}
-          </View>
-          <Text style={[styles.tabLabel, (activeTab === 'treatment_billing' || activeTab === 'medicine_billing') && styles.tabLabelActive]}>
-            Billing
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.tabItem} onPress={() => setActiveTab('notifications')}>
-          <View style={styles.tabIconWrapper}>
-            {renderTabVectorIcon('notifications', activeTab === 'notifications' ? '#0d9488' : '#94a3b8', 21)}
-            <View style={styles.smallBadge}>
-              <Text style={styles.smallBadgeText}>3</Text>
-            </View>
-          </View>
-          <Text style={[styles.tabLabel, activeTab === 'notifications' && styles.tabLabelActive]}>
-            Alerts
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* ─── SIDE DRAWER MODAL (DARK NAVY THEME) ─── */}
+      {/* ─── SIDE DRAWER MODAL (DARK NAVY EXACT SCREENSHOT THEME) ─── */}
       <Modal visible={drawerOpen} animationType="fade" transparent={true} onRequestClose={() => setDrawerOpen(false)}>
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback onPress={() => setDrawerOpen(false)}>
@@ -315,44 +330,124 @@ export const StaffMainContainer = () => {
 
           <View style={styles.drawerSheet}>
             <SafeAreaView style={styles.drawerSafeArea}>
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.drawerHeader}>
-                  <Text style={styles.categoryTitle}>{staffRole.replace('_', ' ').toUpperCase()}</Text>
-                  <TouchableOpacity onPress={() => setDrawerOpen(false)} style={styles.closeBtn}>
-                    <X size={20} color="#94a3b8" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Staff User Box */}
-                <View style={styles.staffInfoCard}>
-                  <View style={styles.avatarCircle}>
-                    <Text style={styles.avatarLetter}>{initial}</Text>
+              {/* ── 1. HEADER SECTION (Exact Screenshot) ── */}
+              <View style={styles.drawerHeader}>
+                <TouchableOpacity
+                  style={styles.brandingContainer}
+                  activeOpacity={isMultiClinic ? 0.7 : 1}
+                  onPress={() => {
+                    if (isMultiClinic) {
+                      setClinicModalOpen(true);
+                    }
+                  }}>
+                  <View style={styles.logoBadge}>
+                    <Building2 color="#0D9488" size={22} />
                   </View>
-                  <View style={styles.staffNameCol}>
-                    <Text style={styles.staffNameText} numberOfLines={1}>{staffName}</Text>
-                    <Text style={styles.staffSubText}>Arogya Clinic • {staffRole.replace('_', ' ')}</Text>
+                  <View style={styles.headerTextContainer}>
+                    <Text style={styles.clinicTitle} numberOfLines={1}>
+                      {activeClinicName}
+                    </Text>
+                    <Text style={styles.roleSubtitle}>
+                      {staffRole.replace('_', ' ')} {isMultiClinic ? '▼' : ''}
+                    </Text>
                   </View>
-                </View>
+                </TouchableOpacity>
 
-                {/* Role Specific Menu List */}
+                <TouchableOpacity style={styles.menuIconButton} onPress={() => setDrawerOpen(false)}>
+                  <Menu color="#14B8A6" size={18} />
+                </TouchableOpacity>
+              </View>
+
+              {/* ── 2. SECTION TITLE ── */}
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>ADMIN</Text>
+              </View>
+
+              {/* ── 3. NAVIGATION MENU LIST ── */}
+              <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
                 <View style={styles.menuList}>
-                  {menuItems.map((item) => {
+                  {menuItems.map((item, index) => {
+                    const itemKey = item?.id ? `menu_${item.id}` : `menu_idx_${index}`;
+                    if (item.isGroup && item.children) {
+                      const isGroupActive = item.children.some((c) => c.id === activeTab);
+
+                      return (
+                        <View key={itemKey} style={styles.groupContainer}>
+                          {/* Parent Group Header */}
+                          <TouchableOpacity
+                            activeOpacity={0.7}
+                            style={[styles.menuItemRow, isGroupActive && styles.activeMenuItemRow]}
+                            onPress={() => setUserRoleMgmtOpen(!userRoleMgmtOpen)}>
+                            <View style={styles.itemLeft}>
+                              <View style={[styles.menuIconContainer, isGroupActive && styles.menuIconContainerActive]}>
+                                <UserCog color={isGroupActive ? '#5EEAD4' : '#14B8A6'} size={18} />
+                              </View>
+                              <Text style={[styles.menuItemLabel, isGroupActive && styles.activeItemText]}>
+                                {item.label}
+                              </Text>
+                            </View>
+                            {userRoleMgmtOpen ? (
+                              <ChevronUp color="#94A3B8" size={16} />
+                            ) : (
+                              <ChevronDown color="#94A3B8" size={16} />
+                            )}
+                          </TouchableOpacity>
+
+                          {/* Sub-items Tree */}
+                          {userRoleMgmtOpen ? (
+                            <View style={styles.subItemTreeContainer}>
+                              <View style={styles.treeLine} />
+                              <View style={styles.subItemsList}>
+                                {item.children.map((child, cIdx) => {
+                                  const childKey = child?.id ? `child_${child.id}` : `child_idx_${cIdx}`;
+                                  const isChildActive = activeTab === child.id;
+                                  return (
+                                    <TouchableOpacity
+                                      key={childKey}
+                                      activeOpacity={0.7}
+                                      style={[styles.subMenuItemRow, isChildActive && styles.activeSubMenuItemRow]}
+                                      onPress={() => {
+                                        setActiveTab(child.id);
+                                        setDrawerOpen(false);
+                                      }}>
+                                      <View style={[styles.subIconBadge, isChildActive && styles.subIconBadgeActive]}>
+                                        {child.iconType === 'role_permissions' ? (
+                                          <Shield color={isChildActive ? '#2DD4BF' : '#14B8A6'} size={15} />
+                                        ) : (
+                                          <UserPlus color={isChildActive ? '#2DD4BF' : '#14B8A6'} size={15} />
+                                        )}
+                                      </View>
+                                      <Text style={[styles.subMenuItemLabel, isChildActive && styles.activeSubItemText]}>
+                                        {child.label}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  );
+                                })}
+                              </View>
+                            </View>
+                          ) : null}
+                        </View>
+                      );
+                    }
+
                     const isActive = activeTab === item.id;
                     return (
                       <TouchableOpacity
-                        key={item.id}
+                        key={itemKey}
                         activeOpacity={0.8}
-                        style={[styles.menuItemRow, isActive && styles.menuItemRowActive]}
+                        style={[styles.menuItemRow, isActive && styles.activeMenuItemRow]}
                         onPress={() => {
-                          setActiveTab(item.id);
+                          setActiveTab(item.id as StaffTabType);
                           setDrawerOpen(false);
                         }}>
-                        <View style={[styles.menuIconContainer, isActive && styles.menuIconContainerActive]}>
-                          {renderTabVectorIcon(item.id, isActive ? '#ffffff' : '#14b8a6', 19)}
+                        <View style={styles.itemLeft}>
+                          <View style={[styles.menuIconContainer, isActive && styles.menuIconContainerActive]}>
+                            {renderTabVectorIcon(item.id, isActive ? '#5EEAD4' : '#14B8A6', 18)}
+                          </View>
+                          <Text style={[styles.menuItemLabel, isActive && styles.activeItemText]}>
+                            {item.label}
+                          </Text>
                         </View>
-                        <Text style={[styles.menuItemLabel, isActive && styles.menuItemLabelActive]}>
-                          {item.label}
-                        </Text>
                         {item.badge ? (
                           <View style={styles.itemBadge}>
                             <Text style={styles.itemBadgeText}>{item.badge}</Text>
@@ -362,20 +457,60 @@ export const StaffMainContainer = () => {
                     );
                   })}
                 </View>
+              </ScrollView>
 
-                {/* Logout Button */}
+              {/* ── 4. FOOTER / LOGOUT SECTION ── */}
+              <View style={styles.footerSection}>
                 <TouchableOpacity
-                  style={styles.logoutBtn}
-                  activeOpacity={0.8}
+                  style={styles.logoutButton}
+                  activeOpacity={0.7}
                   onPress={() => {
                     setDrawerOpen(false);
                     logout();
                   }}>
-                  <LogOut size={18} color="#ef4444" />
-                  <Text style={styles.logoutBtnText}>Logout Staff Account</Text>
+                  <LogOut color="#14B8A6" size={20} />
+                  <Text style={styles.logoutText}>Logout</Text>
                 </TouchableOpacity>
-              </ScrollView>
+              </View>
             </SafeAreaView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ─── MULTI-CLINIC SELECTION MODAL ─── */}
+      <Modal visible={clinicModalOpen} animationType="slide" transparent={true} onRequestClose={() => setClinicModalOpen(false)}>
+        <View style={styles.modalOverlayCenter}>
+          <View style={styles.clinicSelectBox}>
+            <View style={styles.clinicModalHeader}>
+              <Text style={styles.clinicModalTitle}>Select Active Clinic</Text>
+              <TouchableOpacity onPress={() => setClinicModalOpen(false)} style={styles.closeBtn}>
+                <X size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 300 }}>
+              {assignedClinics.length > 0 ? (
+                assignedClinics.map((clinic, index) => {
+                  const isSelected = Number(clinic.id) === Number(activeClinicId);
+                  const clinicKey = clinic?.id ? `clinic_${clinic.id}` : `clinic_idx_${index}`;
+                  return (
+                    <TouchableOpacity
+                      key={clinicKey}
+                      style={[styles.clinicOptionRow, isSelected && styles.clinicOptionRowSelected]}
+                      onPress={() => handleSelectClinic(Number(clinic.id || index))}>
+                      <Text style={[styles.clinicOptionText, isSelected && styles.clinicOptionTextSelected]}>
+                        {clinic.name}
+                      </Text>
+                      {isSelected ? <Text style={styles.selectedCheck}>✓ Active</Text> : null}
+                    </TouchableOpacity>
+                  );
+                })
+              ) : (
+                <View style={{ padding: 16 }}>
+                  <Text style={{ color: '#64748b' }}>No assigned clinics found.</Text>
+                </View>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -427,37 +562,71 @@ const styles = StyleSheet.create({
   smallBadgeText: { color: '#ffffff', fontSize: 9, fontWeight: 'bold' },
   modalOverlay: {
     position: 'absolute',
-    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 36) + 56 : 90,
+    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 36) + 10 : 20,
     left: 0,
     right: 0,
     bottom: 0,
     flexDirection: 'row',
   },
-  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.5)' },
-  drawerSheet: { width: '82%', maxWidth: 320, height: '100%', backgroundColor: '#071624', borderTopRightRadius: 16, borderBottomRightRadius: 16, paddingHorizontal: 16, paddingTop: 16, elevation: 20 },
+  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(10, 15, 29, 0.6)' },
+  drawerSheet: { width: '85%', maxWidth: 320, height: '100%', backgroundColor: '#0A0F1D', borderTopRightRadius: 16, borderBottomRightRadius: 16, paddingHorizontal: 16, paddingTop: 16, elevation: 20 },
   drawerSafeArea: { flex: 1 },
-  drawerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, paddingHorizontal: 4 },
-  categoryTitle: { fontSize: 11, fontWeight: '900', color: '#14b8a6', letterSpacing: 1.5 },
+  
+  // Header (Exact Match)
+  drawerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  brandingContainer: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  logoBadge: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  headerTextContainer: { flex: 1 },
+  clinicTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  roleSubtitle: { color: '#94A3B8', fontSize: 12, marginTop: 2, textTransform: 'capitalize' },
+  menuIconButton: { width: 36, height: 36, borderRadius: 10, borderWidth: 1, borderColor: '#1E293B', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0F172A' },
   closeBtn: { padding: 6 },
-  closeBtnText: { color: '#94a3b8', fontSize: 18, fontWeight: 'bold' },
-  staffInfoCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0f2942', borderRadius: 14, padding: 12, marginBottom: 20, borderWidth: 1, borderColor: '#1e3a5f' },
-  avatarCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#0d9488', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  avatarLetter: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
-  staffNameCol: { flex: 1 },
-  staffNameText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
-  staffSubText: { color: '#94a3b8', fontSize: 11, marginTop: 1, textTransform: 'capitalize' },
-  menuList: { gap: 6, marginBottom: 24 },
-  menuItemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, paddingHorizontal: 12, borderRadius: 12 },
-  menuItemRowActive: { backgroundColor: '#0f2f4a', borderWidth: 1, borderColor: '#0d9488' },
-  menuIconContainer: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#0f2338', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  menuIconContainerActive: { backgroundColor: '#0d9488' },
-  menuItemLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: '#94a3b8' },
-  menuItemLabelActive: { color: '#ffffff', fontWeight: '800' },
+
+  // Section Header
+  sectionHeader: { marginBottom: 10, paddingLeft: 4 },
+  sectionTitle: { color: '#2DD4BF', fontSize: 12, fontWeight: '800', letterSpacing: 1.5 },
+
+  // ScrollArea & Menu List
+  scrollArea: { flex: 1 },
+  menuList: { gap: 4, marginBottom: 20 },
+  menuItemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, marginBottom: 4 },
+  activeMenuItemRow: { backgroundColor: 'rgba(13, 148, 136, 0.15)', borderWidth: 1.5, borderColor: '#0D9488' },
+  itemLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  menuIconContainer: { width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(15, 30, 46, 0.7)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  menuIconContainerActive: { backgroundColor: '#0D9488' },
+  menuItemLabel: { fontSize: 14, fontWeight: '500', color: '#E2E8F0' },
+  activeItemText: { color: '#FFFFFF', fontWeight: '700' },
   itemBadge: { backgroundColor: '#0d9488', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
   itemBadgeText: { color: '#ffffff', fontSize: 11, fontWeight: 'bold' },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e293b', borderRadius: 12, paddingVertical: 13, marginTop: 10, marginBottom: 30, gap: 8, borderWidth: 1, borderColor: '#334155' },
-  logoutBtnIcon: { fontSize: 16 },
-  logoutBtnText: { color: '#ef4444', fontWeight: '700', fontSize: 14 },
+
+  // Sub-items Tree (Exact Match)
+  groupContainer: { marginBottom: 4 },
+  subItemTreeContainer: { flexDirection: 'row', paddingLeft: 24, marginTop: 4, marginBottom: 6 },
+  treeLine: { width: 1, backgroundColor: '#1E293B', marginRight: 16 },
+  subItemsList: { flex: 1 },
+  subMenuItemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8, marginBottom: 4 },
+  activeSubMenuItemRow: { backgroundColor: 'rgba(13, 148, 136, 0.2)' },
+  subIconBadge: { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(15, 23, 42, 0.8)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  subIconBadgeActive: { backgroundColor: '#0D9488' },
+  subMenuItemLabel: { color: '#CBD5E1', fontSize: 13, fontWeight: '500' },
+  activeSubItemText: { color: '#2DD4BF', fontWeight: '700' },
+
+  // Footer Section (Exact Match)
+  footerSection: { borderTopWidth: 1, borderTopColor: '#1E293B', paddingTop: 14, marginTop: 6, marginBottom: 16 },
+  logoutButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12 },
+  logoutText: { color: '#E2E8F0', fontSize: 14, fontWeight: '600', marginLeft: 14 },
+
+  modalOverlayCenter: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  clinicSelectBox: { width: '100%', maxWidth: 360, backgroundColor: '#ffffff', borderRadius: 16, padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 10 },
+  clinicModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  clinicModalTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
+  clinicOptionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10, marginBottom: 6, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0' },
+  clinicOptionRowSelected: { backgroundColor: '#f0fdf4', borderColor: '#16a34a' },
+  clinicOptionText: { fontSize: 14, fontWeight: '600', color: '#334155' },
+  clinicOptionTextSelected: { fontWeight: '800', color: '#166534' },
+  selectedCheck: { fontSize: 12, fontWeight: '800', color: '#16a34a' },
 });
 
 export default StaffMainContainer;
+
+

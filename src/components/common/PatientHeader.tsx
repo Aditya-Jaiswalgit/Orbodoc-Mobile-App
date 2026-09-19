@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useAuthContext } from '../../context/AuthContext';
-import { BellNotificationIcon, Menu } from './CustomIcons';
+import { Bell, Menu } from 'lucide-react-native';
 
 interface PatientHeaderProps {
   onOpenDrawer: () => void;
@@ -67,7 +67,7 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
             style={styles.notificationBell}
             activeOpacity={0.8}
             onPress={onOpenNotifications}>
-            <BellNotificationIcon color="#0f766e" size={17} />
+            <Bell color="#0f766e" size={17} />
             <View style={styles.badge}>
               <Text style={styles.badgeText}>4</Text>
             </View>

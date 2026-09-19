@@ -12,18 +12,18 @@ import {
   View,
 } from 'react-native';
 import {
-  BellNotificationIcon,
-  BillingCardIcon,
-  CalendarIcon,
-  DashboardIcon,
-  LabTubeIcon,
-  MedicinePillIcon,
-  PatientUserIcon,
-  VideoCamIcon,
+  LayoutDashboard,
+  Calendar,
+  Users,
+  CreditCard,
+  Pill,
+  Video,
+  TestTube,
+  Bell,
   Menu,
   X,
   LogOut,
-} from '../components/common/CustomIcons';
+} from 'lucide-react-native';
 import { useAuthContext } from '../context/AuthContext';
 import { PatientDashboardScreen } from '../screens/dashboards/PatientDashboardScreen';
 import AppointmentsScreen from '../screens/patient/AppointmentsScreen';
@@ -67,24 +67,24 @@ const MENU_ITEMS: MenuItem[] = [
 const renderTabVectorIcon = (tab: PatientTabType, color: string, size: number = 20) => {
   switch (tab) {
     case 'dashboard':
-      return <DashboardIcon color={color} size={size} />;
+      return <LayoutDashboard color={color} size={size} />;
     case 'book_appointment':
     case 'appointments':
-      return <CalendarIcon color={color} size={size} />;
+      return <Calendar color={color} size={size} />;
     case 'patients':
-      return <PatientUserIcon color={color} size={size} />;
+      return <Users color={color} size={size} />;
     case 'treatment_billing':
-      return <BillingCardIcon color={color} size={size} />;
+      return <CreditCard color={color} size={size} />;
     case 'medicine_billing':
-      return <MedicinePillIcon color={color} size={size} />;
+      return <Pill color={color} size={size} />;
     case 'video_services':
-      return <VideoCamIcon color={color} size={size} />;
+      return <Video color={color} size={size} />;
     case 'lab_tests':
-      return <LabTubeIcon color={color} size={size} />;
+      return <TestTube color={color} size={size} />;
     case 'notifications':
-      return <BellNotificationIcon color={color} size={size} />;
+      return <Bell color={color} size={size} />;
     default:
-      return <DashboardIcon color={color} size={size} />;
+      return <LayoutDashboard color={color} size={size} />;
   }
 };
 
