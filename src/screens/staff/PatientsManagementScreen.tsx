@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Alert,
   Modal,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { Pagination } from '../../components/common/Pagination';
 import { PatientModel } from '../../types/clinicTypes';
 
 interface Props {
@@ -27,6 +28,14 @@ export const PatientsManagementScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
   // Form State
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -37,6 +46,12 @@ export const PatientsManagementScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   const filteredPatients = patients.filter(
     p => p.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || p.phone.includes(searchQuery)
   );
+
+  const totalPages = Math.max(1, Math.ceil(filteredPatients.length / pageSize));
+  const paginatedPatients = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredPatients.slice(start, start + pageSize);
+  }, [filteredPatients, currentPage, pageSize]);
 
   const handleRegisterPatient = () => {
     if (!fullName.trim() || !phone.trim()) {
@@ -87,7 +102,7 @@ export const PatientsManagementScreen: React.FC<Props> = ({ onOpenDrawer }) => {
 
         {/* Patient List */}
         <View style={styles.list}>
-          {filteredPatients.map((patient) => (
+          {paginatedPatients.map((patient) => (
             <View key={patient.id} style={styles.card}>
               <View style={styles.avatarCircle}>
                 <Text style={styles.avatarText}>{patient.full_name.charAt(0)}</Text>
@@ -108,6 +123,19 @@ export const PatientsManagementScreen: React.FC<Props> = ({ onOpenDrawer }) => {
             </View>
           ))}
         </View>
+
+        {/* Pagination Component */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredPatients.length}
+          pageSize={pageSize}
+          onPageChange={(page) => setCurrentPage(page)}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </ScrollView>
 
       {/* Register Patient Modal */}

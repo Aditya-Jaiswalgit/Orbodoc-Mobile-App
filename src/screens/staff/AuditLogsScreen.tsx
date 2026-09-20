@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Alert,
   ScrollView,
@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { Pagination } from '../../components/common/Pagination';
 import { AuditLog } from '../../types/clinicTypes';
 
 interface Props {
@@ -21,6 +22,16 @@ export const AuditLogsScreen: React.FC<Props> = ({ onOpenDrawer }) => {
     { id: 3, clinic_id: 1, user_id: 3, user_type: 'staff', user_name: 'Priya Nair', user_role: 'receptionist', action: 'BOOK_APPOINTMENT', table_name: 'appointments', record_id: 4, details: 'Booked slot for patient Vikram Singh', created_at: '2025-01-15 09:15 AM' },
     { id: 4, clinic_id: 1, user_id: 2, user_type: 'staff', user_name: 'Dr. Ananya Roy', user_role: 'doctor', action: 'UPDATE_APPOINTMENT_STATUS', table_name: 'appointments', record_id: 5, details: 'Marked appointment completed', created_at: '2025-01-15 09:50 AM' },
   ]);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const totalPages = Math.max(1, Math.ceil(logs.length / pageSize));
+  const paginatedLogs = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return logs.slice(start, start + pageSize);
+  }, [logs, currentPage, pageSize]);
 
   const handleExportLogs = () => {
     Alert.alert('Audit Logs Export', 'Audit trail exported successfully in encrypted CSV / JSON format.');
@@ -44,7 +55,7 @@ export const AuditLogsScreen: React.FC<Props> = ({ onOpenDrawer }) => {
         {/* Log Entries List */}
         <Text style={styles.sectionTitle}>Recent Trail Entries ({logs.length})</Text>
         <View style={styles.logList}>
-          {logs.map((log) => (
+          {paginatedLogs.map((log) => (
             <View key={log.id} style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.actionTag}>{log.action}</Text>
@@ -65,6 +76,19 @@ export const AuditLogsScreen: React.FC<Props> = ({ onOpenDrawer }) => {
             </View>
           ))}
         </View>
+
+        {/* Pagination Component */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={logs.length}
+          pageSize={pageSize}
+          onPageChange={(page) => setCurrentPage(page)}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </ScrollView>
     </View>
   );

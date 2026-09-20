@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Alert,
   Modal,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { Pagination } from '../../components/common/Pagination';
 import { Medicine } from '../../types/clinicTypes';
 
 interface Props {
@@ -28,6 +29,14 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(false);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, lowStockOnly]);
+
   const [adjustModalVisible, setAdjustModalVisible] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
   const [newStockQty, setNewStockQty] = useState('');
@@ -45,6 +54,12 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer }) => {
     const matchesLowStock = lowStockOnly ? m.stock_quantity <= m.reorder_level : true;
     return matchesSearch && matchesLowStock;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredMedicines.length / pageSize));
+  const paginatedMedicines = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredMedicines.slice(start, start + pageSize);
+  }, [filteredMedicines, currentPage, pageSize]);
 
   const handleAdjustStock = () => {
     if (!selectedMedicine || !newStockQty) return;
@@ -117,7 +132,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer }) => {
 
         {/* Medicines Inventory List */}
         <View style={styles.medList}>
-          {filteredMedicines.map((med) => {
+          {paginatedMedicines.map((med) => {
             const isLow = med.stock_quantity <= med.reorder_level;
             return (
               <View key={med.id} style={[styles.card, isLow && styles.lowStockCard]}>
@@ -146,12 +161,25 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                     setNewStockQty(med.stock_quantity.toString());
                     setAdjustModalVisible(true);
                   }}>
-                  <Text style={styles.adjustBtnText}>✏️ Adjust Stock Quantity</Text>
+                  <Text style={styles.adjustBtnText}>⚡ Adjust Stock Quantity</Text>
                 </TouchableOpacity>
               </View>
             );
           })}
         </View>
+
+        {/* Pagination Component */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredMedicines.length}
+          pageSize={pageSize}
+          onPageChange={(page) => setCurrentPage(page)}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </ScrollView>
 
       {/* Adjust Stock Modal */}

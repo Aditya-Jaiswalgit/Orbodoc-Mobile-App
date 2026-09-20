@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Alert,
   ScrollView,
@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { Pagination } from '../../components/common/Pagination';
 import { Appointment } from '../../types/clinicTypes';
 import { showSuccessToast } from '../../utils/toast';
 
@@ -30,9 +31,23 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
 
   const [activeFilter, setActiveFilter] = useState<string>('all');
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter]);
+
   const filteredAppointments = activeFilter === 'all'
     ? appointments
     : appointments.filter(a => a.status === activeFilter);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAppointments.length / pageSize));
+  const paginatedAppointments = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredAppointments.slice(start, start + pageSize);
+  }, [filteredAppointments, currentPage, pageSize]);
 
   const updateStatus = (id: number, newStatus: Appointment['status']) => {
     setAppointments(prev =>
@@ -87,7 +102,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
 
         {/* Appointment Cards */}
         <View style={styles.list}>
-          {filteredAppointments.map((item) => (
+          {paginatedAppointments.map((item) => (
             <View key={item.id} style={styles.card}>
               <View style={styles.cardHeader}>
                 <View style={styles.timeBadge}>
@@ -132,6 +147,19 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
             </View>
           ))}
         </View>
+
+        {/* Pagination Component */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredAppointments.length}
+          pageSize={pageSize}
+          onPageChange={(page) => setCurrentPage(page)}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </ScrollView>
     </View>
   );

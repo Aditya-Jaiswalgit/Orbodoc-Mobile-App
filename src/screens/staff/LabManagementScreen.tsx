@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Alert,
   Modal,
@@ -10,7 +10,8 @@ import {
   View,
 } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
-import { LabReport, LabTestOrder } from '../../types/clinicTypes';
+import { Pagination } from '../../components/common/Pagination';
+import { LabTestOrder, LabReport } from '../../types/clinicTypes';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -18,16 +19,36 @@ interface Props {
 
 export const LabManagementScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   const [testOrders, setTestOrders] = useState<LabTestOrder[]>([
-    { id: 101, clinic_id: 1, patient_id: 1, patient_name: 'Sunita Sharma', doctor_name: 'Dr. Ramesh Sharma', test_name: 'Complete Blood Count (CBC)', category: 'Hematology', cost: 450, status: 'ordered', ordered_date: '2025-01-15' },
-    { id: 102, clinic_id: 1, patient_id: 2, patient_name: 'Rahul Verma', doctor_name: 'Dr. Ramesh Sharma', test_name: 'Lipid Profile & HbA1c', category: 'Biochemistry', cost: 850, status: 'sample_collected', ordered_date: '2025-01-14' },
-    { id: 103, clinic_id: 1, patient_id: 3, patient_name: 'Pooja Gupta', doctor_name: 'Dr. Ananya Roy', test_name: 'Thyroid Panel (T3, T4, TSH)', category: 'Endocrinology', cost: 700, status: 'completed', ordered_date: '2025-01-14' },
+    { id: 101, clinic_id: 1, patient_id: 1, patient_name: 'Sunita Sharma', test_name: 'Lipid Profile & ECG', category: 'Cardiology', cost: 1200, status: 'processing', ordered_date: '2025-01-15' },
+    { id: 102, clinic_id: 1, patient_id: 2, patient_name: 'Rahul Verma', test_name: 'HbA1c & Fasting Glucose', category: 'Diabetology', cost: 850, status: 'ordered', ordered_date: '2025-01-15' },
+    { id: 103, clinic_id: 1, patient_id: 3, patient_name: 'Pooja Gupta', test_name: 'Thyroid Profile (T3, T4, TSH)', category: 'Endocrinology', cost: 950, status: 'completed', ordered_date: '2025-01-14' },
   ]);
 
   const [reports, setReports] = useState<LabReport[]>([
-    { id: 1, clinic_id: 1, test_order_id: 103, patient_id: 3, patient_name: 'Pooja Gupta', test_name: 'Thyroid Panel (T3, T4, TSH)', technician_name: 'Kavita Singh', result_summary: 'TSH: 2.4 uIU/mL (Normal range: 0.4 - 4.2)', findings: 'All thyroid levels within physiological limits.', status: 'verified', file_name: 'Thyroid_Report_PoojaGupta.pdf', created_at: '2025-01-14' },
+    { id: 1, clinic_id: 1, test_order_id: 103, patient_id: 3, patient_name: 'Pooja Gupta', test_name: 'Thyroid Profile (T3, T4, TSH)', technician_name: 'Sunil Kumar', result_summary: 'TSH elevated (6.2 uIU/mL). Mild hypothyroidism indicated.', findings: 'T3: 1.2 ng/mL, T4: 7.5 ug/dL, TSH: 6.2 uIU/mL', status: 'verified', file_name: 'Thyroid_Report_Pooja.pdf', created_at: '2025-01-14 05:30 PM' },
   ]);
 
   const [activeTab, setActiveTab] = useState<'orders' | 'reports'>('orders');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
+
+  const totalOrdersPages = Math.max(1, Math.ceil(testOrders.length / pageSize));
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return testOrders.slice(start, start + pageSize);
+  }, [testOrders, currentPage, pageSize]);
+
+  const totalReportsPages = Math.max(1, Math.ceil(reports.length / pageSize));
+  const paginatedReports = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return reports.slice(start, start + pageSize);
+  }, [reports, currentPage, pageSize]);
 
   // Modals State
   const [orderModalVisible, setOrderModalVisible] = useState(false);
@@ -140,7 +161,7 @@ export const LabManagementScreen: React.FC<Props> = ({ onOpenDrawer }) => {
             </View>
 
             <View style={styles.list}>
-              {testOrders.map((t) => (
+              {paginatedOrders.map((t) => (
                 <View key={t.id} style={styles.card}>
                   <View style={styles.cardHeader}>
                     <View>
@@ -173,12 +194,25 @@ export const LabManagementScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                 </View>
               ))}
             </View>
+
+            {/* Pagination Component for Orders */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalOrdersPages}
+              totalItems={testOrders.length}
+              pageSize={pageSize}
+              onPageChange={(page) => setCurrentPage(page)}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+            />
           </>
         ) : (
           <>
             <Text style={styles.pageTitle}>Uploaded Diagnostic Reports</Text>
             <View style={styles.list}>
-              {reports.map((r) => (
+              {paginatedReports.map((r) => (
                 <View key={r.id} style={styles.card}>
                   <Text style={styles.orderId}>REPORT #{r.id}</Text>
                   <Text style={styles.testName}>{r.test_name}</Text>
@@ -196,6 +230,19 @@ export const LabManagementScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                 </View>
               ))}
             </View>
+
+            {/* Pagination Component for Reports */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalReportsPages}
+              totalItems={reports.length}
+              pageSize={pageSize}
+              onPageChange={(page) => setCurrentPage(page)}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+            />
           </>
         )}
       </ScrollView>

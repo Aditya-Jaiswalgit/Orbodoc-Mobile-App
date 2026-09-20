@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Alert,
   Modal,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { Pagination } from '../../components/common/Pagination';
 import { NotificationItem } from '../../types/clinicTypes';
 
 interface Props {
@@ -22,6 +23,16 @@ export const NotificationsCenterScreen: React.FC<Props> = ({ onOpenDrawer }) => 
     { id: 2, user_id: 1, title: 'Low Stock Alert', message: 'Paracetamol 650mg is below reorder threshold (15 left).', type: 'system', is_read: false, created_at: '1 hour ago' },
     { id: 3, user_id: 1, title: 'Lab Report Verified', message: 'Thyroid panel report for Pooja Gupta is ready.', type: 'lab', is_read: true, created_at: '2 hours ago' },
   ]);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const totalPages = Math.max(1, Math.ceil(notifications.length / pageSize));
+  const paginatedNotifications = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return notifications.slice(start, start + pageSize);
+  }, [notifications, currentPage, pageSize]);
 
   const [broadcastModalVisible, setBroadcastModalVisible] = useState(false);
   const [broadcastTitle, setBroadcastTitle] = useState('');
@@ -79,7 +90,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({ onOpenDrawer }) => 
 
         {/* Notifications List */}
         <View style={styles.list}>
-          {notifications.map((n) => (
+          {paginatedNotifications.map((n) => (
             <TouchableOpacity
               key={n.id}
               style={[styles.card, !n.is_read && styles.unreadCard]}
@@ -96,6 +107,19 @@ export const NotificationsCenterScreen: React.FC<Props> = ({ onOpenDrawer }) => 
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Pagination Component */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={notifications.length}
+          pageSize={pageSize}
+          onPageChange={(page) => setCurrentPage(page)}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </ScrollView>
 
       {/* Broadcast Modal */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   Platform,
@@ -56,6 +56,9 @@ import PrescriptionsScreen from '../screens/staff/PrescriptionsScreen';
 import StaffManagementScreen from '../screens/staff/StaffManagementScreen';
 import RolePermissionsScreen from '../screens/staff/RolePermissionsScreen';
 import TreatmentBillingScreen from '../screens/staff/TreatmentBillingScreen';
+import MyProfileScreen from '../screens/staff/MyProfileScreen';
+import ChangePasswordScreen from '../screens/staff/ChangePasswordScreen';
+import { subscribeStaffNavigation } from '../utils/navigationEvents';
 
 export type StaffTabType =
   | 'dashboard'
@@ -71,7 +74,9 @@ export type StaffTabType =
   | 'treatment_billing'
   | 'lab_management'
   | 'audit_logs'
-  | 'notifications';
+  | 'notifications'
+  | 'profile'
+  | 'change_password';
 
 interface MenuItemChild {
   id: StaffTabType;
@@ -107,6 +112,16 @@ export const StaffMainContainer = () => {
   const [clinicModalOpen, setClinicModalOpen] = useState(false);
   const [isSwitchingClinic, setIsSwitchingClinic] = useState(false);
   const [userRoleMgmtOpen, setUserRoleMgmtOpen] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = subscribeStaffNavigation((screen) => {
+      let clean = screen.trim();
+      if (clean.startsWith('/')) clean = clean.slice(1);
+      if (clean === 'change-password') clean = 'change_password';
+      setActiveTab(clean as StaffTabType);
+    });
+    return unsubscribe;
+  }, []);
 
   const staffName = user?.fullName || user?.full_name || 'Staff User';
   const initial = staffName.charAt(0).toUpperCase();
@@ -235,6 +250,15 @@ export const StaffMainContainer = () => {
   const menuItems = getMenuItemsForRole(staffRole);
 
   const renderActiveScreen = () => {
+    const currentTab = String(activeTab).replace('/', '').replace('-', '_');
+
+    if (currentTab === 'profile') {
+      return <MyProfileScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+    }
+    if (currentTab === 'change_password') {
+      return <ChangePasswordScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+    }
+
     switch (activeTab) {
       case 'dashboard':
         switch (staffRole) {
@@ -266,7 +290,7 @@ export const StaffMainContainer = () => {
       case 'patients':
         return <PatientsManagementScreen onOpenDrawer={openDrawer} />;
       case 'appointments':
-        return <AppointmentsManagerScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+        return <AppointmentsManagerScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr: string) => setActiveTab(scr as any)} />;
       case 'book_appointment':
         return <BookAppointmentScreen onOpenDrawer={openDrawer} />;
       case 'prescriptions':
@@ -283,8 +307,12 @@ export const StaffMainContainer = () => {
         return <AuditLogsScreen onOpenDrawer={openDrawer} />;
       case 'notifications':
         return <NotificationsCenterScreen onOpenDrawer={openDrawer} />;
+      case 'profile':
+        return <MyProfileScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr: string) => setActiveTab(scr as any)} />;
+      case 'change_password':
+        return <ChangePasswordScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr: string) => setActiveTab(scr as any)} />;
       default:
-        return <ClinicAdminDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+        return <ClinicAdminDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr: string) => setActiveTab(scr as any)} />;
     }
   };
 

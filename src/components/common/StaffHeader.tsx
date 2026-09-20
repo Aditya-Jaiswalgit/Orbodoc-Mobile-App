@@ -31,6 +31,7 @@ import {
   X,
 } from 'lucide-react-native';
 import { useAuthContext } from '../../context/AuthContext';
+import { navigateStaffScreen } from '../../utils/navigationEvents';
 
 interface StaffHeaderProps {
   onOpenDrawer: () => void;
@@ -213,10 +214,17 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
       {/* ── 2. FLOATING PROFILE SETTINGS DROPDOWN MENU ── */}
       {profileMenuOpen && (
         <View style={styles.profileMenuCard}>
-          <View style={styles.profileMenuHeader}>
+          <TouchableOpacity
+            style={styles.profileMenuHeader}
+            onPress={() => {
+              setProfileMenuOpen(false);
+              navigateStaffScreen('profile');
+              onNavigate('profile');
+            }}
+            activeOpacity={0.7}>
             <Text style={styles.profileMenuName}>{staffName}</Text>
             <Text style={styles.profileMenuSub}>Profile settings</Text>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.menuDivider} />
 
@@ -246,7 +254,8 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             style={styles.profileMenuItemRowBtn}
             onPress={() => {
               setProfileMenuOpen(false);
-              onNavigate('/profile');
+              navigateStaffScreen('profile');
+              onNavigate('profile');
             }}
             activeOpacity={0.7}>
             <User size={18} color="#0D9488" />
@@ -260,7 +269,8 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             style={styles.profileMenuItemRowBtn}
             onPress={() => {
               setProfileMenuOpen(false);
-              onNavigate('/change-password');
+              navigateStaffScreen('change_password');
+              onNavigate('change_password');
             }}
             activeOpacity={0.7}>
             <Key size={18} color="#D97706" />
@@ -351,7 +361,10 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
 
             {/* Notifications List Body */}
             <ScrollView
-              showsVerticalScrollIndicator={false}
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
+              scrollEventThrottle={16}
+              decelerationRate="normal"
               style={{ maxHeight: 360, marginTop: 12 }}>
               {notifications.length === 0 ? (
                 <View style={styles.emptyNotifBox}>

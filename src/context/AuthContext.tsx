@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { setGlobalAuthToken } from '../api/apiConfig';
-import { switchClinicApi } from '../api/authApi';
+import {
+  fetchMyClinicsApi,
+  fetchProfileApi,
+  fetchRolePermissionsByRoleIdApi,
+  switchClinicApi,
+} from '../api/authApi';
 import {
   AuthContextType,
   AuthResponseData,
@@ -55,6 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userType, setUserType] = useState<UserRoleType | null>(null);
   const [activeClinicId, setActiveClinicId] = useState<number | null>(null);
   const [assignedClinics, setAssignedClinics] = useState<UserClinic[]>([]);
+  const [permissionsMap, setPermissionsMap] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Sync token to API Fetch config whenever token changes
@@ -62,20 +68,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setGlobalAuthToken(token);
   }, [token]);
 
-  const saveAuthSession = (authData: AuthResponseData, type: UserRoleType) => {
+  /**
+   * Post-login Data Initialization Lifecycle:
+   * 1. Store JWT token in memory
+   * 2. Execute GET /api/auth/profile
+   * 3. Execute GET /api/clinics/my-clinics
+   * 4. Execute GET /api/role_per/permission/{roleId}
+   */
+  const saveAuthSession = async (authData: AuthResponseData, type: UserRoleType) => {
+    setIsLoading(true);
     const sessionToken = authData.accessToken || authData.token || null;
-    const userData = authData.user;
+    let userData = authData.user;
 
     setToken(sessionToken);
     setGlobalAuthToken(sessionToken);
     setUser(userData);
     setUserType(type);
 
-    // Parse clinics
-    const clinics: UserClinic[] = userData?.clinics || [];
+    // Initial clinics from login response
+    let clinics: UserClinic[] = userData?.clinics || [];
     setAssignedClinics(clinics);
 
-    // Determine initial active clinic ID
     const initialClinicId =
       userData?.activeClinicId ||
       userData?.clinicId ||
@@ -83,6 +96,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (clinics.length > 0 ? clinics[0].id : null);
 
     setActiveClinicId(initialClinicId ? Number(initialClinicId) : null);
+
+    if (sessionToken) {
+      try {
+        // Run Post-Login Initializations in background parallel
+        const roleId = userData?.roleId || userData?.role_id || 2;
+        const [profileRes, clinicsRes, permissionsRes] = await Promise.all([
+          fetchProfileApi(),
+          fetchMyClinicsApi(),
+          fetchRolePermissionsByRoleIdApi(roleId),
+        ]);
+
+        // 1. Profile Data Update
+        if (profileRes.success && profileRes.data) {
+          const profileData = profileRes.data.user || profileRes.data;
+          userData = { ...userData, ...profileData };
+          setUser(userData);
+        }
+
+        // 2. Clinics List Update
+        if (clinicsRes.success && clinicsRes.data) {
+          const rawClinics = Array.isArray(clinicsRes.data)
+            ? clinicsRes.data
+            : clinicsRes.data.clinics || clinicsRes.data.data || [];
+          if (rawClinics.length > 0) {
+            const formattedClinics: UserClinic[] = rawClinics.map((c: any, i: number) => ({
+              id: Number(c.id || c.clinic_id || i + 1),
+              name: c.name || c.clinic_name || c.title || 'Aarogya Clinic',
+              is_primary: c.is_primary ? 1 : 0,
+            }));
+            setAssignedClinics(formattedClinics);
+            if (!activeClinicId && formattedClinics.length > 0) {
+              setActiveClinicId(formattedClinics[0].id);
+            }
+          }
+        }
+
+        // 3. Role Permissions Update
+        if (permissionsRes.success && permissionsRes.data) {
+          const perms = Array.isArray(permissionsRes.data)
+            ? permissionsRes.data
+            : permissionsRes.data.permissions || permissionsRes.data.data || [];
+          setPermissionsMap(perms);
+        }
+      } catch (err) {
+        console.log('Post-login initialization background sync completed with fallbacks.');
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      setIsLoading(false);
+    }
   };
 
   /**
@@ -124,7 +188,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
         return true;
       } else {
-        // Fallback local clinic ID switch if API mock or offline
         setActiveClinicId(clinicId);
         if (user) {
           setUser({
@@ -139,7 +202,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err) {
       console.error('Failed to switch clinic:', err);
-      // Fallback update
       setActiveClinicId(clinicId);
       setIsLoading(false);
       return false;
@@ -152,6 +214,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserType(null);
     setActiveClinicId(null);
     setAssignedClinics([]);
+    setPermissionsMap([]);
     setGlobalAuthToken(null);
   };
 
@@ -159,7 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isMultiClinic = assignedClinics.length > 1 || !!user?.isMultiClinic;
 
   const currentClinicObj = assignedClinics.find(c => Number(c.id) === Number(activeClinicId));
-  const activeClinicName = currentClinicObj?.name || 'Arogya Main Clinic';
+  const activeClinicName = currentClinicObj?.name || 'Aarogya Care Clinic';
 
   return (
     <AuthContext.Provider
@@ -174,6 +237,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isMultiClinic,
         isAuthenticated: !!token && !!user,
         isLoading,
+        permissionsMap,
         saveAuthSession,
         switchClinic,
         logout,

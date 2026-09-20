@@ -65,7 +65,8 @@ export interface AuthContextType {
   isMultiClinic: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
-  saveAuthSession: (data: AuthResponseData, userType: UserRoleType) => void;
+  permissionsMap?: any[];
+  saveAuthSession: (data: AuthResponseData, userType: UserRoleType) => Promise<void>;
   switchClinic: (clinicId: number) => Promise<boolean>;
   logout: () => void;
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Alert,
   Modal,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { Pagination } from '../../components/common/Pagination';
 import { MedicineBill, MedicineBillItem } from '../../types/clinicTypes';
 
 interface Props {
@@ -53,6 +54,16 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
       ],
     },
   ]);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const totalPages = Math.max(1, Math.ceil(bills.length / pageSize));
+  const paginatedBills = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return bills.slice(start, start + pageSize);
+  }, [bills, currentPage, pageSize]);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [patientName, setPatientName] = useState('');
@@ -114,7 +125,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
         </View>
 
         <View style={styles.billList}>
-          {bills.map((bill) => (
+          {paginatedBills.map((bill) => (
             <View key={bill.id} style={styles.card}>
               <View style={styles.cardHeader}>
                 <View>
@@ -130,7 +141,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                 {bill.items.map((it, idx) => (
                   <View key={idx} style={styles.itemRow}>
                     <Text style={styles.itemTitle}>{it.medicine_name} x {it.quantity}</Text>
-                    <Text style={styles.itemPrice}>₹{(it.quantity * it.unit_price).toFixed(2)}</Text>
+                    <Text style={styles.itemPrice}>₹{it.total_price.toFixed(2)}</Text>
                   </View>
                 ))}
               </View>
@@ -148,6 +159,19 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
             </View>
           ))}
         </View>
+
+        {/* Pagination Component */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={bills.length}
+          pageSize={pageSize}
+          onPageChange={(page) => setCurrentPage(page)}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </ScrollView>
 
       {/* Create Bill Modal */}

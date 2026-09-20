@@ -2,26 +2,52 @@ import { apiFetch } from './apiConfig';
 import { ApiResponse } from '../types/auth';
 import { ClinicDashboardStats, SuperAdminStats } from '../types/clinicTypes';
 
-export async function getDashboardKpiApi(token: string): Promise<ApiResponse<ClinicDashboardStats>> {
-  return apiFetch<ClinicDashboardStats>('/dashboard', {
+/**
+ * 1. Overview Metrics KPI
+ * Route: GET /api/dashboard?clinic_id={clinicId}
+ */
+export async function getDashboardKpiApi(
+  clinicId?: number | string
+): Promise<ApiResponse<ClinicDashboardStats>> {
+  const query = clinicId ? `?clinic_id=${encodeURIComponent(String(clinicId))}` : '';
+  return apiFetch<ClinicDashboardStats>(`/dashboard${query}`, {
     method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
   });
 }
 
-export async function getRevenueSummaryApi(
-  token: string,
-  period: 'day' | 'week' | 'month' | 'year' = 'month'
+/**
+ * 2. Daily Appointment Status Bar Chart Data
+ * Route: GET /api/dashboard/appointments/chart?clinic_id={clinicId}
+ */
+export async function getAppointmentChartApi(
+  clinicId?: number | string
 ): Promise<ApiResponse<any>> {
-  return apiFetch<any>(`/dashboard/revenue?period=${period}`, {
+  const query = clinicId ? `?clinic_id=${encodeURIComponent(String(clinicId))}` : '';
+  return apiFetch<any>(`/dashboard/appointments/chart${query}`, {
     method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
   });
 }
 
-export async function getSuperAdminDashboardApi(token: string): Promise<ApiResponse<SuperAdminStats>> {
+/**
+ * 3. Revenue Mix Chart Data (Treatment vs Medicine Revenue)
+ * Route: GET /api/dashboard/revenue?clinic_id={clinicId}&months=1
+ */
+export async function getRevenueChartApi(
+  clinicId?: number | string,
+  months: number = 1
+): Promise<ApiResponse<any>> {
+  const cParam = clinicId ? `clinic_id=${encodeURIComponent(String(clinicId))}&` : '';
+  return apiFetch<any>(`/dashboard/revenue?${cParam}months=${months}`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * 4. Super Admin System-Wide Global Dashboard
+ * Route: GET /api/dashboard/super-admin
+ */
+export async function getSuperAdminDashboardApi(): Promise<ApiResponse<SuperAdminStats>> {
   return apiFetch<SuperAdminStats>('/dashboard/super-admin', {
     method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
   });
 }

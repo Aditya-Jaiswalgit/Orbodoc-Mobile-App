@@ -2,34 +2,59 @@ import { apiFetch } from './apiConfig';
 import { ApiResponse } from '../types/auth';
 import { NotificationItem } from '../types/clinicTypes';
 
-export async function getNotificationsApi(token: string): Promise<ApiResponse<NotificationItem[]>> {
-  return apiFetch<NotificationItem[]>('/notifications', {
+/**
+ * 1. Unread Notification Count
+ * Route: GET /api/notifications/unread-count
+ */
+export async function getUnreadCountApi(): Promise<ApiResponse<{ unreadCount: number }>> {
+  return apiFetch<{ unreadCount: number }>('/notifications/unread-count', {
     method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
   });
 }
 
-export async function markNotificationReadApi(token: string, id: number): Promise<ApiResponse<any>> {
-  return apiFetch<any>(`/notifications/${id}/read`, {
+/**
+ * 2. Inbox Notifications List
+ * Route: GET /api/notifications?is_read=0
+ */
+export async function getInboxNotificationsApi(
+  isRead: number = 0
+): Promise<ApiResponse<NotificationItem[]>> {
+  return apiFetch<NotificationItem[]>(`/notifications?is_read=${isRead}`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * 3. Mark Notification as Read
+ * Route: PATCH /api/notifications/{notificationId}/read
+ */
+export async function markNotificationReadApi(
+  id: number | string
+): Promise<ApiResponse<any>> {
+  return apiFetch<any>(`/notifications/${encodeURIComponent(String(id))}/read`, {
     method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}` },
   });
 }
 
-export async function markAllNotificationsReadApi(token: string): Promise<ApiResponse<any>> {
+/**
+ * 4. Mark All Notifications as Read
+ * Route: PATCH /api/notifications/mark-all-read
+ */
+export async function markAllNotificationsReadApi(): Promise<ApiResponse<any>> {
   return apiFetch<any>('/notifications/mark-all-read', {
     method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}` },
   });
 }
 
+/**
+ * 5. Broadcast Notification
+ * Route: POST /api/notifications/broadcast
+ */
 export async function broadcastNotificationApi(
-  token: string,
   payload: { title: string; message: string; target_role?: string }
 ): Promise<ApiResponse<any>> {
   return apiFetch<any>('/notifications/broadcast', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload),
   });
 }

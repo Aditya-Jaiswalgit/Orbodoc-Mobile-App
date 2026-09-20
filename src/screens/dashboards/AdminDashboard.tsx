@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -21,6 +21,12 @@ import {
 import Svg, { Circle, G } from 'react-native-svg';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { useAuthContext } from '../../context/AuthContext';
+import {
+  getAppointmentChartApi,
+  getDashboardKpiApi,
+  getRevenueChartApi,
+  getSuperAdminDashboardApi,
+} from '../../api/dashboardApi';
 
 interface AdminDashboardProps {
   onNavigate?: (path: string) => void;
@@ -37,21 +43,23 @@ interface BarItemData {
   color: string;
 }
 
-// Clinic Data Map for Dynamic Switching
-const CLINIC_KPI_DATA: Record<number, {
-  appointmentsThisMonth: number;
-  completedThisMonth: number;
-  cancelledThisMonth: number;
-  revenueThisMonth: number;
-  activePatients: number;
-  lowStockMedicines: number;
-  pendingLabTests: number;
-  walletBalance: number;
-  treatmentRevenue: number;
-  medicineRevenue: number;
-  barData: BarItemData[];
-}> = {
-  1: {
+const DEFAULT_BAR_DATA: BarItemData[] = [
+  { date: '11 Sept', approved: 1, completed: 0, cancelled: 0, height: 40, color: '#0EA5E9' },
+  { date: '15 Sept', approved: 0, completed: 1, cancelled: 0, height: 40, color: '#10B981' },
+  { date: '18 Sept', approved: 0, completed: 1, cancelled: 0, height: 40, color: '#10B981' },
+  { date: '24 Sept', approved: 0, completed: 0, cancelled: 1, height: 40, color: '#F43F5E' },
+];
+
+export function AdminDashboard({
+  onNavigate = () => {},
+  onOpenDrawer = () => {},
+  onOpenNotifications = () => {},
+}: AdminDashboardProps) {
+  const { user, role, activeClinicId } = useAuthContext();
+  const { width: screenWidth } = useWindowDimensions();
+  const [loading, setLoading] = useState(true);
+
+  const [kpiData, setKpiData] = useState({
     appointmentsThisMonth: 4,
     completedThisMonth: 2,
     cancelledThisMonth: 1,
@@ -62,69 +70,109 @@ const CLINIC_KPI_DATA: Record<number, {
     walletBalance: 600.06,
     treatmentRevenue: 200.02,
     medicineRevenue: 266.99,
-    barData: [
-      { date: '11 Sept', approved: 1, completed: 0, cancelled: 0, height: 40, color: '#0EA5E9' },
-      { date: '15 Sept', approved: 0, completed: 1, cancelled: 0, height: 40, color: '#10B981' },
-      { date: '18 Sept', approved: 0, completed: 1, cancelled: 0, height: 40, color: '#10B981' },
-      { date: '24 Sept', approved: 0, completed: 0, cancelled: 1, height: 40, color: '#F43F5E' },
-    ],
-  },
-  2: {
-    appointmentsThisMonth: 42,
-    completedThisMonth: 35,
-    cancelledThisMonth: 3,
-    revenueThisMonth: 58200.50,
-    activePatients: 128,
-    lowStockMedicines: 5,
-    pendingLabTests: 8,
-    walletBalance: 15400.00,
-    treatmentRevenue: 34000.00,
-    medicineRevenue: 24200.50,
-    barData: [
-      { date: '11 Sept', approved: 4, completed: 2, cancelled: 0, height: 60, color: '#0EA5E9' },
-      { date: '15 Sept', approved: 2, completed: 8, cancelled: 1, height: 50, color: '#10B981' },
-      { date: '18 Sept', approved: 5, completed: 10, cancelled: 0, height: 70, color: '#10B981' },
-      { date: '24 Sept', approved: 1, completed: 3, cancelled: 2, height: 35, color: '#F43F5E' },
-    ],
-  },
-  3: {
-    appointmentsThisMonth: 88,
-    completedThisMonth: 72,
-    cancelledThisMonth: 8,
-    revenueThisMonth: 112450.00,
-    activePatients: 210,
-    lowStockMedicines: 12,
-    pendingLabTests: 14,
-    walletBalance: 32100.00,
-    treatmentRevenue: 68000.00,
-    medicineRevenue: 44450.00,
-    barData: [
-      { date: '11 Sept', approved: 8, completed: 12, cancelled: 1, height: 75, color: '#10B981' },
-      { date: '15 Sept', approved: 10, completed: 15, cancelled: 2, height: 65, color: '#0EA5E9' },
-      { date: '18 Sept', approved: 14, completed: 20, cancelled: 1, height: 80, color: '#10B981' },
-      { date: '24 Sept', approved: 3, completed: 6, cancelled: 4, height: 45, color: '#F43F5E' },
-    ],
-  },
-};
+  });
 
-export function AdminDashboard({
-  onNavigate = () => {},
-  onOpenDrawer = () => {},
-  onOpenNotifications = () => {},
-}: AdminDashboardProps) {
-  const { user, activeClinicId } = useAuthContext();
-  const { width: screenWidth } = useWindowDimensions();
-  const [loading] = useState(false);
+  const [barData, setBarData] = useState<BarItemData[]>(DEFAULT_BAR_DATA);
 
-  // Interactive Tooltip States (Hidden by default, shown ONLY on touch/hover)
+  // Interactive Tooltip States
   const [activeBarIdx, setActiveBarIdx] = useState<number | null>(null);
   const [activeDonutSegment, setActiveDonutSegment] = useState<'treatment' | 'medicine' | null>(null);
 
   const currentClinicId = Number(activeClinicId || 1);
   const staffName = user?.fullName || (user as any)?.full_name || 'Dr. Rahul Sharma';
 
-  // Active KPI data for current clinic
-  const currentKpi = CLINIC_KPI_DATA[currentClinicId] || CLINIC_KPI_DATA[1];
+  useEffect(() => {
+    let isMounted = true;
+    async function loadDashboard() {
+      try {
+        setLoading(true);
+        if (role === 'super_admin') {
+          const superRes = await getSuperAdminDashboardApi();
+          if (isMounted && superRes.success && superRes.data) {
+            const stats = (superRes.data as any).stats || superRes.data;
+            setKpiData((prev) => ({
+              ...prev,
+              appointmentsThisMonth: stats.active_staff || prev.appointmentsThisMonth,
+              activePatients: stats.active_patients || prev.activePatients,
+              revenueThisMonth: (stats.treatment_revenue || 0) + (stats.medicine_revenue || 0) || prev.revenueThisMonth,
+              treatmentRevenue: stats.treatment_revenue || prev.treatmentRevenue,
+              medicineRevenue: stats.medicine_revenue || prev.medicineRevenue,
+            }));
+          }
+        }
+
+        const [kpiRes, chartRes, revRes] = await Promise.all([
+          getDashboardKpiApi(currentClinicId),
+          getAppointmentChartApi(currentClinicId),
+          getRevenueChartApi(currentClinicId, 1),
+        ]);
+
+        if (isMounted) {
+          if (kpiRes.success && kpiRes.data) {
+            const stats = (kpiRes.data as any).stats || kpiRes.data;
+            setKpiData((prev) => ({
+              ...prev,
+              appointmentsThisMonth: stats.appointments_today ?? stats.appointmentsThisMonth ?? prev.appointmentsThisMonth,
+              completedThisMonth: stats.completed_today ?? stats.completedThisMonth ?? prev.completedThisMonth,
+              cancelledThisMonth: stats.cancelled_today ?? stats.cancelledThisMonth ?? prev.cancelledThisMonth,
+              revenueThisMonth: (stats.treatment_revenue_today || 0) + (stats.medicine_revenue_today || 0) || stats.revenueThisMonth || prev.revenueThisMonth,
+              activePatients: stats.total_active_patients ?? stats.activePatients ?? prev.activePatients,
+              lowStockMedicines: stats.low_stock_medicines ?? stats.lowStockMedicines ?? prev.lowStockMedicines,
+              pendingLabTests: stats.pending_lab_tests ?? stats.pendingLabTests ?? prev.pendingLabTests,
+              treatmentRevenue: stats.treatment_revenue_today ?? prev.treatmentRevenue,
+              medicineRevenue: stats.medicine_revenue_today ?? prev.medicineRevenue,
+            }));
+          }
+
+          if (chartRes.success && chartRes.data) {
+            const rawChart = chartRes.data.appointmentStats || (Array.isArray(chartRes.data) ? chartRes.data : []);
+            if (rawChart.length > 0) {
+              const formattedBars: BarItemData[] = rawChart.map((c: any) => ({
+                date: c.appointment_date || c.date || 'Today',
+                approved: c.status === 'approved' ? c.count : 0,
+                completed: c.status === 'completed' ? c.count : 0,
+                cancelled: c.status === 'cancelled' ? c.count : 0,
+                height: Math.min(80, Math.max(20, (c.count || 1) * 10)),
+                color: c.status === 'completed' ? '#10B981' : c.status === 'cancelled' ? '#F43F5E' : '#0EA5E9',
+              }));
+              setBarData(formattedBars);
+            }
+          }
+
+          if (revRes.success && revRes.data) {
+            const revList = revRes.data.revenue || (Array.isArray(revRes.data) ? revRes.data : []);
+            if (revList.length > 0) {
+              let treat = 0;
+              let med = 0;
+              revList.forEach((r: any) => {
+                if (r.type === 'treatment') treat += Number(r.revenue || r.collected || 0);
+                if (r.type === 'medicine') med += Number(r.revenue || r.collected || 0);
+              });
+              if (treat > 0 || med > 0) {
+                setKpiData((prev) => ({
+                  ...prev,
+                  treatmentRevenue: treat,
+                  medicineRevenue: med,
+                  revenueThisMonth: treat + med,
+                }));
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.log('Dashboard API loaded with fallback data.');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    loadDashboard();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentClinicId, role]);
+
+  const currentKpi = kpiData;
 
   const formatCurrency = (val: number) => `₹${val.toFixed(2)}`;
 
@@ -139,8 +187,8 @@ export function AdminDashboard({
 
   // Responsive Left Calculation for Bar Tooltip
   const chartWidth = Math.max(260, screenWidth - 72);
-  const totalBars = currentKpi.barData.length;
-  const barSpacing = chartWidth / totalBars;
+  const totalBars = barData.length;
+  const barSpacing = chartWidth / Math.max(1, totalBars);
   const tooltipLeftPos = activeBarIdx !== null
     ? Math.min(
         Math.max(10, activeBarIdx * barSpacing + barSpacing / 2 - 68),
@@ -150,7 +198,7 @@ export function AdminDashboard({
 
   // Calculate SVG Donut parameters
   const totalRev = currentKpi.treatmentRevenue + currentKpi.medicineRevenue;
-  const treatRatio = currentKpi.treatmentRevenue / totalRev;
+  const treatRatio = totalRev > 0 ? currentKpi.treatmentRevenue / totalRev : 0.5;
   const size = 180;
   const strokeWidth = 26;
   const center = size / 2;
@@ -321,26 +369,26 @@ export function AdminDashboard({
             ))}
 
             {/* Interactive Floating Tooltip Card */}
-            {activeBarIdx !== null && currentKpi.barData[activeBarIdx] && (
+            {activeBarIdx !== null && barData[activeBarIdx] && (
               <View style={[styles.barTooltipCard, { left: tooltipLeftPos }]}>
-                <Text style={styles.tooltipHeaderDate}>{currentKpi.barData[activeBarIdx].date}</Text>
+                <Text style={styles.tooltipHeaderDate}>{barData[activeBarIdx].date}</Text>
 
                 <View style={styles.tooltipRow}>
                   <View style={[styles.tooltipSquareDot, { backgroundColor: '#0EA5E9' }]} />
                   <Text style={styles.tooltipLabel}>Approved</Text>
-                  <Text style={styles.tooltipVal}>{currentKpi.barData[activeBarIdx].approved}</Text>
+                  <Text style={styles.tooltipVal}>{barData[activeBarIdx].approved}</Text>
                 </View>
 
                 <View style={styles.tooltipRow}>
                   <View style={[styles.tooltipSquareDot, { backgroundColor: '#10B981' }]} />
                   <Text style={styles.tooltipLabel}>Completed</Text>
-                  <Text style={styles.tooltipVal}>{currentKpi.barData[activeBarIdx].completed}</Text>
+                  <Text style={styles.tooltipVal}>{barData[activeBarIdx].completed}</Text>
                 </View>
 
                 <View style={styles.tooltipRow}>
                   <View style={[styles.tooltipSquareDot, { backgroundColor: '#F43F5E' }]} />
                   <Text style={styles.tooltipLabel}>Cancelled</Text>
-                  <Text style={styles.tooltipVal}>{currentKpi.barData[activeBarIdx].cancelled}</Text>
+                  <Text style={styles.tooltipVal}>{barData[activeBarIdx].cancelled}</Text>
                 </View>
 
                 {/* Downward Pointer Arrow */}
@@ -349,7 +397,7 @@ export function AdminDashboard({
             )}
 
             <View style={styles.barsRow}>
-              {currentKpi.barData.map((bar, idx) => {
+              {barData.map((bar, idx) => {
                 const isSelected = activeBarIdx === idx;
                 return (
                   <TouchableOpacity

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Alert,
   Modal,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { Pagination } from '../../components/common/Pagination';
 import { Prescription, PrescriptionItem } from '../../types/clinicTypes';
 
 interface Props {
@@ -60,6 +61,16 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const totalPages = Math.max(1, Math.ceil(prescriptions.length / pageSize));
+  const paginatedPrescriptions = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return prescriptions.slice(start, start + pageSize);
+  }, [prescriptions, currentPage, pageSize]);
 
   // Form state
   const [patientName, setPatientName] = useState('');
@@ -142,7 +153,7 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer }) => {
 
         {/* List of Prescriptions */}
         <View style={styles.rxList}>
-          {prescriptions.map((rx) => (
+          {paginatedPrescriptions.map((rx) => (
             <View key={rx.id} style={styles.rxCard}>
               <View style={styles.cardHeader}>
                 <View>
@@ -183,6 +194,19 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer }) => {
             </View>
           ))}
         </View>
+
+        {/* Pagination Component */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={prescriptions.length}
+          pageSize={pageSize}
+          onPageChange={(page) => setCurrentPage(page)}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+        />
       </ScrollView>
 
       {/* Write Prescription Modal */}
