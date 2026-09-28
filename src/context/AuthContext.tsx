@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { setGlobalAuthToken } from '../api/apiConfig';
 import {
   fetchMyClinicsApi,
@@ -63,6 +63,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [permissionsMap, setPermissionsMap] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  const sessionRevision = useRef(0);
+  const switching = useRef(false);
+
   // Sync token to API Fetch config whenever token changes
   useEffect(() => {
     setGlobalAuthToken(token);
@@ -76,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * 4. Execute GET /api/role_per/permission/{roleId}
    */
   const saveAuthSession = async (authData: AuthResponseData, type: UserRoleType) => {
+    const revision = ++sessionRevision.current;
     setIsLoading(true);
     const sessionToken = authData.accessToken || authData.token || null;
     let userData = authData.user;
@@ -107,6 +111,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           fetchRolePermissionsByRoleIdApi(roleId),
         ]);
 
+        if (revision !== sessionRevision.current) return;
+
         // 1. Profile Data Update
         if (profileRes.success && profileRes.data) {
           const profileData = profileRes.data.user || profileRes.data;
@@ -120,13 +126,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ? clinicsRes.data
             : clinicsRes.data.clinics || clinicsRes.data.data || [];
           if (rawClinics.length > 0) {
-            const formattedClinics: UserClinic[] = rawClinics.map((c: any, i: number) => ({
-              id: Number(c.id || c.clinic_id || i + 1),
-              name: c.name || c.clinic_name || c.title || 'Aarogya Clinic',
+            const formattedClinics: UserClinic[] = rawClinics.map((c: any) => ({
+              id: Number(c.id || c.clinic_id),
+              name: c.name || c.clinic_name || c.title || 'Unnamed clinic',
               is_primary: c.is_primary ? 1 : 0,
-            }));
+            })).filter((clinic: UserClinic) => Number.isFinite(clinic.id) && clinic.id > 0);
             setAssignedClinics(formattedClinics);
-            if (!activeClinicId && formattedClinics.length > 0) {
+            if (!initialClinicId && formattedClinics.length > 0) {
               setActiveClinicId(formattedClinics[0].id);
             }
           }
@@ -139,10 +145,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             : permissionsRes.data.permissions || permissionsRes.data.data || [];
           setPermissionsMap(perms);
         }
-      } catch (err) {
-        console.log('Post-login initialization background sync completed with fallbacks.');
+      } catch {
+        // Keep the authenticated session when an optional profile fetch fails.
       } finally {
-        setIsLoading(false);
+        if (revision === sessionRevision.current) setIsLoading(false);
       }
     } else {
       setIsLoading(false);
@@ -154,61 +160,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * Calls POST /api/auth/switch-clinic and updates session state
    */
   const switchClinic = async (clinicId: number): Promise<boolean> => {
+    if (!token || !user || !Number.isInteger(clinicId) || clinicId <= 0 || switching.current) return false;
+    if (clinicId === activeClinicId) return true;
+    switching.current = true;
+    const revision = sessionRevision.current;
     try {
-      setIsLoading(true);
       const response = await switchClinicApi(clinicId);
-
-      if (response.success) {
-        const newAuthData = response.data;
-        const newToken = newAuthData?.accessToken || newAuthData?.token || token;
-        
-        if (newToken) {
-          setToken(newToken);
-          setGlobalAuthToken(newToken);
-        }
-
-        if (newAuthData?.user) {
-          setUser(prev => ({
-            ...prev,
-            ...newAuthData.user,
-            activeClinicId: clinicId,
-            clinic_id: clinicId,
-            clinicId: clinicId,
-          }));
-        } else if (user) {
-          setUser({
-            ...user,
-            activeClinicId: clinicId,
-            clinic_id: clinicId,
-            clinicId: clinicId,
-          });
-        }
-
-        setActiveClinicId(clinicId);
-        setIsLoading(false);
-        return true;
-      } else {
-        setActiveClinicId(clinicId);
-        if (user) {
-          setUser({
-            ...user,
-            activeClinicId: clinicId,
-            clinic_id: clinicId,
-            clinicId: clinicId,
-          });
-        }
-        setIsLoading(false);
-        return true;
-      }
-    } catch (err) {
-      console.error('Failed to switch clinic:', err);
+      if (!response.success || revision !== sessionRevision.current) return false;
+      const newAuthData = response.data;
+      const newToken = newAuthData?.accessToken || newAuthData?.token || token;
+      setGlobalAuthToken(newToken);
+      setToken(newToken);
+      setUser(previous => previous ? ({
+        ...previous, ...newAuthData?.user,
+        activeClinicId: clinicId, clinic_id: clinicId, clinicId,
+      }) : null);
       setActiveClinicId(clinicId);
-      setIsLoading(false);
+      return true;
+    } catch {
       return false;
+    } finally {
+      switching.current = false;
     }
   };
 
   const logout = () => {
+    sessionRevision.current += 1;
+    setIsLoading(false);
     setUser(null);
     setToken(null);
     setUserType(null);
@@ -222,7 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isMultiClinic = assignedClinics.length > 1 || !!user?.isMultiClinic;
 
   const currentClinicObj = assignedClinics.find(c => Number(c.id) === Number(activeClinicId));
-  const activeClinicName = currentClinicObj?.name || 'Aarogya Care Clinic';
+  const activeClinicName = currentClinicObj?.name || '';
 
   return (
     <AuthContext.Provider

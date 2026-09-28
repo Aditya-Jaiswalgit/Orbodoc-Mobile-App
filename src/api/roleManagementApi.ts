@@ -36,6 +36,7 @@ export interface CreateRolePermissionPayload {
   can_add: number;
   can_edit: number;
   can_delete: number;
+  can_execute?: number;
   clinic_id?: string | number;
 }
 
@@ -44,6 +45,7 @@ export interface UpdateRolePermissionPayload {
   can_add: number;
   can_edit: number;
   can_delete: number;
+  can_execute?: number;
 }
 
 import { extractArrayData } from './userManagementApi';
@@ -54,24 +56,7 @@ import { extractArrayData } from './userManagementApi';
  */
 export async function fetchSystemObjectsApi(): Promise<ApiResponse<SystemObject[]>> {
   const res = await apiFetch<SystemObject[]>('/system_object/list');
-  if (res.success) {
-    const list = extractArrayData(res);
-    if (list.length > 0) return { ...res, data: list };
-  }
-
-  const fallback1 = await apiFetch<SystemObject[]>('/system_object');
-  if (fallback1.success) {
-    const list = extractArrayData(fallback1);
-    if (list.length > 0) return { ...fallback1, data: list };
-  }
-
-  const fallback2 = await apiFetch<SystemObject[]>('/system-objects');
-  if (fallback2.success) {
-    const list = extractArrayData(fallback2);
-    if (list.length > 0) return { ...fallback2, data: list };
-  }
-
-  return res;
+  return { ...res, data: res.success ? extractArrayData(res) : undefined };
 }
 
 /**
@@ -92,29 +77,10 @@ export async function createSystemObjectApi(payload: {
  * 3. Fetch Roles List (Clinic Scoped or Global)
  * Routes: /user_role/list?clinic_id={clinicId} -> /user_role -> /roles
  */
-export async function fetchUserRolesApi(
-  clinicId?: string | number | null
-): Promise<ApiResponse<UserRoleItem[]>> {
-  const query = clinicId ? `?clinic_id=${clinicId}` : '';
-  const res = await apiFetch<UserRoleItem[]>(`/user_role/list${query}`);
-  if (res.success) {
-    const list = extractArrayData(res);
-    if (list.length > 0) return { ...res, data: list };
-  }
-
-  const fallback1 = await apiFetch<UserRoleItem[]>(`/user_role${query}`);
-  if (fallback1.success) {
-    const list = extractArrayData(fallback1);
-    if (list.length > 0) return { ...fallback1, data: list };
-  }
-
-  const fallback2 = await apiFetch<UserRoleItem[]>('/roles');
-  if (fallback2.success) {
-    const list = extractArrayData(fallback2);
-    if (list.length > 0) return { ...fallback2, data: list };
-  }
-
-  return res;
+export async function fetchUserRolesApi(clinicId?: string | number | null): Promise<ApiResponse<UserRoleItem[]>> {
+  const query = clinicId ? '?clinic_id=' + encodeURIComponent(String(clinicId)) : '';
+  const res = await apiFetch<UserRoleItem[]>('/user_role/list' + query);
+  return { ...res, data: res.success ? extractArrayData(res) : undefined };
 }
 
 /**
@@ -149,23 +115,10 @@ export async function updateUserRoleApi(
  * 6. Fetch Permissions Matrix Data
  * Routes: /role_per/list?clinic_id={clinicId} -> /role_per/permission
  */
-export async function fetchRolePermissionsApi(
-  clinicId?: string | number
-): Promise<ApiResponse<RolePermissionItem[]>> {
-  const query = clinicId ? `?clinic_id=${clinicId}` : '';
-  const res = await apiFetch<RolePermissionItem[]>(`/role_per/list${query}`);
-  if (res.success) {
-    const list = extractArrayData(res);
-    if (list.length > 0) return { ...res, data: list };
-  }
-
-  const fallback1 = await apiFetch<RolePermissionItem[]>(`/role_per/permission${query}`);
-  if (fallback1.success) {
-    const list = extractArrayData(fallback1);
-    if (list.length > 0) return { ...fallback1, data: list };
-  }
-
-  return res;
+export async function fetchRolePermissionsApi(clinicId?: string | number): Promise<ApiResponse<RolePermissionItem[]>> {
+  if (!clinicId) return { success: false, message: 'Select a clinic to manage permissions.' };
+  const res = await apiFetch<RolePermissionItem[]>('/role_per/list?clinic_id=' + encodeURIComponent(String(clinicId)));
+  return { ...res, data: res.success ? extractArrayData(res).map(row => ({ ...row, id: row.permission_id ?? row.id })) : undefined };
 }
 
 /**
@@ -188,12 +141,14 @@ export async function createRolePermissionApi(
   return apiFetch<RolePermissionItem>('/role_per/add', {
     method: 'POST',
     body: JSON.stringify({
+      clinic_id: payload.clinic_id,
       role_id: String(payload.role_id),
       sys_obj_id: String(payload.sys_obj_id),
       can_view: payload.can_view ? 1 : 0,
       can_add: payload.can_add ? 1 : 0,
       can_edit: payload.can_edit ? 1 : 0,
       can_delete: payload.can_delete ? 1 : 0,
+      can_execute: payload.can_execute ? 1 : 0,
     }),
   });
 }
@@ -213,6 +168,7 @@ export async function updateRolePermissionApi(
       can_add: payload.can_add ? 1 : 0,
       can_edit: payload.can_edit ? 1 : 0,
       can_delete: payload.can_delete ? 1 : 0,
+      can_execute: payload.can_execute ? 1 : 0,
     }),
   });
 }

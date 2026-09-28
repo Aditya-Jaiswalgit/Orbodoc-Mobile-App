@@ -1,11 +1,16 @@
 import React from 'react';
 import {
   ScrollView,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useAuthContext } from '../../context/AuthContext';
+import { useRemoteData } from '../../hooks/useRemoteData';
+import { apiFetch } from '../../api/apiConfig';
+import { dashboardNumber, displayAmount } from '../../utils/dashboardValues';
 import { StaffHeader } from '../../components/common/StaffHeader';
 
 interface Props {
@@ -19,6 +24,21 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
   onOpenNotifications,
   onNavigateScreen = () => {},
 }) => {
+  const { user, token } = useAuthContext();
+  const resource = useRemoteData([user?.id, token, 'super-dashboard'].join(':'), async (signal) => {
+    const [overview, clinics] = await Promise.all([
+      apiFetch<{ stats: Record<string, unknown> }>('/dashboard/super-admin', { signal }),
+      apiFetch<{ clinics: any[] }>('/clinics/my-clinics', { signal }),
+    ]);
+    if (!overview.success || !overview.data?.stats || !clinics.success || !Array.isArray(clinics.data?.clinics)) throw new Error('Unable to load dashboard');
+    return { stats: overview.data.stats, clinics: [...clinics.data.clinics].sort((a, b) =>
+      String(b.created_at || '').localeCompare(String(a.created_at || ''))).slice(0, 3) };
+  });
+  const stats = resource.data?.stats;
+  const metric = (name: string) => dashboardNumber(stats?.[name]);
+  const treatment = metric('treatment_revenue');
+  const medicine = metric('medicine_revenue');
+  const revenue = treatment !== null && medicine !== null ? treatment + medicine : null;
   return (
     <View style={styles.container}>
       <StaffHeader
@@ -27,14 +47,14 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
         title="Super Admin Portal"
       />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView refreshControl={<RefreshControl refreshing={resource.loading} onRefresh={resource.refresh} />} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Banner */}
         <View style={styles.heroCard}>
           <View style={styles.heroTextCol}>
             <Text style={styles.heroBadge}>SUPER ADMIN DASHBOARD</Text>
             <Text style={styles.heroTitle}>Multi-Tenant Platform Control</Text>
             <Text style={styles.heroSub}>
-              Global overview of all registered clinics, SaaS subscriptions, and tenant performance.
+              {resource.error ? 'Unable to load dashboard. Pull down to retry.' : 'Global overview of registered clinics and tenant performance.'}
             </Text>
           </View>
         </View>
@@ -45,36 +65,36 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
             style={[styles.kpiCard, { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }]}
             onPress={() => onNavigateScreen('clinics')}>
             <Text style={styles.kpiIcon}>🏥</Text>
-            <Text style={styles.kpiValue}>14</Text>
+            <Text style={styles.kpiValue}>{metric('total_clinics') ?? '\u2014'}</Text>
             <Text style={styles.kpiLabel}>Total Clinics</Text>
-            <Text style={styles.kpiSub}>12 Active • 2 Pending</Text>
+            <Text style={styles.kpiSub}>{metric('active_clinics') ?? '\u2014'} Active</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.kpiCard, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}
             onPress={() => onNavigateScreen('staff')}>
             <Text style={styles.kpiIcon}>👨‍⚕️</Text>
-            <Text style={styles.kpiValue}>148</Text>
-            <Text style={styles.kpiLabel}>Total Staff</Text>
-            <Text style={styles.kpiSub}>42 Doctors across tenants</Text>
+            <Text style={styles.kpiValue}>{metric('active_staff') ?? '\u2014'}</Text>
+            <Text style={styles.kpiLabel}>Active Staff</Text>
+            <Text style={styles.kpiSub}>Across registered clinics</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.kpiCard, { backgroundColor: '#faf5ff', borderColor: '#e9d5ff' }]}
             onPress={() => onNavigateScreen('patients')}>
             <Text style={styles.kpiIcon}>👥</Text>
-            <Text style={styles.kpiValue}>3,420</Text>
-            <Text style={styles.kpiLabel}>Total Patients</Text>
-            <Text style={styles.kpiSub}>+185 this week</Text>
+            <Text style={styles.kpiValue}>{metric('active_patients') ?? '\u2014'}</Text>
+            <Text style={styles.kpiLabel}>Active Patients</Text>
+            <Text style={styles.kpiSub}>Across registered clinics</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.kpiCard, { backgroundColor: '#fff7ed', borderColor: '#fed7aa' }]}
             onPress={() => onNavigateScreen('audit_logs')}>
             <Text style={styles.kpiIcon}>💰</Text>
-            <Text style={styles.kpiValue}>₹12.4L</Text>
+            <Text style={styles.kpiValue}>{displayAmount(revenue)}</Text>
             <Text style={styles.kpiLabel}>Platform Revenue</Text>
-            <Text style={styles.kpiSub}>Monthly recurring SaaS</Text>
+            <Text style={styles.kpiSub}>Total treatment and medicine bills</Text>
           </TouchableOpacity>
         </View>
 
@@ -99,21 +119,17 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
         {/* Recent Registered Clinics */}
         <Text style={styles.sectionTitle}>Recent Tenant Clinics</Text>
         <View style={styles.clinicList}>
-          {[
-            { id: 1, name: 'Arogya Super Specialty Clinic', code: 'CLN-001', city: 'Mumbai', doctors: 12, plan: 'Enterprise', status: 'Active' },
-            { id: 2, name: 'Metro Health Care & Diagnostics', code: 'CLN-002', city: 'Delhi', doctors: 8, plan: 'Pro', status: 'Active' },
-            { id: 3, name: 'Sunrise Dental & Eye Care', code: 'CLN-003', city: 'Bengaluru', doctors: 5, plan: 'Basic', status: 'Active' },
-          ].map((c) => (
+          {(resource.data?.clinics ?? []).map((c) => (
             <View key={c.id} style={styles.clinicRow}>
               <View style={styles.clinicIconBox}>
                 <Text style={styles.clinicIcon}>🏥</Text>
               </View>
               <View style={styles.clinicInfo}>
                 <Text style={styles.clinicName}>{c.name}</Text>
-                <Text style={styles.clinicMeta}>{c.city} • Code: {c.code} • {c.doctors} Doctors</Text>
+                <Text style={styles.clinicMeta}>{c.city || '\u2014'} • Code: {c.code || '\u2014'} • {c.doctors_count ?? '\u2014'} Doctors</Text>
               </View>
               <View style={styles.planBadge}>
-                <Text style={styles.planText}>{c.plan}</Text>
+                <Text style={styles.planText}>{c.plan_name || c.subscription_plan || '\u2014'}</Text>
               </View>
             </View>
           ))}

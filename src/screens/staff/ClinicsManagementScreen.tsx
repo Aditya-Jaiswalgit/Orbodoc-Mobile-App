@@ -1,5 +1,5 @@
 // src/screens/staff/ClinicsManagementScreen.tsx
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Alert,
   Modal,
@@ -37,8 +37,6 @@ import {
   Edit2,
   UserPlus,
   Trash2,
-  Globe,
-  Award,
   Clock,
   Camera,
   ChevronsUpDown,
@@ -48,7 +46,10 @@ import { Pagination } from '../../components/common/Pagination';
 import { CustomCalendarPicker } from '../../components/common/CustomCalendarPicker';
 import { showSuccessToast, showErrorToast } from '../../utils/toast';
 import { useAuthContext } from '../../context/AuthContext';
-import { fetchProfileApi } from '../../api/authApi';
+import { useRemoteData } from '../../hooks/useRemoteData';
+import { fetchUserRolesApi } from '../../api/roleManagementApi';
+import { dashboardNumber, displayAmount } from '../../utils/dashboardValues';
+import { navigateStaffScreen } from '../../utils/navigationEvents';
 import { apiFetch } from '../../api/apiConfig';
 
 interface Props {
@@ -100,11 +101,11 @@ const DEFAULT_CLINIC_FORM: ClinicFormState = {
   email: '',
   phone: '',
   address: '',
-  state: 'Arunachal Pradesh',
-  city: 'Bomdila',
+  state: '',
+  city: '',
   country: 'India',
-  website: 'https://clinic.example.com',
-  license_number: 'L123',
+  website: '',
+  license_number: '',
   available_days: 'Mon,Tue,Wed,Thu,Fri',
   available_from: '12:30 AM',
   available_to: '02:30 AM',
@@ -117,38 +118,6 @@ export interface ClinicAdminItem {
   phone: string;
   status: 'Active' | 'Inactive';
 }
-
-const DEFAULT_CLINIC_ADMINS: ClinicAdminItem[] = [
-  { id: '1', full_name: 'Dr. Rahul Sharma', email: 'rahul.sharma@aarogyacare.com', phone: '9898989898', status: 'Active' },
-  { id: '2', full_name: 'Dr. Ritesh Agrawal', email: 'ritesh@gmail.com', phone: '8745896580', status: 'Active' },
-  { id: '3', full_name: 'Harsha yadav', email: 'yadavharsha00@gmail.com', phone: '9898979662', status: 'Active' },
-  { id: '4', full_name: 'VERSHA yadav', email: 'yadavharsha23@gmail.com', phone: '9898979643', status: 'Active' },
-];
-
-const INITIAL_CLINICS: ClinicItem[] = [
-  {
-    id: '1',
-    name: 'Aarogya Care Clinic',
-    code: 'CLN-001',
-    address: '102, Shree Heights, AB Road',
-    email: 'contact@aarogyacare.com',
-    phone: '9876543210',
-    admins_count: 4,
-    status: 'Active',
-    doctors_count: 12,
-    patients_count: 16,
-    subscription_plan: 'Enterprise',
-    city: 'Bomdila',
-    state: 'Arunachal Pradesh',
-    country: 'India',
-    created_at: 'Jul 29, 2026',
-    website: '—',
-    license_number: 'L123',
-    available_days: 'Mon,Tue,Wed,Thu,Fri',
-    available_from: '00:30',
-    available_to: '02:30',
-  },
-];
 
 export function checkIsMultiClinicPlan(planData: any, userData: any, assignedClinics?: any[]): boolean {
   if (planData) {
@@ -194,48 +163,30 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
-  const { token, user, assignedClinics } = useAuthContext();
-  const [isMultiClinicPlan, setIsMultiClinicPlan] = useState<boolean>(false);
+  const { token, user, activeClinicId, activeClinicName, isMultiClinic } = useAuthContext();
+  const scope = [token, user?.id, activeClinicId].join(':');
+  const scopeRef = useRef(scope); scopeRef.current = scope;
+  const busyRef = useRef(false);
+  useEffect(() => { scopeRef.current = scope; return () => { scopeRef.current = ''; }; }, [scope]);
 
-  const fetchAndCheckUserPlan = useCallback(async () => {
-    try {
-      let planData: any = null;
-      let userData: any = user;
-
-      // 1. Fetch Profile API
-      const profileRes = await fetchProfileApi().catch(() => null);
-      if (profileRes && profileRes.success && profileRes.data) {
-        userData = profileRes.data.user || profileRes.data;
-        planData = userData.plan || userData.subscription || userData.plan_details;
-      }
-
-      // 2. Fetch Subscription Plan API endpoint if available
-      const subRes = await apiFetch<any>('/subscription/my-plan').catch(() => null);
-      if (subRes && subRes.success && subRes.data) {
-        planData = subRes.data;
-      }
-
-      const isMulti = checkIsMultiClinicPlan(planData, userData, assignedClinics);
-      setIsMultiClinicPlan(isMulti);
-    } catch (err) {
-      console.log('Error checking plan API:', err);
-      setIsMultiClinicPlan(checkIsMultiClinicPlan(null, user, assignedClinics));
-    }
-  }, [token, user, assignedClinics]);
-
-  React.useEffect(() => {
-    fetchAndCheckUserPlan();
-  }, [fetchAndCheckUserPlan]);
-
-  const [clinics, setClinics] = useState<ClinicItem[]>(INITIAL_CLINICS);
-  const [selectedClinicFilter, setSelectedClinicFilter] = useState<string>('Aarogya Care Clinic');
-  const [selectedPerformanceDate, setSelectedPerformanceDate] = useState<Date>(new Date(2026, 8, 20));
+  const resource = useRemoteData(scope + ':clinics', async (signal) => {
+    const response = await apiFetch<{ clinics: any[] }>('/clinics/my-clinics', { signal });
+    if (!response.success || !Array.isArray(response.data?.clinics)) throw new Error(response.message);
+    return { rows: response.data.clinics.map(c => ({ ...c, id: c.id, name: c.name || '',
+      code: c.code || '', email: c.email || '', phone: c.phone || '', address: c.address || '',
+      admins_count: c.admins_count, status: Number(c.is_active) === 1 ? 'Active' : 'Inactive',
+    } as ClinicItem)), refreshed: new Date().toLocaleString() };
+  });
+  const clinics = useMemo(() => resource.data?.rows ?? [], [resource.data]);
+  const isMultiClinicPlan = isMultiClinic || clinics.some(c => checkIsMultiClinicPlan(null, c));
+  const lastRefreshed = resource.error ? 'Unable to load. Please refresh.' : resource.data?.refreshed || 'Loading...';
+  const [selectedClinicFilter, setSelectedClinicFilter] = useState<string>(activeClinicName || '');
+  const [selectedPerformanceDate, setSelectedPerformanceDate] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('Active');
   const [showStatusDropdown, setShowStatusDropdown] = useState<boolean>(false);
   const [showClinicSelectDropdown, setShowClinicSelectDropdown] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [lastRefreshed, setLastRefreshed] = useState<string>('20 Sept 2026, 2:02:03 pm');
 
   // Pagination & Filtering
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -249,7 +200,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
         item.phone.includes(searchQuery) ||
         item.code.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
-        selectedStatusFilter === 'All' || item.status === selectedStatusFilter;
+        selectedStatusFilter === 'All Status' || item.status === selectedStatusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [clinics, searchQuery, selectedStatusFilter]);
@@ -261,14 +212,36 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
     return filteredClinics.slice(start, start + pageSize);
   }, [filteredClinics, currentPage, pageSize]);
 
-  const handleRefresh = () => {
+  const selectedClinicId = clinics.find(c => c.name === selectedClinicFilter)?.id || activeClinicId;
+  const selectedDate = [selectedPerformanceDate.getFullYear(), String(selectedPerformanceDate.getMonth() + 1).padStart(2, '0'), String(selectedPerformanceDate.getDate()).padStart(2, '0')].join('-');
+  const performance = useRemoteData(scope + ':performance:' + selectedClinicId + ':' + selectedDate, async (signal) => {
+    if (!selectedClinicId) throw new Error('Select a clinic');
+    const result = await apiFetch<{ stats: Record<string, unknown> }>('/dashboard?clinic_id=' + selectedClinicId + '&date=' + selectedDate, { signal });
+    if (!result.success || !result.data?.stats) throw new Error(result.message);
+    return result.data.stats;
+  });
+  useEffect(() => { if (performance.error) showErrorToast('Performance unavailable', 'Please use Refresh to retry.'); }, [performance.error]);
+  const metric = (key: string) => dashboardNumber(performance.data?.[key]);
+  const treatment = metric('treatment_revenue_today'), medicine = metric('medicine_revenue_today');
+  const dailyRevenue = treatment !== null && medicine !== null ? treatment + medicine : null;
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, selectedStatusFilter, pageSize, scope]);
+  useEffect(() => { setSelectedClinicFilter(activeClinicName || ''); }, [activeClinicName]);
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      const now = new Date();
-      setLastRefreshed(`${now.getDate()} Sept ${now.getFullYear()}, ${now.toLocaleTimeString()}`);
-      setIsRefreshing(false);
-      showSuccessToast('Refreshed', 'Dashboard refreshed successfully.');
-    }, 400);
+    try { await Promise.all([resource.refresh(), performance.refresh()]); }
+    finally { if (scopeRef.current === scope) setIsRefreshing(false); }
+  };
+  const mutate = async (action: () => Promise<{ success: boolean; message?: string }>, done: () => void) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    try {
+      const result = await action();
+      if (scopeRef.current !== scope) return;
+      if (!result.success) throw new Error(result.message);
+      done(); await resource.refresh();
+    } catch (error) {
+      if (scopeRef.current === scope) showErrorToast('Unable to save', error instanceof Error ? error.message : 'Please retry.');
+    } finally { busyRef.current = false; }
   };
 
   const handleToggleClinicStatus = (id: string | number) => {
@@ -279,19 +252,9 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
     const actionText = isCurrentlyActive ? 'deactivate' : 'activate';
     const message = `Are you sure you want to ${actionText} clinic "${targetClinic.name}"?`;
 
-    const executeToggle = () => {
-      setClinics((prev) =>
-        prev.map((c) =>
-          String(c.id) === String(id)
-            ? { ...c, status: isCurrentlyActive ? 'Inactive' : 'Active' }
-            : c
-        )
-      );
-      showSuccessToast(
-        'Status Updated',
-        `Clinic "${targetClinic.name}" ${isCurrentlyActive ? 'deactivated' : 'activated'} successfully.`
-      );
-    };
+    const executeToggle = () => mutate(() => apiFetch('/clinics/' + id, {
+      method: 'PUT', body: JSON.stringify({ is_active: isCurrentlyActive ? 0 : 1 }),
+    }), () => showSuccessToast('Status Updated', 'Clinic status updated successfully.'));
 
     const globalObj: any = typeof globalThis !== 'undefined' ? globalThis : {};
     if (globalObj.window && typeof globalObj.window.confirm === 'function') {
@@ -319,7 +282,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 
   // View Clinic Admins Modal State (Screenshot 4)
   const [viewAdminsModal, setViewAdminsModal] = useState<ClinicItem | null>(null);
-  const [adminsList, setAdminsList] = useState<ClinicAdminItem[]>(DEFAULT_CLINIC_ADMINS);
+  const admins = useRemoteData(scope + ':admins:' + viewAdminsModal?.id, async (signal) => {
+    const result = await apiFetch<{ data: any[] }>('/staff/clinic/' + viewAdminsModal!.id + '/admin-network', { signal });
+    if (!result.success || !Array.isArray(result.data?.data)) throw new Error(result.message);
+    return result.data.data.map(a => ({ ...a, id: String(a.id), status: Number(a.is_active) === 1 ? 'Active' : 'Inactive' } as ClinicAdminItem));
+  }, Boolean(viewAdminsModal));
+  const adminsList = admins.data ?? [];
+  useEffect(() => { if (admins.error) showErrorToast('Unable to load administrators', 'Close and reopen to retry.'); }, [admins.error]);
 
   // Add Clinic Admin Modal State (Screenshot 5)
   const [addAdminModalClinic, setAddAdminModalClinic] = useState<ClinicItem | null>(null);
@@ -331,44 +300,32 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
   const [addAdminSaving, setAddAdminSaving] = useState(false);
 
   // Admin Handlers
-  const handleCreateClinicAdmin = () => {
-    if (!adminFullName.trim() || !adminEmail.trim() || !adminPhone.trim() || !adminPassword.trim()) {
-      showErrorToast('Validation Error', 'Full Name, Email, Phone, and Password are required.');
-      return;
+  const handleCreateClinicAdmin = async () => {
+    if (addAdminSaving || !addAdminModalClinic || busyRef.current) return;
+    if (!adminFullName.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail.trim()) || !/^[6-9]\d{9}$/.test(adminPhone) || adminPassword.length < 8) {
+      showErrorToast('Validation Error', 'Enter valid name, email, mobile and a password of at least 8 characters.'); return;
     }
-
     setAddAdminSaving(true);
-    setTimeout(() => {
-      const newAdmin: ClinicAdminItem = {
-        id: String(Date.now()),
-        full_name: adminFullName.trim(),
-        email: adminEmail.trim(),
-        phone: adminPhone.trim(),
-        status: 'Active',
-      };
-
-      setAdminsList((prev) => [newAdmin, ...prev]);
-      setAddAdminSaving(false);
-      setAddAdminModalClinic(null);
-      setAdminFullName('');
-      setAdminEmail('');
-      setAdminPhone('');
-      setAdminPassword('');
-      setAdminAddress('');
-      showSuccessToast('Admin Created', `Clinic admin ${newAdmin.full_name} created successfully!`);
-    }, 400);
+    try {
+      await mutate(async () => {
+        const roles = await fetchUserRolesApi(addAdminModalClinic.id);
+        if (!roles.success) return roles;
+        const role = roles.data?.find((r: any) => String(r.role_name).toLowerCase().replace(/ /g, '_') === 'clinic_admin') as any;
+        if (!role) return { success: false, message: 'Clinic Admin role is unavailable.' };
+        return apiFetch('/staff', { method: 'POST', body: JSON.stringify({ full_name: adminFullName.trim(),
+          email: adminEmail.trim(), phone: adminPhone, password: adminPassword, address: adminAddress,
+          clinic_id: addAdminModalClinic.id, role_id: role.role_id || role.id }) });
+      }, () => {
+        setAddAdminModalClinic(null); setAdminFullName(''); setAdminEmail(''); setAdminPhone(''); setAdminPassword(''); setAdminAddress('');
+        showSuccessToast('Admin Created', 'Clinic administrator created successfully.');
+      });
+    } finally { if (scopeRef.current === scope) setAddAdminSaving(false); }
   };
-
-  const handleDeleteClinicAdmin = (adminId: string) => {
-    setAdminsList((prev) => prev.filter((a) => a.id !== adminId));
-    showSuccessToast('Admin Removed', 'Clinic administrator removed successfully.');
-  };
-
-  const handleToggleClinicAdminStatus = (adminId: string) => {
-    setAdminsList((prev) =>
-      prev.map((a) => (a.id === adminId ? { ...a, status: a.status === 'Active' ? 'Inactive' : 'Active' } : a))
-    );
-    showSuccessToast('Status Updated', 'Clinic administrator status updated.');
+  const handleToggleClinicAdminStatus = (id: string) => {
+    const admin = adminsList.find(a => a.id === id);
+    if (!admin) return;
+    void mutate(() => apiFetch('/staff/' + id, { method: 'PUT', body: JSON.stringify({ is_active: admin.status === 'Active' ? 0 : 1 }) }),
+      () => { void admins.refresh(); showSuccessToast('Status Updated', 'Administrator status updated.'); });
   };
 
   // Register / Edit Clinic Modal State (Screenshots 1 & 2 Match)
@@ -379,6 +336,30 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
   const [showFormCityDropdown, setShowFormCityDropdown] = useState(false);
   const [showFormCountryDropdown, setShowFormCountryDropdown] = useState(false);
   const [clinicSaving, setClinicSaving] = useState(false);
+  const locations = useRemoteData(scope + ':clinic-locations', async (signal) => {
+    const [states, countries] = await Promise.all([
+      apiFetch<any[]>('/location/states', { signal }), apiFetch<any[]>('/location/countries', { signal }),
+    ]);
+    if (!states.success || !countries.success || !Array.isArray(states.data) || !Array.isArray(countries.data)) throw new Error('Unable to load locations');
+    return { states: states.data, countries: countries.data };
+  }, modalVisible);
+  const cities = useRemoteData(scope + ':clinic-cities:' + clinicForm.state, async (signal) => {
+    const result = await apiFetch<any[]>('/location/cities/' + encodeURIComponent(clinicForm.state), { signal });
+    if (!result.success || !Array.isArray(result.data)) throw new Error('Unable to load cities');
+    return result.data;
+  }, modalVisible && Boolean(Number(clinicForm.state)));
+  const stateOptions = locations.data?.states ?? [];
+  const cityOptions = cities.data ?? [];
+  useEffect(() => {
+    if (locations.error || cities.error) showErrorToast('Locations unavailable', 'Close and reopen the form to retry.');
+  }, [locations.error, cities.error]);
+  const stateLabel = stateOptions.find(row => String(row.id) === String(clinicForm.state))?.state_name || clinicForm.state || 'Select state';
+  const cityLabel = cityOptions.find(row => String(row.id) === String(clinicForm.city))?.city_name || clinicForm.city || 'Select city';
+
+  useEffect(() => {
+    setViewClinicModal(null); setViewAdminsModal(null); setAddAdminModalClinic(null); setModalVisible(false);
+    setAdminPassword(''); setIsRefreshing(false); setClinicSaving(false); setAddAdminSaving(false);
+  }, [scope]);
 
   const handleOpenAddClinicModal = () => {
     setEditingClinicId(null);
@@ -393,11 +374,11 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
       email: item.email,
       phone: item.phone,
       address: item.address,
-      state: item.state || 'Arunachal Pradesh',
-      city: item.city || 'Bomdila',
+      state: String(item.state || ''),
+      city: String(item.city || ''),
       country: item.country || 'India',
-      website: item.website || 'https://clinic.example.com',
-      license_number: item.license_number || 'L123',
+      website: item.website || '',
+      license_number: item.license_number || '',
       available_days: item.available_days || 'Mon,Tue,Wed,Thu,Fri',
       available_from: item.available_from || '12:30 AM',
       available_to: item.available_to || '02:30 AM',
@@ -405,72 +386,36 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
     setModalVisible(true);
   };
 
-  const handleSaveClinic = () => {
-    if (!clinicForm.name.trim() || !clinicForm.email.trim() || !clinicForm.phone.trim() || !clinicForm.address.trim()) {
-      showErrorToast('Validation Error', 'Clinic Name, Email address, Phone number, and Address are required.');
-      return;
+  const handleSaveClinic = async () => {
+    if (clinicSaving || busyRef.current) return;
+    if (!clinicForm.name.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clinicForm.email.trim()) || !clinicForm.phone.trim() || !clinicForm.address.trim()) {
+      showErrorToast('Validation Error', 'Enter clinic name, valid email, phone and address.'); return;
     }
-
     setClinicSaving(true);
-    setTimeout(() => {
-      if (editingClinicId) {
-        setClinics((prev) =>
-          prev.map((c) =>
-            String(c.id) === String(editingClinicId)
-              ? {
-                  ...c,
-                  name: clinicForm.name.trim(),
-                  email: clinicForm.email.trim(),
-                  phone: clinicForm.phone.trim(),
-                  address: clinicForm.address.trim(),
-                  state: clinicForm.state,
-                  city: clinicForm.city,
-                  country: clinicForm.country,
-                  website: clinicForm.website,
-                  license_number: clinicForm.license_number,
-                  available_days: clinicForm.available_days,
-                  available_from: clinicForm.available_from,
-                  available_to: clinicForm.available_to,
-                }
-              : c
-          )
-        );
-        showSuccessToast('Clinic Updated', `Clinic ${clinicForm.name} updated successfully!`);
-      } else {
-        const created: ClinicItem = {
-          id: String(Date.now()),
-          name: clinicForm.name.trim(),
-          code: `CLN-00${clinics.length + 1}`,
-          address: clinicForm.address.trim(),
-          email: clinicForm.email.trim(),
-          phone: clinicForm.phone.trim(),
-          admins_count: 1,
-          status: 'Active',
-          doctors_count: 1,
-          patients_count: 0,
-          state: clinicForm.state,
-          city: clinicForm.city,
-          country: clinicForm.country,
-          website: clinicForm.website,
-          license_number: clinicForm.license_number,
-          available_days: clinicForm.available_days,
-          available_from: clinicForm.available_from,
-          available_to: clinicForm.available_to,
-        };
-        setClinics([created, ...clinics]);
-        showSuccessToast('Clinic Registered', `Clinic ${created.name} registered successfully!`);
+    try {
+      if (!Number(clinicForm.state) || !Number(clinicForm.city)) {
+        showErrorToast('Validation Error', 'Select a state and city.'); return;
       }
-
-      setClinicSaving(false);
-      setModalVisible(false);
-    }, 400);
+      const toTime = (value: string) => {
+        const match = value.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
+        if (!match) return null;
+        let hours = Number(match[1]);
+        if (match[3]) hours = hours % 12 + (match[3].toUpperCase() === 'PM' ? 12 : 0);
+        return hours <= 23 && Number(match[2]) <= 59 ? String(hours).padStart(2, '0') + ':' + match[2] + ':00' : null;
+      };
+      const form = clinicForm;
+      const payload = { ...form, state: Number(form.state), city: Number(form.city),
+        available_from: toTime(form.available_from), available_to: toTime(form.available_to) };
+      await mutate(() => apiFetch('/clinics' + (editingClinicId ? '/' + editingClinicId : ''), {
+        method: editingClinicId ? 'PUT' : 'POST', body: JSON.stringify(payload),
+      }), () => { setModalVisible(false); showSuccessToast('Clinic Saved', 'Clinic saved successfully.'); });
+    } finally { if (scopeRef.current === scope) setClinicSaving(false); }
   };
 
-
-  const totalClinicsCount = clinics.length;
-  const activeClinicsCount = clinics.filter((c) => c.status === 'Active').length;
-  const inactiveClinicsCount = clinics.filter((c) => c.status === 'Inactive').length;
-  const totalAdminsCount = clinics.reduce((acc, c) => acc + c.admins_count, 0);
+  const totalClinicsCount = resource.data ? clinics.length : '\u2014';
+  const activeClinicsCount = resource.data ? clinics.filter(c => c.status === 'Active').length : '\u2014';
+  const inactiveClinicsCount = resource.data ? clinics.filter(c => c.status === 'Inactive').length : '\u2014';
+  const totalAdminsCount = clinics.length && clinics.every(c => c.admins_count != null) ? clinics.reduce((acc, c) => acc + c.admins_count, 0) : '\u2014';
 
   return (
     <View style={styles.container}>
@@ -559,7 +504,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 
             {/* Refresh Dashboard Button & Timestamp */}
             <View style={[styles.refreshCol, isMobile && { alignItems: 'flex-start', marginTop: 10 }]}>
-              <TouchableOpacity style={styles.refreshDashBtn} onPress={handleRefresh}>
+              <TouchableOpacity style={styles.refreshDashBtn} onPress={handleRefresh} disabled={isRefreshing || resource.loading || performance.loading}>
                 <RefreshCw color="#334155" size={14} style={{ marginRight: 6 }} />
                 <Text style={styles.refreshDashBtnText}>Refresh dashboard</Text>
               </TouchableOpacity>
@@ -580,7 +525,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
             <View style={[styles.kpiCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop]}>
               <View style={{ flex: 1, paddingRight: isMobile ? 4 : 0 }}>
                 <Text style={[styles.kpiLabel, isMobile && { fontSize: 11 }]} numberOfLines={1}>Appointments</Text>
-                <Text style={[styles.kpiValue, isMobile && { fontSize: 17 }]}>0</Text>
+                <Text style={[styles.kpiValue, isMobile && { fontSize: 17 }]}>{metric('appointments_today') ?? '\u2014'}</Text>
                 <Text style={[styles.kpiSub, isMobile && { fontSize: 10 }]} numberOfLines={1}>Scheduled on date</Text>
               </View>
               <View style={[styles.kpiIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: '#E6F4F1' }]}>
@@ -592,7 +537,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
             <View style={[styles.kpiCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop]}>
               <View style={{ flex: 1, paddingRight: isMobile ? 4 : 0 }}>
                 <Text style={[styles.kpiLabel, isMobile && { fontSize: 11 }]} numberOfLines={1}>Completed</Text>
-                <Text style={[styles.kpiValue, isMobile && { fontSize: 17 }]}>0</Text>
+                <Text style={[styles.kpiValue, isMobile && { fontSize: 17 }]}>{metric('completed_today') ?? '\u2014'}</Text>
                 <Text style={[styles.kpiSub, isMobile && { fontSize: 10 }]} numberOfLines={1}>Visits completed</Text>
               </View>
               <View style={[styles.kpiIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: '#DCFCE7' }]}>
@@ -604,7 +549,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
             <View style={[styles.kpiCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop]}>
               <View style={{ flex: 1, paddingRight: isMobile ? 4 : 0 }}>
                 <Text style={[styles.kpiLabel, isMobile && { fontSize: 11 }]} numberOfLines={1}>Cancelled</Text>
-                <Text style={[styles.kpiValue, isMobile && { fontSize: 17 }]}>0</Text>
+                <Text style={[styles.kpiValue, isMobile && { fontSize: 17 }]}>{metric('cancelled_today') ?? '\u2014'}</Text>
                 <Text style={[styles.kpiSub, isMobile && { fontSize: 10 }]} numberOfLines={1}>Appointments cancelled</Text>
               </View>
               <View style={[styles.kpiIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: '#FEE2E2' }]}>
@@ -616,7 +561,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
             <View style={[styles.kpiCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop]}>
               <View style={{ flex: 1, paddingRight: isMobile ? 4 : 0 }}>
                 <Text style={[styles.kpiLabel, isMobile && { fontSize: 11 }]} numberOfLines={1}>Total Revenue</Text>
-                <Text style={[styles.kpiValue, isMobile && { fontSize: 17 }]}>₹0.00</Text>
+                <Text style={[styles.kpiValue, isMobile && { fontSize: 17 }]}>{displayAmount(dailyRevenue)}</Text>
                 <Text style={[styles.kpiSub, isMobile && { fontSize: 10 }]} numberOfLines={1}>Treatment + medicine</Text>
               </View>
               <View style={[styles.kpiIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: '#F3E8FF' }]}>
@@ -640,7 +585,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                 <Users color="#0D9488" size={isMobile ? 15 : 18} />
               </View>
               <View style={{ flex: 1, marginLeft: isMobile ? 6 : 12 }}>
-                <Text style={[styles.snapshotValue, isMobile && { fontSize: 16 }]}>16</Text>
+                <Text style={[styles.snapshotValue, isMobile && { fontSize: 16 }]}>{metric('total_active_patients') ?? '\u2014'}</Text>
                 <Text style={[styles.snapshotLabel, isMobile && { fontSize: 11 }]} numberOfLines={1}>Active Patients</Text>
               </View>
             </View>
@@ -651,7 +596,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                 <ClipboardList color="#C2410C" size={isMobile ? 15 : 18} />
               </View>
               <View style={{ flex: 1, marginLeft: isMobile ? 6 : 12 }}>
-                <Text style={[styles.snapshotValue, isMobile && { fontSize: 16 }]}>0</Text>
+                <Text style={[styles.snapshotValue, isMobile && { fontSize: 16 }]}>{metric('pending_lab_tests') ?? '\u2014'}</Text>
                 <Text style={[styles.snapshotLabel, isMobile && { fontSize: 11 }]} numberOfLines={1}>Pending Lab Tests</Text>
               </View>
             </View>
@@ -662,7 +607,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                 <Pill color="#C2410C" size={isMobile ? 15 : 18} />
               </View>
               <View style={{ flex: 1, marginLeft: isMobile ? 6 : 12 }}>
-                <Text style={[styles.snapshotValue, isMobile && { fontSize: 16 }]}>1</Text>
+                <Text style={[styles.snapshotValue, isMobile && { fontSize: 16 }]}>{metric('low_stock_medicines') ?? '\u2014'}</Text>
                 <Text style={[styles.snapshotLabel, isMobile && { fontSize: 11 }]} numberOfLines={1}>Low Stock Medicines</Text>
               </View>
             </View>
@@ -766,7 +711,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                 <Text style={styles.columnsBtnText}>Columns</Text>
               </TouchableOpacity>
               {isMultiClinicPlan && (
-                <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+                <TouchableOpacity style={styles.addBtn} onPress={handleOpenAddClinicModal}>
                   <Plus color="#FFFFFF" size={14} style={{ marginRight: 4 }} />
                   <Text style={styles.addBtnText}>Add Clinic</Text>
                 </TouchableOpacity>
@@ -874,7 +819,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     <Text style={styles.metaText}>📍 {item.address}</Text>
                     <Text style={styles.metaText}>✉️ {item.email}</Text>
                     <Text style={styles.metaText}>📞 {item.phone}</Text>
-                    <Text style={styles.metaText}>👥 {item.admins_count} Admins</Text>
+                    <Text style={styles.metaText}>👥 {item.admins_count ?? '\u2014'} Admins</Text>
                   </View>
                 </View>
               ))}
@@ -935,7 +880,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <Users color="#64748B" size={14} style={{ marginRight: 4 }} />
-                        <Text style={styles.tdText}>{item.admins_count}</Text>
+                        <Text style={styles.tdText}>{item.admins_count ?? '\u2014'}</Text>
                       </View>
                     </View>
 
@@ -1179,22 +1124,22 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                         onPress={() => setShowFormStateDropdown(!showFormStateDropdown)}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                           <MapPin size={14} color="#64748B" style={{ marginRight: 6 }} />
-                          <Text style={styles.formDropdownText}>{clinicForm.state}</Text>
+                          <Text style={styles.formDropdownText}>{stateLabel}</Text>
                         </View>
                         <ChevronDown size={16} color="#64748B" />
                       </TouchableOpacity>
 
                       {showFormStateDropdown && (
                         <View style={styles.formDropdownList}>
-                          {['Arunachal Pradesh', 'Delhi', 'Maharashtra', 'Karnataka', 'Madhya Pradesh'].map((st) => (
+                          {stateOptions.map((st) => (
                             <TouchableOpacity
-                              key={st}
+                              key={st.id}
                               style={styles.formDropdownListItem}
                               onPress={() => {
-                                setClinicForm({ ...clinicForm, state: st });
+                                setClinicForm({ ...clinicForm, state: String(st.id), city: '' });
                                 setShowFormStateDropdown(false);
                               }}>
-                              <Text style={styles.formDropdownItemText}>{st}</Text>
+                              <Text style={styles.formDropdownItemText}>{st.state_name}</Text>
                             </TouchableOpacity>
                           ))}
                         </View>
@@ -1210,22 +1155,22 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                         onPress={() => setShowFormCityDropdown(!showFormCityDropdown)}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                           <MapPin size={14} color="#64748B" style={{ marginRight: 6 }} />
-                          <Text style={styles.formDropdownText}>{clinicForm.city}</Text>
+                          <Text style={styles.formDropdownText}>{cityLabel}</Text>
                         </View>
                         <ChevronDown size={16} color="#64748B" />
                       </TouchableOpacity>
 
                       {showFormCityDropdown && (
                         <View style={styles.formDropdownList}>
-                          {['Bomdila', 'Itanagar', 'Mumbai', 'New Delhi', 'Bengaluru', 'Indore'].map((ct) => (
+                          {cityOptions.map((ct) => (
                             <TouchableOpacity
-                              key={ct}
+                              key={ct.id}
                               style={styles.formDropdownListItem}
                               onPress={() => {
-                                setClinicForm({ ...clinicForm, city: ct });
+                                setClinicForm({ ...clinicForm, city: String(ct.id) });
                                 setShowFormCityDropdown(false);
                               }}>
-                              <Text style={styles.formDropdownItemText}>{ct}</Text>
+                              <Text style={styles.formDropdownItemText}>{ct.city_name}</Text>
                             </TouchableOpacity>
                           ))}
                         </View>
@@ -1386,7 +1331,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.viewClinicTitle}>{viewClinicModal?.name}</Text>
                     <Text style={styles.viewClinicSubtitle}>
-                      {viewClinicModal?.city || 'Bomdila'} • {viewClinicModal?.country || 'India'}
+                      {viewClinicModal?.city || ''} • {viewClinicModal?.country || 'India'}
                     </Text>
                     <View style={styles.viewClinicStatusTag}>
                       <Text style={styles.viewClinicStatusText}>{viewClinicModal?.status}</Text>
@@ -1428,7 +1373,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>License Number</Text>
-                        <Text style={styles.infoBoxVal}>{viewClinicModal?.license_number || 'L123'}</Text>
+                        <Text style={styles.infoBoxVal}>{viewClinicModal?.license_number || ''}</Text>
                       </View>
                     </View>
                   </View>
@@ -1449,11 +1394,11 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     <View style={[styles.grid2ColRow, { marginTop: 12 }, isMobile && { flexDirection: 'column', gap: 10, marginTop: 10 }]}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>City</Text>
-                        <Text style={styles.infoBoxVal}>{viewClinicModal?.city || 'Bomdila'}</Text>
+                        <Text style={styles.infoBoxVal}>{viewClinicModal?.city || ''}</Text>
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>State</Text>
-                        <Text style={styles.infoBoxVal}>{viewClinicModal?.state || 'Arunachal Pradesh'}</Text>
+                        <Text style={styles.infoBoxVal}>{viewClinicModal?.state || ''}</Text>
                       </View>
                     </View>
 
@@ -1641,7 +1586,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                           <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end' }}>
                             <TouchableOpacity
                               onPress={() => {
-                                showSuccessToast('Edit Admin', `Editing ${admin.full_name}`);
+                                setViewAdminsModal(null); navigateStaffScreen('staff');
                               }}>
                               <Edit2 size={15} color="#334155" />
                             </TouchableOpacity>

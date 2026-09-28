@@ -1,5 +1,5 @@
 // src/screens/staff/UserManagement.tsx
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,15 +7,15 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
+  Platform,
   StatusBar,
   Modal,
-  Alert,
   ActivityIndicator,
   useWindowDimensions,
   RefreshControl,
   TouchableWithoutFeedback,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   UserPlus,
   RefreshCw,
@@ -43,17 +43,18 @@ import { Pagination } from '../../components/common/Pagination';
 import { showSuccessToast, showErrorToast } from '../../utils/toast';
 import {
   fetchAllUsersApi,
-  fetchUsersByRoleApi,
   createClinicUserApi,
   updateClinicUserApi,
   resetStaffPasswordApi,
 } from '../../api/userManagementApi';
 import { fetchUserRolesApi } from '../../api/roleManagementApi';
-import { apiFetch, setGlobalAuthToken } from '../../api/apiConfig';
+import { apiFetch } from '../../api/apiConfig';
+import { useRemoteData } from '../../hooks/useRemoteData';
 import { useAuthContext } from '../../context/AuthContext';
 
 export interface UserItem {
   id: string;
+  role_id?: number;
   user_id: string;
   full_name: string;
   email: string;
@@ -73,95 +74,6 @@ export interface UserItem {
   address?: string;
 }
 
-const DEFAULT_ROLES_LIST = [
-  'Super Admin',
-  'Clinic Admin',
-  'Doctor',
-  'Receptionist',
-  'Billing Staff',
-  'Pharmacist',
-  'Accountant',
-  'Lab Technician',
-  'Nurse',
-  'Peon',
-  'Patient',
-];
-
-const INITIAL_FALLBACK_USERS: UserItem[] = [
-  {
-    id: '1',
-    user_id: '134',
-    full_name: 'Ada W',
-    email: 'ada@gmail.com',
-    phone: '7213123212',
-    clinic_name: 'Aarogya Care Clinic',
-    role: 'Billing Staff',
-    is_doctor: false,
-    status: 'Active',
-    created_at: '9/11/2026, 7:43:32 AM',
-  },
-  {
-    id: '2',
-    user_id: '133',
-    full_name: 'Dr. Rahul Sharma',
-    email: 'rrklmeklfm@gmail.com',
-    phone: '7978784455',
-    clinic_name: 'Aarogya Care Clinic',
-    role: 'Pharmacist',
-    is_doctor: false,
-    status: 'Active',
-    created_at: '9/12/2026, 10:15:00 AM',
-  },
-  {
-    id: '3',
-    user_id: '132',
-    full_name: 'Amit Patel',
-    email: '1234@gmail.com',
-    phone: '8989895656',
-    clinic_name: 'Aarogya Care Clinic',
-    role: 'Lab Technician',
-    is_doctor: false,
-    status: 'Inactive',
-    created_at: '9/13/2026, 11:20:10 AM',
-  },
-  {
-    id: '4',
-    user_id: '131',
-    full_name: 'Suresh Kumar',
-    email: 'suresh.peon@gmail.com',
-    phone: '7768646849',
-    clinic_name: 'Aarogya Care Clinic',
-    role: 'Peon',
-    is_doctor: false,
-    status: 'Active',
-    created_at: '9/14/2026, 02:10:00 PM',
-  },
-  {
-    id: '5',
-    user_id: '130',
-    full_name: 'Dr. Ananya Roy',
-    email: 'ananya.roy@gmail.com',
-    phone: '9822334455',
-    clinic_name: 'Aarogya Care Clinic',
-    role: 'Doctor',
-    is_doctor: true,
-    status: 'Active',
-    created_at: '9/15/2026, 09:30:00 AM',
-  },
-  {
-    id: '6',
-    user_id: '129',
-    full_name: 'Priya Nair',
-    email: 'priya.nair@gmail.com',
-    phone: '9900112233',
-    clinic_name: 'Aarogya Care Clinic',
-    role: 'Receptionist',
-    is_doctor: false,
-    status: 'Inactive',
-    created_at: '9/16/2026, 04:45:00 PM',
-  },
-];
-
 interface UserManagementProps {
   onOpenDrawer?: () => void;
   onNavigateScreen?: (screen: string) => void;
@@ -171,6 +83,7 @@ function extractArrayData(res: any): any[] {
   if (!res) return [];
   if (Array.isArray(res)) return res;
   if (Array.isArray(res.data)) return res.data;
+  if (Array.isArray(res.data?.clinics)) return res.data.clinics;
   if (res.data && Array.isArray(res.data.users)) return res.data.users;
   if (res.data && Array.isArray(res.data.data)) return res.data.data;
   if (res.data && Array.isArray(res.data.staff)) return res.data.staff;
@@ -181,31 +94,15 @@ function extractArrayData(res: any): any[] {
   return [];
 }
 
-function formatRoleTitle(roleStr: string): string {
-  if (!roleStr) return 'Billing Staff';
-  const clean = roleStr.toString().trim();
-  const lower = clean.toLowerCase();
-  if (lower.includes('super')) return 'Super Admin';
-  if (lower.includes('admin') || lower.includes('clinic')) return 'Clinic Admin';
-  if (lower.includes('doc')) return 'Doctor';
-  if (lower.includes('recept')) return 'Receptionist';
-  if (lower.includes('pharm')) return 'Pharmacist';
-  if (lower.includes('lab')) return 'Lab Technician';
-  if (lower.includes('account')) return 'Accountant';
-  if (lower.includes('bill')) return 'Billing Staff';
-  if (lower.includes('nurse')) return 'Nurse';
-
-  return clean
-    .split(/[\s_]+/)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(' ');
+function formatRoleTitle(value: string): string {
+  return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagementProps) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
-  const { token, activeClinicId, activeClinicName, assignedClinics } = useAuthContext();
+  const { token, user, activeClinicId, activeClinicName, assignedClinics } = useAuthContext();
 
   const contextClinics = useMemo(() => {
     const list: string[] = [];
@@ -215,18 +112,13 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
         if (c.name && !list.includes(c.name)) list.push(c.name);
       });
     }
-    return list.length > 0 ? list : ['Aarogya Care Clinic'];
+    return list;
   }, [activeClinicName, assignedClinics]);
 
-  const [users, setUsers] = useState<UserItem[]>(INITIAL_FALLBACK_USERS);
-  const [dbRolesList, setDbRolesList] = useState<string[]>(DEFAULT_ROLES_LIST);
-  const [dbClinicsList, setDbClinicsList] = useState<string[]>(contextClinics);
-  const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState('All Roles');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('All Status');
   const [selectedClinicFilter, setSelectedClinicFilter] = useState('All Clinics');
-  const [lastRefreshed, setLastRefreshed] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   // Pagination State
@@ -235,7 +127,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedRoleFilter, selectedStatusFilter, selectedClinicFilter]);
+  }, [searchQuery, selectedRoleFilter, selectedStatusFilter, selectedClinicFilter, activeClinicId, pageSize]);
 
   // Dropdown States
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
@@ -266,21 +158,21 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
   const [createPhone, setCreatePhone] = useState('');
   const [createRole, setCreateRole] = useState('Billing Staff');
   const [showCreateRoleDropdown, setShowCreateRoleDropdown] = useState(false);
-  const [createClinic, setCreateClinic] = useState(contextClinics[0] || 'Aarogya Care Clinic');
+  const [createClinic, setCreateClinic] = useState(contextClinics[0] || '');
 
-  const formatStaffUser = useCallback((staff: any, idx: number): UserItem => {
+  const formatStaffUser = useCallback((staff: any): UserItem => {
     const rawRole = (
       staff.role ||
       staff.role_name ||
       staff.user_role ||
       staff.roleName ||
-      'Billing Staff'
+      ''
     ).toString();
 
     const formattedRole = formatRoleTitle(rawRole);
 
     const isDoc =
-      staff.is_doctor === true ||
+      Number(staff.is_doctor) === 1 ||
       rawRole.toLowerCase().includes('doc') ||
       !!staff.specialization ||
       !!staff.qualification;
@@ -290,148 +182,117 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
       staff.clinicName ||
       staff.clinic?.name ||
       activeClinicName ||
-      'Aarogya Care Clinic';
+      '';
 
     return {
-      id: String(staff.id || staff.user_id || idx + 1),
-      user_id: String(staff.user_id || staff.id || idx + 130),
+      id: String(staff.id || staff.user_id),
+      role_id: Number(staff.role_id),
+      user_id: String(staff.user_id || staff.id),
       full_name: staff.full_name || staff.name || staff.first_name || 'User Account',
-      email: staff.email || 'user@gmail.com',
-      phone: staff.phone || staff.mobile || '7213123212',
+      email: staff.email || '',
+      phone: staff.phone || staff.mobile || '',
       clinic_name: clinic,
       role: formattedRole,
       is_doctor: isDoc,
-      status: staff.is_active === false || staff.status === 'Inactive' ? 'Inactive' : 'Active',
-      created_at: staff.created_at || staff.createdAt || '9/11/2026, 7:43:32 AM',
+      status: Number(staff.is_active) === 0 || staff.status === 'Inactive' ? 'Inactive' : 'Active',
+      created_at: staff.created_at || staff.createdAt || '',
       department: staff.department || '',
       specialization: staff.specialization || '',
       qualification: staff.qualification || '',
       registration_number: staff.registration_number || '',
-      experience: staff.experience ? String(staff.experience) : '',
+      experience: staff.experience_years != null ? String(staff.experience_years) : '',
       consultation_fee: staff.consultation_fee ? String(staff.consultation_fee) : '0.00',
       available_days: staff.available_days || '',
       address: staff.address || '',
     };
   }, [activeClinicName]);
 
-  const loadUsersFromApi = useCallback(async () => {
-    try {
-      setLoading(true);
-      if (token) {
-        setGlobalAuthToken(token);
-      }
-
-      const userReqPromise =
-        selectedRoleFilter === 'All Roles'
-          ? fetchAllUsersApi()
-          : fetchUsersByRoleApi(selectedRoleFilter);
-
-      const [usersRes, rolesRes, clinicsRes] = await Promise.all([
-        userReqPromise.catch(() => ({ success: false, data: [] })),
-        fetchUserRolesApi(activeClinicId || '1').catch(() => ({ success: false, data: [] })),
-        apiFetch<any>('/clinics').catch(() => ({ success: false, data: [] })),
-      ]);
-
-      const fetchedRoles = extractArrayData(rolesRes);
-      if (fetchedRoles.length > 0) {
-        const roleNames = fetchedRoles
-          .map((r: any) => formatRoleTitle(r.role_name || r.name || r.role))
-          .filter(Boolean);
-        if (roleNames.length > 0) {
-          setDbRolesList(Array.from(new Set([...DEFAULT_ROLES_LIST, ...roleNames])));
-        }
-      }
-
-      const fetchedClinics = extractArrayData(clinicsRes);
-      if (fetchedClinics.length > 0) {
-        const clinicNames = fetchedClinics
-          .map((c: any) => c.name || c.clinic_name || c.title)
-          .filter(Boolean);
-        if (clinicNames.length > 0) {
-          setDbClinicsList(Array.from(new Set([...contextClinics, ...clinicNames])));
-        }
-      }
-
-      let fetchedUsersList = extractArrayData(usersRes);
-      if (fetchedUsersList.length === 0 && selectedRoleFilter === 'All Roles') {
-        const staffListRes = await apiFetch<any>('/staff/list').catch(() => ({ success: false, data: [] }));
-        fetchedUsersList = extractArrayData(staffListRes);
-      }
-
-      if (fetchedUsersList.length > 0) {
-        const formatted = fetchedUsersList.map((u, i) => formatStaffUser(u, i));
-        setUsers(formatted);
-      } else {
-        const updatedFallback = INITIAL_FALLBACK_USERS.map((u) => ({
-          ...u,
-          clinic_name: activeClinicName || u.clinic_name,
-        }));
-        setUsers(updatedFallback);
-      }
-
-      const now = new Date();
-      setLastRefreshed(
-        now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) +
-          ', ' +
-          now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-      );
-    } catch (err: any) {
-      console.error('Error fetching users/roles/clinics API:', err);
-      setUsers(INITIAL_FALLBACK_USERS.map((u) => ({ ...u, clinic_name: activeClinicName || u.clinic_name })));
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [token, activeClinicId, activeClinicName, selectedRoleFilter, formatStaffUser, contextClinics]);
-
+  const scope = [user?.id, token, activeClinicId].join(':');
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
+  const busyRef = useRef(false);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
-    loadUsersFromApi();
-  }, [token, activeClinicId, selectedRoleFilter]);
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    loadUsersFromApi();
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+  useEffect(() => {
+    scopeRef.current = scope;
+    setViewUserModal(null); setEditUserModal(null); setEditForm(null); setResetPasswordModalUser(null);
+    setIsRefreshing(false); setResetSaving(false); setNewPassword(''); setConfirmPassword('');
+    setCreateUserModalOpen(false); setSelectedClinicFilter('All Clinics');
+    setCreateClinic(activeClinicName || '');
+    return () => { scopeRef.current = ''; };
+  }, [scope, activeClinicName]);
+  const metadata = useRemoteData(scope + ':staff-options', async () => {
+    const [roles, clinics] = await Promise.all([
+      fetchUserRolesApi(activeClinicId), apiFetch<any>('/clinics/my-clinics'),
+    ]);
+    if (!roles.success || !clinics.success) throw new Error('Unable to load user options');
+    return { roles: extractArrayData(roles), clinics: extractArrayData(clinics) };
+  }, Boolean(token));
+  const roleRows = (metadata.data?.roles ?? []).filter(r => {
+    const name = String(r.role_name || r.name).toLowerCase().replace(/ /g, '_');
+    return name !== 'patient' && (name !== 'super_admin' || Number(user?.roleId || user?.role_id) === 1);
+  });
+  const clinicRows = metadata.data?.clinics ?? assignedClinics;
+  const dbRolesList = Array.from(new Set<string>(roleRows.map(r => formatRoleTitle(r.role_name || r.name))));
+  const dbClinicsList = Array.from(new Set<string>([...contextClinics, ...clinicRows.map(c => c.name || c.clinic_name).filter(Boolean)]));
+  useEffect(() => {
+    if (dbRolesList.length && !dbRolesList.includes(createRole)) setCreateRole(dbRolesList[0]);
+  }, [dbRolesList, createRole]);
+  const getRoleId = (name: string) => {
+    const role = roleRows.find(r => formatRoleTitle(r.role_name || r.name) === name);
+    return Number(role?.role_id || role?.id);
   };
-
-  const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        !q ||
-        (u.full_name || '').toLowerCase().includes(q) ||
-        (u.email || '').toLowerCase().includes(q) ||
-        (u.phone || '').includes(q) ||
-        (u.user_id || '').includes(q);
-
-      const normalizedRole = (u.role || '').toLowerCase().replace(/[\s_]+/g, '');
-      const selectedRoleNorm = selectedRoleFilter.toLowerCase().replace(/[\s_]+/g, '');
-      const matchesRole =
-        selectedRoleFilter === 'All Roles' ||
-        normalizedRole === selectedRoleNorm ||
-        normalizedRole.includes(selectedRoleNorm) ||
-        selectedRoleNorm.includes(normalizedRole);
-
-      const matchesStatus =
-        selectedStatusFilter === 'All Status' ||
-        (u.status || '').toLowerCase() === selectedStatusFilter.toLowerCase();
-
-      const userClinicNorm = (u.clinic_name || '').toLowerCase();
-      const selectedClinicNorm = selectedClinicFilter.toLowerCase();
-      const matchesClinic =
-        selectedClinicFilter === 'All Clinics' ||
-        !u.clinic_name ||
-        userClinicNorm.includes(selectedClinicNorm) ||
-        selectedClinicNorm.includes(userClinicNorm);
-
-      return matchesSearch && matchesRole && matchesStatus && matchesClinic;
-    });
-  }, [users, searchQuery, selectedRoleFilter, selectedStatusFilter, selectedClinicFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
-  const paginatedUsers = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredUsers.slice(start, start + pageSize);
-  }, [filteredUsers, currentPage, pageSize]);
+  const filterClinicId = selectedClinicFilter === 'All Clinics' ? undefined
+    : Number(clinicRows.find(c => (c.name || c.clinic_name) === selectedClinicFilter)?.id);
+  const query = {
+    page: currentPage, limit: pageSize, search: debouncedSearch, clinic_id: filterClinicId,
+    role_id: selectedRoleFilter === 'All Roles' ? undefined : getRoleId(selectedRoleFilter),
+    is_active: selectedStatusFilter === 'All Status' ? 'all' as const : selectedStatusFilter === 'Active' ? 1 as const : 0 as const,
+  };
+  const resource = useRemoteData(scope + ':staff:' + JSON.stringify(query), async () => {
+    if (selectedRoleFilter !== 'All Roles' && !query.role_id) throw new Error('Select an available role');
+    if (selectedClinicFilter !== 'All Clinics' && !filterClinicId) throw new Error('Select an available clinic');
+    const result = await fetchAllUsersApi(query);
+    if (!result.success || !Array.isArray(result.data?.data)) throw new Error(result.message);
+    return { users: result.data.data.map(formatStaffUser), total: Number(result.data.total), refreshed: new Date().toLocaleString() };
+  }, Boolean(token) && Boolean(metadata.data) && !metadata.error);
+  const loading = resource.loading || metadata.loading;
+  const loadError = resource.error || metadata.error;
+  const users = loadError ? [] : resource.data?.users ?? [];
+  const filteredUsers = users;
+  const paginatedUsers = users;
+  const totalUsers = loadError ? 0 : resource.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalUsers / pageSize));
+  const lastRefreshed = resource.data?.refreshed ?? '';
+  useEffect(() => {
+    if (!loading && !loadError && currentPage > totalPages) setCurrentPage(totalPages);
+  }, [loading, loadError, currentPage, totalPages]);
+  const loadUsersFromApi = resource.refresh;
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try { await Promise.all([metadata.refresh(), resource.refresh()]); }
+    finally { setIsRefreshing(false); }
+  };
+  const mutate = async (action: () => Promise<{ success: boolean; message?: string }>, onSuccess: () => void) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setIsRefreshing(true);
+    try {
+      const result = await action();
+      if (scopeRef.current !== scope) return;
+      if (!result.success) throw new Error(result.message || 'Please retry.');
+      onSuccess();
+      await loadUsersFromApi();
+    } catch (error) {
+      if (scopeRef.current === scope) showErrorToast('Unable to save', error instanceof Error ? error.message : 'Please retry.');
+    } finally {
+      busyRef.current = false;
+      if (scopeRef.current === scope) setIsRefreshing(false);
+    }
+  };
 
   // Edit User Handler
   const handleOpenEdit = (user: UserItem) => {
@@ -441,49 +302,28 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
 
   const handleSaveEdit = async () => {
     if (!editForm) return;
-    try {
-      setIsRefreshing(true);
-      const res = await updateClinicUserApi(editForm.id, {
-        full_name: editForm.full_name,
-        phone: editForm.phone,
-        role_name: editForm.role,
-        department: editForm.department,
-        specialization: editForm.specialization,
-      });
-
-      setUsers((prev) => prev.map((u) => (u.id === editForm.id ? editForm : u)));
-      showSuccessToast('User Updated', `User ${editForm.full_name} updated successfully!`);
-    } catch (err: any) {
-      setUsers((prev) => prev.map((u) => (u.id === editForm.id ? editForm : u)));
-      showSuccessToast('User Updated', `User ${editForm.full_name} updated successfully!`);
-    } finally {
-      setIsRefreshing(false);
-      setEditUserModal(null);
-      setEditForm(null);
+    const roleId = editForm.role === editUserModal?.role ? editForm.role_id : getRoleId(editForm.role);
+    if (!editForm.full_name.trim() || !/^[6-9]\d{9}$/.test(editForm.phone) || !roleId || (editForm.experience && (!Number.isFinite(Number(editForm.experience)) || Number(editForm.experience) < 0))) {
+      showErrorToast('Validation Error', 'Enter a name, valid 10-digit mobile number and an available role.');
+      return;
     }
+    await mutate(() => updateClinicUserApi(editForm.id, {
+      full_name: editForm.full_name.trim(), phone: editForm.phone, role_id: roleId,
+      department: editForm.department, specialization: editForm.specialization,
+      qualification: editForm.qualification, address: editForm.address,
+      experience_years: editForm.experience ? Number(editForm.experience) : 0,
+    }), () => {
+      showSuccessToast('User Updated', 'User updated successfully.');
+      setEditUserModal(null); setEditForm(null);
+    });
   };
-
-  // Toggle Activate / Deactivate User Status
   const handleToggleUserStatus = async () => {
     if (!editForm) return;
-    const isCurrentlyActive = editForm.status === 'Active';
-    const newStatus: 'Active' | 'Inactive' = isCurrentlyActive ? 'Inactive' : 'Active';
-
-    try {
-      await updateClinicUserApi(editForm.id, {
-        full_name: editForm.full_name,
-        status: newStatus,
-      });
-    } catch (err) {}
-
-    const updated: UserItem = { ...editForm, status: newStatus };
-    setUsers((prev) => prev.map((u) => (u.id === editForm.id ? updated : u)));
-    setEditForm(updated);
-
-    showSuccessToast(
-      'Status Updated',
-      `User ${editForm.full_name} is now ${newStatus}.`
-    );
+    const status = editForm.status === 'Active' ? 'Inactive' : 'Active';
+    await mutate(() => updateClinicUserApi(editForm.id, { is_active: status === 'Active' ? 1 : 0 }), () => {
+      setEditForm({ ...editForm, status });
+      showSuccessToast('Status Updated', 'User is now ' + status + '.');
+    });
   };
 
   // Open Reset Password Modal
@@ -507,89 +347,41 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
       return;
     }
 
+    if (resetSaving || busyRef.current) return;
+    setResetSaving(true);
     try {
-      setResetSaving(true);
-      await resetStaffPasswordApi(resetPasswordModalUser.id, newPassword);
-      showSuccessToast('Password Reset', `Password for ${resetPasswordModalUser.full_name} reset successfully.`);
-      setResetPasswordModalUser(null);
-    } catch (err) {
-      showSuccessToast('Password Reset', `Password reset successfully for ${resetPasswordModalUser.full_name}.`);
-      setResetPasswordModalUser(null);
-    } finally {
-      setResetSaving(false);
-    }
+      await mutate(() => resetStaffPasswordApi(resetPasswordModalUser.id, newPassword), () => {
+        showSuccessToast('Password Reset', 'Password reset successfully.');
+        setResetPasswordModalUser(null); setNewPassword(''); setConfirmPassword('');
+      });
+    } finally { setResetSaving(false); }
   };
-
-  // Create User Handler
   const handleCreateUser = async () => {
-    if (!createFullName || !createEmail) {
-      showErrorToast('Validation Error', 'Full Name and Email address are required.');
+    const roleId = getRoleId(createRole);
+    const clinicId = Number(clinicRows.find(c => (c.name || c.clinic_name) === createClinic)?.id
+      || (createClinic === activeClinicName ? activeClinicId : 0));
+    if (!createFullName.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createEmail.trim())
+        || !/^[6-9]\d{9}$/.test(createPhone.trim()) || !roleId || !clinicId) {
+      showErrorToast('Validation Error', 'Enter a name, valid email, 10-digit mobile number, role and clinic.');
       return;
     }
-
-    try {
-      setIsRefreshing(true);
-      const payload = {
-        full_name: createFullName.trim(),
-        email: createEmail.trim(),
-        phone: createPhone.trim() || '7213123212',
-        role: createRole,
-        role_name: createRole,
-        clinic_id: '1',
-        status: 'Active',
-      };
-      const res = await createClinicUserApi(payload);
-
-      const rawUserData = (res.data as any)?.user || res.data;
-      if (res.success && rawUserData) {
-        const newUser = formatStaffUser(rawUserData, users.length + 1);
-        setUsers((prev) => [newUser, ...prev]);
-      } else {
-        const newUser: UserItem = {
-          id: String(Date.now()),
-          user_id: String(users.length + 135),
-          full_name: createFullName,
-          email: createEmail,
-          phone: createPhone || '7213123212',
-          clinic_name: createClinic,
-          role: createRole,
-          is_doctor: createRole.toLowerCase().includes('doc'),
-          status: 'Active',
-          created_at: new Date().toLocaleString(),
-        };
-        setUsers((prev) => [newUser, ...prev]);
-      }
-
-      await loadUsersFromApi();
-
-      showSuccessToast('User Created', `User ${createFullName} created successfully!`);
-    } catch (err: any) {
-      const newUser: UserItem = {
-        id: String(Date.now()),
-        user_id: String(users.length + 135),
-        full_name: createFullName,
-        email: createEmail,
-        phone: createPhone || '7213123212',
-        clinic_name: createClinic,
-        role: createRole,
-        is_doctor: createRole.toLowerCase().includes('doc'),
-        status: 'Active',
-        created_at: new Date().toLocaleString(),
-      };
-      setUsers((prev) => [newUser, ...prev]);
-      showSuccessToast('User Created', `User ${createFullName} created successfully!`);
-    } finally {
-      setIsRefreshing(false);
+    await mutate(() => createClinicUserApi({
+      full_name: createFullName.trim(), email: createEmail.trim(), phone: createPhone.trim(),
+      role_id: roleId, clinic_id: clinicId,
+    }), () => {
+      showSuccessToast('User Created', 'User created. Use password reset to set their password.');
       setCreateUserModalOpen(false);
-      setCreateFullName('');
-      setCreateEmail('');
-      setCreatePhone('');
-    }
+      setCreateFullName(''); setCreateEmail(''); setCreatePhone('');
+    });
   };
 
-
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={styles.container}
+      // StaffHeader already provides the Android status bar spacing.
+      edges={Platform.OS === 'android' && onOpenDrawer
+        ? ['left', 'right', 'bottom']
+        : ['top', 'left', 'right', 'bottom']}>
       <StatusBar barStyle="dark-content" />
 
       {onOpenDrawer && (
@@ -665,7 +457,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
             </TouchableOpacity>
           </View>
 
-          {/* --- SEARCH AND FILTERS ROW --- */}
+          {/*   SEARCH AND FILTERS ROW  */}
           <View style={[styles.filtersRow, isMobile && { flexDirection: 'column', alignItems: 'stretch' }]}>
             <View style={styles.searchBar}>
               <Search size={16} color="#94A3B8" style={{ marginRight: 8 }} />
@@ -795,7 +587,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
             </View>
           ) : filteredUsers.length === 0 ? (
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyText}>No users found in database.</Text>
+              <Text style={styles.emptyText}>{loadError ? 'Unable to load users. Please use Refresh Users to retry.' : 'No users found in database.'}</Text>
             </View>
           ) : isMobile ? (
             /* Responsive Mobile Card View */
@@ -980,7 +772,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={filteredUsers.length}
+            totalItems={totalUsers}
             pageSize={pageSize}
             onPageChange={(page) => setCurrentPage(page)}
             onPageSizeChange={(size) => {
@@ -991,9 +783,8 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
         </View>
       </ScrollView>
 
-      {/* ────────────────────────────────────────────────────────────────────────── */}
-      {/* 👁️ VIEW USER DETAILS MODAL                                                  */}
-      {/* ────────────────────────────────────────────────────────────────────────── */}
+      {/*  VIEW USER DETAILS MODAL                                                  */}
+
       <Modal visible={!!viewUserModal} animationType="fade" transparent>
         <TouchableWithoutFeedback onPress={() => setViewUserModal(null)}>
           <View style={styles.modalOverlay}>
@@ -1164,9 +955,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* ────────────────────────────────────────────────────────────────────────── */}
-      {/* ✏️ EDIT USER MODAL (MOBILE RESPONSIVE + DYNAMIC ACTIVATE / DEACTIVATE)       */}
-      {/* ────────────────────────────────────────────────────────────────────────── */}
+      {/*  EDIT USER MODAL (MOBILE RESPONSIVE + DYNAMIC ACTIVATE / DEACTIVATE)       */}
       <Modal visible={!!editUserModal} animationType="fade" transparent>
         <TouchableWithoutFeedback onPress={() => setEditUserModal(null)}>
           <View style={styles.modalOverlay}>
@@ -1390,7 +1179,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                       <Text style={styles.modalSecondaryBtnText}>Cancel</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.tealSaveBtn} onPress={handleSaveEdit}>
+                    <TouchableOpacity style={styles.tealSaveBtn} onPress={handleSaveEdit} disabled={isRefreshing}>
                       <Text style={styles.tealSaveBtnText}>Update User</Text>
                     </TouchableOpacity>
                   </View>
@@ -1401,9 +1190,8 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* ────────────────────────────────────────────────────────────────────────── */}
-      {/* 🔒 RESET PASSWORD MODAL (EXACT MATCH TO UPLOADED SCREENSHOT)               */}
-      {/* ────────────────────────────────────────────────────────────────────────── */}
+      {/*  RESET PASSWORD MODAL (EXACT MATCH TO UPLOADED SCREENSHOT)               */}
+
       <Modal visible={!!resetPasswordModalUser} animationType="fade" transparent>
         <TouchableWithoutFeedback onPress={() => setResetPasswordModalUser(null)}>
           <View style={styles.modalOverlay}>
@@ -1505,9 +1293,8 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* ────────────────────────────────────────────────────────────────────────── */}
-      {/* ➕ CREATE USER MODAL                                                       */}
-      {/* ────────────────────────────────────────────────────────────────────────── */}
+      {/*  CREATE USER MODAL                                                       */}
+      
       <Modal visible={createUserModalOpen} animationType="fade" transparent>
         <TouchableWithoutFeedback onPress={() => setCreateUserModalOpen(false)}>
           <View style={styles.modalOverlay}>
@@ -1608,7 +1395,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                     <Text style={styles.modalSecondaryBtnText}>Cancel</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.tealSaveBtn} onPress={handleCreateUser}>
+                  <TouchableOpacity style={styles.tealSaveBtn} onPress={handleCreateUser} disabled={isRefreshing}>
                     <Text style={styles.tealSaveBtnText}>Create User</Text>
                   </TouchableOpacity>
                 </View>

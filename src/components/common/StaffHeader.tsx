@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Alert,
   Modal,
   Platform,
   ScrollView,
@@ -31,6 +32,8 @@ import {
   X,
 } from 'lucide-react-native';
 import { useAuthContext } from '../../context/AuthContext';
+import { useStaffHeaderData } from '../../hooks/useStaffHeaderData';
+import { dashboardNumber, displayAmount, displayDate } from '../../utils/dashboardValues';
 import { navigateStaffScreen } from '../../utils/navigationEvents';
 
 interface StaffHeaderProps {
@@ -40,20 +43,10 @@ interface StaffHeaderProps {
   onNavigate?: (path: string) => void;
 }
 
-interface NotificationItem {
-  id: string;
-  title: string;
-  message: string;
-  timestamp: string;
-  type: 'appointment' | 'user_update';
-  unread: boolean;
-}
-
 export const StaffHeader: React.FC<StaffHeaderProps> = ({
   onOpenDrawer,
-  onOpenNotifications = () => {},
-  title,
-  onNavigate = () => {},
+  onOpenNotifications,
+  onNavigate = navigateStaffScreen,
 }) => {
   const {
     user,
@@ -65,87 +58,47 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
   } = useAuthContext();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [switchingClinic, setSwitchingClinic] = useState(false);
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notificationsModalOpen, setNotificationsModalOpen] = useState(false);
-  const [videoCallingEnabled, setVideoCallingEnabled] = useState(true);
-
-  // Sample Notifications list matching user screenshot
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: '1',
-      title: 'Appointment',
-      message: "abcdef's appointment with Dr. Harsha yadav has been scheduled successfully.",
-      timestamp: '9/16/2026, 11:37:05 AM',
-      type: 'appointment',
-      unread: true,
-    },
-    {
-      id: '2',
-      title: 'Appointment',
-      message: "Aman V's appointment with Dr. Abhijeet Patel has been scheduled successfully.",
-      timestamp: '9/11/2026, 8:34:17 AM',
-      type: 'appointment',
-      unread: true,
-    },
-    {
-      id: '3',
-      title: 'User Update',
-      message: "Aman V's Patient profile was updated successfully.",
-      timestamp: '9/11/2026, 8:31:51 AM',
-      type: 'user_update',
-      unread: true,
-    },
-    {
-      id: '4',
-      title: 'Appointment',
-      message: "Aman's appointment with Dr. Dr. Rahul Sharma has been cancelled.",
-      timestamp: '9/11/2026, 8:31:17 AM',
-      type: 'appointment',
-      unread: true,
-    },
-  ]);
-
-  const unreadCount = notifications.filter((n) => n.unread).length;
+  const {
+    notifications: inbox, unreadCount, notificationsLoading, notificationsError, notificationBusy,
+    refreshNotifications, markAllRead: handleMarkAllAsRead, clearAll: handleClearAllNotifications,
+    plan, planLoading, planError, retryPlan,
+    canManageVideoCalling, videoCallingEnabled, videoBusy, toggleVideo: handleToggleVideoCalling,
+  } = useStaffHeaderData(notificationsModalOpen, planModalOpen, profileMenuOpen);
+  const notifications = inbox.map(item => ({
+    id: item.not_rec_id,
+    title: item.title || item.not_cat_name || 'Notification',
+    message: item.message,
+    timestamp: displayDate(item.sent_at || item.created_at),
+    type: item.entity_type,
+    unread: Number(item.is_read) !== 1,
+  }));
 
   const statusBarHeight = StatusBar.currentHeight || 36;
-  const staffName = user?.fullName || (user as any)?.full_name || 'Dr. Rahul Sharma';
+  const staffName = user?.fullName || user?.full_name || 'Account';
   const staffInitials = staffName
     .split(' ')
     .map((n: string) => n[0])
     .join('')
     .substring(0, 2)
-    .toUpperCase() || 'DR';
+    .toUpperCase();
 
-  // Fallback clinics if assignedClinics is empty
-  const defaultClinics = [
-    { id: 1, name: 'Aarogya Care Clinic' },
-    { id: 2, name: 'City Healthcare Center' },
-    { id: 3, name: 'Max Care Superspecialty' },
-  ];
-
-  const clinicsList = assignedClinics.length > 0 ? assignedClinics : defaultClinics;
-  const currentClinicId = Number(activeClinicId || 1);
+  const clinicsList = assignedClinics;
+  const currentClinicId = activeClinicId;
   const selectedClinicName =
-    clinicsList.find((c) => Number(c.id) === currentClinicId)?.name ||
-    activeClinicName ||
-    'Aarogya Care Clinic';
+    clinicsList.find(c => Number(c.id) === Number(currentClinicId))?.name ||
+    activeClinicName || 'Clinic unavailable';
 
   const handleSelectClinic = async (clinicId: number) => {
-    setDropdownOpen(false);
-    await switchClinic(clinicId);
-  };
-
-  const handleToggleVideoCalling = (val: boolean) => {
-    setVideoCallingEnabled(val);
-  };
-
-  const handleMarkAllAsRead = () => {
-    setNotifications((prev) => prev.map((item) => ({ ...item, unread: false })));
-  };
-
-  const handleClearAllNotifications = () => {
-    setNotifications([]);
+    if (switchingClinic) return;
+    setSwitchingClinic(true);
+    const success = await switchClinic(clinicId);
+    setSwitchingClinic(false);
+    if (success) setDropdownOpen(false);
+    else Alert.alert('Clinic switch failed', 'Your current clinic is unchanged. Please retry.');
   };
 
   return (
@@ -179,11 +132,10 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               setDropdownOpen(false);
               setProfileMenuOpen(false);
               setNotificationsModalOpen(true);
-              onOpenNotifications();
             }}
             activeOpacity={0.8}>
             <Bell size={17} color="#334155" />
-            {unreadCount > 0 && (
+            {(unreadCount ?? 0) > 0 && (
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeText}>{unreadCount}</Text>
               </View>
@@ -228,26 +180,18 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
 
           <View style={styles.menuDivider} />
 
-          {/* Video Calling Switch */}
-          <View style={styles.profileMenuItemRow}>
-            <View style={styles.menuItemLeft}>
-              <Video size={18} color="#0D9488" />
-              <View>
-                <Text style={styles.menuItemTitle}>Video Calling</Text>
-                <Text style={styles.menuItemSub}>
-                  {videoCallingEnabled ? 'Enabled' : 'Disabled'}
-                </Text>
+          {canManageVideoCalling && (
+            <View style={styles.profileMenuItemRow}>
+              <View style={styles.menuItemLeft}>
+                <Video size={18} color="#0D9488" />
+                <View>
+                  <Text style={styles.menuItemTitle}>Video Calling</Text>
+                  <Text style={styles.menuItemSub}>{videoCallingEnabled ? 'Enabled' : 'Disabled'}</Text>
+                </View>
               </View>
+              <Switch value={videoCallingEnabled} disabled={videoBusy} onValueChange={handleToggleVideoCalling} />
             </View>
-            <Switch
-              value={videoCallingEnabled}
-              onValueChange={handleToggleVideoCalling}
-              trackColor={{ false: '#E2E8F0', true: '#99F6E4' }}
-              thumbColor={videoCallingEnabled ? '#0D9488' : '#CBD5E1'}
-            />
-          </View>
-
-          <View style={styles.menuDivider} />
+          )}
 
           {/* My Profile */}
           <TouchableOpacity
@@ -325,7 +269,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               <View style={styles.notifHeaderLeft}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={styles.notifTitle}>Notifications</Text>
-                  {unreadCount > 0 && (
+                  {(unreadCount ?? 0) > 0 && (
                     <View style={styles.notifCountPill}>
                       <Text style={styles.notifCountText}>{unreadCount} new</Text>
                     </View>
@@ -338,6 +282,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               <View style={styles.notifHeaderActions}>
                 <TouchableOpacity
                   onPress={handleMarkAllAsRead}
+                  disabled={notificationBusy || notificationsLoading}
                   activeOpacity={0.7}
                   style={styles.notifActionBtn}>
                   <CheckCheck size={18} color="#475569" />
@@ -345,6 +290,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
 
                 <TouchableOpacity
                   onPress={handleClearAllNotifications}
+                  disabled={notificationBusy || notificationsLoading}
                   activeOpacity={0.7}
                   style={styles.notifActionBtn}>
                   <Trash2 size={18} color="#475569" />
@@ -366,7 +312,13 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               scrollEventThrottle={16}
               decelerationRate="normal"
               style={{ maxHeight: 360, marginTop: 12 }}>
-              {notifications.length === 0 ? (
+              {notificationsLoading ? (
+                <Text style={styles.emptyNotifText}>Loading notifications...</Text>
+              ) : notificationsError ? (
+                <TouchableOpacity onPress={refreshNotifications}>
+                  <Text style={styles.emptyNotifText}>Unable to load notifications. Tap to retry.</Text>
+                </TouchableOpacity>
+              ) : notifications.length === 0 ? (
                 <View style={styles.emptyNotifBox}>
                   <Text style={styles.emptyNotifText}>No new notifications</Text>
                 </View>
@@ -401,7 +353,8 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               style={styles.notifFooterBtn}
               onPress={() => {
                 setNotificationsModalOpen(false);
-                onNavigate('/notifications');
+                if (onOpenNotifications) onOpenNotifications();
+                else onNavigate('/notifications');
               }}
               activeOpacity={0.8}>
               <Text style={styles.notifFooterText}>View all notifications</Text>
@@ -443,11 +396,13 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
         {/* Expandable Inline Dropdown List */}
         {dropdownOpen && (
           <View style={styles.dropdownExpandCard}>
+            {clinicsList.length === 0 && <Text style={styles.dropdownItemText}>No clinics available</Text>}
             {clinicsList.map((clinic) => {
               const isSelected = Number(clinic.id) === currentClinicId;
               return (
                 <TouchableOpacity
                   key={clinic.id}
+                  disabled={switchingClinic}
                   style={[styles.dropdownItemRow, isSelected && styles.dropdownItemRowSelected]}
                   onPress={() => handleSelectClinic(Number(clinic.id))}>
                   <View style={styles.itemRowLeft}>
@@ -483,14 +438,23 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                 {selectedClinicName} plan and billing information.
               </Text>
 
+              {planLoading ? (
+                <Text style={styles.planSubLabel}>Loading plan details...</Text>
+              ) : planError ? (
+                <TouchableOpacity onPress={retryPlan}>
+                  <Text style={styles.planSubLabel}>Unable to load plan. Tap to retry.</Text>
+                </TouchableOpacity>
+              ) : !plan?.plan_name ? (
+                <Text style={styles.planSubLabel}>No subscription plan assigned.</Text>
+              ) : (<>
               <View style={styles.activePlanCard}>
                 <View style={styles.planCardHeaderRow}>
-                  <Text style={styles.planNameText}>Free</Text>
+                  <Text style={styles.planNameText}>{plan.plan_name}</Text>
                   <View style={styles.activePillTag}>
-                    <Text style={styles.activePillText}>active</Text>
+                    <Text style={styles.activePillText}>{plan.plan_status || '—'}</Text>
                   </View>
                 </View>
-                <Text style={styles.planSubLabel}>Single clinic plan</Text>
+                <Text style={styles.planSubLabel}>{plan.plan_type ? plan.plan_type + ' clinic plan' : 'Clinic subscription'}</Text>
               </View>
 
               {/* Subscription Details Container Box (2 Cards Per Row Layout) */}
@@ -499,31 +463,31 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                   {/* 1. Billing Cycle */}
                   <View style={styles.detailItemHalf}>
                     <Text style={styles.detailLabel}>Billing Cycle</Text>
-                    <Text style={styles.detailValue}>Monthly</Text>
+                    <Text style={styles.detailValue}>{plan.billing_cycle || '—'}</Text>
                   </View>
 
                   {/* 2. Plan Price */}
                   <View style={styles.detailItemHalf}>
                     <Text style={styles.detailLabel}>Plan Price</Text>
-                    <Text style={styles.detailValue}>₹0</Text>
+                    <Text style={styles.detailValue}>{displayAmount(dashboardNumber(plan.plan_price))}</Text>
                   </View>
 
                   {/* 3. Plan Start Date */}
                   <View style={styles.detailItemHalf}>
                     <Text style={styles.detailLabel}>Plan Start Date</Text>
-                    <Text style={styles.detailValue}>14 Sept 2026</Text>
+                    <Text style={styles.detailValue}>{displayDate(plan.plan_started_at)}</Text>
                   </View>
 
                   {/* 4. Plan End Date */}
                   <View style={styles.detailItemHalf}>
                     <Text style={styles.detailLabel}>Plan End Date</Text>
-                    <Text style={styles.detailValue}>14 Oct 2026</Text>
+                    <Text style={styles.detailValue}>{displayDate(plan.plan_ends_at)}</Text>
                   </View>
 
                   {/* 5. Renewal */}
                   <View style={styles.detailItemHalf}>
                     <Text style={styles.detailLabel}>Renewal</Text>
-                    <Text style={styles.detailValue}>Monthly</Text>
+                    <Text style={styles.detailValue}>{plan.billing_cycle || '—'}</Text>
                   </View>
                 </View>
               </View>
@@ -535,6 +499,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                   Plan dates are based on the active clinic subscription.
                 </Text>
               </View>
+              </>)}
             </ScrollView>
           </View>
         </View>

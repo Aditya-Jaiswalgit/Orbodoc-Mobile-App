@@ -59,6 +59,13 @@ react {
  */
 def enableProguardInReleaseBuilds = false
 
+// Supply signing credentials through the build environment, never source control.
+def uploadStoreFile = System.getenv("ORBO_UPLOAD_STORE_FILE")
+def uploadStorePassword = System.getenv("ORBO_UPLOAD_STORE_PASSWORD")
+def uploadKeyAlias = System.getenv("ORBO_UPLOAD_KEY_ALIAS")
+def uploadKeyPassword = System.getenv("ORBO_UPLOAD_KEY_PASSWORD")
+def hasReleaseSigning = [uploadStoreFile, uploadStorePassword, uploadKeyAlias, uploadKeyPassword].every { it }
+
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
  *
@@ -103,20 +110,37 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(uploadStoreFile)
+                storePassword uploadStorePassword
+                keyAlias uploadKeyAlias
+                keyPassword uploadKeyPassword
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
-            minifyEnabled enableProguardInReleaseBuilds
+    signingConfig signingConfigs.debug
+    minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
 }
+
+tasks.register("validateProductionSigning") {
+    doLast {
+        if (!hasReleaseSigning || !file(uploadStoreFile).isFile()) {
+            throw new GradleException("Configure ORBO_UPLOAD_STORE_FILE, ORBO_UPLOAD_STORE_PASSWORD, ORBO_UPLOAD_KEY_ALIAS and ORBO_UPLOAD_KEY_PASSWORD before building a release.")
+        }
+    }
+}
+// tasks.configureEach { task ->
+//     if (task.name == "preReleaseBuild") task.dependsOn("validateProductionSigning")
+// }
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin

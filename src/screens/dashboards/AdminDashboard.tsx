@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -21,12 +22,8 @@ import {
 import Svg, { Circle, G } from 'react-native-svg';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { useAuthContext } from '../../context/AuthContext';
-import {
-  getAppointmentChartApi,
-  getDashboardKpiApi,
-  getRevenueChartApi,
-  getSuperAdminDashboardApi,
-} from '../../api/dashboardApi';
+import { displayAmount } from '../../utils/dashboardValues';
+import { useClinicDashboard } from '../../hooks/useClinicDashboard';
 
 interface AdminDashboardProps {
   onNavigate?: (path: string) => void;
@@ -34,149 +31,43 @@ interface AdminDashboardProps {
   onOpenNotifications?: () => void;
 }
 
-interface BarItemData {
-  date: string;
-  approved: number;
-  completed: number;
-  cancelled: number;
-  height: number;
-  color: string;
-}
-
-const DEFAULT_BAR_DATA: BarItemData[] = [
-  { date: '11 Sept', approved: 1, completed: 0, cancelled: 0, height: 40, color: '#0EA5E9' },
-  { date: '15 Sept', approved: 0, completed: 1, cancelled: 0, height: 40, color: '#10B981' },
-  { date: '18 Sept', approved: 0, completed: 1, cancelled: 0, height: 40, color: '#10B981' },
-  { date: '24 Sept', approved: 0, completed: 0, cancelled: 1, height: 40, color: '#F43F5E' },
-];
-
 export function AdminDashboard({
   onNavigate = () => {},
   onOpenDrawer = () => {},
   onOpenNotifications = () => {},
 }: AdminDashboardProps) {
-  const { user, role, activeClinicId } = useAuthContext();
+  const { user, activeClinicId } = useAuthContext();
   const { width: screenWidth } = useWindowDimensions();
-  const [loading, setLoading] = useState(true);
-
-  const [kpiData, setKpiData] = useState({
-    appointmentsThisMonth: 4,
-    completedThisMonth: 2,
-    cancelledThisMonth: 1,
-    revenueThisMonth: 467.01,
-    activePatients: 16,
-    lowStockMedicines: 1,
-    pendingLabTests: 0,
-    walletBalance: 600.06,
-    treatmentRevenue: 200.02,
-    medicineRevenue: 266.99,
-  });
-
-  const [barData, setBarData] = useState<BarItemData[]>(DEFAULT_BAR_DATA);
-
-  // Interactive Tooltip States
+  const { values: kpiData, appointments: monthlyAppointments, loading, error: dashboardError, refresh } = useClinicDashboard();
+  const barData = monthlyAppointments?.daily || [];
   const [activeBarIdx, setActiveBarIdx] = useState<number | null>(null);
   const [activeDonutSegment, setActiveDonutSegment] = useState<'treatment' | 'medicine' | null>(null);
-
-  const currentClinicId = Number(activeClinicId || 1);
-  const staffName = user?.fullName || (user as any)?.full_name || 'Dr. Rahul Sharma';
-
+  const staffName = user?.fullName || user?.full_name || '';
   useEffect(() => {
-    let isMounted = true;
-    async function loadDashboard() {
-      try {
-        setLoading(true);
-        if (role === 'super_admin') {
-          const superRes = await getSuperAdminDashboardApi();
-          if (isMounted && superRes.success && superRes.data) {
-            const stats = (superRes.data as any).stats || superRes.data;
-            setKpiData((prev) => ({
-              ...prev,
-              appointmentsThisMonth: stats.active_staff || prev.appointmentsThisMonth,
-              activePatients: stats.active_patients || prev.activePatients,
-              revenueThisMonth: (stats.treatment_revenue || 0) + (stats.medicine_revenue || 0) || prev.revenueThisMonth,
-              treatmentRevenue: stats.treatment_revenue || prev.treatmentRevenue,
-              medicineRevenue: stats.medicine_revenue || prev.medicineRevenue,
-            }));
-          }
-        }
+    setActiveBarIdx(null);
+    setActiveDonutSegment(null);
+  }, [activeClinicId, monthlyAppointments]);
 
-        const [kpiRes, chartRes, revRes] = await Promise.all([
-          getDashboardKpiApi(currentClinicId),
-          getAppointmentChartApi(currentClinicId),
-          getRevenueChartApi(currentClinicId, 1),
-        ]);
+  const currentKpi = {
+    revenueThisMonth: kpiData.revenueThisMonth ?? null,
+    treatmentRevenue: kpiData.treatmentRevenue ?? null,
+    medicineRevenue: kpiData.medicineRevenue ?? null,
+    activePatients: kpiData.activePatients ?? null,
+    lowStockMedicines: kpiData.lowStockMedicines ?? null,
+    pendingLabTests: kpiData.pendingLabTests ?? null,
+    walletBalance: kpiData.walletBalance ?? null,
+  };
+  const now = new Date();
+  const monthLabel = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const todayLabel = now.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' });
+  const formatChartDate = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  const chartMax = Math.max(4, ...barData.map(bar => bar.approved + bar.completed + bar.cancelled));
+  const chartStep = Math.ceil(chartMax / 4);
+  const chartScale = chartStep * 4;
 
-        if (isMounted) {
-          if (kpiRes.success && kpiRes.data) {
-            const stats = (kpiRes.data as any).stats || kpiRes.data;
-            setKpiData((prev) => ({
-              ...prev,
-              appointmentsThisMonth: stats.appointments_today ?? stats.appointmentsThisMonth ?? prev.appointmentsThisMonth,
-              completedThisMonth: stats.completed_today ?? stats.completedThisMonth ?? prev.completedThisMonth,
-              cancelledThisMonth: stats.cancelled_today ?? stats.cancelledThisMonth ?? prev.cancelledThisMonth,
-              revenueThisMonth: (stats.treatment_revenue_today || 0) + (stats.medicine_revenue_today || 0) || stats.revenueThisMonth || prev.revenueThisMonth,
-              activePatients: stats.total_active_patients ?? stats.activePatients ?? prev.activePatients,
-              lowStockMedicines: stats.low_stock_medicines ?? stats.lowStockMedicines ?? prev.lowStockMedicines,
-              pendingLabTests: stats.pending_lab_tests ?? stats.pendingLabTests ?? prev.pendingLabTests,
-              treatmentRevenue: stats.treatment_revenue_today ?? prev.treatmentRevenue,
-              medicineRevenue: stats.medicine_revenue_today ?? prev.medicineRevenue,
-            }));
-          }
+  const formatCurrency = displayAmount;
 
-          if (chartRes.success && chartRes.data) {
-            const rawChart = chartRes.data.appointmentStats || (Array.isArray(chartRes.data) ? chartRes.data : []);
-            if (rawChart.length > 0) {
-              const formattedBars: BarItemData[] = rawChart.map((c: any) => ({
-                date: c.appointment_date || c.date || 'Today',
-                approved: c.status === 'approved' ? c.count : 0,
-                completed: c.status === 'completed' ? c.count : 0,
-                cancelled: c.status === 'cancelled' ? c.count : 0,
-                height: Math.min(80, Math.max(20, (c.count || 1) * 10)),
-                color: c.status === 'completed' ? '#10B981' : c.status === 'cancelled' ? '#F43F5E' : '#0EA5E9',
-              }));
-              setBarData(formattedBars);
-            }
-          }
-
-          if (revRes.success && revRes.data) {
-            const revList = revRes.data.revenue || (Array.isArray(revRes.data) ? revRes.data : []);
-            if (revList.length > 0) {
-              let treat = 0;
-              let med = 0;
-              revList.forEach((r: any) => {
-                if (r.type === 'treatment') treat += Number(r.revenue || r.collected || 0);
-                if (r.type === 'medicine') med += Number(r.revenue || r.collected || 0);
-              });
-              if (treat > 0 || med > 0) {
-                setKpiData((prev) => ({
-                  ...prev,
-                  treatmentRevenue: treat,
-                  medicineRevenue: med,
-                  revenueThisMonth: treat + med,
-                }));
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.log('Dashboard API loaded with fallback data.');
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-
-    loadDashboard();
-    return () => {
-      isMounted = false;
-    };
-  }, [currentClinicId, role]);
-
-  const currentKpi = kpiData;
-
-  const formatCurrency = (val: number) => `₹${val.toFixed(2)}`;
-
-  if (loading) {
+  if (loading && !monthlyAppointments && Object.keys(kpiData).length === 0) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#0D9488" />
@@ -197,8 +88,8 @@ export function AdminDashboard({
     : 15;
 
   // Calculate SVG Donut parameters
-  const totalRev = currentKpi.treatmentRevenue + currentKpi.medicineRevenue;
-  const treatRatio = totalRev > 0 ? currentKpi.treatmentRevenue / totalRev : 0.5;
+  const totalRev = (currentKpi.treatmentRevenue ?? 0) + (currentKpi.medicineRevenue ?? 0);
+  const treatRatio = totalRev > 0 ? (currentKpi.treatmentRevenue ?? 0) / totalRev : 0;
   const size = 180;
   const strokeWidth = 26;
   const center = size / 2;
@@ -214,10 +105,11 @@ export function AdminDashboard({
         onNavigate={onNavigate}
       />
 
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}>
         {/* ── 2. GREETING & TODAY CARD ── */}
         <View style={styles.greetingSection}>
-          <Text style={styles.greetingTitle}>Good evening, {staffName}!</Text>
+          <Text style={styles.greetingTitle}>{now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening'}{staffName ? ', ' + staffName : ''}!</Text>
           <Text style={styles.greetingSubtitle}>Here's what's happening at your clinic today.</Text>
 
           {/* Today Date Card */}
@@ -230,7 +122,7 @@ export function AdminDashboard({
                 <View style={styles.greenDot} />
                 <Text style={styles.todayBadgeText}>TODAY</Text>
               </View>
-              <Text style={styles.todayDateText}>Saturday, September 19</Text>
+              <Text style={styles.todayDateText}>{todayLabel}</Text>
             </View>
           </View>
         </View>
@@ -238,8 +130,17 @@ export function AdminDashboard({
         {/* ── 3. MONTHLY PERFORMANCE (2 CARDS PER ROW GRID) ── */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Monthly Performance</Text>
-          <Text style={styles.sectionSubtitle}>Month-to-date results for September 2026</Text>
+          <Text style={styles.sectionSubtitle}>Monthly results for {monthLabel}</Text>
         </View>
+
+        {dashboardError && (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionSubtitle}>Some dashboard data could not be loaded. Please retry.</Text>
+            <TouchableOpacity onPress={refresh}>
+              <Text style={styles.kpiActionLink}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={styles.kpiGrid}>
           {/* Card 1: Appointments This Month */}
@@ -247,7 +148,7 @@ export function AdminDashboard({
             <View style={[styles.kpiIconBox, { backgroundColor: '#E6FFFA' }]}>
               <Calendar size={22} color="#0D9488" />
             </View>
-            <Text style={styles.kpiCardValue}>{currentKpi.appointmentsThisMonth}</Text>
+            <Text style={styles.kpiCardValue}>{monthlyAppointments?.appointments ?? '—'}</Text>
             <Text style={styles.kpiCardLabel} numberOfLines={2}>Appointments This Month</Text>
             <TouchableOpacity onPress={() => onNavigate('/appointments')} style={{ marginTop: 6 }}>
               <Text style={styles.kpiActionLink}>View details ↗</Text>
@@ -259,7 +160,7 @@ export function AdminDashboard({
             <View style={[styles.kpiIconBox, { backgroundColor: '#DCFCE7' }]}>
               <CalendarCheck size={22} color="#16A34A" />
             </View>
-            <Text style={styles.kpiCardValue}>{currentKpi.completedThisMonth}</Text>
+            <Text style={styles.kpiCardValue}>{monthlyAppointments?.completed ?? '—'}</Text>
             <Text style={styles.kpiCardLabel} numberOfLines={2}>Completed This Month</Text>
             <TouchableOpacity onPress={() => onNavigate('/appointments')} style={{ marginTop: 6 }}>
               <Text style={styles.kpiActionLink}>View details ↗</Text>
@@ -271,7 +172,7 @@ export function AdminDashboard({
             <View style={[styles.kpiIconBox, { backgroundColor: '#FEE2E2' }]}>
               <CalendarX size={22} color="#EF4444" />
             </View>
-            <Text style={styles.kpiCardValue}>{currentKpi.cancelledThisMonth}</Text>
+            <Text style={styles.kpiCardValue}>{monthlyAppointments?.cancelled ?? '—'}</Text>
             <Text style={styles.kpiCardLabel} numberOfLines={2}>Cancelled This Month</Text>
             <TouchableOpacity onPress={() => onNavigate('/appointments')} style={{ marginTop: 6 }}>
               <Text style={styles.kpiActionLink}>View details ↗</Text>
@@ -285,7 +186,7 @@ export function AdminDashboard({
             </View>
             <Text style={styles.kpiCardValueSmall}>{formatCurrency(currentKpi.revenueThisMonth)}</Text>
             <Text style={styles.kpiCardLabel} numberOfLines={2}>Revenue This Month</Text>
-            <TouchableOpacity onPress={() => onNavigate('/wallet')} style={{ marginTop: 6 }}>
+            <TouchableOpacity onPress={() => onNavigate('/billing/treatment')} style={{ marginTop: 6 }}>
               <Text style={styles.kpiActionLink}>View details ↗</Text>
             </TouchableOpacity>
           </View>
@@ -306,7 +207,7 @@ export function AdminDashboard({
               <View style={[styles.opSquareIcon, { backgroundColor: '#E6FFFA' }]}>
                 <Users size={22} color="#0D9488" />
               </View>
-              <Text style={styles.opBigNumber}>{currentKpi.activePatients}</Text>
+              <Text style={styles.opBigNumber}>{currentKpi.activePatients ?? '—'}</Text>
               <Text style={styles.opTileLabel}>Active Patients</Text>
             </TouchableOpacity>
 
@@ -315,7 +216,7 @@ export function AdminDashboard({
               <View style={[styles.opSquareIcon, { backgroundColor: '#DCFCE7' }]}>
                 <Pill size={22} color="#16A34A" />
               </View>
-              <Text style={styles.opBigNumber}>{currentKpi.lowStockMedicines}</Text>
+              <Text style={styles.opBigNumber}>{currentKpi.lowStockMedicines ?? '—'}</Text>
               <Text style={styles.opTileLabel}>Low Stock Medicines</Text>
             </TouchableOpacity>
 
@@ -324,7 +225,7 @@ export function AdminDashboard({
               <View style={[styles.opSquareIcon, { backgroundColor: '#FEF3C7' }]}>
                 <TestTube size={22} color="#D97706" />
               </View>
-              <Text style={styles.opBigNumber}>{currentKpi.pendingLabTests}</Text>
+              <Text style={styles.opBigNumber}>{currentKpi.pendingLabTests ?? '—'}</Text>
               <Text style={styles.opTileLabel}>Pending Lab Tests</Text>
             </TouchableOpacity>
 
@@ -342,6 +243,9 @@ export function AdminDashboard({
         {/* ── 5. DAILY APPOINTMENT STATUS BAR CHART (RESPONSIVE & MODERN HOVER TOOLTIP) ── */}
         <View style={styles.chartCard}>
           <Text style={styles.chartCardTitle}>Daily Appointment Status This Month</Text>
+          {monthlyAppointments && barData.length === 0 && (
+            <Text style={styles.sectionSubtitle}>No appointments this month.</Text>
+          )}
 
           {/* Legend */}
           <View style={styles.legendRow}>
@@ -363,7 +267,7 @@ export function AdminDashboard({
           <View style={styles.barGridArea}>
             {[4, 3, 2, 1, 0].map((num) => (
               <View key={num} style={styles.gridLineRow}>
-                <Text style={styles.yAxisNum}>{num}</Text>
+                <Text style={styles.yAxisNum}>{num * chartStep}</Text>
                 <View style={styles.gridLine} />
               </View>
             ))}
@@ -371,7 +275,7 @@ export function AdminDashboard({
             {/* Interactive Floating Tooltip Card */}
             {activeBarIdx !== null && barData[activeBarIdx] && (
               <View style={[styles.barTooltipCard, { left: tooltipLeftPos }]}>
-                <Text style={styles.tooltipHeaderDate}>{barData[activeBarIdx].date}</Text>
+                <Text style={styles.tooltipHeaderDate}>{formatChartDate(barData[activeBarIdx].date)}</Text>
 
                 <View style={styles.tooltipRow}>
                   <View style={[styles.tooltipSquareDot, { backgroundColor: '#0EA5E9' }]} />
@@ -401,21 +305,19 @@ export function AdminDashboard({
                 const isSelected = activeBarIdx === idx;
                 return (
                   <TouchableOpacity
-                    key={idx}
+                    key={bar.date}
                     style={styles.barCol}
                     activeOpacity={0.8}
                     onPress={() => setActiveBarIdx((prev) => (prev === idx ? null : idx))}>
                     <View style={styles.barContainer}>
-                      <View
-                        style={[
-                          styles.barVisual,
-                          { height: bar.height, backgroundColor: bar.color },
-                          isSelected && styles.barVisualActive,
-                        ]}
-                      />
+                      <View style={[styles.barVisual, isSelected && styles.barVisualActive]}>
+                        <View style={{ height: bar.cancelled / chartScale * 112, backgroundColor: '#F43F5E' }} />
+                        <View style={{ height: bar.completed / chartScale * 112, backgroundColor: '#10B981' }} />
+                        <View style={{ height: bar.approved / chartScale * 112, backgroundColor: '#0EA5E9' }} />
+                      </View>
                     </View>
                     <Text style={[styles.xAxisText, isSelected && styles.xAxisTextActive]}>
-                      {bar.date}
+                      {formatChartDate(bar.date)}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -427,6 +329,11 @@ export function AdminDashboard({
         {/* ── 6. MONTHLY REVENUE MIX DONUT CHART (RESPONSIVE & MODERN HOVER TOOLTIP) ── */}
         <View style={styles.chartCard}>
           <Text style={styles.chartCardTitle}>Monthly Revenue Mix</Text>
+          {totalRev === 0 && (
+            <Text style={styles.sectionSubtitle}>
+              {currentKpi.revenueThisMonth === null ? 'Revenue data unavailable.' : 'No revenue this month.'}
+            </Text>
+          )}
 
           <View style={styles.donutAreaWrapper}>
             {/* Interactive Floating Donut Tooltip Card */}
@@ -445,8 +352,8 @@ export function AdminDashboard({
                   </Text>
                   <Text style={styles.tooltipVal}>
                     {activeDonutSegment === 'treatment'
-                      ? currentKpi.treatmentRevenue.toFixed(2)
-                      : currentKpi.medicineRevenue.toFixed(2)}
+                      ? displayAmount(currentKpi.treatmentRevenue)
+                      : displayAmount(currentKpi.medicineRevenue)}
                   </Text>
                 </View>
                 <View style={styles.tooltipPointerArrowLeft} />
@@ -468,12 +375,12 @@ export function AdminDashboard({
                     cx={center}
                     cy={center}
                     r={radius}
-                    stroke="#10B981"
+                    stroke={totalRev > 0 ? '#10B981' : '#E2E8F0'}
                     strokeWidth={activeDonutSegment === 'medicine' ? strokeWidth + 4 : strokeWidth}
                     fill="transparent"
                   />
                   {/* Treatment Segment - Teal */}
-                  <Circle
+                  {treatRatio > 0 && <Circle
                     cx={center}
                     cy={center}
                     r={radius}
@@ -482,7 +389,7 @@ export function AdminDashboard({
                     fill="transparent"
                     strokeDasharray={`${circumference * treatRatio} ${circumference}`}
                     strokeLinecap="round"
-                  />
+                  />}
                 </G>
               </Svg>
             </TouchableOpacity>
@@ -501,7 +408,7 @@ export function AdminDashboard({
                 <View style={[styles.legendDot, { backgroundColor: '#0D9488' }]} />
                 <Text style={styles.revenueRowLabel}>Treatment</Text>
               </View>
-              <Text style={styles.revenueRowVal}>{currentKpi.treatmentRevenue.toFixed(2)}</Text>
+              <Text style={styles.revenueRowVal}>{displayAmount(currentKpi.treatmentRevenue)}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -515,7 +422,7 @@ export function AdminDashboard({
                 <View style={[styles.legendDot, { backgroundColor: '#10B981' }]} />
                 <Text style={styles.revenueRowLabel}>Medicine</Text>
               </View>
-              <Text style={styles.revenueRowVal}>{currentKpi.medicineRevenue.toFixed(2)}</Text>
+              <Text style={styles.revenueRowVal}>{displayAmount(currentKpi.medicineRevenue)}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -652,10 +559,10 @@ const styles = StyleSheet.create({
   gridLineRow: { flexDirection: 'row', alignItems: 'center', height: 28 },
   yAxisNum: { width: 16, fontSize: 11, color: '#94A3B8', textAlign: 'right', marginRight: 8 },
   gridLine: { flex: 1, height: 1, backgroundColor: '#F1F5F9' },
-  barsRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 110, marginTop: -140, paddingLeft: 24 },
-  barCol: { alignItems: 'center', paddingHorizontal: 10 },
-  barContainer: { height: 80, justifyContent: 'flex-end' },
-  barVisual: { width: 18, borderRadius: 9 },
+  barsRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', marginTop: -126, paddingLeft: 24 },
+  barCol: { alignItems: 'center', flex: 1 },
+  barContainer: { height: 112, justifyContent: 'flex-end' },
+  barVisual: { width: 18, borderRadius: 4, overflow: 'hidden' },
   barVisualActive: { borderWidth: 2, borderColor: '#0F172A', transform: [{ scaleY: 1.05 }] },
   xAxisText: { fontSize: 11, color: '#64748B', marginTop: 8, fontWeight: '600' },
   xAxisTextActive: { color: '#0F172A', fontWeight: '800' },

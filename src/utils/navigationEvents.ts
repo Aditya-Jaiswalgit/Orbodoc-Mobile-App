@@ -2,10 +2,17 @@
 type NavListener = (screen: string) => void;
 const listeners = new Set<NavListener>();
 
+export function resolveStaffScreen(path: string) {
+  const target = path.trim().replace(/^\//, '');
+  const aliases: Record<string, string> = {
+    'change-password': 'change_password', medicines: 'pharmacy_inventory',
+    'lab/tests': 'lab_management', 'billing/treatment': 'treatment_billing',
+  };
+  return aliases[target] || target;
+}
+
 export function navigateStaffScreen(screen: string) {
-  let target = screen.trim();
-  if (target.startsWith('/')) target = target.slice(1);
-  if (target === 'change-password') target = 'change_password';
+  const target = resolveStaffScreen(screen);
 
   listeners.forEach((listener) => {
     try {

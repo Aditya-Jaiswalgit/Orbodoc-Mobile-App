@@ -1,13 +1,13 @@
 import { apiFetch } from './apiConfig';
 import { ApiResponse } from '../types/auth';
-import { NotificationItem } from '../types/clinicTypes';
+import { InboxNotification } from './staffHeaderApi';
 
 /**
  * 1. Unread Notification Count
  * Route: GET /api/notifications/unread-count
  */
-export async function getUnreadCountApi(): Promise<ApiResponse<{ unreadCount: number }>> {
-  return apiFetch<{ unreadCount: number }>('/notifications/unread-count', {
+export async function getUnreadCountApi(): Promise<ApiResponse<{ count: number }>> {
+  return apiFetch<{ count: number }>('/notifications/unread-count', {
     method: 'GET',
   });
 }
@@ -18,8 +18,8 @@ export async function getUnreadCountApi(): Promise<ApiResponse<{ unreadCount: nu
  */
 export async function getInboxNotificationsApi(
   isRead: number = 0
-): Promise<ApiResponse<NotificationItem[]>> {
-  return apiFetch<NotificationItem[]>(`/notifications?is_read=${isRead}`, {
+): Promise<ApiResponse<{ data: InboxNotification[]; total: number }>> {
+  return apiFetch<{ data: InboxNotification[]; total: number }>(`/notifications?is_read=${isRead}`, {
     method: 'GET',
   });
 }
@@ -51,10 +51,13 @@ export async function markAllNotificationsReadApi(): Promise<ApiResponse<any>> {
  * Route: POST /api/notifications/broadcast
  */
 export async function broadcastNotificationApi(
-  payload: { title: string; message: string; target_role?: string }
+  payload: { title: string; message: string; not_cat_id: number; clinic_id: number; target: 'all' | 'staff' | 'patients' }
 ): Promise<ApiResponse<any>> {
   return apiFetch<any>('/notifications/broadcast', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
+
+export interface NotificationCategory { not_cat_id: number; not_cat_name: string }
+export const getNotificationCategoriesApi = () => apiFetch<{ categories: NotificationCategory[] }>('/notifications/categories');

@@ -1,155 +1,120 @@
-import React, { useState, useMemo } from 'react';
-import {
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { Pagination } from '../../components/common/Pagination';
-import { NotificationItem } from '../../types/clinicTypes';
+import { RequestState } from '../../components/common/RequestState';
+import { useAuthContext } from '../../context/AuthContext';
+import { useNotificationInbox } from '../../hooks/useNotificationInbox';
+import { useRemoteData } from '../../hooks/useRemoteData';
+import { broadcastNotificationApi, getNotificationCategoriesApi } from '../../api/notificationApi';
+import { displayDate } from '../../utils/dashboardValues';
 
-interface Props {
-  onOpenDrawer: () => void;
-}
-
+interface Props { onOpenDrawer: () => void }
 export const NotificationsCenterScreen: React.FC<Props> = ({ onOpenDrawer }) => {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    { id: 1, user_id: 1, title: 'New Appointment Booked', message: 'Patient Vikram Singh booked slot for 11:30 AM today.', type: 'appointment', is_read: false, created_at: '10 mins ago' },
-    { id: 2, user_id: 1, title: 'Low Stock Alert', message: 'Paracetamol 650mg is below reorder threshold (15 left).', type: 'system', is_read: false, created_at: '1 hour ago' },
-    { id: 3, user_id: 1, title: 'Lab Report Verified', message: 'Thyroid panel report for Pooja Gupta is ready.', type: 'lab', is_read: true, created_at: '2 hours ago' },
-  ]);
-
-  // Pagination State
+  const { activeClinicId, token, role } = useAuthContext();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
-  const totalPages = Math.max(1, Math.ceil(notifications.length / pageSize));
-  const paginatedNotifications = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return notifications.slice(start, start + pageSize);
-  }, [notifications, currentPage, pageSize]);
-
+  const inbox = useNotificationInbox(currentPage, pageSize);
   const [broadcastModalVisible, setBroadcastModalVisible] = useState(false);
   const [broadcastTitle, setBroadcastTitle] = useState('');
   const [broadcastMessage, setBroadcastMessage] = useState('');
-
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    Alert.alert('Notifications', 'All notifications marked as read.');
-  };
-
-  const toggleRead = (id: number) => {
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, is_read: !n.is_read } : n))
-    );
-  };
-
-  const handleBroadcast = () => {
-    if (!broadcastTitle.trim() || !broadcastMessage.trim()) {
-      Alert.alert('Validation Error', 'Title and Message are required.');
-      return;
-    }
-
-    const newNotif: NotificationItem = {
-      id: Date.now(),
-      user_id: 1,
-      title: broadcastTitle,
-      message: broadcastMessage,
-      type: 'broadcast',
-      is_read: false,
-      created_at: 'Just now',
-    };
-
-    setNotifications([newNotif, ...notifications]);
+  const [category, setCategory] = useState<number | null>(null);
+  const [target, setTarget] = useState<'all' | 'staff' | 'patients'>('all');
+  const canBroadcast = role === 'clinic_admin' || role === 'super_admin';
+  const categories = useRemoteData(String(token) + ':' + activeClinicId + ':notification-categories', async () => {
+    const response = await getNotificationCategoriesApi();
+    if (!response.success || !Array.isArray(response.data?.categories)) throw new Error('Categories unavailable');
+    return response.data.categories;
+  }, broadcastModalVisible && canBroadcast);
+  useEffect(() => {
+    setCurrentPage(1);
     setBroadcastModalVisible(false);
+    setCategory(null);
     setBroadcastTitle('');
     setBroadcastMessage('');
-    Alert.alert('Broadcast Sent', 'Notification broadcasted to all clinic users!');
-  };
+  }, [activeClinicId]);
+  useEffect(() => {
+    if (inbox.data && currentPage > Math.max(1, Math.ceil(inbox.total / pageSize))) setCurrentPage(1);
+  }, [inbox.data, inbox.total, currentPage, pageSize]);
 
+  const markRead = async (id?: number) => {
+    const ok = id === undefined ? await inbox.markAllRead() : await inbox.markRead(id);
+    if (!ok) Alert.alert('Unable to mark as read', 'Please try again.');
+  };
+  const handleBroadcast = async () => {
+    if (!broadcastTitle.trim() || !broadcastMessage.trim() || !category || !activeClinicId) {
+      Alert.alert('Missing details', 'Select a category and enter a title and message.');
+      return;
+    }
+    const ok = await inbox.mutate(() => broadcastNotificationApi({
+      title: broadcastTitle.trim(), message: broadcastMessage.trim(), not_cat_id: category,
+      clinic_id: activeClinicId, target,
+    }));
+    if (!ok) { Alert.alert('Broadcast failed', 'The server did not confirm sending. Please retry.'); return; }
+    setBroadcastModalVisible(false);
+    setBroadcastTitle(''); setBroadcastMessage(''); setCategory(null);
+    Alert.alert('Broadcast sent', 'The server confirmed your announcement.');
+  };
   return (
     <View style={styles.container}>
       <StaffHeader onOpenDrawer={onOpenDrawer} title="Notifications Center" />
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Actions Row */}
+      <ScrollView contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={inbox.loading} onRefresh={inbox.refresh} />}>
         <View style={styles.topRow}>
-          <TouchableOpacity style={styles.readAllBtn} onPress={markAllRead}>
-            <Text style={styles.readAllText}>✓ Mark All Read</Text>
+          <TouchableOpacity style={styles.readAllBtn} disabled={inbox.busy || inbox.loading || !inbox.unreadCount} onPress={() => markRead()}>
+            <Text style={styles.readAllText}>Mark All Read</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.broadcastBtn} onPress={() => setBroadcastModalVisible(true)}>
-            <Text style={styles.broadcastText}>📢 Broadcast Message</Text>
-          </TouchableOpacity>
+          {canBroadcast && <TouchableOpacity style={styles.broadcastBtn} onPress={() => setBroadcastModalVisible(true)}>
+            <Text style={styles.broadcastText}>Broadcast Message</Text>
+          </TouchableOpacity>}
         </View>
-
-        {/* Notifications List */}
+        <RequestState loading={inbox.loading && !inbox.data} error={inbox.error} onRetry={inbox.refresh}
+          empty={!inbox.loading && !inbox.error && inbox.total === 0 ? 'No notifications.' : undefined} />
         <View style={styles.list}>
-          {paginatedNotifications.map((n) => (
-            <TouchableOpacity
-              key={n.id}
-              style={[styles.card, !n.is_read && styles.unreadCard]}
-              onPress={() => toggleRead(n.id)}>
+          {inbox.notifications.map(item => (
+            <TouchableOpacity key={item.not_rec_id} disabled={inbox.busy || inbox.loading || Number(item.is_read) === 1}
+              style={[styles.card, Number(item.is_read) !== 1 && styles.unreadCard]} onPress={() => markRead(item.not_rec_id)}>
               <View style={styles.cardHeader}>
-                <View style={styles.typeBadge}>
-                  <Text style={styles.typeText}>{n.type.toUpperCase()}</Text>
-                </View>
-                <Text style={styles.timeText}>{n.created_at}</Text>
+                <Text style={styles.typeText}>{item.not_cat_name || 'Notification'}</Text>
+                <Text style={styles.timeText}>{displayDate(item.sent_at || item.created_at)}</Text>
               </View>
-
-              <Text style={styles.titleText}>{n.title}</Text>
-              <Text style={styles.msgText}>{n.message}</Text>
+              <Text style={styles.titleText}>{item.title || item.not_cat_name || 'Notification'}</Text>
+              <Text style={styles.msgText}>{item.message}</Text>
             </TouchableOpacity>
           ))}
         </View>
-
-        {/* Pagination Component */}
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={notifications.length}
-          pageSize={pageSize}
-          onPageChange={(page) => setCurrentPage(page)}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setCurrentPage(1);
-          }}
-        />
+        <Pagination currentPage={currentPage} totalPages={Math.max(1, Math.ceil(inbox.total / pageSize))}
+          totalItems={inbox.total} pageSize={pageSize} onPageChange={setCurrentPage}
+          onPageSizeChange={size => { setPageSize(size); setCurrentPage(1); }} />
       </ScrollView>
-
-      {/* Broadcast Modal */}
-      <Modal visible={broadcastModalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalBg}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Broadcast Announcement</Text>
-
-            <Text style={styles.label}>Broadcast Title *</Text>
-            <TextInput style={styles.input} placeholder="e.g. OPD Timings Update" value={broadcastTitle} onChangeText={setBroadcastTitle} />
-
-            <Text style={styles.label}>Message Content *</Text>
-            <TextInput
-              style={[styles.input, { height: 80 }]}
-              multiline={true}
-              placeholder="Announcement details to broadcast..."
-              value={broadcastMessage}
-              onChangeText={setBroadcastMessage}
-            />
-
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setBroadcastModalVisible(false)}>
-                <Text style={styles.cancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleBroadcast}>
-                <Text style={styles.saveText}>Send Broadcast</Text>
-              </TouchableOpacity>
-            </View>
+      <Modal visible={broadcastModalVisible} animationType="slide" transparent
+        onRequestClose={() => { if (!inbox.busy) setBroadcastModalVisible(false); }}>
+        <View style={styles.modalBg}><ScrollView contentContainerStyle={styles.modalCard} keyboardShouldPersistTaps="handled">
+          <Text style={styles.modalTitle}>Broadcast Announcement</Text>
+          <RequestState loading={categories.loading} error={categories.error} onRetry={categories.refresh}
+            empty={categories.data?.length === 0 ? 'No notification categories available.' : undefined} />
+          <Text style={styles.label}>Category *</Text>
+          {categories.data?.map(item => <TouchableOpacity key={item.not_cat_id} disabled={inbox.busy}
+            onPress={() => setCategory(item.not_cat_id)} style={[styles.card, category === item.not_cat_id && styles.unreadCard]}>
+            <Text>{item.not_cat_name}</Text>
+          </TouchableOpacity>)}
+          <Text style={styles.label}>Recipients</Text>
+          <View style={styles.modalBtnRow}>{(['all', 'staff', 'patients'] as const).map(value => (
+            <TouchableOpacity key={value} disabled={inbox.busy} onPress={() => setTarget(value)} style={[styles.card, target === value && styles.unreadCard]}>
+              <Text>{value}</Text>
+            </TouchableOpacity>
+          ))}</View>
+          <Text style={styles.label}>Broadcast Title *</Text>
+          <TextInput style={styles.input} editable={!inbox.busy} value={broadcastTitle} onChangeText={setBroadcastTitle} />
+          <Text style={styles.label}>Message *</Text>
+          <TextInput style={styles.input} multiline editable={!inbox.busy} value={broadcastMessage} onChangeText={setBroadcastMessage} />
+          <View style={styles.modalBtnRow}>
+            <TouchableOpacity style={styles.cancelBtn} disabled={inbox.busy} onPress={() => setBroadcastModalVisible(false)}><Text>Cancel</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.saveBtn} disabled={inbox.busy || categories.loading || !category} onPress={handleBroadcast}>
+              <Text style={styles.saveText}>{inbox.busy ? 'Sending...' : 'Send Broadcast'}</Text>
+            </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView></View>
       </Modal>
     </View>
   );

@@ -2,16 +2,27 @@ import { apiFetch } from './apiConfig';
 import { ApiResponse } from '../types/auth';
 import { ClinicDashboardStats, SuperAdminStats } from '../types/clinicTypes';
 
+export interface DashboardAppointmentChartRow {
+  appointment_date: string;
+  status: string;
+  count: number | string;
+}
+
+export interface DashboardAppointmentChartData {
+  appointmentStats: DashboardAppointmentChartRow[];
+}
+
 /**
  * 1. Overview Metrics KPI
  * Route: GET /api/dashboard?clinic_id={clinicId}
  */
 export async function getDashboardKpiApi(
-  clinicId?: number | string
+  clinicId?: number | string,
+  signal?: AbortSignal
 ): Promise<ApiResponse<ClinicDashboardStats>> {
   const query = clinicId ? `?clinic_id=${encodeURIComponent(String(clinicId))}` : '';
   return apiFetch<ClinicDashboardStats>(`/dashboard${query}`, {
-    method: 'GET',
+    method: 'GET', signal,
   });
 }
 
@@ -20,11 +31,12 @@ export async function getDashboardKpiApi(
  * Route: GET /api/dashboard/appointments/chart?clinic_id={clinicId}
  */
 export async function getAppointmentChartApi(
-  clinicId?: number | string
-): Promise<ApiResponse<any>> {
+  clinicId?: number | string,
+  signal?: AbortSignal
+): Promise<ApiResponse<DashboardAppointmentChartData>> {
   const query = clinicId ? `?clinic_id=${encodeURIComponent(String(clinicId))}` : '';
-  return apiFetch<any>(`/dashboard/appointments/chart${query}`, {
-    method: 'GET',
+  return apiFetch<DashboardAppointmentChartData>(`/dashboard/appointments/chart${query}`, {
+    method: 'GET', signal,
   });
 }
 
@@ -34,11 +46,12 @@ export async function getAppointmentChartApi(
  */
 export async function getRevenueChartApi(
   clinicId?: number | string,
-  months: number = 1
+  months: number = 1,
+  signal?: AbortSignal
 ): Promise<ApiResponse<any>> {
   const cParam = clinicId ? `clinic_id=${encodeURIComponent(String(clinicId))}&` : '';
   return apiFetch<any>(`/dashboard/revenue?${cParam}months=${months}`, {
-    method: 'GET',
+    method: 'GET', signal,
   });
 }
 
@@ -46,8 +59,8 @@ export async function getRevenueChartApi(
  * 4. Super Admin System-Wide Global Dashboard
  * Route: GET /api/dashboard/super-admin
  */
-export async function getSuperAdminDashboardApi(): Promise<ApiResponse<SuperAdminStats>> {
+export async function getSuperAdminDashboardApi(signal?: AbortSignal): Promise<ApiResponse<SuperAdminStats>> {
   return apiFetch<SuperAdminStats>('/dashboard/super-admin', {
-    method: 'GET',
+    method: 'GET', signal,
   });
 }

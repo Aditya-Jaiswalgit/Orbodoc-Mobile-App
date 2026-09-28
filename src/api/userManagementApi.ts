@@ -1,30 +1,16 @@
 import { apiFetch } from './apiConfig';
 import { ApiResponse } from '../types/auth';
 
-export interface CreateClinicUserPayload {
-  full_name: string;
-  email: string;
-  phone?: string;
-  role?: string;
-  clinic_id?: string | number;
+export interface StaffPayload {
+  full_name?: string; email?: string; phone?: string; clinic_id?: number;
+  role_id?: number; is_active?: number; department?: string; specialization?: string;
+  qualification?: string; experience_years?: number; address?: string;
   password?: string;
-  status?: string;
-  department?: string;
-  specialization?: string;
-  qualification?: string;
-  consultation_fee?: number;
 }
-
-export interface UpdateClinicUserPayload {
-  full_name?: string;
-  phone?: string;
-  role?: string;
-  role_name?: string;
-  status?: string;
-  department?: string;
-  specialization?: string;
-  qualification?: string;
-  address?: string;
+export interface StaffPage { data: any[]; total: number; page: number; limit: number }
+export interface StaffQuery {
+  page: number; limit: number; clinic_id?: number; role_id?: number;
+  is_active?: 0 | 1 | 'all'; search?: string;
 }
 
 export function extractArrayData(res: any): any[] {
@@ -59,121 +45,51 @@ export function extractArrayData(res: any): any[] {
   return [];
 }
 
-/**
- * 🅰️ All Users List Fetching
- * Routes tried sequentially: /clinic-admin/users -> /staff -> /staff/list -> /users
- */
-export async function fetchAllUsersApi(): Promise<ApiResponse<any[]>> {
-  const res = await apiFetch<any[]>('/clinic-admin/users', { method: 'GET' });
-  if (res.success) {
-    const list = extractArrayData(res);
-    if (list.length > 0) return { ...res, data: list };
-  }
 
-  const staffRes = await apiFetch<any[]>('/staff', { method: 'GET' });
-  if (staffRes.success) {
-    const list = extractArrayData(staffRes);
-    if (list.length > 0) return { ...staffRes, data: list };
-  }
-
-  const staffListRes = await apiFetch<any[]>('/staff/list', { method: 'GET' });
-  if (staffListRes.success) {
-    const list = extractArrayData(staffListRes);
-    if (list.length > 0) return { ...staffListRes, data: list };
-  }
-
-  const usersRes = await apiFetch<any[]>('/users', { method: 'GET' });
-  if (usersRes.success) {
-    const list = extractArrayData(usersRes);
-    if (list.length > 0) return { ...usersRes, data: list };
-  }
-
-  return res;
+function fetchStaffPage(query: StaffQuery): Promise<ApiResponse<StaffPage>> {
+  const params = Object.entries(query).filter(([, value]) => value !== undefined && value !== '')
+    .map(([key, value]) => key + '=' + encodeURIComponent(String(value))).join('&');
+  return apiFetch<StaffPage>('/staff?' + params);
 }
-
-/**
- * 🅱️ Specific Role User List Filtering
- */
-export async function fetchUsersByRoleApi(
-  role: string = 'all'
-): Promise<ApiResponse<any[]>> {
-  const cleanRole = role.toLowerCase().trim().replace(/[\s-]+/g, '_');
-  if (!cleanRole || cleanRole === 'all' || cleanRole === 'all_roles') {
-    return fetchAllUsersApi();
-  }
-
-  const res = await apiFetch<any[]>(`/clinic-admin/users/${cleanRole}`, { method: 'GET' });
-  if (res.success) {
-    const list = extractArrayData(res);
-    if (list.length > 0) return { ...res, data: list };
-  }
-
-  const staffRoleRes = await apiFetch<any[]>(`/staff/role/${cleanRole}`, { method: 'GET' });
-  if (staffRoleRes.success) {
-    const list = extractArrayData(staffRoleRes);
-    if (list.length > 0) return { ...staffRoleRes, data: list };
-  }
-
-  return fetchAllUsersApi();
+export function createClinicUserApi(payload: StaffPayload): Promise<ApiResponse<{ staff: any }>> {
+  return apiFetch('/staff', { method: 'POST', body: JSON.stringify(payload) });
 }
-
-/**
- * 2. Create New User
- * Route: POST /api/clinic-admin/users
- */
-export async function createClinicUserApi(
-  payload: CreateClinicUserPayload
-): Promise<ApiResponse<any>> {
-  return apiFetch<any>('/clinic-admin/users', {
-    method: 'POST',
-    body: JSON.stringify({
-      full_name: payload.full_name.trim(),
-      email: payload.email.trim(),
-      phone: payload.phone || '9876543210',
-      role: payload.role || 'doctor',
-      clinic_id: payload.clinic_id ? String(payload.clinic_id) : '1',
-      password: payload.password || 'Password123',
-      status: payload.status || 'Active',
-    }),
+export function updateClinicUserApi(id: string | number, payload: StaffPayload): Promise<ApiResponse<{ staff: any }>> {
+  return apiFetch('/staff/' + encodeURIComponent(String(id)), { method: 'PUT', body: JSON.stringify(payload) });
+}
+export function resetStaffPasswordApi(id: string | number, newPassword: string): Promise<ApiResponse<unknown>> {
+  return apiFetch('/staff/' + encodeURIComponent(String(id)) + '/reset-password', {
+    method: 'POST', body: JSON.stringify({ newPassword }),
   });
 }
 
-/**
- * 3. Update User Details
- * Route: PUT /api/clinic-admin/users/:userId
- */
-export async function updateClinicUserApi(
-  userId: string | number,
-  payload: UpdateClinicUserPayload
-): Promise<ApiResponse<any>> {
-  return apiFetch<any>(`/clinic-admin/users/${encodeURIComponent(String(userId))}`, {
-    method: 'PUT',
-    body: JSON.stringify(payload),
-  });
-}
-
-/**
- * 4. Delete User
- * Route: DELETE /api/clinic-admin/users/:userId
- */
-export async function deleteStaffApi(
-  userId: string | number
-): Promise<ApiResponse<any>> {
-  return apiFetch<any>(`/clinic-admin/users/${encodeURIComponent(String(userId))}`, {
-    method: 'DELETE',
-  });
-}
-
-/**
- * 5. Reset Password
- * Route: POST /api/clinic-admin/users/:userId/reset-password
- */
-export async function resetStaffPasswordApi(
-  userId: string | number,
-  newPassword?: string
-): Promise<ApiResponse<any>> {
-  return apiFetch<any>(`/clinic-admin/users/${encodeURIComponent(String(userId))}/reset-password`, {
-    method: 'POST',
-    body: JSON.stringify({ password: newPassword || 'Password123' }),
-  });
+// The existing backend accepts only status 0 or 1. Compose a bounded page
+// (active users first, then inactive) without sending unsupported 'all'.
+export async function fetchAllUsersApi(query: StaffQuery): Promise<ApiResponse<StaffPage>> {
+  if (query.is_active !== 'all') return fetchStaffPage(query);
+  const offset = (query.page - 1) * query.limit;
+  const [active, inactive] = await Promise.all([
+    fetchStaffPage({ ...query, is_active: 1 }),
+    fetchStaffPage({ ...query, is_active: 0, page: 1 }),
+  ]);
+  if (!active.success || !inactive.success) return !active.success ? active : inactive;
+  if (!active.data || !inactive.data) return { success: false, message: 'Invalid users response' };
+  const totalActive = Number(active.data.total);
+  const total = totalActive + Number(inactive.data.total);
+  const rows = [...active.data.data];
+  const remaining = query.limit - rows.length;
+  if (remaining > 0 && offset + rows.length < total) {
+    const inactiveOffset = Math.max(0, offset - totalActive);
+    const page = Math.floor(inactiveOffset / query.limit) + 1;
+    const skip = inactiveOffset % query.limit;
+    const first = page === 1 ? inactive : await fetchStaffPage({ ...query, is_active: 0, page });
+    if (!first.success || !first.data) return first;
+    rows.push(...first.data.data.slice(skip, skip + remaining));
+    if (rows.length < query.limit && offset + rows.length < total) {
+      const second = await fetchStaffPage({ ...query, is_active: 0, page: page + 1 });
+      if (!second.success || !second.data) return second;
+      rows.push(...second.data.data.slice(0, query.limit - rows.length));
+    }
+  }
+  return { success: true, message: 'Success', data: { data: rows, total, page: query.page, limit: query.limit } };
 }

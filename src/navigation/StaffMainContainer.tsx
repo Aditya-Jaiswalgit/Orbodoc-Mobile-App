@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
+  Alert,
   Modal,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -11,6 +11,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   LayoutDashboard,
   Calendar,
@@ -28,7 +29,6 @@ import {
   UserCog,
   UserPlus,
   Shield,
-  ShieldCheck,
 } from 'lucide-react-native';
 import { useAuthContext } from '../context/AuthContext';
 
@@ -58,6 +58,9 @@ import RolePermissionsScreen from '../screens/staff/RolePermissionsScreen';
 import TreatmentBillingScreen from '../screens/staff/TreatmentBillingScreen';
 import MyProfileScreen from '../screens/staff/MyProfileScreen';
 import ChangePasswordScreen from '../screens/staff/ChangePasswordScreen';
+import { ProviderWalletScreen } from '../screens/staff/ProviderWalletScreen';
+import { useRemoteData } from '../hooks/useRemoteData';
+import { fetchHeaderUnreadCount } from '../api/staffHeaderApi';
 import { subscribeStaffNavigation } from '../utils/navigationEvents';
 
 export type StaffTabType =
@@ -76,6 +79,7 @@ export type StaffTabType =
   | 'audit_logs'
   | 'notifications'
   | 'profile'
+  | 'wallet'
   | 'change_password';
 
 interface MenuItemChild {
@@ -95,6 +99,7 @@ interface MenuItem {
 export const StaffMainContainer = () => {
   const {
     user,
+    token,
     role,
     activeClinicId,
     activeClinicName,
@@ -102,13 +107,17 @@ export const StaffMainContainer = () => {
     isMultiClinic,
     switchClinic,
     logout,
-    isLoading: isAuthLoading,
   } = useAuthContext();
 
   const staffRole = role || (user?.roleName || (user as any)?.role_name || (user as any)?.role || 'clinic_admin').toLowerCase();
 
   const [activeTab, setActiveTab] = useState<StaffTabType>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const unread = useRemoteData([user?.id, token, activeClinicId, 'drawer-unread'].join(':'), async () => {
+    const result = await fetchHeaderUnreadCount();
+    if (!result.success || result.data?.count == null || !Number.isFinite(Number(result.data.count))) throw new Error('Unable to load count');
+    return Number(result.data.count);
+  }, drawerOpen);
   const [clinicModalOpen, setClinicModalOpen] = useState(false);
   const [isSwitchingClinic, setIsSwitchingClinic] = useState(false);
   const [userRoleMgmtOpen, setUserRoleMgmtOpen] = useState(true);
@@ -123,21 +132,21 @@ export const StaffMainContainer = () => {
     return unsubscribe;
   }, []);
 
-  const staffName = user?.fullName || user?.full_name || 'Staff User';
-  const initial = staffName.charAt(0).toUpperCase();
 
   const openDrawer = () => setDrawerOpen(true);
   const openNotifications = () => setActiveTab('notifications');
 
   const handleSelectClinic = async (clinicId: number) => {
+    if (isSwitchingClinic) return;
     if (clinicId === activeClinicId) {
       setClinicModalOpen(false);
       return;
     }
     setIsSwitchingClinic(true);
-    await switchClinic(clinicId);
+    const success = await switchClinic(clinicId);
     setIsSwitchingClinic(false);
-    setClinicModalOpen(false);
+    if (success) setClinicModalOpen(false);
+    else Alert.alert('Clinic switch failed', 'Your current clinic is unchanged. Please retry.');
   };
 
   // Check if User Management permission is granted or fallback for clinic_admin/super_admin
@@ -145,8 +154,7 @@ export const StaffMainContainer = () => {
     staffRole === 'super_admin' ||
     staffRole === 'clinic_admin' ||
     (user as any)?.permissions?.['staff_users'] === true ||
-    (user as any)?.permissions?.['user_management'] === true ||
-    true;
+    (user as any)?.permissions?.['user_management'] === true;
 
   // Define Menu items allowed for each role
   const getMenuItemsForRole = (roleStr: string): MenuItem[] => {
@@ -166,7 +174,7 @@ export const StaffMainContainer = () => {
             ],
           },
           { id: 'audit_logs', label: 'Audit Trail Logs' },
-          { id: 'notifications', label: 'Notifications', badge: 3 },
+          { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'clinic_admin':
         return [
@@ -178,7 +186,7 @@ export const StaffMainContainer = () => {
           { id: 'medicine_billing', label: 'Medicine Billing' },
           { id: 'pharmacy_inventory', label: 'Medicines Stock' },
           { id: 'lab_management', label: 'Lab Tests' },
-          { id: 'notifications', label: 'Notifications', badge: 3 },
+          { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
           ...(canSeeUserManagement
             ? [
                 {
@@ -200,7 +208,7 @@ export const StaffMainContainer = () => {
           { id: 'prescriptions', label: 'Prescription Creator' },
           { id: 'patients', label: 'Patient Medical History' },
           { id: 'lab_management', label: 'Lab Reports' },
-          { id: 'notifications', label: 'Notifications', badge: 3 },
+          { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'receptionist':
         return [
@@ -208,41 +216,41 @@ export const StaffMainContainer = () => {
           { id: 'book_appointment', label: 'Book Appointment' },
           { id: 'appointments', label: 'Appointment Queue' },
           { id: 'patients', label: 'Patient Registration' },
-          { id: 'notifications', label: 'Notifications', badge: 3 },
+          { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'pharmacist':
         return [
           { id: 'dashboard', label: 'Pharmacy Hub' },
           { id: 'pharmacy_inventory', label: 'Medicine Stock' },
           { id: 'medicine_billing', label: 'Medicine Bills' },
-          { id: 'notifications', label: 'Notifications', badge: 3 },
+          { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'lab_technician':
         return [
           { id: 'dashboard', label: 'Lab Hub' },
           { id: 'lab_management', label: 'Lab Test Board' },
-          { id: 'notifications', label: 'Notifications', badge: 3 },
+          { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'accountant':
         return [
           { id: 'dashboard', label: 'Finance Hub' },
           { id: 'treatment_billing', label: 'Treatment Bills' },
           { id: 'medicine_billing', label: 'Medicine Bills' },
-          { id: 'notifications', label: 'Notifications', badge: 3 },
+          { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'nurse':
         return [
           { id: 'dashboard', label: 'Nurse Station' },
           { id: 'patients', label: 'Vitals Check-in' },
           { id: 'appointments', label: 'Appointments Queue' },
-          { id: 'notifications', label: 'Notifications', badge: 3 },
+          { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       default:
         return [
           { id: 'dashboard', label: 'Dashboard' },
           { id: 'patients', label: 'Patients' },
           { id: 'appointments', label: 'Appointments' },
-          { id: 'notifications', label: 'Notifications', badge: 3 },
+          { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
     }
   };
@@ -282,11 +290,11 @@ export const StaffMainContainer = () => {
             return <ClinicAdminDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
         }
       case 'clinics':
-        return <ClinicsManagementScreen onOpenDrawer={openDrawer} />;
+        return <ClinicsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} />;
       case 'staff':
-        return <StaffManagementScreen onOpenDrawer={openDrawer} />;
+        return <StaffManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} />;
       case 'role_permissions':
-        return <RolePermissionsScreen onOpenDrawer={openDrawer} />;
+        return <RolePermissionsScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} />;
       case 'patients':
         return <PatientsManagementScreen onOpenDrawer={openDrawer} />;
       case 'appointments':
@@ -307,6 +315,8 @@ export const StaffMainContainer = () => {
         return <AuditLogsScreen onOpenDrawer={openDrawer} />;
       case 'notifications':
         return <NotificationsCenterScreen onOpenDrawer={openDrawer} />;
+      case 'wallet':
+        return <ProviderWalletScreen onOpenDrawer={openDrawer} />;
       case 'profile':
         return <MyProfileScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr: string) => setActiveTab(scr as any)} />;
       case 'change_password':

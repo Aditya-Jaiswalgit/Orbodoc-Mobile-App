@@ -35,76 +35,49 @@ export async function apiFetch<T>(
 
   const method = (options.method || 'GET').toUpperCase();
 
-  console.log(`🌐 [API REQUEST] ${method} ${url}`);
-  if (options.body) {
-    try {
-      console.log(`  └─ Payload:`, JSON.parse(options.body as string));
-    } catch {
-      console.log(`  └─ Payload:`, options.body);
-    }
-  }
-
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+  let timedOut = false;
+  const cancel = () => controller.abort();
+  options.signal?.addEventListener('abort', cancel);
+  if (options.signal?.aborted) cancel();
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, API_TIMEOUT);
 
   try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
+    const response = await fetch(url, { ...options, headers, signal: controller.signal });
     const text = await response.text();
-    let json: any = {};
+    // Only metadata is logged in development. Bodies can contain credentials
+    // and patient information, so they are never written to the console.
+    if (__DEV__) console.debug('[API]', method, response.status);
+    let json: any;
     try {
-      json = JSON.parse(text);
+      json = text ? JSON.parse(text) : {};
     } catch {
-      json = { rawText: text };
+      return { success: false, message: 'Invalid server response', error: 'InvalidResponse' };
     }
-
     if (!response.ok) {
-      console.warn(`❌ [API ERROR ${response.status}] ${method} ${url}`);
-      console.warn(`  └─ Response Payload:`, JSON.stringify(json, null, 2));
       return {
         success: false,
-        message: json.message || json.error || `HTTP Error ${response.status}`,
-        error: json.message || json.error || 'Server error',
+        message: json?.message || json?.error || 'Request failed (' + response.status + ')',
+        error: 'HTTP_' + response.status,
       };
     }
-
-    console.log(`✅ [API SUCCESS ${response.status}] ${method} ${url}`);
-    console.log(`  └─ Response Payload:`, JSON.stringify(json, null, 2));
-
-    if (json.success !== undefined) {
-      return {
-        success: Boolean(json.success),
-        message: json.message || 'Success',
-        data: json.data !== undefined ? json.data : json,
-      };
-    }
-
     return {
-      success: true,
-      message: 'Success',
-      data: json,
+      success: json?.success === undefined ? true : Boolean(json.success),
+      message: json?.message || 'Success',
+      data: json?.data !== undefined ? json.data : json,
     };
-  } catch (err: any) {
-    clearTimeout(timeoutId);
-    if (err.name === 'AbortError') {
-      console.error(`💥 [API TIMEOUT] ${method} ${url}`);
-      return {
-        success: false,
-        message: 'Network request timed out. Check backend server connection.',
-        error: 'TimeoutError',
-      };
-    }
-    console.error(`💥 [API EXCEPTION] ${method} ${url}`, err);
+  } catch {
     return {
       success: false,
-      message: err.message || 'Network error. Please check backend connection.',
-      error: err.toString(),
+      message: timedOut ? 'Request timed out. Please try again.'
+        : controller.signal.aborted ? 'Request cancelled.' : 'Unable to connect. Please try again.',
+      error: timedOut ? 'TimeoutError' : controller.signal.aborted ? 'AbortError' : 'NetworkError',
     };
+  } finally {
+    clearTimeout(timeoutId);
+    options.signal?.removeEventListener('abort', cancel);
   }
 }
