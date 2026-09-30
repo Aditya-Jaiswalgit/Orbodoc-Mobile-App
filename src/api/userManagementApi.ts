@@ -3,8 +3,10 @@ import { ApiResponse } from '../types/auth';
 
 export interface StaffPayload {
   full_name?: string; email?: string; phone?: string; clinic_id?: number;
-  role_id?: number; is_active?: number; department?: string; specialization?: string;
-  qualification?: string; experience_years?: number; address?: string;
+  role_id?: number; is_active?: number; department?: string | null; specialization?: string | null;
+  qualification?: string | null; experience_years?: number | null; address?: string | null;
+  registration_number?: string | null; consultation_fee?: number; available_days?: string | null;
+  is_doctor?: number;
   password?: string;
 }
 export interface StaffPage { data: any[]; total: number; page: number; limit: number }
@@ -53,6 +55,9 @@ function fetchStaffPage(query: StaffQuery): Promise<ApiResponse<StaffPage>> {
 }
 export function createClinicUserApi(payload: StaffPayload): Promise<ApiResponse<{ staff: any }>> {
   return apiFetch('/staff', { method: 'POST', body: JSON.stringify(payload) });
+}
+export function fetchStaffByIdApi(id: string | number): Promise<ApiResponse<{ staff: any }>> {
+  return apiFetch('/staff/' + encodeURIComponent(String(id)));
 }
 export function updateClinicUserApi(id: string | number, payload: StaffPayload): Promise<ApiResponse<{ staff: any }>> {
   return apiFetch('/staff/' + encodeURIComponent(String(id)), { method: 'PUT', body: JSON.stringify(payload) });

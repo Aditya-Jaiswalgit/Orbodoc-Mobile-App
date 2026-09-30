@@ -3,7 +3,6 @@ import { setGlobalAuthToken } from '../api/apiConfig';
 import {
   fetchMyClinicsApi,
   fetchProfileApi,
-  fetchRolePermissionsByRoleIdApi,
   switchClinicApi,
 } from '../api/authApi';
 import {
@@ -13,6 +12,9 @@ import {
   UserClinic,
   UserRoleType,
 } from '../types/auth';
+import { useRemoteData } from '../hooks/useRemoteData';
+import { fetchPermissionMapByRoleApi, fetchSystemObjectsApi } from '../api/roleManagementApi';
+import { normalizePermissionMap, normalizeRoleName, PermissionMap } from '../utils/rolePermissions';
 
 /**
  * Normalizes backend role names/IDs into standardized client role strings
@@ -25,20 +27,13 @@ export function normalizeAppRole(user: AuthUser | null): string {
     (user as any).role_name ||
     (user as any).user_role ||
     ''
-  ).toLowerCase().trim();
+  );
+  const normalizedRole = normalizeRoleName(rawRole);
 
-  if (rawRole.includes('super')) return 'super_admin';
-  if (rawRole.includes('admin')) return 'clinic_admin';
-  if (rawRole.includes('doc')) return 'doctor';
-  if (rawRole.includes('recept')) return 'receptionist';
-  if (rawRole.includes('pharm')) return 'pharmacist';
-  if (rawRole.includes('lab')) return 'lab_technician';
-  if (rawRole.includes('account')) return 'accountant';
-  if (rawRole.includes('nurse')) return 'nurse';
-  if (rawRole.includes('patient')) return 'patient';
+  if (normalizedRole) return normalizedRole;
 
   // Fallback by role_id if numeric
-  const roleId = user.roleId || user.role_id;
+  const roleId = Number(user.roleId || user.role_id);
   if (roleId === 1) return 'super_admin';
   if (roleId === 2) return 'clinic_admin';
   if (roleId === 3) return 'doctor';
@@ -49,7 +44,7 @@ export function normalizeAppRole(user: AuthUser | null): string {
   if (roleId === 8) return 'nurse';
   if (roleId === 9) return 'patient';
 
-  return rawRole || 'clinic_admin';
+  return 'staff';
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,8 +55,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userType, setUserType] = useState<UserRoleType | null>(null);
   const [activeClinicId, setActiveClinicId] = useState<number | null>(null);
   const [assignedClinics, setAssignedClinics] = useState<UserClinic[]>([]);
-  const [permissionsMap, setPermissionsMap] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loginPermissions, setLoginPermissions] = useState<{ key: string; map: PermissionMap }>({ key: '', map: {} });
 
   const sessionRevision = useRef(0);
   const switching = useRef(false);
@@ -76,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * 1. Store JWT token in memory
    * 2. Execute GET /api/auth/profile
    * 3. Execute GET /api/clinics/my-clinics
-   * 4. Execute GET /api/role_per/permission/{roleId}
+   * Permissions are loaded separately for the current clinic and role.
    */
   const saveAuthSession = async (authData: AuthResponseData, type: UserRoleType) => {
     const revision = ++sessionRevision.current;
@@ -100,15 +95,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (clinics.length > 0 ? clinics[0].id : null);
 
     setActiveClinicId(initialClinicId ? Number(initialClinicId) : null);
+    setLoginPermissions({
+      key: [sessionToken, userData?.id, initialClinicId || null, userData?.role_id ?? userData?.roleId].join(':'),
+      map: normalizePermissionMap(authData.permissions),
+    });
 
     if (sessionToken) {
       try {
         // Run Post-Login Initializations in background parallel
-        const roleId = userData?.roleId || userData?.role_id || 2;
-        const [profileRes, clinicsRes, permissionsRes] = await Promise.all([
+        const [profileRes, clinicsRes] = await Promise.all([
           fetchProfileApi(),
           fetchMyClinicsApi(),
-          fetchRolePermissionsByRoleIdApi(roleId),
         ]);
 
         if (revision !== sessionRevision.current) return;
@@ -137,14 +134,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
         }
-
-        // 3. Role Permissions Update
-        if (permissionsRes.success && permissionsRes.data) {
-          const perms = Array.isArray(permissionsRes.data)
-            ? permissionsRes.data
-            : permissionsRes.data.permissions || permissionsRes.data.data || [];
-          setPermissionsMap(perms);
-        }
       } catch {
         // Keep the authenticated session when an optional profile fetch fails.
       } finally {
@@ -169,6 +158,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!response.success || revision !== sessionRevision.current) return false;
       const newAuthData = response.data;
       const newToken = newAuthData?.accessToken || newAuthData?.token || token;
+      const nextUser = { ...user, ...newAuthData?.user };
+      setLoginPermissions({
+        key: [newToken, nextUser.id, clinicId, nextUser.role_id ?? nextUser.roleId].join(':'),
+        map: normalizePermissionMap(newAuthData?.permissions),
+      });
       setGlobalAuthToken(newToken);
       setToken(newToken);
       setUser(previous => previous ? ({
@@ -192,11 +186,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserType(null);
     setActiveClinicId(null);
     setAssignedClinics([]);
-    setPermissionsMap([]);
+    setLoginPermissions({ key: '', map: {} });
     setGlobalAuthToken(null);
   };
 
   const role = normalizeAppRole(user);
+  const permissionRoleId = user?.role_id ?? user?.roleId;
+  const permissionScope = [token, user?.id, activeClinicId, permissionRoleId].join(':');
+  const fallbackPermissions = loginPermissions.key === permissionScope ? loginPermissions.map : {};
+  const permissionResource = useRemoteData(permissionScope + ':access', async () => {
+    const [response, objects] = await Promise.all([
+      fetchPermissionMapByRoleApi(permissionRoleId!),
+      fetchSystemObjectsApi().catch(() => null),
+    ]);
+    if (!response.success || !response.data) throw new Error(response.message);
+    const map = normalizePermissionMap(response.data, objects?.data ?? []);
+    return Object.keys(map).length ? map : fallbackPermissions;
+  }, Boolean(token && userType === 'staff' && activeClinicId && permissionRoleId));
   const isMultiClinic = assignedClinics.length > 1 || !!user?.isMultiClinic;
 
   const currentClinicObj = assignedClinics.find(c => Number(c.id) === Number(activeClinicId));
@@ -215,7 +221,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isMultiClinic,
         isAuthenticated: !!token && !!user,
         isLoading,
-        permissionsMap,
+        permissionsMap: permissionResource.data ?? fallbackPermissions,
+        permissionsLoading: permissionResource.loading,
+        permissionsError: permissionResource.error,
+        refreshPermissions: permissionResource.refresh,
         saveAuthSession,
         switchClinic,
         logout,
@@ -232,4 +241,3 @@ export const useAuthContext = () => {
   }
   return context;
 };
-

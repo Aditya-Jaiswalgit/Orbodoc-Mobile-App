@@ -1,5 +1,6 @@
 import { apiFetch } from './apiConfig';
 import { ApiResponse } from '../types/auth';
+import { permissionEnabled } from '../utils/rolePermissions';
 
 export interface SystemObject {
   id: number | string;
@@ -15,6 +16,7 @@ export interface UserRoleItem {
   clinic_id?: number | string;
   description?: string;
   name?: string;
+  is_system?: boolean | number | string;
 }
 
 export interface RolePermissionItem {
@@ -118,7 +120,26 @@ export async function updateUserRoleApi(
 export async function fetchRolePermissionsApi(clinicId?: string | number): Promise<ApiResponse<RolePermissionItem[]>> {
   if (!clinicId) return { success: false, message: 'Select a clinic to manage permissions.' };
   const res = await apiFetch<RolePermissionItem[]>('/role_per/list?clinic_id=' + encodeURIComponent(String(clinicId)));
-  return { ...res, data: res.success ? extractArrayData(res).map(row => ({ ...row, id: row.permission_id ?? row.id })) : undefined };
+  return { ...res, data: res.success ? extractArrayData(res).map(row => ({
+    ...row, id: row.permission_id ?? row.id,
+    can_view: Number(permissionEnabled(row.can_view ?? row.view)),
+    can_add: Number(permissionEnabled(row.can_add ?? row.add)),
+    can_edit: Number(permissionEnabled(row.can_edit ?? row.edit)),
+    can_delete: Number(permissionEnabled(row.can_delete ?? row.delete)),
+    can_execute: Number(permissionEnabled(row.can_execute ?? row.execute)),
+  })) : undefined };
+}
+
+export async function fetchPlanObjectIds(clinicId: string | number): Promise<Set<string>> {
+  const response = await apiFetch<any>('/clinics/' + encodeURIComponent(String(clinicId)));
+  if (!response.success || !response.data) throw new Error('Unable to load clinic plan');
+  const clinic = response.data.clinic ?? response.data.data?.clinic ?? response.data.data ?? response.data;
+  if (!clinic.plan_id) return new Set();
+  const features = await apiFetch<any>('/planFeatures/');
+  if (!features.success) throw new Error('Unable to load plan features');
+  return new Set(extractArrayData(features)
+    .filter(row => String(row.plan_id) === String(clinic.plan_id) && permissionEnabled(row.is_enabled))
+    .map(row => String(row.sys_obj_id)));
 }
 
 /**

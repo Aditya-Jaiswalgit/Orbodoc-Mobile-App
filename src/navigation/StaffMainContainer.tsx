@@ -62,6 +62,8 @@ import { ProviderWalletScreen } from '../screens/staff/ProviderWalletScreen';
 import { useRemoteData } from '../hooks/useRemoteData';
 import { fetchHeaderUnreadCount } from '../api/staffHeaderApi';
 import { subscribeStaffNavigation } from '../utils/navigationEvents';
+import { canUseStaffScreen } from './staffAccess';
+import { StaffHeader } from '../components/common/StaffHeader';
 
 export type StaffTabType =
   | 'dashboard'
@@ -107,9 +109,14 @@ export const StaffMainContainer = () => {
     isMultiClinic,
     switchClinic,
     logout,
+    permissionsMap = {},
+    permissionsLoading,
+    permissionsError,
+    refreshPermissions,
   } = useAuthContext();
 
-  const staffRole = role || (user?.roleName || (user as any)?.role_name || (user as any)?.role || 'clinic_admin').toLowerCase();
+  const staffRole = role || 'staff';
+  const canOpen = (screen: string) => canUseStaffScreen(staffRole, permissionsMap, screen);
 
   const [activeTab, setActiveTab] = useState<StaffTabType>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -149,12 +156,9 @@ export const StaffMainContainer = () => {
     else Alert.alert('Clinic switch failed', 'Your current clinic is unchanged. Please retry.');
   };
 
-  // Check if User Management permission is granted or fallback for clinic_admin/super_admin
+  // Use the live view grant for management navigation.
   const canSeeUserManagement =
-    staffRole === 'super_admin' ||
-    staffRole === 'clinic_admin' ||
-    (user as any)?.permissions?.['staff_users'] === true ||
-    (user as any)?.permissions?.['user_management'] === true;
+    canOpen('staff');
 
   // Define Menu items allowed for each role
   const getMenuItemsForRole = (roleStr: string): MenuItem[] => {
@@ -255,10 +259,45 @@ export const StaffMainContainer = () => {
     }
   };
 
-  const menuItems = getMenuItemsForRole(staffRole);
+  const candidates = getMenuItemsForRole(staffRole);
+  // Custom roles and extra grants use the same screen catalog as built-in roles.
+  const extraItems: MenuItem[] = [
+    { id: 'clinics', label: 'Clinic Management' },
+    { id: 'patients', label: 'Patients' },
+    { id: 'appointments', label: 'Appointments' },
+    { id: 'book_appointment', label: 'Book Appointment' },
+    { id: 'prescriptions', label: 'Prescriptions' },
+    { id: 'treatment_billing', label: 'Treatment Billing' },
+    { id: 'medicine_billing', label: 'Medicine Billing' },
+    { id: 'pharmacy_inventory', label: 'Medicines Stock' },
+    { id: 'lab_management', label: 'Lab Tests' },
+    { id: 'audit_logs', label: 'Audit Logs' },
+    { id: 'user_role_mgmt', label: 'User & Role Management', isGroup: true, children: [
+      { id: 'staff', label: 'Create User', iconType: 'create_user' },
+      { id: 'role_permissions', label: 'Role Permissions', iconType: 'role_permissions' },
+    ] },
+  ];
+  for (const item of extraItems) if (!candidates.some(existing => existing.id === item.id)) candidates.push(item);
+  const menuItems = candidates.flatMap(item => {
+    if (item.children) {
+      const children = item.children.filter(child => canOpen(child.id));
+      return children.length ? [{ ...item, children }] : [];
+    }
+    return canOpen(item.id) ? [item] : [];
+  });
 
   const renderActiveScreen = () => {
     const currentTab = String(activeTab).replace('/', '').replace('-', '_');
+    if (!canOpen(currentTab)) {
+      return <View style={{ flex: 1 }}>
+        <StaffHeader title="Access" onOpenDrawer={openDrawer} />
+        <View style={{ padding: 24 }}>
+          <Text>{permissionsLoading ? 'Loading permissions…' : permissionsError ? 'Unable to load permissions.' : 'You do not have permission to open this screen.'}</Text>
+          <TouchableOpacity onPress={refreshPermissions}><Text>Refresh permissions</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => setActiveTab('dashboard')}><Text>Go to dashboard</Text></TouchableOpacity>
+        </View>
+      </View>;
+    }
 
     if (currentTab === 'profile') {
       return <MyProfileScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
@@ -287,7 +326,12 @@ export const StaffMainContainer = () => {
           case 'nurse':
             return <NurseDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
           default:
-            return <ClinicAdminDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+            return <View style={{ flex: 1 }}><StaffHeader title="Dashboard" onOpenDrawer={openDrawer} />
+              <View style={{ padding: 24 }}><Text>Welcome, {user?.full_name || user?.fullName || 'User'}</Text>
+                <Text>Open the menu to access your permitted modules.</Text>
+                {!!permissionsError && <Text>Unable to load permissions.</Text>}
+                <TouchableOpacity onPress={refreshPermissions}><Text>Refresh permissions</Text></TouchableOpacity>
+              </View></View>;
         }
       case 'clinics':
         return <ClinicsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} />;

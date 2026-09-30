@@ -14,6 +14,9 @@ import {
   useWindowDimensions,
   RefreshControl,
   TouchableWithoutFeedback,
+  KeyboardAvoidingView,
+  Keyboard,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -43,6 +46,7 @@ import { Pagination } from '../../components/common/Pagination';
 import { showSuccessToast, showErrorToast } from '../../utils/toast';
 import {
   fetchAllUsersApi,
+  fetchStaffByIdApi,
   createClinicUserApi,
   updateClinicUserApi,
   resetStaffPasswordApi,
@@ -51,10 +55,13 @@ import { fetchUserRolesApi } from '../../api/roleManagementApi';
 import { apiFetch } from '../../api/apiConfig';
 import { useRemoteData } from '../../hooks/useRemoteData';
 import { useAuthContext } from '../../context/AuthContext';
+import { canUseStaffScreen } from '../../navigation/staffAccess';
+import { normalizeRoleName } from '../../utils/rolePermissions';
 
 export interface UserItem {
   id: string;
   role_id?: number;
+  clinic_id?: number;
   user_id: string;
   full_name: string;
   email: string;
@@ -79,6 +86,15 @@ interface UserManagementProps {
   onNavigateScreen?: (screen: string) => void;
 }
 
+const userColumns = {
+  user_id: 'User ID', full_name: 'User', clinic_name: 'Clinic', email: 'Email',
+  role: 'Role', phone: 'Phone', is_doctor: 'Doctor', status: 'Status', actions: 'Actions',
+  address: 'Address', department: 'Department', specialization: 'Specialization', created_at: 'Created at',
+} as const;
+type UserColumn = keyof typeof userColumns;
+const defaultColumns = Object.fromEntries(Object.keys(userColumns).map(key =>
+  [key, !['address', 'department', 'specialization', 'created_at'].includes(key)])) as Record<UserColumn, boolean>;
+
 function extractArrayData(res: any): any[] {
   if (!res) return [];
   if (Array.isArray(res)) return res;
@@ -98,11 +114,33 @@ function formatRoleTitle(value: string): string {
   return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
+function formatCreatedAt(value?: string): string {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  });
+}
+
 export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagementProps) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
-  const { token, user, activeClinicId, activeClinicName, assignedClinics } = useAuthContext();
+  const { token, user, role, permissionsMap = {}, activeClinicId, activeClinicName, assignedClinics, isMultiClinic } = useAuthContext();
+  const canView = canUseStaffScreen(role, permissionsMap, 'staff');
+  const canCreate = canUseStaffScreen(role, permissionsMap, 'staff', 'add');
+  const canEdit = canUseStaffScreen(role, permissionsMap, 'staff', 'edit');
+  const isSuperAdmin = role === 'super_admin';
+  const canChooseCreateClinic = isSuperAdmin || (role === 'clinic_admin' && isMultiClinic);
+  const [visibleColumns, setVisibleColumns] = useState(() => ({ ...defaultColumns, is_doctor: !isMobile }));
+  const [showColumns, setShowColumns] = useState(false);
 
   const contextClinics = useMemo(() => {
     const list: string[] = [];
@@ -149,6 +187,9 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
 
   // Edit Form Fields State
   const [editForm, setEditForm] = useState<UserItem | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState('');
+  const [detailsRetry, setDetailsRetry] = useState(0);
   const [showEditRoleDropdown, setShowEditRoleDropdown] = useState(false);
   const [showEditStatusDropdown, setShowEditStatusDropdown] = useState(false);
 
@@ -156,9 +197,31 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
   const [createFullName, setCreateFullName] = useState('');
   const [createEmail, setCreateEmail] = useState('');
   const [createPhone, setCreatePhone] = useState('');
-  const [createRole, setCreateRole] = useState('Billing Staff');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createError, setCreateError] = useState('');
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [createDetails, setCreateDetails] = useState({
+    department: '', specialization: '', qualification: '', registration_number: '',
+    experience_years: '', consultation_fee: '', available_days: '', address: '',
+  });
+  const [createRole, setCreateRole] = useState('');
+  const [createClinicId, setCreateClinicId] = useState<number | null>(activeClinicId);
+  const [showCreateClinicDropdown, setShowCreateClinicDropdown] = useState(false);
   const [showCreateRoleDropdown, setShowCreateRoleDropdown] = useState(false);
-  const [createClinic, setCreateClinic] = useState(contextClinics[0] || '');
+  const resetCreateForm = useCallback(() => {
+    setCreateFullName(''); setCreateEmail(''); setCreatePhone(''); setCreatePassword('');
+    setCreateError('');
+    setShowCreatePassword(false); setShowCreateRoleDropdown(false);
+    setCreateRole('');
+    setCreateClinicId(activeClinicId); setShowCreateClinicDropdown(false);
+    setCreateDetails({ department: '', specialization: '', qualification: '', registration_number: '',
+      experience_years: '', consultation_fee: '', available_days: '', address: '' });
+  }, [activeClinicId]);
+  const closeCreateForm = () => {
+    if (busyRef.current) return;
+    setCreateUserModalOpen(false);
+    resetCreateForm();
+  };
 
   const formatStaffUser = useCallback((staff: any): UserItem => {
     const rawRole = (
@@ -173,9 +236,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
 
     const isDoc =
       Number(staff.is_doctor) === 1 ||
-      rawRole.toLowerCase().includes('doc') ||
-      !!staff.specialization ||
-      !!staff.qualification;
+      normalizeRoleName(rawRole) === 'doctor';
 
     const clinic =
       staff.clinic_name ||
@@ -187,6 +248,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
     return {
       id: String(staff.id || staff.user_id),
       role_id: Number(staff.role_id),
+      clinic_id: staff.clinic_id == null ? undefined : Number(staff.clinic_id),
       user_id: String(staff.user_id || staff.id),
       full_name: staff.full_name || staff.name || staff.first_name || 'User Account',
       email: staff.email || '',
@@ -210,6 +272,35 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
   const scope = [user?.id, token, activeClinicId].join(':');
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
+  const viewUserId = viewUserModal?.id;
+  const editUserId = editUserModal?.id;
+  useEffect(() => {
+    const id = viewUserId || editUserId;
+    if (!id) return;
+    let cancelled = false;
+    setDetailsLoading(true);
+    setDetailsError('');
+    const loadDetails = async () => {
+      try {
+        const result = await fetchStaffByIdApi(id);
+        if (cancelled || scopeRef.current !== scope) return;
+        if (!result.success || !result.data?.staff) {
+          throw new Error(result.message || 'Please retry.');
+        }
+        const details = formatStaffUser(result.data.staff);
+        if (viewUserId) setViewUserModal(details);
+        else { setEditForm(details); setEditUserModal(details); }
+      } catch {
+        if (!cancelled && scopeRef.current === scope) {
+          setDetailsError('Unable to load user details. Please retry.');
+        }
+      } finally {
+        if (!cancelled && scopeRef.current === scope) setDetailsLoading(false);
+      }
+    };
+    void loadDetails();
+    return () => { cancelled = true; };
+  }, [viewUserId, editUserId, scope, formatStaffUser, detailsRetry]);
   const busyRef = useRef(false);
   const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
@@ -221,16 +312,17 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
     setViewUserModal(null); setEditUserModal(null); setEditForm(null); setResetPasswordModalUser(null);
     setIsRefreshing(false); setResetSaving(false); setNewPassword(''); setConfirmPassword('');
     setCreateUserModalOpen(false); setSelectedClinicFilter('All Clinics');
-    setCreateClinic(activeClinicName || '');
+    setShowColumns(false); setShowEditRoleDropdown(false); setShowEditStatusDropdown(false);
+    resetCreateForm();
     return () => { scopeRef.current = ''; };
-  }, [scope, activeClinicName]);
+  }, [scope, activeClinicName, resetCreateForm]);
   const metadata = useRemoteData(scope + ':staff-options', async () => {
     const [roles, clinics] = await Promise.all([
       fetchUserRolesApi(activeClinicId), apiFetch<any>('/clinics/my-clinics'),
     ]);
     if (!roles.success || !clinics.success) throw new Error('Unable to load user options');
     return { roles: extractArrayData(roles), clinics: extractArrayData(clinics) };
-  }, Boolean(token));
+  }, Boolean(token && canView));
   const roleRows = (metadata.data?.roles ?? []).filter(r => {
     const name = String(r.role_name || r.name).toLowerCase().replace(/ /g, '_');
     return name !== 'patient' && (name !== 'super_admin' || Number(user?.roleId || user?.role_id) === 1);
@@ -238,9 +330,34 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
   const clinicRows = metadata.data?.clinics ?? assignedClinics;
   const dbRolesList = Array.from(new Set<string>(roleRows.map(r => formatRoleTitle(r.role_name || r.name))));
   const dbClinicsList = Array.from(new Set<string>([...contextClinics, ...clinicRows.map(c => c.name || c.clinic_name).filter(Boolean)]));
-  useEffect(() => {
-    if (dbRolesList.length && !dbRolesList.includes(createRole)) setCreateRole(dbRolesList[0]);
-  }, [dbRolesList, createRole]);
+  const createRoles = useRemoteData(scope + ':create-roles:' + createClinicId, async () => {
+    const result = await fetchUserRolesApi(createClinicId);
+    if (!result.success) throw new Error(result.message);
+    return (result.data ?? []).filter(r => {
+      const name = String(r.role_name || r.name).toLowerCase().replace(/ /g, '_');
+      return name !== 'patient' && (isSuperAdmin || !['super_admin', 'clinic_admin', 'admin'].includes(name));
+    });
+  }, Boolean(token && canCreate && createUserModalOpen && createClinicId));
+  const selectedCreateRole = createRoles.data?.find(r => String((r as any).role_id ?? r.id) === createRole);
+  const createRoleName = String(selectedCreateRole?.role_name || selectedCreateRole?.name || '').toLowerCase().replace(/[\s-]+/g, '_');
+  const isDoctorCreateRole = createRoleName === 'doctor';
+  const isNurseCreateRole = createRoleName === 'nurse';
+  const createClinicOptions = (isSuperAdmin ? clinicRows : assignedClinics ?? []).map(c => ({
+    id: Number(c.id ?? c.clinic_id), name: c.name || c.clinic_name,
+  }));
+  const protectedEditRole = ['super_admin', 'clinic_admin'].includes(normalizeRoleName(editUserModal?.role || ''));
+  const hasDoctorEditProfile = normalizeRoleName(editForm?.role || '') === 'doctor' || !!editForm?.is_doctor;
+  const isNurseEditRole = normalizeRoleName(editForm?.role || '') === 'nurse';
+  const editRolesClinicId = editForm?.clinic_id ?? editUserModal?.clinic_id ?? activeClinicId;
+  const editRoles = useRemoteData(scope + ':edit-roles:' + editRolesClinicId, async () => {
+    const response = await fetchUserRolesApi(editRolesClinicId);
+    if (!response.success) throw new Error(response.message);
+    return (response.data ?? []).filter(r => {
+      const name = normalizeRoleName(r.role_name || r.name || '');
+      return name !== 'patient' && (isSuperAdmin || !['super_admin', 'clinic_admin'].includes(name));
+    });
+  }, Boolean(token && canEdit && editUserModal && !protectedEditRole));
+  const editRoleNames = Array.from(new Set((editRoles.data ?? []).map(r => formatRoleTitle(r.role_name || r.name || ''))));
   const getRoleId = (name: string) => {
     const role = roleRows.find(r => formatRoleTitle(r.role_name || r.name) === name);
     return Number(role?.role_id || role?.id);
@@ -252,13 +369,18 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
     role_id: selectedRoleFilter === 'All Roles' ? undefined : getRoleId(selectedRoleFilter),
     is_active: selectedStatusFilter === 'All Status' ? 'all' as const : selectedStatusFilter === 'Active' ? 1 as const : 0 as const,
   };
-  const resource = useRemoteData(scope + ':staff:' + JSON.stringify(query), async () => {
+  const resource = useRemoteData(scope + ':staff:' + JSON.stringify(query) + ':address:' + visibleColumns.address, async () => {
     if (selectedRoleFilter !== 'All Roles' && !query.role_id) throw new Error('Select an available role');
     if (selectedClinicFilter !== 'All Clinics' && !filterClinicId) throw new Error('Select an available clinic');
     const result = await fetchAllUsersApi(query);
     if (!result.success || !Array.isArray(result.data?.data)) throw new Error(result.message);
-    return { users: result.data.data.map(formatStaffUser), total: Number(result.data.total), refreshed: new Date().toLocaleString() };
-  }, Boolean(token) && Boolean(metadata.data) && !metadata.error);
+    const rows = visibleColumns.address ? await Promise.all(result.data.data.map(async staff => {
+      const details = await fetchStaffByIdApi(staff.id ?? staff.user_id);
+      if (!details.success || !details.data?.staff) throw new Error('Unable to load user addresses');
+      return { ...staff, ...details.data.staff };
+    })) : result.data.data;
+    return { users: rows.map(formatStaffUser), total: Number(result.data.total), refreshed: new Date().toLocaleString() };
+  }, Boolean(token && canView) && Boolean(metadata.data) && !metadata.error);
   const loading = resource.loading || metadata.loading;
   const loadError = resource.error || metadata.error;
   const users = loadError ? [] : resource.data?.users ?? [];
@@ -276,7 +398,11 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
     try { await Promise.all([metadata.refresh(), resource.refresh()]); }
     finally { setIsRefreshing(false); }
   };
-  const mutate = async (action: () => Promise<{ success: boolean; message?: string }>, onSuccess: () => void) => {
+  const mutate = async (
+    action: () => Promise<{ success: boolean; message?: string }>,
+    onSuccess: () => void,
+    onError?: (message: string) => void,
+  ) => {
     if (busyRef.current) return;
     busyRef.current = true;
     setIsRefreshing(true);
@@ -287,7 +413,11 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
       onSuccess();
       await loadUsersFromApi();
     } catch (error) {
-      if (scopeRef.current === scope) showErrorToast('Unable to save', error instanceof Error ? error.message : 'Please retry.');
+      if (scopeRef.current === scope) {
+        const message = error instanceof Error ? error.message : 'Please retry.';
+        onError?.(message);
+        showErrorToast('Unable to save', message);
+      }
     } finally {
       busyRef.current = false;
       if (scopeRef.current === scope) setIsRefreshing(false);
@@ -295,40 +425,65 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
   };
 
   // Edit User Handler
+  const handleOpenView = (user: UserItem) => {
+    if (!canView) return;
+    setDetailsLoading(true);
+    setDetailsError('');
+    setViewUserModal(user);
+  };
+
   const handleOpenEdit = (user: UserItem) => {
-    setEditForm({ ...user });
+    if (!canEdit) return;
+    setDetailsLoading(true);
+    setDetailsError('');
+    setEditForm(null);
     setEditUserModal(user);
+    setShowEditRoleDropdown(false); setShowEditStatusDropdown(false);
   };
 
   const handleSaveEdit = async () => {
-    if (!editForm) return;
-    const roleId = editForm.role === editUserModal?.role ? editForm.role_id : getRoleId(editForm.role);
+    if (!canEdit || !editForm || detailsLoading || detailsError) return;
+    const selectedEditRole = editRoles.data?.find(r => normalizeRoleName(r.role_name || r.name || '') === normalizeRoleName(editForm.role));
+    const roleId = protectedEditRole || editForm.role === editUserModal?.role ? editUserModal?.role_id : Number((selectedEditRole as any)?.role_id ?? selectedEditRole?.id);
     if (!editForm.full_name.trim() || !/^[6-9]\d{9}$/.test(editForm.phone) || !roleId || (editForm.experience && (!Number.isFinite(Number(editForm.experience)) || Number(editForm.experience) < 0))) {
       showErrorToast('Validation Error', 'Enter a name, valid 10-digit mobile number and an available role.');
       return;
     }
+    if (hasDoctorEditProfile && [editForm.department, editForm.specialization, editForm.qualification,
+      editForm.registration_number, editForm.experience, editForm.consultation_fee, editForm.available_days].some(value => !value?.trim())) {
+      showErrorToast('Validation Error', 'Complete the doctor professional details before saving.'); return;
+    }
+    if (hasDoctorEditProfile && (!Number.isFinite(Number(editForm.consultation_fee)) || Number(editForm.consultation_fee) < 0)) {
+      showErrorToast('Validation Error', 'Consultation fee must be 0 or greater.'); return;
+    }
     await mutate(() => updateClinicUserApi(editForm.id, {
       full_name: editForm.full_name.trim(), phone: editForm.phone, role_id: roleId,
-      department: editForm.department, specialization: editForm.specialization,
-      qualification: editForm.qualification, address: editForm.address,
-      experience_years: editForm.experience ? Number(editForm.experience) : 0,
+      department: editForm.department?.trim() || null, specialization: editForm.specialization?.trim() || null,
+      qualification: editForm.qualification?.trim() || null, address: editForm.address?.trim() || null,
+      experience_years: editForm.experience?.trim() ? Number(editForm.experience) : null,
+      registration_number: hasDoctorEditProfile || isNurseEditRole ? editForm.registration_number?.trim() || null : null,
+      consultation_fee: hasDoctorEditProfile ? Number(editForm.consultation_fee) : 0,
+      available_days: hasDoctorEditProfile ? editForm.available_days?.trim() || null : null,
+      is_doctor: hasDoctorEditProfile ? 1 : 0,
+      is_active: editForm.status === 'Active' ? 1 : 0,
     }), () => {
       showSuccessToast('User Updated', 'User updated successfully.');
       setEditUserModal(null); setEditForm(null);
     });
   };
   const handleToggleUserStatus = async () => {
-    if (!editForm) return;
-    const status = editForm.status === 'Active' ? 'Inactive' : 'Active';
+    if (!canEdit || !editForm || detailsLoading || detailsError) return;
+    const status = editUserModal?.status === 'Active' ? 'Inactive' : 'Active';
     await mutate(() => updateClinicUserApi(editForm.id, { is_active: status === 'Active' ? 1 : 0 }), () => {
       setEditForm({ ...editForm, status });
+      setEditUserModal(previous => previous ? { ...previous, status } : null);
       showSuccessToast('Status Updated', 'User is now ' + status + '.');
     });
   };
 
   // Open Reset Password Modal
   const handleOpenResetPasswordModal = () => {
-    if (!editForm) return;
+    if (!canEdit || !editForm || detailsLoading || detailsError) return;
     setResetPasswordModalUser(editForm);
     setNewPassword('');
     setConfirmPassword('');
@@ -337,7 +492,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
   };
 
   const handleConfirmResetPassword = async () => {
-    if (!resetPasswordModalUser) return;
+    if (!canEdit || !resetPasswordModalUser) return;
     if (!newPassword || newPassword.length < 8) {
       showErrorToast('Validation Error', 'Password must be at least 8 characters long.');
       return;
@@ -357,22 +512,80 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
     } finally { setResetSaving(false); }
   };
   const handleCreateUser = async () => {
-    const roleId = getRoleId(createRole);
-    const clinicId = Number(clinicRows.find(c => (c.name || c.clinic_name) === createClinic)?.id
-      || (createClinic === activeClinicName ? activeClinicId : 0));
-    if (!createFullName.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createEmail.trim())
-        || !/^[6-9]\d{9}$/.test(createPhone.trim()) || !roleId || !clinicId) {
-      showErrorToast('Validation Error', 'Enter a name, valid email, 10-digit mobile number, role and clinic.');
+    if (!canCreate) return;
+    Keyboard.dismiss();
+    setCreateError('');
+    const validationError = (message: string) => {
+      setCreateError(message);
+      showErrorToast('Validation Error', message);
+    };
+    if (busyRef.current) {
+      setCreateError('A save is already in progress. Please wait.');
+      return;
+    }
+    if (createRoles.loading) {
+      setCreateError('Roles are still loading. Please try again in a moment.');
+      return;
+    }
+    if (createRoles.error) {
+      setCreateError('Unable to load roles. Tap Retry roles and try again.');
+      return;
+    }
+    const roleId = selectedCreateRole ? Number(createRole) : 0;
+    const clinicId = Number(canChooseCreateClinic ? createClinicId : activeClinicId);
+    if (!Number.isInteger(clinicId) || clinicId <= 0) {
+      validationError('Select an active clinic from the app header before creating a user.');
+      return;
+    }
+    if (canChooseCreateClinic && !createClinicOptions.some(c => c.id === clinicId)) {
+      validationError('Select an available clinic.'); return;
+    }
+    if (!createFullName.trim()) {
+      validationError('Full name is required.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createEmail.trim())) {
+      validationError('Enter a valid email address.');
+      return;
+    }
+    if (!/^[6-9]\d{9}$/.test(createPhone.trim())) {
+      validationError('Phone number must have 10 digits and start with 6, 7, 8 or 9.');
+      return;
+    }
+    if (!Number.isInteger(roleId) || roleId <= 0) {
+      validationError('Select an available role.');
+      return;
+    }
+    if (!createPassword.trim() || createPassword.length < 8) {
+      validationError('Password must be at least 8 characters long.');
+      return;
+    }
+    if (createDetails.experience_years.trim() && (!Number.isFinite(Number(createDetails.experience_years)) || Number(createDetails.experience_years) < 0)) {
+      validationError('Experience must be 0 or greater.');
+      return;
+    }
+    if (isDoctorCreateRole && createDetails.consultation_fee.trim() && (!Number.isFinite(Number(createDetails.consultation_fee)) || Number(createDetails.consultation_fee) < 0)) {
+      validationError('Consultation fee must be 0 or greater.');
       return;
     }
     await mutate(() => createClinicUserApi({
       full_name: createFullName.trim(), email: createEmail.trim(), phone: createPhone.trim(),
       role_id: roleId, clinic_id: clinicId,
+      password: createPassword,
+      department: createDetails.department.trim() || null,
+      specialization: createDetails.specialization.trim() || null,
+      qualification: createDetails.qualification.trim() || null,
+      address: createDetails.address.trim() || null,
+      registration_number: isDoctorCreateRole || isNurseCreateRole ? createDetails.registration_number.trim() || null : null,
+      experience_years: createDetails.experience_years.trim() ? Number(createDetails.experience_years) : null,
+      consultation_fee: isDoctorCreateRole && createDetails.consultation_fee.trim() ? Number(createDetails.consultation_fee) : 0,
+      available_days: isDoctorCreateRole ? createDetails.available_days.trim() || null : null,
+      is_doctor: isDoctorCreateRole ? 1 : 0,
     }), () => {
-      showSuccessToast('User Created', 'User created. Use password reset to set their password.');
+      showSuccessToast('User Created', 'User created successfully.');
       setCreateUserModalOpen(false);
-      setCreateFullName(''); setCreateEmail(''); setCreatePhone('');
-    });
+      resetCreateForm();
+    }, setCreateError);
   };
 
   return (
@@ -444,14 +657,15 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
               <Text style={styles.outlineBtnText}>Refresh Users</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.outlineBtn}>
+            <TouchableOpacity style={styles.outlineBtn} onPress={() => setShowColumns(true)} accessibilityLabel="Choose user columns">
               <Columns size={14} color="#334155" style={{ marginRight: 6 }} />
               <Text style={[styles.outlineBtnText, { color: '#334155' }]}>Columns</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.tealCreateBtn}
-              onPress={() => setCreateUserModalOpen(true)}>
+              disabled={!canCreate}
+              onPress={() => { if (!canCreate) return; resetCreateForm(); setCreateUserModalOpen(true); }}>
               <UserPlus size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
               <Text style={styles.tealCreateBtnText}>Create User</Text>
             </TouchableOpacity>
@@ -608,14 +822,14 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                           <Text style={styles.circleAvatarText}>{initials}</Text>
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.userNameText} numberOfLines={1}>
+                          {visibleColumns.full_name && <Text style={styles.userNameText} numberOfLines={1}>
                             {item.full_name}
-                          </Text>
-                          <Text style={{ fontSize: 11, color: '#64748B' }}>ID: #{item.user_id}</Text>
+                          </Text>}
+                          {visibleColumns.user_id && <Text style={{ fontSize: 11, color: '#64748B' }}>ID: #{item.user_id}</Text>}
                         </View>
                       </View>
 
-                      <View
+                      {visibleColumns.status && <View
                         style={[
                           styles.statusPillBadge,
                           item.status === 'Active'
@@ -631,33 +845,39 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                           ]}>
                           {item.status}
                         </Text>
-                      </View>
+                      </View>}
                     </View>
 
                     <View style={styles.mobileCardMeta}>
-                      <Text style={styles.mobileMetaText}>🏢 {item.clinic_name}</Text>
-                      <Text style={styles.mobileMetaText}>✉️ {item.email}</Text>
-                      <Text style={styles.mobileMetaText}>📞 {item.phone}</Text>
+                      {visibleColumns.is_doctor && <Text style={styles.mobileMetaText}>Doctor: {item.is_doctor ? 'Yes' : 'No'}</Text>}
+                      {(['address', 'department', 'specialization', 'created_at'] as const).filter(key => visibleColumns[key]).map(key => (
+                        <Text key={key} style={styles.mobileMetaText}>{userColumns[key]}: {key === 'created_at' ? formatCreatedAt(item.created_at) : item[key] || '\u2014'}</Text>
+                      ))}
+                      {visibleColumns.clinic_name && <Text style={styles.mobileMetaText}>🏢 {item.clinic_name}</Text>}
+                      {visibleColumns.email && <Text style={styles.mobileMetaText}>✉️ {item.email}</Text>}
+                      {visibleColumns.phone && <Text style={styles.mobileMetaText}>📞 {item.phone}</Text>}
                     </View>
 
                     <View style={styles.mobileCardFooter}>
-                      <View style={styles.rolePillBadge}>
+                      {visibleColumns.role && <View style={styles.rolePillBadge}>
                         <Text style={styles.rolePillText}>{item.role}</Text>
-                      </View>
+                      </View>}
 
                       {/* Action Buttons (Eye & Edit only - No Delete User) */}
-                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {visibleColumns.actions && <View style={{ flexDirection: 'row', gap: 8 }}>
                         <TouchableOpacity
                           style={styles.actionIconBtn}
-                          onPress={() => setViewUserModal(item)}>
+                          onPress={() => handleOpenView(item)}>
                           <Eye size={16} color="#334155" />
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.actionIconBtn}
+                          disabled={!canEdit}
+                          accessibilityLabel={'Edit user ' + item.full_name}
                           onPress={() => handleOpenEdit(item)}>
                           <Edit2 size={15} color="#334155" />
                         </TouchableOpacity>
-                      </View>
+                      </View>}
                     </View>
                   </View>
                 );
@@ -674,15 +894,18 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
               contentContainerStyle={{ minWidth: 800 }}>
               <View style={styles.tableContainer}>
                 <View style={styles.tableHeaderRow}>
-                  <Text style={[styles.thText, { width: 70 }]}>User ID</Text>
-                  <Text style={[styles.thText, { width: 160 }]}>User</Text>
-                  <Text style={[styles.thText, { width: 160 }]}>Clinic</Text>
-                  <Text style={[styles.thText, { width: 170 }]}>Email</Text>
-                  <Text style={[styles.thText, { width: 130 }]}>Role</Text>
-                  <Text style={[styles.thText, { width: 120 }]}>Phone</Text>
-                  <Text style={[styles.thText, { width: 70 }]}>Doctor</Text>
-                  <Text style={[styles.thText, { width: 80 }]}>Status</Text>
-                  <Text style={[styles.thText, { width: 60, textAlign: 'right' }]}>Actions</Text>
+                  {visibleColumns.user_id && <Text style={[styles.thText, { width: 70 }]}>User ID</Text>}
+                  {visibleColumns.full_name && <Text style={[styles.thText, { width: 160 }]}>User</Text>}
+                  {visibleColumns.clinic_name && <Text style={[styles.thText, { width: 160 }]}>Clinic</Text>}
+                  {visibleColumns.email && <Text style={[styles.thText, { width: 170 }]}>Email</Text>}
+                  {visibleColumns.role && <Text style={[styles.thText, { width: 130 }]}>Role</Text>}
+                  {visibleColumns.phone && <Text style={[styles.thText, { width: 120 }]}>Phone</Text>}
+                  {visibleColumns.is_doctor && <Text style={[styles.thText, { width: 70 }]}>Doctor</Text>}
+                  {(['address', 'department', 'specialization', 'created_at'] as const).filter(key => visibleColumns[key]).map(key => (
+                    <Text key={key} style={[styles.thText, { width: 160 }]}>{userColumns[key]}</Text>
+                  ))}
+                  {visibleColumns.status && <Text style={[styles.thText, { width: 80 }]}>Status</Text>}
+                  {visibleColumns.actions && <Text style={[styles.thText, { width: 60, textAlign: 'right' }]}>Actions</Text>}
                 </View>
 
                 {paginatedUsers.map((item) => {
@@ -695,40 +918,43 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
 
                   return (
                     <View key={item.id} style={styles.tableBodyRow}>
-                      <Text style={[styles.tdText, { width: 70, fontWeight: '600' }]}>
+                      {visibleColumns.user_id && <Text style={[styles.tdText, { width: 70, fontWeight: '600' }]}>
                         {item.user_id}
-                      </Text>
+                      </Text>}
 
-                      <View style={[styles.userCell, { width: 160 }]}>
+                      {visibleColumns.full_name && <View style={[styles.userCell, { width: 160 }]}>
                         <View style={styles.circleAvatar}>
                           <Text style={styles.circleAvatarText}>{initials}</Text>
                         </View>
                         <Text style={styles.userNameText} numberOfLines={1}>
                           {item.full_name}
                         </Text>
-                      </View>
+                      </View>}
 
-                      <Text style={[styles.tdText, { width: 160 }]} numberOfLines={1}>
+                      {visibleColumns.clinic_name && <Text style={[styles.tdText, { width: 160 }]} numberOfLines={1}>
                         {item.clinic_name}
-                      </Text>
+                      </Text>}
 
-                      <Text style={[styles.tdText, { width: 170 }]} numberOfLines={1}>
+                      {visibleColumns.email && <Text style={[styles.tdText, { width: 170 }]} numberOfLines={1}>
                         {item.email}
-                      </Text>
+                      </Text>}
 
-                      <View style={{ width: 130 }}>
+                      {visibleColumns.role && <View style={{ width: 130 }}>
                         <View style={styles.rolePillBadge}>
                           <Text style={styles.rolePillText}>{item.role}</Text>
                         </View>
-                      </View>
+                      </View>}
 
-                      <Text style={[styles.tdText, { width: 120 }]}>{item.phone}</Text>
+                      {visibleColumns.phone && <Text style={[styles.tdText, { width: 120 }]}>{item.phone}</Text>}
 
-                      <Text style={[styles.tdText, { width: 70 }]}>
+                      {visibleColumns.is_doctor && <Text style={[styles.tdText, { width: 70 }]}>
                         {item.is_doctor ? 'Yes' : 'No'}
-                      </Text>
+                      </Text>}
 
-                      <View style={{ width: 80 }}>
+                      {(['address', 'department', 'specialization', 'created_at'] as const).filter(key => visibleColumns[key]).map(key => (
+                        <Text key={key} style={[styles.tdText, { width: 160 }]}>{key === 'created_at' ? formatCreatedAt(item.created_at) : item[key] || '\u2014'}</Text>
+                      ))}
+                      {visibleColumns.status && <View style={{ width: 80 }}>
                         <View
                           style={[
                             styles.statusPillBadge,
@@ -746,21 +972,23 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                             {item.status}
                           </Text>
                         </View>
-                      </View>
+                      </View>}
 
                       {/* Action Buttons (Eye & Edit only) */}
-                      <View style={[styles.actionsCell, { width: 60, flexDirection: 'row', gap: 6 }]}>
+                      {visibleColumns.actions && <View style={[styles.actionsCell, { width: 60, flexDirection: 'row', gap: 6 }]}>
                         <TouchableOpacity
                           style={styles.actionIconBtn}
-                          onPress={() => setViewUserModal(item)}>
+                          onPress={() => handleOpenView(item)}>
                           <Eye size={16} color="#334155" />
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.actionIconBtn}
+                          disabled={!canEdit}
+                          accessibilityLabel={'Edit user ' + item.full_name}
                           onPress={() => handleOpenEdit(item)}>
                           <Edit2 size={15} color="#334155" />
                         </TouchableOpacity>
-                      </View>
+                      </View>}
                     </View>
                   );
                 })}
@@ -782,6 +1010,35 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
           />
         </View>
       </ScrollView>
+
+      {showColumns && (
+        <Modal visible animationType="fade" transparent onRequestClose={() => setShowColumns(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.editModalCard, isMobile && styles.editModalCardMobile]}>
+              <View style={styles.editModalHeader}>
+                <Text style={[styles.editModalTitle, { flex: 1 }]}>Columns</Text>
+                <TouchableOpacity style={styles.closeHeaderBtn} accessibilityLabel="Close columns" hitSlop={8} onPress={() => setShowColumns(false)}>
+                  <X size={18} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+                {(Object.keys(userColumns) as UserColumn[]).map(key => (
+                  <View key={key} style={styles.columnOptionRow}>
+                    <Text style={styles.columnOptionLabel}>{userColumns[key]}</Text>
+                    <Switch
+                      accessibilityLabel={'Show ' + userColumns[key]}
+                      value={visibleColumns[key]}
+                      onValueChange={value => setVisibleColumns(previous => ({ ...previous, [key]: value }))}
+                      trackColor={{ false: '#CBD5E1', true: '#0D9488' }}
+                      thumbColor="#FFFFFF"
+                    />
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {/*  VIEW USER DETAILS MODAL                                                  */}
 
@@ -850,7 +1107,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                         <Clock size={14} color="#0D9488" style={{ marginRight: 6 }} />
                         <Text style={styles.viewInfoLabel}>Created at</Text>
                       </View>
-                      <Text style={styles.viewInfoVal}>{viewUserModal?.created_at}</Text>
+                      <Text style={styles.viewInfoVal}>{formatCreatedAt(viewUserModal?.created_at)}</Text>
                     </View>
                   </View>
 
@@ -937,8 +1194,13 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                       <Text style={styles.viewInfoLabel}>Address</Text>
                     </View>
                     <Text style={[styles.viewInfoVal, { marginTop: 4 }]}>
-                      {viewUserModal?.address || 'No address provided'}
+                      {detailsLoading ? 'Loading address…' : detailsError || viewUserModal?.address || 'No address provided'}
                     </Text>
+                    {!!detailsError && (
+                      <TouchableOpacity onPress={() => setDetailsRetry(value => value + 1)}>
+                        <Text>Retry</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </ScrollView>
 
@@ -976,6 +1238,15 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                   </TouchableOpacity>
                 </View>
 
+                {detailsLoading && <ActivityIndicator accessibilityLabel="Loading user details" />}
+                {!!detailsError && (
+                  <View style={{ padding: 16 }}>
+                    <Text accessibilityRole="alert">{detailsError}</Text>
+                    <TouchableOpacity onPress={() => setDetailsRetry(value => value + 1)}>
+                      <Text>Retry</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
                 {editForm && (
                   <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
                     <View style={styles.editSectionCard}>
@@ -987,6 +1258,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                       </Text>
                       <TextInput
                         style={[styles.formInput, styles.formInputFocused]}
+                        accessibilityLabel="Edit full name"
                         value={editForm.full_name}
                         onChangeText={(v) => setEditForm({ ...editForm, full_name: v })}
                       />
@@ -1009,6 +1281,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                       </Text>
                       <TextInput
                         style={styles.formInput}
+                        accessibilityLabel="Edit phone"
                         value={editForm.phone}
                         keyboardType="phone-pad"
                         onChangeText={(v) => setEditForm({ ...editForm, phone: v })}
@@ -1019,24 +1292,28 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                       </Text>
                       <TouchableOpacity
                         style={styles.selectInputTrigger}
-                        onPress={() => setShowEditRoleDropdown(!showEditRoleDropdown)}>
+                        accessibilityLabel="Edit role"
+                        disabled={protectedEditRole || !canEdit || isRefreshing || editRoles.loading || !!editRoles.error}
+                        onPress={() => { if (!protectedEditRole && canEdit) setShowEditRoleDropdown(!showEditRoleDropdown); }}>
                         <Text style={styles.selectInputText}>{editForm.role}</Text>
                         <ChevronDown size={16} color="#64748B" />
                       </TouchableOpacity>
 
-                      {showEditRoleDropdown && (
+                      {!!editRoles.error && <TouchableOpacity onPress={editRoles.refresh}><Text style={styles.formLabel}>Unable to load roles. Tap to retry.</Text></TouchableOpacity>}
+                      {showEditRoleDropdown && !protectedEditRole && (
                         <View style={styles.editDropdownList}>
-                          {dbRolesList.map((r) => {
+                          {editRoleNames.map((r) => {
                             const isSelected = editForm.role === r;
                             return (
                               <TouchableOpacity
                                 key={r}
+                                accessibilityLabel={'Edit role ' + r}
                                 style={[
                                   styles.editDropdownItem,
                                   isSelected && styles.editDropdownItemActive,
                                 ]}
                                 onPress={() => {
-                                  setEditForm({ ...editForm, role: r });
+                                  setEditForm({ ...editForm, role: r, is_doctor: normalizeRoleName(r) === 'doctor' });
                                   setShowEditRoleDropdown(false);
                                 }}>
                                 <Text
@@ -1057,6 +1334,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                       </Text>
                       <TouchableOpacity
                         style={styles.selectInputTrigger}
+                        accessibilityLabel="Edit status"
                         onPress={() => setShowEditStatusDropdown(!showEditStatusDropdown)}>
                         <Text style={styles.selectInputText}>{editForm.status}</Text>
                         <ChevronDown size={16} color="#64748B" />
@@ -1067,6 +1345,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                           {['Active', 'Inactive'].map((s) => (
                             <TouchableOpacity
                               key={s}
+                              accessibilityLabel={'Edit status ' + s}
                               style={styles.editDropdownItem}
                               onPress={() => {
                                 setEditForm({ ...editForm, status: s as 'Active' | 'Inactive' });
@@ -1098,6 +1377,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                             placeholder="e.g. Cardiology"
                             placeholderTextColor="#94A3B8"
                             value={editForm.department || ''}
+                            accessibilityLabel="Edit department"
                             onChangeText={(v) => setEditForm({ ...editForm, department: v })}
                           />
                         </View>
@@ -1109,6 +1389,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                             placeholder="e.g. General Medicine"
                             placeholderTextColor="#94A3B8"
                             value={editForm.specialization || ''}
+                            accessibilityLabel="Edit specialization"
                             onChangeText={(v) => setEditForm({ ...editForm, specialization: v })}
                           />
                         </View>
@@ -1122,6 +1403,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                             placeholder="e.g. MBBS, MD"
                             placeholderTextColor="#94A3B8"
                             value={editForm.qualification || ''}
+                            accessibilityLabel="Edit qualification"
                             onChangeText={(v) => setEditForm({ ...editForm, qualification: v })}
                           />
                         </View>
@@ -1134,11 +1416,47 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                             placeholderTextColor="#94A3B8"
                             keyboardType="numeric"
                             value={editForm.experience || ''}
+                            accessibilityLabel="Edit experience"
                             onChangeText={(v) => setEditForm({ ...editForm, experience: v })}
                           />
                         </View>
                       </View>
 
+                      {protectedEditRole && (
+                        <View style={styles.viewInfoLabelRow}>
+                          <Text style={styles.formLabel}>Make this user a doctor</Text>
+                          <Switch accessibilityLabel="Make this user a doctor" value={editForm.is_doctor}
+                            disabled={!canEdit || isRefreshing}
+                            onValueChange={value => setEditForm({ ...editForm, is_doctor: value,
+                              ...(value ? {} : { department: '', specialization: '', qualification: '', registration_number: '', experience: '', consultation_fee: '', available_days: '' }) })}
+                            trackColor={{ false: '#E2E8F0', true: '#99F6E4' }} thumbColor={editForm.is_doctor ? '#0D9488' : '#F1F5F9'} />
+                        </View>
+                      )}
+                      {(hasDoctorEditProfile || isNurseEditRole) && <>
+                        <Text style={styles.formLabel}>Registration number</Text>
+                        <TextInput style={styles.formInput} accessibilityLabel="Edit registration number"
+                          placeholder="Professional registration number" placeholderTextColor="#94A3B8"
+                          value={editForm.registration_number || ''} editable={canEdit && !isRefreshing}
+                          onChangeText={value => setEditForm({ ...editForm, registration_number: value })} />
+                      </>}
+                      {hasDoctorEditProfile && <>
+                        <View style={[styles.formGrid2Col, isMobile && { flexDirection: 'column', gap: 0 }]}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.formLabel}>Consultation fee</Text>
+                            <TextInput style={styles.formInput} accessibilityLabel="Edit consultation fee" keyboardType="decimal-pad"
+                              placeholder="e.g. 500" placeholderTextColor="#94A3B8"
+                              value={editForm.consultation_fee || ''} editable={canEdit && !isRefreshing}
+                              onChangeText={value => setEditForm({ ...editForm, consultation_fee: value })} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.formLabel}>Available days</Text>
+                            <TextInput style={styles.formInput} accessibilityLabel="Edit available days"
+                              placeholder="e.g. Mon, Tue, Fri" placeholderTextColor="#94A3B8"
+                              value={editForm.available_days || ''} editable={canEdit && !isRefreshing}
+                              onChangeText={value => setEditForm({ ...editForm, available_days: value })} />
+                          </View>
+                        </View>
+                      </>}
                       <Text style={styles.formLabel}>Address</Text>
                       <TextInput
                         style={[styles.formInput, { height: 70, textAlignVertical: 'top' }]}
@@ -1146,6 +1464,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                         placeholderTextColor="#94A3B8"
                         multiline
                         value={editForm.address || ''}
+                        accessibilityLabel="Edit address"
                         onChangeText={(v) => setEditForm({ ...editForm, address: v })}
                       />
                     </View>
@@ -1158,17 +1477,19 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                   <TouchableOpacity
                     style={[
                       styles.deactivateBtn,
-                      editForm?.status === 'Inactive' && styles.activateBtnBg,
+                      editUserModal?.status === 'Inactive' && styles.activateBtnBg,
                     ]}
+                    disabled={!canEdit || isRefreshing || detailsLoading || !editForm}
                     onPress={handleToggleUserStatus}>
                     <Text style={styles.deactivateBtnText}>
-                      {editForm?.status === 'Inactive' ? 'Activate User' : 'Deactivate User'}
+                      {editUserModal?.status === 'Inactive' ? 'Activate User' : 'Deactivate User'}
                     </Text>
                   </TouchableOpacity>
 
                   <View style={[styles.footerRightButtonsRow, isMobile && styles.footerRightButtonsRowMobile]}>
                     <TouchableOpacity
                       style={styles.modalSecondaryBtn}
+                      disabled={!canEdit || isRefreshing || detailsLoading || !editForm}
                       onPress={handleOpenResetPasswordModal}>
                       <Text style={styles.modalSecondaryBtnText}>Reset Password</Text>
                     </TouchableOpacity>
@@ -1179,7 +1500,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                       <Text style={styles.modalSecondaryBtnText}>Cancel</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.tealSaveBtn} onPress={handleSaveEdit} disabled={isRefreshing}>
+                    <TouchableOpacity style={styles.tealSaveBtn} onPress={handleSaveEdit} disabled={!canEdit || isRefreshing || detailsLoading || !editForm}>
                       <Text style={styles.tealSaveBtnText}>Update User</Text>
                     </TouchableOpacity>
                   </View>
@@ -1275,7 +1596,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                   <TouchableOpacity
                     style={styles.resetSubmitBtn}
                     onPress={handleConfirmResetPassword}
-                    disabled={resetSaving}
+                    disabled={!canEdit || resetSaving}
                   >
                     {resetSaving ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
@@ -1295,8 +1616,9 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
 
       {/*  CREATE USER MODAL                                                       */}
       
-      <Modal visible={createUserModalOpen} animationType="fade" transparent>
-        <TouchableWithoutFeedback onPress={() => setCreateUserModalOpen(false)}>
+      <Modal visible={createUserModalOpen} animationType="fade" transparent onRequestClose={closeCreateForm}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <TouchableWithoutFeedback onPress={closeCreateForm}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
               <View style={[styles.editModalCard, isMobile && styles.editModalCardMobile]}>
@@ -1310,12 +1632,26 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                       Fill in details below to create a new user account.
                     </Text>
                   </View>
-                  <TouchableOpacity onPress={() => setCreateUserModalOpen(false)}>
+                  <TouchableOpacity onPress={closeCreateForm} disabled={isRefreshing} accessibilityLabel="Close create user">
                     <X size={18} color="#64748B" />
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView style={{ padding: 16 }}>
+                <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+                  {canChooseCreateClinic && <>
+                    <Text style={styles.formLabel}>Clinic <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                    <TouchableOpacity style={styles.selectInputTrigger} accessibilityLabel="Select user clinic"
+                      disabled={isRefreshing || !canCreate} onPress={() => setShowCreateClinicDropdown(value => !value)}>
+                      <Text style={styles.selectInputText}>{createClinicOptions.find(c => c.id === createClinicId)?.name || 'Select clinic'}</Text>
+                      <ChevronDown size={16} color="#64748B" />
+                    </TouchableOpacity>
+                    {showCreateClinicDropdown && <View style={styles.editDropdownList}>
+                      {createClinicOptions.map(clinic => <TouchableOpacity key={clinic.id} style={styles.editDropdownItem}
+                        accessibilityLabel={'Create user in ' + clinic.name} onPress={() => {
+                          setCreateClinicId(clinic.id); setCreateRole(''); setShowCreateRoleDropdown(false); setShowCreateClinicDropdown(false);
+                        }}><Text style={styles.editDropdownItemText}>{clinic.name}</Text></TouchableOpacity>)}
+                    </View>}
+                  </>}
                   <Text style={styles.formLabel}>
                     Full name <Text style={{ color: '#EF4444' }}>*</Text>
                   </Text>
@@ -1325,6 +1661,8 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                     placeholderTextColor="#94A3B8"
                     value={createFullName}
                     onChangeText={setCreateFullName}
+                    accessibilityLabel="Full name"
+                    editable={!isRefreshing}
                   />
 
                   <Text style={styles.formLabel}>
@@ -1337,16 +1675,49 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                     keyboardType="email-address"
                     value={createEmail}
                     onChangeText={setCreateEmail}
+                    accessibilityLabel="Email address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!isRefreshing}
                   />
 
-                  <Text style={styles.formLabel}>Phone number</Text>
+                  <Text style={styles.formLabel}>
+                    Temporary password <Text style={{ color: '#EF4444' }}>*</Text>
+                  </Text>
+                  <View style={[styles.formInput, { flexDirection: 'row', alignItems: 'center' }]}>
+                    <TextInput
+                      style={{ flex: 1, padding: 0, color: '#0F172A', fontSize: 13 }}
+                      accessibilityLabel="Temporary password"
+                      placeholder="Minimum 8 characters"
+                      placeholderTextColor="#94A3B8"
+                      value={createPassword}
+                      onChangeText={setCreatePassword}
+                      secureTextEntry={!showCreatePassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete="new-password"
+                      editable={!isRefreshing}
+                    />
+                    <TouchableOpacity accessibilityLabel={showCreatePassword ? 'Hide password' : 'Show password'}
+                      onPress={() => setShowCreatePassword(!showCreatePassword)} hitSlop={10}>
+                      {showCreatePassword ? <EyeOff size={18} color="#64748B" /> : <Eye size={18} color="#64748B" />}
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={styles.formLabel}>Phone number <Text style={{ color: '#EF4444' }}>*</Text></Text>
                   <TextInput
                     style={styles.formInput}
                     placeholder="7213123212"
                     placeholderTextColor="#94A3B8"
                     keyboardType="phone-pad"
                     value={createPhone}
-                    onChangeText={setCreatePhone}
+                    accessibilityLabel="Phone number"
+                    editable={!isRefreshing}
+                    onChangeText={value => {
+                      let digits = value.replace(/\D/g, '');
+                      if (digits.length > 10 && digits.startsWith('91')) digits = digits.slice(2);
+                      setCreatePhone(digits.slice(0, 10));
+                    }}
                   />
 
                   <Text style={styles.formLabel}>
@@ -1354,24 +1725,34 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                   </Text>
                   <TouchableOpacity
                     style={styles.selectInputTrigger}
+                    accessibilityLabel="Select role"
+                    disabled={!canCreate || isRefreshing || createRoles.loading || !createClinicId || Boolean(createRoles.error)}
                     onPress={() => setShowCreateRoleDropdown(!showCreateRoleDropdown)}>
-                    <Text style={styles.selectInputText}>{createRole}</Text>
+                    <Text style={styles.selectInputText}>{createRoles.loading ? 'Loading roles...' : selectedCreateRole ? formatRoleTitle(selectedCreateRole.role_name || selectedCreateRole.name || '') : 'Select role'}</Text>
                     <ChevronDown size={16} color="#64748B" />
                   </TouchableOpacity>
+                  {createRoles.error && (
+                    <TouchableOpacity onPress={() => createRoles.refresh()}>
+                      <Text style={styles.formLabel}>Unable to load roles. Tap to retry.</Text>
+                    </TouchableOpacity>
+                  )}
 
                   {showCreateRoleDropdown && (
                     <View style={styles.editDropdownList}>
-                      {dbRolesList.map((r) => {
-                        const isSelected = createRole === r;
+                      {(createRoles.data ?? []).map((r) => {
+                        const roleId = String((r as any).role_id ?? r.id);
+                        const roleName = formatRoleTitle(r.role_name || r.name || '');
+                        const isSelected = createRole === roleId;
                         return (
                           <TouchableOpacity
-                            key={r}
+                            key={roleId}
+                            accessibilityLabel={'Select role ' + roleName}
                             style={[
                               styles.editDropdownItem,
                               isSelected && styles.editDropdownItemActive,
                             ]}
                             onPress={() => {
-                              setCreateRole(r);
+                              setCreateRole(roleId);
                               setShowCreateRoleDropdown(false);
                             }}>
                             <Text
@@ -1379,36 +1760,94 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                                 styles.editDropdownItemText,
                                 isSelected && styles.editDropdownItemTextActive,
                               ]}>
-                              {isSelected ? '✓  ' : '    '}{r}
+                              {isSelected ? '✓  ' : '    '}{roleName}
                             </Text>
                           </TouchableOpacity>
                         );
                       })}
                     </View>
                   )}
+                  <Text style={[styles.editSectionTitle, { marginTop: 20 }]}>Professional details</Text>
+                  <Text style={styles.editSectionSub}>Optional information can be added now or later.</Text>
+                  {([
+                    { key: 'department', label: 'Department', placeholder: 'e.g. Cardiology' },
+                    { key: 'specialization', label: 'Specialization', placeholder: 'e.g. General Medicine' },
+                    { key: 'qualification', label: 'Qualification', placeholder: 'e.g. MBBS, MD' },
+                    { key: 'registration_number', label: 'Registration number', placeholder: 'Professional registration number', visible: isDoctorCreateRole || isNurseCreateRole },
+                    { key: 'experience_years', label: 'Experience (years)', placeholder: 'e.g. 5', numeric: true },
+                    { key: 'consultation_fee', label: 'Consultation fee', placeholder: 'e.g. 500', numeric: true, visible: isDoctorCreateRole },
+                    { key: 'available_days', label: 'Available days', placeholder: 'e.g. Mon, Tue, Fri', visible: isDoctorCreateRole },
+                    { key: 'address', label: 'Address', placeholder: 'Enter complete address', multiline: true },
+                  ] as const).map(field => {
+                    if ('visible' in field && !field.visible) return null;
+                    const multiline = 'multiline' in field && field.multiline;
+                    return (
+                      <View key={field.key}>
+                        <Text style={styles.formLabel}>{field.label}</Text>
+                        <TextInput
+                          accessibilityLabel={field.label}
+                          style={[styles.formInput, multiline && { minHeight: 80, textAlignVertical: 'top' }]}
+                          placeholder={field.placeholder}
+                          placeholderTextColor="#94A3B8"
+                          value={createDetails[field.key]}
+                          onChangeText={value => setCreateDetails(previous => ({ ...previous, [field.key]: value }))}
+                          keyboardType={'numeric' in field && field.numeric ? 'decimal-pad' : 'default'}
+                          multiline={multiline}
+                          editable={!isRefreshing}
+                        />
+                      </View>
+                    );
+                  })}
                 </ScrollView>
 
-                <View style={styles.editModalFooter}>
+                <View style={[styles.editModalFooter, { flexWrap: 'wrap' }]}>
+                  {!!createError && (
+                    <View style={styles.createErrorBox}>
+                      <Text accessibilityRole="alert" accessibilityLiveRegion="assertive" style={styles.createErrorText}>{createError}</Text>
+                      {createRoles.error && (
+                        <TouchableOpacity accessibilityLabel="Retry roles" onPress={() => createRoles.refresh()}>
+                          <Text style={[styles.createErrorText, { fontWeight: '700', marginTop: 6 }]}>Retry roles</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
                   <TouchableOpacity
                     style={styles.modalSecondaryBtn}
-                    onPress={() => setCreateUserModalOpen(false)}>
+                    onPress={closeCreateForm} disabled={isRefreshing}>
                     <Text style={styles.modalSecondaryBtnText}>Cancel</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.tealSaveBtn} onPress={handleCreateUser} disabled={isRefreshing}>
-                    <Text style={styles.tealSaveBtnText}>Create User</Text>
+                  <TouchableOpacity style={styles.tealSaveBtn} onPress={handleCreateUser}
+                    accessibilityLabel="Submit create user"
+                    accessibilityState={{ disabled: !canCreate || isRefreshing, busy: isRefreshing }}
+                    disabled={!canCreate || isRefreshing}>
+                    {isRefreshing && <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />}
+                    <Text style={styles.tealSaveBtnText}>{isRefreshing ? 'Creating...' : 'Create User'}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  columnOptionRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    minHeight: 44, paddingVertical: 6,
+  },
+  columnOptionLabel: {
+    flex: 1, marginRight: 16, fontSize: 12, fontWeight: '600', color: '#334155',
+  },
+  createErrorBox: {
+    width: '100%', padding: 10, marginBottom: 10, borderRadius: 8,
+    backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA',
+  },
+  createErrorText: { color: '#B91C1C', fontSize: 13 },
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   mainScrollView: { flex: 1, padding: 12 },
 
