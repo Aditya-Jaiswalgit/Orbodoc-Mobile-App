@@ -1,5 +1,5 @@
 import { apiFetch } from '../src/api/apiConfig';
-import { fetchAllUsersApi, createClinicUserApi, updateClinicUserApi, resetStaffPasswordApi } from '../src/api/userManagementApi';
+import { fetchAllUsersApi, createClinicUserApi, updateClinicUserApi, resetStaffPasswordApi, deactivateStaffApi } from '../src/api/userManagementApi';
 
 jest.mock('../src/api/apiConfig', () => ({ apiFetch: jest.fn() }));
 const fetchMock = jest.mocked(apiFetch);
@@ -48,4 +48,6 @@ test('writes use the backend staff contract without invented IDs or passwords', 
   expect(fetchMock).toHaveBeenLastCalledWith('/staff/19', { method: 'PUT', body: '{"is_active":0}' });
   await resetStaffPasswordApi(19, 'Test-password-123');
   expect(fetchMock).toHaveBeenLastCalledWith('/staff/19/reset-password', { method: 'POST', body: '{"newPassword":"Test-password-123"}' });
+  await deactivateStaffApi(19);
+  expect(fetchMock).toHaveBeenLastCalledWith('/staff/19', { method: 'DELETE' });
 });

@@ -111,3 +111,33 @@ test('custom role names containing admin or doctor do not become privileged buil
   expect(normalizeAppRole({ ...user, role: 'Admin' })).toBe('clinic_admin');
   expect(normalizeAppRole({ id: 10, fullName: 'Unknown' })).toBe('staff');
 });
+
+
+test.each([
+  [{ plan_type: ' MULTI ' }, true],
+  [{ planType: 'multi' }, true],
+  [{ max_clinics: '3' }, true],
+  [{ maxClinics: 2 }, true],
+  [{ plan_type: 'single', max_clinics: 1 }, false],
+  [undefined, false],
+])('management clinic selection follows the login plan %j, not assignment count', async (plan, expected) => {
+  await act(async () => { screen = Renderer.create(<AuthProvider><Probe /></AuthProvider>); });
+  await act(async () => context.saveAuthSession({ token: 'token', user, plan }, 'staff'));
+  expect(context.isMultiClinic).toBe(true);
+  expect(context.isMultiPlan).toBe(expected);
+  await act(async () => context.logout());
+  expect(context.isMultiPlan).toBe(false);
+});
+
+test('switching clinic replaces the management plan entitlement', async () => {
+  await act(async () => { screen = Renderer.create(<AuthProvider><Probe /></AuthProvider>); });
+  await act(async () => context.saveAuthSession({ token: 'token', user, plan: { plan_type: 'multi' } }, 'staff'));
+  expect(context.isMultiPlan).toBe(true);
+  const original = fetchMock.getMockImplementation()!;
+  fetchMock.mockImplementation(async (url, options) => {
+    const result = await original(url, options);
+    return url === '/auth/switch-clinic' ? ok({ ...(result.data as object), plan: { plan_type: 'single', max_clinics: 1 } }) : result;
+  });
+  await act(async () => { await context.switchClinic(72); });
+  expect(context.isMultiPlan).toBe(false);
+});

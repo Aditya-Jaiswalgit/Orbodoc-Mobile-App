@@ -34,7 +34,8 @@ import { useAuthContext } from '../../context/AuthContext';
 import { apiFetch } from '../../api/apiConfig';
 import { normalizeRoleName, permissionEnabled } from '../../utils/rolePermissions';
 import { canUseStaffScreen } from '../../navigation/staffAccess';
-import { fetchAllUsersApi } from '../../api/userManagementApi';
+import { extractArrayData, fetchAllUsersApi } from '../../api/userManagementApi';
+import { buildRoleCatalog, buildPermissionRoleOptions, getManageableRoles } from '../../utils/roleManagement';
 
 interface RolePermissionsProps {
   onOpenDrawer?: () => void;
@@ -43,40 +44,9 @@ interface RolePermissionsProps {
 
 export interface ExtendedRoleItem extends UserRoleItem {
   type?: 'System' | 'Custom';
+  sourceRoleName?: string;
   user_count?: number;
   description?: string;
-}
-
-function extractArrayData(res: any): any[] {
-  if (!res) return [];
-  if (Array.isArray(res)) return res;
-  if (Array.isArray(res.data)) return res.data;
-  if (res.data && Array.isArray(res.data.users)) return res.data.users;
-  if (res.data && Array.isArray(res.data.roles)) return res.data.roles;
-  if (res.data && Array.isArray(res.data.permissions)) return res.data.permissions;
-  if (res.data && Array.isArray(res.data.objects)) return res.data.objects;
-  if (res.data && Array.isArray(res.data.system_objects)) return res.data.system_objects;
-  if (res.data && Array.isArray(res.data.staff)) return res.data.staff;
-  if (res.data && Array.isArray(res.data.data)) return res.data.data;
-  if (res.data && Array.isArray(res.data.result)) return res.data.result;
-  if (Array.isArray(res.users)) return res.users;
-  if (Array.isArray(res.roles)) return res.roles;
-  if (Array.isArray(res.permissions)) return res.permissions;
-  if (Array.isArray(res.objects)) return res.objects;
-  if (Array.isArray(res.system_objects)) return res.system_objects;
-  if (Array.isArray(res.staff)) return res.staff;
-  if (Array.isArray(res.result)) return res.result;
-  if (res.data && typeof res.data === 'object') {
-    for (const key of Object.keys(res.data)) {
-      if (Array.isArray(res.data[key])) return res.data[key];
-    }
-  }
-  if (typeof res === 'object') {
-    for (const key of Object.keys(res)) {
-      if (key !== 'headers' && key !== 'config' && Array.isArray(res[key])) return res[key];
-    }
-  }
-  return [];
 }
 
 function formatRoleTitle(value: string): string {
@@ -87,10 +57,12 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
-  const { token, user, role: currentRole, activeClinicId, assignedClinics = [], refreshPermissions, permissionsMap = {} } = useAuthContext();
-  const canAddRole = canUseStaffScreen(currentRole, permissionsMap, 'role_permissions', 'add');
-  const canEditRole = canUseStaffScreen(currentRole, permissionsMap, 'role_permissions', 'edit');
-  const isClinicAdmin = currentRole === 'clinic_admin' || Number(user?.role_id ?? user?.roleId) === 2;
+  const { token, user, role: currentRole, activeClinicId, assignedClinics = [], isMultiPlan, refreshPermissions, permissionsMap = {} } = useAuthContext();
+  const canView = canUseStaffScreen(currentRole, permissionsMap, 'role_permissions');
+  const canAddRole = canView && canUseStaffScreen(currentRole, permissionsMap, 'role_permissions', 'add');
+  const canEditRole = canView && canUseStaffScreen(currentRole, permissionsMap, 'role_permissions', 'edit');
+  const normalizedRole = normalizeRoleName(currentRole);
+  const canChooseClinic = normalizedRole === 'super_admin' || (normalizedRole === 'clinic_admin' && isMultiPlan);
   const [managedClinicId, setManagedClinicId] = useState<number | null>(activeClinicId);
   const [showClinicDropdown, setShowClinicDropdown] = useState(false);
   useEffect(() => { setManagedClinicId(activeClinicId); }, [activeClinicId]);
@@ -98,11 +70,11 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
     const response = await apiFetch<any>('/clinics/my-clinics');
     if (!response.success) throw new Error(response.message);
     return extractArrayData(response).map(c => ({ id: Number(c.id ?? c.clinic_id), name: c.name ?? c.clinic_name }));
-  }, Boolean(token) && currentRole === 'super_admin');
-  const clinicOptions = currentRole === 'super_admin' ? clinics.data ?? assignedClinics : assignedClinics;
+  }, Boolean(token && canView && canChooseClinic));
+  const clinicOptions = canChooseClinic ? clinics.data ?? assignedClinics : assignedClinics;
   useEffect(() => {
-    if (!managedClinicId && clinicOptions.length) setManagedClinicId(clinicOptions[0].id);
-  }, [managedClinicId, clinicOptions]);
+    if (canChooseClinic && !managedClinicId && clinicOptions.length) setManagedClinicId(clinicOptions[0].id);
+  }, [managedClinicId, clinicOptions, canChooseClinic]);
 
   const [activeTab, setActiveTab] = useState<'roles' | 'permissions'>('roles');
   const [selectedRole, setSelectedRole] = useState<string | number>('');
@@ -114,13 +86,16 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
   const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState<boolean>(false);
   const [editingRole, setEditingRole] = useState<ExtendedRoleItem | null>(null);
   const [roleFormName, setRoleFormName] = useState<string>('');
+  const [roleFormError, setRoleFormError] = useState('');
   const [roleFormSaving, setRoleFormSaving] = useState<boolean>(false);
   const [customRoleSetupId, setCustomRoleSetupId] = useState<string>('');
 
-  const scope = [token, activeClinicId, managedClinicId, user?.id].join(':');
+  const scope = [token, activeClinicId, managedClinicId, user?.id, normalizedRole, canView].join(':');
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
   const busyRef = useRef(false);
+  const editAccessRef = useRef(canEditRole);
+  editAccessRef.current = canEditRole;
   const [drafts, setDrafts] = useState<Record<string, RolePermissionItem>>({});
   const resource = useRemoteData(scope + ':role-management', async () => {
     if (!managedClinicId) throw new Error('Select a clinic');
@@ -128,15 +103,9 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
       fetchUserRolesApi(managedClinicId), fetchSystemObjectsApi(), fetchRolePermissionsApi(managedClinicId), fetchPlanObjectIds(managedClinicId),
     ]);
     if (!rolesRes.success || !objectsRes.success || !permsRes.success) throw new Error('Unable to load permissions');
-    const roleCatalog = new Map<string, any>();
-    for (const row of extractArrayData(rolesRes)) {
-      const name = normalizeRoleName(row.role_name || row.name || '');
-      if (!roleCatalog.has(name)) roleCatalog.set(name, row);
-    }
-    const roles: ExtendedRoleItem[] = [...roleCatalog.values()].filter(r =>
-      !isClinicAdmin || !['super_admin', 'clinic_admin', 'admin'].includes(normalizeRoleName(r.role_name || r.name || ''))
-    ).map(r => ({
-      ...r, id: r.role_id ?? r.id, role_name: formatRoleTitle(r.role_name || r.name),
+    const roleCatalog = buildRoleCatalog(rolesRes.data ?? []);
+    const roles: ExtendedRoleItem[] = getManageableRoles(roleCatalog, currentRole).map(r => ({
+      ...r, sourceRoleName: r.role_name, role_name: formatRoleTitle(r.role_name),
       type: permissionEnabled(r.is_system) ? 'System' : 'Custom',
       user_count: r.user_count ?? r.users_count,
     }));
@@ -150,8 +119,8 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
       id: o.sys_obj_id ?? o.id, name: o.display_name || o.system_object_name || o.object_name || o.name,
       code: o.module || o.object_name, subtext: o.module || o.object_name,
     }));
-    return { roles, allRoles: [...roleCatalog.values()], objects, permissions: (permsRes.data || []).filter(p => p.clinic_id == null || String(p.clinic_id) === String(managedClinicId)), refreshed: new Date().toLocaleString() };
-  }, Boolean(token) && Boolean(managedClinicId));
+    return { roles, allRoles: roleCatalog, objects, permissions: (permsRes.data || []).filter(p => p.clinic_id == null || String(p.clinic_id) === String(managedClinicId)), refreshed: new Date().toLocaleString() };
+  }, Boolean(token && canView && managedClinicId));
   const roles = useMemo(() => resource.data?.roles ?? [], [resource.data]);
   const counts = useRemoteData(scope + ':role-counts:' + roles.map(r => r.id).join(','), async () => {
     const entries = await Promise.all(roles.map(async r => {
@@ -162,22 +131,15 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
       } catch { return [String(r.id), null] as const; }
     }));
     return Object.fromEntries(entries);
-  }, Boolean(token && managedClinicId && roles.length && activeTab === 'roles'));
+  }, Boolean(token && canView && managedClinicId && roles.length && activeTab === 'roles'));
   const systemObjects = resource.data?.objects ?? [];
   const permissionsMatrix = resource.data?.permissions ?? [];
-  const permissionRoles = useMemo(() => {
-    const options = [...roles];
-    for (const row of resource.data?.allRoles ?? []) {
-      const id = row.role_id ?? row.id;
-      if (!options.some(r => String(r.id) === String(id)) && resource.data?.permissions.some(p => String(p.role_id) === String(id))) {
-        options.push({ ...row, id, role_name: formatRoleTitle(row.role_name || row.name) });
-      }
-    }
-    return options;
-  }, [roles, resource.data]);
+  const permissionRoles = useMemo(() => buildPermissionRoleOptions(
+    resource.data?.allRoles ?? [], currentRole, resource.data?.permissions ?? [], customRoleSetupId,
+  ).map(row => ({ ...row, role_name: formatRoleTitle(row.role_name) })), [resource.data, currentRole, customRoleSetupId]);
   const loading = resource.loading;
   const lastRefreshed = resource.error ? 'Unable to load. Please refresh.' : resource.data?.refreshed || 'Loading...';
-  const loadRoleDataFromApi = async () => { await Promise.allSettled([resource.refresh(), counts.refresh(), refreshPermissions?.()]); };
+  const loadRoleDataFromApi = async () => { await Promise.allSettled([clinics.refresh(), resource.refresh(), counts.refresh(), refreshPermissions?.()]); };
   useEffect(() => {
     scopeRef.current = scope;
     setDrafts({}); setSelectedRole(''); setIsAddRoleModalOpen(false); setSaving(false);
@@ -196,7 +158,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
   const fields = { create: 'can_add', read: 'can_view', update: 'can_edit', delete: 'can_delete', execute: 'can_execute' } as const;
   const getPermission = (objectId: string | number, key: keyof typeof fields) => Number(permissionRow(objectId)?.[fields[key]]) === 1;
   const togglePermission = (objectId: string | number, key: keyof typeof fields) => {
-    if (!canEditRole || saving || loading || resource.error || !selectedRole) return;
+    if (!canEditRole || saving || loading || resource.error || !permissionRoles.some(r => String(r.id) === String(selectedRole))) return;
     const row = permissionRow(objectId) || {
       role_id: selectedRole, sys_obj_id: objectId, clinic_id: managedClinicId!,
       can_add: 0, can_view: 0, can_edit: 0, can_delete: 0, can_execute: 0,
@@ -204,7 +166,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
     setDrafts(previous => ({ ...previous, [permissionKey(objectId)]: { ...row, [fields[key]]: getPermission(objectId, key) ? 0 : 1 } }));
   };
   const handleSavePermissions = async () => {
-    if (!canEditRole || busyRef.current || loading || resource.error || !managedClinicId || !selectedRole) return;
+    if (!canEditRole || busyRef.current || loading || resource.error || !managedClinicId || !permissionRoles.some(r => String(r.id) === String(selectedRole))) return;
     const entries: [string, RolePermissionItem][] = systemObjects.flatMap(object => {
       const key = permissionKey(object.id);
       const row = drafts[key];
@@ -219,13 +181,13 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
     busyRef.current = true; setSaving(true);
     try {
       for (const [key, row] of entries) {
-        if (scopeRef.current !== scope) return;
+        if (scopeRef.current !== scope || !editAccessRef.current) return;
         const flags = { can_view: Number(row.can_view), can_add: Number(row.can_add),
           can_edit: Number(row.can_edit), can_delete: Number(row.can_delete), can_execute: Number(row.can_execute || 0) };
         const existing = permissionsMatrix.find(p => String(p.role_id) === String(row.role_id) && String(p.sys_obj_id) === String(row.sys_obj_id));
         const id = existing?.id ?? row.id;
         const result = id ? await updateRolePermissionApi(id, flags)
-          : await createRolePermissionApi({ ...flags, role_id: row.role_id, sys_obj_id: row.sys_obj_id, clinic_id: managedClinicId });
+          : await createRolePermissionApi({ ...flags, role_id: row.role_id, sys_obj_id: row.sys_obj_id, clinic_id: managedClinicId, user_id: user?.id });
         if (!result.success) throw new Error(result.message);
         if (scopeRef.current !== scope) return;
         setDrafts(previous => { const next = { ...previous }; delete next[key]; return next; });
@@ -235,36 +197,36 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
     } catch (error) {
       if (scopeRef.current === scope) showErrorToast('Unable to save', error instanceof Error ? error.message : 'Please retry. Unsaved changes are kept.');
     } finally {
-      busyRef.current = false;
       if (scopeRef.current === scope) {
         await Promise.allSettled([resource.refresh(), refreshPermissions?.()]);
         if (scopeRef.current === scope) setSaving(false);
       }
+      busyRef.current = false;
     }
   };
 
   const handleOpenAddRole = () => {
     if (!canAddRole || busyRef.current) return;
     setEditingRole(null);
-    setRoleFormName('');
+    setRoleFormName(''); setRoleFormError('');
     setIsAddRoleModalOpen(true);
   };
 
   const handleOpenEditRole = (role: ExtendedRoleItem) => {
-    if (!canEditRole || busyRef.current) return;
-    setEditingRole(role);
-    setRoleFormName(role.role_name);
+    if (!canEditRole || busyRef.current || !roles.some(r => String(r.id) === String(role.id))) return;
+    setEditingRole(role); setRoleFormError('');
+    setRoleFormName(role.sourceRoleName ?? role.role_name);
     setIsAddRoleModalOpen(true);
   };
 
   const handleSaveRole = async () => {
-    if (editingRole ? !canEditRole : !canAddRole) return;
+    if (editingRole ? !canEditRole || !roles.some(r => String(r.id) === String(editingRole.id)) : !canAddRole) return;
     if (busyRef.current || !managedClinicId || loading || resource.error) return;
-    if (!roleFormName.trim()) { showErrorToast('Validation Error', 'Please enter a role name.'); return; }
-    if (resource.data?.allRoles.some(r => normalizeRoleName(r.role_name || r.name) === normalizeRoleName(roleFormName) && String(r.role_id ?? r.id) !== String(editingRole?.id))) {
-      showErrorToast('Validation Error', 'Role already exists.'); return;
+    if (!roleFormName.trim()) { setRoleFormError('Role name is required'); showErrorToast('Validation Error', 'Please enter a role name.'); return; }
+    if (resource.data?.allRoles.some(r => normalizeRoleName(r.role_name || r.name || '') === normalizeRoleName(roleFormName) && String(r.role_id ?? r.id) !== String(editingRole?.id))) {
+      setRoleFormError('Role already exists.'); showErrorToast('Validation Error', 'Role already exists.'); return;
     }
-    busyRef.current = true; setRoleFormSaving(true);
+    busyRef.current = true; setRoleFormSaving(true); setRoleFormError('');
     try {
       const result = editingRole ? await updateUserRoleApi(editingRole.id, roleFormName.trim())
         : await createUserRoleApi({ role_name: roleFormName.trim(), clinic_id: managedClinicId });
@@ -281,11 +243,16 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
         }
       }
     } catch (error) {
-      if (scopeRef.current === scope) showErrorToast('Unable to save role', error instanceof Error ? error.message : 'Please retry.');
+      if (scopeRef.current === scope) {
+        const message = error instanceof Error ? error.message : 'Please retry.';
+        setRoleFormError(message); showErrorToast('Unable to save role', message);
+      }
     } finally { busyRef.current = false; if (scopeRef.current === scope) setRoleFormSaving(false); }
   };
 
   const selectedRoleObject = permissionRoles.find((r) => String(r.id) === String(selectedRole));
+
+  if (!canView) return <View style={styles.container}><Text>You do not have permission to view roles and permissions.</Text></View>;
 
   return (
     <View style={styles.container}>
@@ -329,12 +296,12 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
 
         <View style={{ marginBottom: 12 }}>
           <TouchableOpacity accessibilityLabel="Select permission clinic" style={styles.roleDropdownSelector}
-            disabled={saving || roleFormSaving || !clinicOptions.length}
-            onPress={() => setShowClinicDropdown(value => !value)}>
+            disabled={!canChooseClinic || clinics.loading || saving || roleFormSaving || !clinicOptions.length}
+            onPress={() => { if (canChooseClinic && !busyRef.current) setShowClinicDropdown(value => !value); }}>
             <Text>{clinicOptions.find(c => Number(c.id) === managedClinicId)?.name || (managedClinicId ? `Clinic ${managedClinicId}` : 'Select clinic')}</Text>
             <ChevronDown size={18} color="#64748B" />
           </TouchableOpacity>
-          {showClinicDropdown && clinicOptions.map(clinic => (
+          {canChooseClinic && showClinicDropdown && clinicOptions.map(clinic => (
             <TouchableOpacity key={clinic.id} accessibilityLabel={`Manage clinic ${clinic.name}`}
               style={styles.dropdownMenuItem} onPress={() => { setManagedClinicId(Number(clinic.id)); setShowClinicDropdown(false); }}>
               <Text>{clinic.name}</Text>
@@ -460,10 +427,11 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
               {/* Dropdown Selector Bar & Save Button */}
               <View style={[styles.permControlsBar, isMobile && styles.permControlsBarMobile]}>
                 {/* Role Selector Trigger Dropdown */}
-                <View style={{ zIndex: 100 }}>
+                <View style={styles.rolePickerContainer}>
                   <TouchableOpacity
                     style={styles.roleDropdownSelector}
                     accessibilityLabel="Select permission role"
+                    accessibilityState={{ expanded: showRoleDropdown }}
                     disabled={saving || loading || !!resource.error}
                     onPress={() => setShowRoleDropdown(!showRoleDropdown)}
                     activeOpacity={0.8}
@@ -474,16 +442,24 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                     <ChevronDown color="#64748B" size={18} />
                   </TouchableOpacity>
 
-                  {/* CUSTOM DROPDOWN OVERLAY (Exact match screenshot 3) */}
+                  {/* Keep the list inside its parent's native touch bounds on Android. */}
                   {showRoleDropdown && (
                     <View style={styles.dropdownMenuCard}>
-                      <ScrollView style={{ maxHeight: 280 }} nestedScrollEnabled>
+                      <ScrollView
+                        testID="permission-role-options"
+                        style={styles.roleOptionsScroll}
+                        nestedScrollEnabled
+                        showsVerticalScrollIndicator
+                        persistentScrollbar
+                        keyboardShouldPersistTaps="handled">
                         {permissionRoles.map((r) => {
                           const isSelected = String(r.id) === String(selectedRole);
                           return (
                             <TouchableOpacity
                               key={String(r.id)}
                               accessibilityLabel={`Manage role ${r.role_name}`}
+                              accessibilityRole="button"
+                              accessibilityState={{ selected: isSelected }}
                               style={[
                                 styles.dropdownMenuItem,
                                 isSelected && styles.dropdownMenuItemActive,
@@ -658,10 +634,11 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                       editable={!roleFormSaving}
                       placeholderTextColor="#94A3B8"
                       value={roleFormName}
-                      onChangeText={setRoleFormName}
+                      onChangeText={value => { setRoleFormName(value); setRoleFormError(''); }}
                       autoFocus
                     />
                   </View>
+                  {!!roleFormError && <Text accessibilityRole="alert" style={styles.roleFormError}>{roleFormError}</Text>}
                 </View>
 
                 {/* Modal Footer Actions */}
@@ -677,7 +654,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                   <TouchableOpacity
                     style={styles.roleSaveBtn}
                     onPress={handleSaveRole}
-                    disabled={roleFormSaving}
+                    disabled={roleFormSaving || (editingRole ? !canEditRole : !canAddRole) || loading || !!resource.error}
                   >
                     {roleFormSaving ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
@@ -696,6 +673,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
 }
 
 const styles = StyleSheet.create({
+  roleFormError: { color: '#B91C1C', fontSize: 12, marginTop: 6 },
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   body: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
 
@@ -851,7 +829,7 @@ const styles = StyleSheet.create({
   // Permissions Tab Controls
   permControlsBar: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
     marginTop: 12,
     marginBottom: 16,
@@ -861,6 +839,8 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'stretch',
   },
+  rolePickerContainer: { flexShrink: 1, minWidth: 160 },
+  roleOptionsScroll: { maxHeight: 280, flexShrink: 1 },
   roleDropdownSelector: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -875,12 +855,10 @@ const styles = StyleSheet.create({
   },
   roleDropdownSelectorText: { color: '#0F172A', fontSize: 14, fontWeight: '600' },
 
-  // Custom Dropdown Overlay
+  // In-flow layout lets the entire list receive touches, not just the trigger.
   dropdownMenuCard: {
-    position: 'absolute',
-    top: 48,
-    left: 0,
-    minWidth: 200,
+    marginTop: 6,
+    maxHeight: 292,
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     borderWidth: 1,
@@ -891,7 +869,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     paddingVertical: 6,
-    zIndex: 999,
   },
   dropdownMenuItem: {
     flexDirection: 'row',
@@ -902,7 +879,7 @@ const styles = StyleSheet.create({
   dropdownMenuItemActive: {
     backgroundColor: '#E6F4F1',
   },
-  dropdownMenuText: { color: '#334155', fontSize: 14 },
+  dropdownMenuText: { color: '#334155', fontSize: 14, flexShrink: 1 },
   dropdownMenuTextActive: { color: '#0D9488', fontWeight: '700' },
 
   saveChangesButton: {

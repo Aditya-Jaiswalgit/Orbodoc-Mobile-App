@@ -12,11 +12,14 @@ export interface SystemObject {
 
 export interface UserRoleItem {
   id: number | string;
+  role_id?: number | string;
   role_name: string;
-  clinic_id?: number | string;
+  clinic_id?: number | string | null;
   description?: string;
   name?: string;
   is_system?: boolean | number | string;
+  user_count?: number;
+  users_count?: number;
 }
 
 export interface RolePermissionItem {
@@ -40,6 +43,7 @@ export interface CreateRolePermissionPayload {
   can_delete: number;
   can_execute?: number;
   clinic_id?: string | number;
+  user_id?: string | number | null;
 }
 
 export interface UpdateRolePermissionPayload {
@@ -80,9 +84,15 @@ export async function createSystemObjectApi(payload: {
  * Routes: /user_role/list?clinic_id={clinicId} -> /user_role -> /roles
  */
 export async function fetchUserRolesApi(clinicId?: string | number | null): Promise<ApiResponse<UserRoleItem[]>> {
-  const query = clinicId ? '?clinic_id=' + encodeURIComponent(String(clinicId)) : '';
+  const query = clinicId == null || !String(clinicId).trim() ? '' : '?clinic_id=' + encodeURIComponent(String(clinicId).trim());
   const res = await apiFetch<UserRoleItem[]>('/user_role/list' + query);
-  return { ...res, data: res.success ? extractArrayData(res) : undefined };
+  return { ...res, data: res.success ? extractArrayData(res).map(row => ({
+    ...row,
+    id: String(row.role_id ?? row.id ?? '').trim(),
+    role_id: String(row.role_id ?? row.id ?? '').trim(),
+    role_name: String(row.role_name ?? row.role ?? row.name ?? '').trim(),
+    is_system: permissionEnabled(row.is_system),
+  })).filter(row => row.id && row.role_name) : undefined };
 }
 
 /**
@@ -163,6 +173,7 @@ export async function createRolePermissionApi(
     method: 'POST',
     body: JSON.stringify({
       clinic_id: payload.clinic_id,
+      user_id: payload.user_id == null ? null : Number(payload.user_id),
       role_id: String(payload.role_id),
       sys_obj_id: String(payload.sys_obj_id),
       can_view: payload.can_view ? 1 : 0,

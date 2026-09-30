@@ -1,14 +1,16 @@
 import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
-import { Modal, Switch, Text, TextInput, TouchableOpacity } from 'react-native';
+import { Modal, ScrollView, Switch, Text, TextInput, TouchableOpacity } from 'react-native';
 import { RolePermissions } from '../src/screens/staff/RolePermissions';
 import { apiFetch } from '../src/api/apiConfig';
 import { showErrorToast } from '../src/utils/toast';
 
 const mockRefreshPermissions = jest.fn(async () => {});
+let mockRole = 'clinic_admin';
+let mockMultiClinic = true;
 let mockAccess = { view: true, add: true, edit: true, delete: true, execute: true };
 jest.mock('../src/context/AuthContext', () => ({ useAuthContext: () => ({
-  token: 'token', user: { id: 10, roleId: 2 }, role: 'clinic_admin', activeClinicId: 71,
+  token: 'token', user: { id: 10, roleId: 2 }, role: mockRole, activeClinicId: 71, isMultiClinic: mockMultiClinic, isMultiPlan: mockMultiClinic,
   assignedClinics: [{ id: 71, name: 'First Clinic' }, { id: 72, name: 'Second Clinic' }],
   permissionsMap: { staff_users: mockAccess }, refreshPermissions: mockRefreshPermissions,
 }) }));
@@ -27,7 +29,7 @@ let nextId: number;
 let rejectedObject: string;
 let failPlan: boolean;
 beforeEach(() => {
-  jest.clearAllMocks();
+  jest.clearAllMocks(); mockRole = 'clinic_admin'; mockMultiClinic = true;
   mockAccess = { view: true, add: true, edit: true, delete: true, execute: true };
   nextId = 100; permissions = []; rejectedObject = ''; failPlan = false;
   roles = [
@@ -62,6 +64,7 @@ beforeEach(() => {
       const row = permissions.find(p => String(p.permission_id) === url.split('/').pop());
       Object.assign(row, body); return ok(row);
     }
+    if (url === '/clinics/my-clinics') return ok({ clinics: [{ id: 71, name: 'First Clinic' }, { id: 72, name: 'Second Clinic' }] });
     if (url.startsWith('/clinics/')) return ok({ clinic: { plan_id: 4 } });
     if (url === '/planFeatures/') {
       if (failPlan) throw new Error('Offline');
@@ -108,7 +111,7 @@ test('roles, counts and modules come from the chosen clinic and plan', async () 
 test('existing rows normalize all five flags and update their permission ID', async () => {
   permissions = [{ permission_id: 88, clinic_id: 71, role_id: 23, sys_obj_id: 11,
     can_view: 'true', can_add: '0', can_edit: '1', can_delete: false, can_execute: 'yes' }];
-  await matrix();
+  await matrix(); await selectRole('Billing Staff');
   expect(screen.root.findAllByType(Switch).slice(0, 5).map(s => s.props.value)).toEqual([false, true, true, false, true]);
   await toggle('Patients delete');
   await press('Save Changes');
@@ -119,7 +122,7 @@ test('existing rows normalize all five flags and update their permission ID', as
 });
 
 test('saving one role keeps other role drafts unsaved', async () => {
-  await matrix(); await toggle('Patients create');
+  await matrix(); await selectRole('Billing Staff'); await toggle('Patients create');
   await selectRole('Doctor'); await toggle('Appointments execute');
   await press('Save Changes');
   expect(permissions).toHaveLength(1);
@@ -194,4 +197,92 @@ test('read-only managers cannot create roles or write permission changes', async
   expect(screen.root.findAllByType(Switch).every(s => s.props.disabled)).toBe(true);
   await toggle('Patients create'); await press('Save Changes');
   expect(writes()).toHaveLength(0);
+});
+
+
+test.each([
+  ['super_admin', ['Super Admin', 'Clinic Admin', 'Doctor', 'Billing Staff']],
+  ['clinic_admin', ['Doctor', 'Billing Staff']],
+  ['billing_manager', ['Super Admin', 'Clinic Admin', 'Doctor', 'Billing Staff']],
+])('%s receives the web role order and filtering', async (role, expected) => {
+  mockRole = role;
+  await render();
+  const roleButtons = screen.root.findAllByType(TouchableOpacity).filter(node => String(node.props.accessibilityLabel || '').startsWith('Edit role '));
+  expect(roleButtons.map(node => node.props.accessibilityLabel.replace('Edit role ', ''))).toEqual(expected);
+});
+
+test('clinic-specific duplicate role overrides global ID without changing web catalog order', async () => {
+  roles.unshift({ role_id: 99, role_name: 'DOCTOR', clinic_id: 71, is_system: 0 });
+  await matrix();
+  expect(button('Select permission role').findAllByType(Text)[0].props.children).toBe('DOCTOR');
+  await toggle('Patients read'); await press('Save Changes');
+  expect(permissions[0]).toMatchObject({ role_id: '99', clinic_id: 71, user_id: 10 });
+});
+
+test('protected roles reappear in the permission selector only for existing matrix rows, as on web', async () => {
+  permissions = [{ role_id: 2, clinic_id: 71, sys_obj_id: 11, permission_id: 92, can_view: 1 }];
+  await render();
+  expect(button('Edit role Clinic Admin')).toBeUndefined();
+  await press('Permissions'); await press('Select permission role');
+  expect(button('Manage role Clinic Admin')).toBeDefined();
+  expect(button('Manage role Super Admin')).toBeUndefined();
+  await press('Manage role Clinic Admin');
+  expect(screen.root.findAllByType(Switch)[1].props.value).toBe(true);
+});
+
+test('single-plan administrators cannot switch management clinics even with multiple assignments', async () => {
+  mockMultiClinic = false;
+  await render();
+  expect(button('Select permission clinic').props.disabled).toBe(true);
+  await press('Select permission clinic');
+  expect(button('Manage clinic Second Clinic')).toBeUndefined();
+  expect(fetchMock.mock.calls.some(([url]) => url === '/clinics/my-clinics')).toBe(false);
+});
+
+test('denied view permission prevents role, plan and clinic requests', async () => {
+  mockAccess.view = false;
+  await render();
+  expect(textValues()).toContain('You do not have permission to view roles and permissions.');
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+test('role loading failure shows a retry state and does not substitute a hardcoded list', async () => {
+  const original = fetchMock.getMockImplementation()!;
+  let fail = true;
+  fetchMock.mockImplementation(async (url, options) => url.startsWith('/user_role/list') && fail
+    ? { success: false, message: 'Offline' } : original(url, options));
+  await render();
+  expect(textValues()).toContain('Unable to load roles and permissions. Use Refresh Data to retry.');
+  expect(button('Edit role Doctor')).toBeUndefined();
+  fail = false; await press('Refresh Data');
+  expect(button('Edit role Doctor')).toBeDefined();
+});
+
+test('saving a role without renaming preserves the original API spelling', async () => {
+  await render(); await press('Edit role Billing Staff');
+  expect(screen.root.findByType(TextInput).props.value).toBe('billing_staff');
+  await press('Save Role');
+  expect(JSON.parse(String(writes()[0][1]?.body))).toEqual({ role_name: 'billing_staff' });
+});
+
+test('a long role picker retains the last option and applies its permissions after selection', async () => {
+  roles.unshift(...Array.from({ length: 24 }, (_, index) => ({
+    role_id: 1000 + index, role_name: 'extra_role_' + index, clinic_id: 71, is_system: 0,
+  })));
+  await matrix();
+  await press('Select permission role');
+  const list = screen.root.findAllByType(ScrollView).find(node => node.props.testID === 'permission-role-options')!;
+  const options = list.findAllByType(TouchableOpacity);
+  expect(options).toHaveLength(26);
+  expect(options.at(-1)?.props.accessibilityLabel).toBe('Manage role Extra Role 0');
+  await press('Manage role Extra Role 0');
+  expect(button('Select permission role').props.accessibilityState.expanded).toBe(false);
+  expect(button('Select permission role').findAllByType(Text)[0].props.children).toBe('Extra Role 0');
+  expect(screen.root.findAllByType(ScrollView).some(node => node.props.testID === 'permission-role-options')).toBe(false);
+  await toggle('Patients read'); await press('Save Changes');
+  expect(permissions[0]).toMatchObject({ role_id: '1000', sys_obj_id: '11', can_view: 1 });
+  await press('Select permission role');
+  expect(button('Manage role Extra Role 0').props.accessibilityState.selected).toBe(true);
+  await press('Select permission role');
+  expect(button('Select permission role').props.accessibilityState.expanded).toBe(false);
 });

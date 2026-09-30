@@ -63,6 +63,7 @@ export interface AuthContextType {
   activeClinicName: string;
   assignedClinics: UserClinic[];
   isMultiClinic: boolean;
+  isMultiPlan: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
   permissionsMap?: import('../utils/rolePermissions').PermissionMap;

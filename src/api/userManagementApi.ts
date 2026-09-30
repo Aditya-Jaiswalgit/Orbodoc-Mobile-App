@@ -19,6 +19,10 @@ export function extractArrayData(res: any): any[] {
   if (!res) return [];
   if (Array.isArray(res)) return res;
   if (Array.isArray(res.data)) return res.data;
+  if (Array.isArray(res.rows)) return res.rows;
+  if (Array.isArray(res.data?.rows)) return res.data.rows;
+  if (Array.isArray(res.clinics)) return res.clinics;
+  if (Array.isArray(res.data?.clinics)) return res.data.clinics;
   if (res.data && Array.isArray(res.data.users)) return res.data.users;
   if (res.data && Array.isArray(res.data.roles)) return res.data.roles;
   if (res.data && Array.isArray(res.data.permissions)) return res.data.permissions;
@@ -66,6 +70,11 @@ export function resetStaffPasswordApi(id: string | number, newPassword: string):
   return apiFetch('/staff/' + encodeURIComponent(String(id)) + '/reset-password', {
     method: 'POST', body: JSON.stringify({ newPassword }),
   });
+}
+
+// The web action deactivates (soft deletes) a user through this endpoint.
+export function deactivateStaffApi(id: string | number): Promise<ApiResponse<unknown>> {
+  return apiFetch('/staff/' + encodeURIComponent(String(id)), { method: 'DELETE' });
 }
 
 // The existing backend accepts only status 0 or 1. Compose a bounded page

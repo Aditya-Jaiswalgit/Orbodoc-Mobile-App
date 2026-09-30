@@ -1,6 +1,6 @@
 import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
-import { Text, TextInput, TouchableOpacity, Switch, Modal } from 'react-native';
+import { Text, TextInput, TouchableOpacity, Switch, Modal, Alert, View, StyleSheet } from 'react-native';
 import { UserManagement } from '../src/screens/staff/UserManagement';
 import { RolePermissions } from '../src/screens/staff/RolePermissions';
 import { SuperAdminDashboardScreen } from '../src/screens/dashboards/SuperAdminDashboardScreen';
@@ -12,6 +12,7 @@ let mockClinicId = 71;
 let mockRole = 'clinic_admin';
 let mockCanAdd = true;
 let mockCanEdit = true;
+let mockCanDelete = true;
 let mockMultiClinic = false;
 let mockWidth = 390;
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
@@ -19,8 +20,8 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
 }));
 jest.mock('../src/context/AuthContext', () => ({ useAuthContext: () => ({
   token: 'test-token', user: { id: 10, roleId: 2 }, activeClinicId: mockClinicId,
-  role: mockRole, permissionsMap: { staff_users: { view: true, add: mockCanAdd, edit: mockCanEdit, delete: true, execute: true } },
-  isMultiClinic: mockMultiClinic,
+  role: mockRole, permissionsMap: { staff_users: { view: true, add: mockCanAdd, edit: mockCanEdit, delete: mockCanDelete, execute: true } },
+  isMultiClinic: mockMultiClinic, isMultiPlan: mockMultiClinic,
   activeClinicName: 'Test Clinic', assignedClinics: [{ id: mockClinicId, name: 'Test Clinic' }, ...(mockMultiClinic ? [{ id: 72, name: 'Second Clinic' }] : [])],
 }) }));
 jest.mock('../src/api/apiConfig', () => ({ apiFetch: jest.fn() }));
@@ -44,13 +45,14 @@ let savedPermissions: any[] = [];
 const success = (data: unknown) => ({ success: true, message: 'OK', data });
 
 beforeEach(() => {
+  jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   jest.clearAllMocks(); mockClinicId = 71; failUsers = false; failSave = false; savedPermissions = [];
-  mockRole = 'clinic_admin'; mockCanAdd = true; mockCanEdit = true; mockMultiClinic = false;
+  mockRole = 'clinic_admin'; mockCanAdd = true; mockCanEdit = true; mockCanDelete = true; mockMultiClinic = false;
   mockWidth = 390;
   fetchMock.mockImplementation(async (endpoint, options) => {
-    if (options?.method === 'PUT' || options?.method === 'POST') {
+    if (['PUT', 'POST', 'DELETE'].includes(options?.method || '')) {
       if (failSave) return { success: false, message: 'Save rejected' };
-      if (endpoint === '/role_per/add') savedPermissions = [{ ...JSON.parse(String(options.body)), permission_id: 81 }];
+      if (endpoint === '/role_per/add') savedPermissions = [{ ...JSON.parse(String(options?.body)), permission_id: 81 }];
       return success({}) as any;
     }
     if (endpoint.startsWith('/staff?')) {
@@ -389,15 +391,15 @@ test('disabling the admin doctor profile clears doctor fields without changing t
   });
 });
 
-test('changing doctor to nurse keeps registration but clears doctor-only values', async () => {
+test('changing a doctor role preserves the separate doctor profile as on web', async () => {
   overrideStaffDetails(doctorDetails);
   await openUserEdit();
   await pressAccessible('Edit role');
   await pressAccessible('Edit role Nurse');
-  expect(screen.root.findAllByType(TextInput).some(node => node.props.accessibilityLabel === 'Edit consultation fee')).toBe(false);
+  expect(screen.root.findAllByType(TextInput).some(node => node.props.accessibilityLabel === 'Edit consultation fee')).toBe(true);
   await act(async () => button('Update User').props.onPress());
   expect(JSON.parse(String(staffUpdates()[0][1]?.body))).toMatchObject({
-    role_id: 8, registration_number: 'OLD-1', is_doctor: 0, consultation_fee: 0, available_days: null,
+    role_id: 8, registration_number: 'OLD-1', is_doctor: 1, consultation_fee: 200, available_days: 'Monday',
   });
 });
 
@@ -406,8 +408,12 @@ test('deactivate uses saved status even when the dropdown has an unsaved change'
   await pressAccessible('Edit status');
   await pressAccessible('Edit status Inactive');
   await act(async () => button('Deactivate User').props.onPress());
-  expect(JSON.parse(String(staffUpdates()[0][1]?.body))).toEqual({ is_active: 0 });
-  expect(button('Activate User')).toBeDefined();
+  expect(staffUpdates()).toHaveLength(0);
+  expect(fetchMock.mock.calls.filter(([, options]) => options?.method === 'DELETE')).toHaveLength(0);
+  const confirmation = jest.mocked(Alert.alert).mock.calls.at(-1)![2]!.find(item => item.style === 'destructive')!;
+  await act(async () => confirmation.onPress!());
+  expect(fetchMock).toHaveBeenCalledWith('/staff/25', { method: 'DELETE' });
+  expect(screen.root.findAllByType(Modal).some(node => node.props.visible)).toBe(false);
 });
 
 test('view-only permission blocks create and edit even if handlers are invoked', async () => {
@@ -484,7 +490,7 @@ test('permission drafts are denied by default and saved with clinic and execute 
   const save = screen.root.findAllByType(TouchableOpacity).find(node => node.findAllByType(Text)
     .some(text => String(text.props.children).includes('Save')))!;
   await act(async () => save.props.onPress());
-  expect(savedPermissions[0]).toMatchObject({ clinic_id: 71, role_id: '23', sys_obj_id: '11', can_execute: 1, can_view: 0 });
+  expect(savedPermissions[0]).toMatchObject({ clinic_id: 71, role_id: '8', sys_obj_id: '11', can_execute: 1, can_view: 0 });
   expect(showSuccessToast).toHaveBeenCalledWith('Matrix Saved', 'Role permissions saved successfully.');
 });
 
@@ -519,4 +525,187 @@ test('clinic performance uses the selected clinic API and does not preload fake 
   expect(texts.join(' ')).not.toContain('Rahul Sharma');
   expect(fetchMock.mock.calls.some(([url]) => url.startsWith('/dashboard?clinic_id=71&date='))).toBe(true);
   expect(fetchMock.mock.calls.some(([url]) => url.includes('admin-network'))).toBe(false);
+});
+
+function passwordModal() {
+  return screen.root.findAllByType(Modal).find(node => node.props.visible &&
+    node.findAllByType(TextInput).some(input => input.props.accessibilityLabel === 'New password'))!;
+}
+function resetSubmit() {
+  return passwordModal().findAllByType(TouchableOpacity).find(node =>
+    node.findAllByType(Text).some(text => text.props.children === 'Reset Password') || node.props.testID === 'submit-password-reset')!;
+}
+const passwordRequests = () => fetchMock.mock.calls.filter(([url, options]) => url.endsWith('/reset-password') && options?.method === 'POST');
+const resetMessages = () => passwordModal().findAllByType(Text).map(node => node.props.children);
+async function openPasswordReset() {
+  await openUserEdit();
+  await act(async () => button('Reset Password').props.onPress());
+}
+
+test.each([
+  ['', '', 'New password is required', 'Confirm password is required'],
+  ['short', '', 'Password must be at least 8 characters', 'Confirm password is required'],
+  ['Valid-pass-123', '', undefined, 'Confirm password is required'],
+  ['Valid-pass-123', 'Different-pass', undefined, 'Passwords do not match'],
+])('reset validation maps %s / %s to the correct fields', async (password, confirm, passwordError, confirmError) => {
+  await openPasswordReset();
+  await fillCreateInput('New password', password);
+  await fillCreateInput('Confirm password', confirm);
+  await act(async () => resetSubmit().props.onPress());
+  expect(passwordRequests()).toHaveLength(0);
+  const inputs = passwordModal().findAllByType(TextInput);
+  expect(inputs[0].props['aria-invalid']).toBe(!!passwordError);
+  expect(inputs[1].props['aria-invalid']).toBe(!!confirmError);
+  if (passwordError) expect(resetMessages()).toContain(passwordError);
+  if (confirmError) expect(resetMessages()).toContain(confirmError);
+  expect(showErrorToast).not.toHaveBeenCalled();
+});
+
+test('reset submits matching passwords unchanged and clears the form after success', async () => {
+  await openPasswordReset();
+  await fillCreateInput('New password', ' Valid-pass-123 ');
+  await fillCreateInput('Confirm password', ' Valid-pass-123 ');
+  await act(async () => resetSubmit().props.onPress());
+  expect(passwordRequests()).toHaveLength(1);
+  expect(passwordRequests()[0]).toEqual(['/staff/25/reset-password', { method: 'POST', body: JSON.stringify({ newPassword: ' Valid-pass-123 ' }) }]);
+  expect(passwordModal()).toBeUndefined();
+  await act(async () => button('Reset Password').props.onPress());
+  expect(passwordModal().findAllByType(TextInput).every(input => input.props.value === '')).toBe(true);
+  expect(passwordModal().findAllByType(Text).filter(text => text.props.accessibilityRole === 'alert')).toHaveLength(0);
+});
+
+test('reset clears stale mismatch after changing the new password to match confirmation', async () => {
+  await openPasswordReset();
+  await fillCreateInput('New password', 'First-pass-123');
+  await fillCreateInput('Confirm password', 'Second-pass-123');
+  await act(async () => resetSubmit().props.onPress());
+  expect(resetMessages()).toContain('Passwords do not match');
+  await fillCreateInput('New password', 'Second-pass-123');
+  expect(resetMessages()).not.toContain('Passwords do not match');
+  await act(async () => resetSubmit().props.onPress());
+  expect(passwordRequests()).toHaveLength(1);
+});
+
+test('reset failure stays visible in the modal and allows retry', async () => {
+  await openPasswordReset();
+  await fillCreateInput('New password', 'Valid-pass-123');
+  await fillCreateInput('Confirm password', 'Valid-pass-123');
+  failSave = true;
+  await act(async () => resetSubmit().props.onPress());
+  expect(resetMessages()).toContain('Save rejected');
+  expect(passwordModal().findAllByType(TextInput)[0].props.value).toBe('Valid-pass-123');
+  failSave = false;
+  await act(async () => resetSubmit().props.onPress());
+  expect(passwordRequests()).toHaveLength(2);
+  expect(passwordModal()).toBeUndefined();
+});
+
+test('double reset tap makes one request and blocks dismiss while saving', async () => {
+  await openPasswordReset();
+  await fillCreateInput('New password', 'Valid-pass-123');
+  await fillCreateInput('Confirm password', 'Valid-pass-123');
+  let complete!: (value: any) => void;
+  fetchMock.mockImplementationOnce(() => new Promise(resolve => { complete = resolve; }));
+  const submit = resetSubmit().props.onPress;
+  let pending!: Promise<void>;
+  await act(async () => { pending = submit(); void submit(); });
+  expect(passwordRequests()).toHaveLength(1);
+  expect(resetSubmit().props.disabled).toBe(true);
+  await act(async () => passwordModal().props.onRequestClose());
+  expect(passwordModal()).toBeDefined();
+  await act(async () => { complete(success({})); await pending; });
+  expect(passwordModal()).toBeUndefined();
+});
+
+test('closing an invalid reset form clears errors on reopen', async () => {
+  await openPasswordReset();
+  await act(async () => resetSubmit().props.onPress());
+  await act(async () => passwordModal().props.onRequestClose());
+  await act(async () => button('Reset Password').props.onPress());
+  expect(resetMessages()).not.toContain('New password is required');
+  expect(resetMessages()).not.toContain('Confirm password is required');
+});
+
+test.each([320, 390, 600, 1024])('edit action layout fits width %s and keeps web action order', async width => {
+  mockWidth = width;
+  await openUserEdit();
+  const footer = screen.root.findAllByType(View).find(node => node.props.testID === 'edit-user-actions')!;
+  const actions = footer.findAllByType(TouchableOpacity);
+  expect(actions.map(node => node.props.accessibilityLabel)).toEqual(width < 768
+    ? ['Update User', 'Cancel', 'Reset Password', 'Deactivate User']
+    : ['Deactivate User', 'Reset Password', 'Cancel', 'Update User']);
+  if (width < 768) {
+    expect(StyleSheet.flatten(footer.props.style)).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap', gap: 8 });
+    for (const action of actions) {
+      expect(StyleSheet.flatten(action.props.style)).toMatchObject({ width: width < 340 ? '100%' : '48%', minHeight: 48 });
+    }
+  }
+});
+
+test('edit shows separate name and phone errors and normalizes pasted Indian phone numbers', async () => {
+  await openUserEdit();
+  await fillCreateInput('Edit full name', '');
+  await fillCreateInput('Edit phone', '123');
+  await act(async () => button('Update User').props.onPress());
+  const text = screen.root.findAllByType(Text).map(node => node.props.children);
+  expect(text).toContain('Full name is required');
+  expect(text).toContain('Mobile number must be 10 digits and start with 6, 7, 8, or 9');
+  expect(staffUpdates()).toHaveLength(0);
+  await fillCreateInput('Edit full name', 'Updated User');
+  await fillCreateInput('Edit phone', '+91 98765 43210');
+  await act(async () => button('Update User').props.onPress());
+  expect(JSON.parse(String(staffUpdates()[0][1]?.body))).toMatchObject({ full_name: 'Updated User', phone: '9876543210' });
+});
+
+test('deactivation needs delete permission and cannot fall back to a status PUT', async () => {
+  mockCanDelete = false;
+  await openUserEdit();
+  expect(button('Deactivate User').props.disabled).toBe(true);
+  await act(async () => button('Deactivate User').props.onPress());
+  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(fetchMock.mock.calls.filter(([, opts]) => ['PUT', 'DELETE'].includes(opts?.method || ''))).toHaveLength(0);
+});
+
+test('deactivation confirmation rechecks revoked permissions', async () => {
+  await openUserEdit();
+  await act(async () => button('Deactivate User').props.onPress());
+  const confirmation = jest.mocked(Alert.alert).mock.calls.at(-1)![2]!.find(item => item.style === 'destructive')!;
+  mockCanDelete = false;
+  await act(async () => screen.update(<UserManagement />));
+  await act(async () => confirmation.onPress!());
+  expect(fetchMock.mock.calls.filter(([, options]) => options?.method === 'DELETE')).toHaveLength(0);
+});
+
+test('activation validates and submits the edited fields through PUT', async () => {
+  overrideStaffDetails({ is_active: 0 });
+  await openUserEdit();
+  await fillCreateInput('Edit full name', 'Activated User');
+  await act(async () => button('Activate User').props.onPress());
+  expect(JSON.parse(String(staffUpdates()[0][1]?.body))).toMatchObject({ full_name: 'Activated User', is_active: 1 });
+  expect(screen.root.findAllByType(Modal).some(node => node.props.visible)).toBe(false);
+});
+
+
+test('eligible non-admin user lists are scoped to the active clinic without requesting a clinic selector', async () => {
+  mockRole = 'billing_manager';
+  await act(async () => { screen = Renderer.create(<UserManagement />); });
+  const requests = fetchMock.mock.calls.filter(([url]) => url.startsWith('/staff?'));
+  expect(requests.length).toBeGreaterThan(0);
+  expect(requests.every(([url]) => new URL('https://test.local' + url).searchParams.get('clinic_id') === '71')).toBe(true);
+  expect(fetchMock.mock.calls.some(([url]) => url === '/clinics/my-clinics')).toBe(false);
+});
+
+test('multi-plan admin creation uses fetched clinic options and retains an assigned-clinic fallback on error', async () => {
+  mockMultiClinic = true;
+  const original = fetchMock.getMockImplementation()!;
+  fetchMock.mockImplementation(async (url, options) => url === '/clinics/my-clinics'
+    ? { success: false, message: 'Offline' } : original(url, options));
+  await openCreateUser('Billing Staff');
+  expect(screen.root.findAllByType(Text).map(node => node.props.children)).toContain('Unable to refresh clinics. Showing assigned clinics. Tap to retry.');
+  await pressAccessible('Select user clinic');
+  expect(screen.root.findAllByType(TouchableOpacity).some(node => node.props.accessibilityLabel === 'Create user in Second Clinic')).toBe(true);
+  await pressAccessible('Create user in Test Clinic');
+  await pressAccessible('Select role'); await pressAccessible('Select role Billing Staff');
+  await pressAccessible('Submit create user');
+  expect(staffCreates()).toHaveLength(1);
 });

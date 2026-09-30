@@ -55,6 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userType, setUserType] = useState<UserRoleType | null>(null);
   const [activeClinicId, setActiveClinicId] = useState<number | null>(null);
   const [assignedClinics, setAssignedClinics] = useState<UserClinic[]>([]);
+  const [plan, setPlan] = useState<AuthResponseData['plan'] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loginPermissions, setLoginPermissions] = useState<{ key: string; map: PermissionMap }>({ key: '', map: {} });
 
@@ -83,6 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setGlobalAuthToken(sessionToken);
     setUser(userData);
     setUserType(type);
+    setPlan(authData.plan ?? null);
 
     // Initial clinics from login response
     let clinics: UserClinic[] = userData?.clinics || [];
@@ -157,6 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await switchClinicApi(clinicId);
       if (!response.success || revision !== sessionRevision.current) return false;
       const newAuthData = response.data;
+      setPlan(newAuthData?.plan ?? null);
       const newToken = newAuthData?.accessToken || newAuthData?.token || token;
       const nextUser = { ...user, ...newAuthData?.user };
       setLoginPermissions({
@@ -186,6 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserType(null);
     setActiveClinicId(null);
     setAssignedClinics([]);
+    setPlan(null);
     setLoginPermissions({ key: '', map: {} });
     setGlobalAuthToken(null);
   };
@@ -204,6 +208,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return Object.keys(map).length ? map : fallbackPermissions;
   }, Boolean(token && userType === 'staff' && activeClinicId && permissionRoleId));
   const isMultiClinic = assignedClinics.length > 1 || !!user?.isMultiClinic;
+  // Same entitlement as Web authUtils.isMultiPlanValue. Assigned clinic count
+  // alone does not decide whether an admin may choose a management clinic.
+  const isMultiPlan = String(plan?.plan_type ?? plan?.planType ?? '').trim().toLowerCase() === 'multi'
+    || Number(plan?.max_clinics ?? plan?.maxClinics ?? 0) > 1;
 
   const currentClinicObj = assignedClinics.find(c => Number(c.id) === Number(activeClinicId));
   const activeClinicName = currentClinicObj?.name || '';
@@ -219,6 +227,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         activeClinicName,
         assignedClinics,
         isMultiClinic,
+        isMultiPlan,
         isAuthenticated: !!token && !!user,
         isLoading,
         permissionsMap: permissionResource.data ?? fallbackPermissions,
