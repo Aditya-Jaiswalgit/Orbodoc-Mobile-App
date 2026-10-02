@@ -15,9 +15,10 @@ import { LabTestOrder, LabReport } from '../../types/clinicTypes';
 
 interface Props {
   onOpenDrawer: () => void;
+  initialTab?: 'orders' | 'reports';
 }
 
-export const LabManagementScreen: React.FC<Props> = ({ onOpenDrawer }) => {
+export const LabManagementScreen: React.FC<Props> = ({ onOpenDrawer, initialTab = 'orders' }) => {
   const [testOrders, setTestOrders] = useState<LabTestOrder[]>([
     { id: 101, clinic_id: 1, patient_id: 1, patient_name: 'Sunita Sharma', test_name: 'Lipid Profile & ECG', category: 'Cardiology', cost: 1200, status: 'processing', ordered_date: '2025-01-15' },
     { id: 102, clinic_id: 1, patient_id: 2, patient_name: 'Rahul Verma', test_name: 'HbA1c & Fasting Glucose', category: 'Diabetology', cost: 850, status: 'ordered', ordered_date: '2025-01-15' },
@@ -28,7 +29,13 @@ export const LabManagementScreen: React.FC<Props> = ({ onOpenDrawer }) => {
     { id: 1, clinic_id: 1, test_order_id: 103, patient_id: 3, patient_name: 'Pooja Gupta', test_name: 'Thyroid Profile (T3, T4, TSH)', technician_name: 'Sunil Kumar', result_summary: 'TSH elevated (6.2 uIU/mL). Mild hypothyroidism indicated.', findings: 'T3: 1.2 ng/mL, T4: 7.5 ug/dL, TSH: 6.2 uIU/mL', status: 'verified', file_name: 'Thyroid_Report_Pooja.pdf', created_at: '2025-01-14 05:30 PM' },
   ]);
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'reports'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'reports'>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);

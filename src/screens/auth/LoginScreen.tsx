@@ -17,6 +17,7 @@ import { AlertCircle, Eye, EyeOff } from 'lucide-react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { UserRoleType } from '../../types/auth';
 import { showErrorToast, showSuccessToast } from '../../utils/toast';
+import { ForgotPasswordModal } from './ForgotPasswordModal';
 
 export const LoginScreen = () => {
   const insets = useSafeAreaInsets();
@@ -26,6 +27,7 @@ export const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [forgotModalVisible, setForgotModalVisible] = useState(false);
 
   const { loading, error, clearError, loginStaff, loginPatient } = useAuth();
 
@@ -244,7 +246,10 @@ export const LoginScreen = () => {
             </View>
 
             {/* Forgot Password Link */}
-            <TouchableOpacity style={styles.forgotPasswordContainer}>
+            <TouchableOpacity
+              style={styles.forgotPasswordContainer}
+              activeOpacity={0.7}
+              onPress={() => setForgotModalVisible(true)}>
               <Text style={styles.forgotPasswordText}>Forgot password?</Text>
             </TouchableOpacity>
 
@@ -263,6 +268,24 @@ export const LoginScreen = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        visible={forgotModalVisible}
+        onClose={() => setForgotModalVisible(false)}
+        initialRole={activeRole}
+        initialEmail={email}
+        initialPhone={phone}
+        onSuccessReset={(identifier) => {
+          if (activeRole === 'staff') {
+            setEmail(identifier);
+          } else {
+            setPhone(identifier);
+          }
+          setPassword('');
+          showSuccessToast('Password Reset Successful! 🎉', 'Please enter your new password to sign in.');
+        }}
+      />
     </SafeAreaView>
   );
 };

@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Alert,
+  BackHandler,
   Modal,
   Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  ToastAndroid,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -29,6 +31,7 @@ import {
   UserCog,
   UserPlus,
   Shield,
+  Video,
 } from 'lucide-react-native';
 import { useAuthContext } from '../context/AuthContext';
 
@@ -45,7 +48,6 @@ import SuperAdminDashboardScreen from '../screens/dashboards/SuperAdminDashboard
 // Feature Screens
 import BookAppointmentScreen from '../screens/patient/BookAppointmentScreen';
 import AppointmentsManagerScreen from '../screens/staff/AppointmentsManagerScreen';
-import AuditLogsScreen from '../screens/staff/AuditLogsScreen';
 import ClinicsManagementScreen from '../screens/staff/ClinicsManagementScreen';
 import LabManagementScreen from '../screens/staff/LabManagementScreen';
 import MedicineBillingScreen from '../screens/staff/MedicineBillingScreen';
@@ -56,6 +58,7 @@ import PrescriptionsScreen from '../screens/staff/PrescriptionsScreen';
 import StaffManagementScreen from '../screens/staff/StaffManagementScreen';
 import RolePermissionsScreen from '../screens/staff/RolePermissionsScreen';
 import TreatmentBillingScreen from '../screens/staff/TreatmentBillingScreen';
+import StaffVideoServicesScreen from '../screens/staff/StaffVideoServicesScreen';
 import MyProfileScreen from '../screens/staff/MyProfileScreen';
 import ChangePasswordScreen from '../screens/staff/ChangePasswordScreen';
 import { ProviderWalletScreen } from '../screens/staff/ProviderWalletScreen';
@@ -64,6 +67,7 @@ import { fetchHeaderUnreadCount } from '../api/staffHeaderApi';
 import { subscribeStaffNavigation } from '../utils/navigationEvents';
 import { canUseStaffScreen } from './staffAccess';
 import { StaffHeader } from '../components/common/StaffHeader';
+import { getRoleDisplayName, getRoleSectionLabel } from '../utils/rolePermissions';
 
 export type StaffTabType =
   | 'dashboard'
@@ -73,12 +77,14 @@ export type StaffTabType =
   | 'patients'
   | 'appointments'
   | 'book_appointment'
+  | 'video_services'
   | 'prescriptions'
   | 'pharmacy_inventory'
   | 'medicine_billing'
   | 'treatment_billing'
   | 'lab_management'
-  | 'audit_logs'
+  | 'lab_tests'
+  | 'lab_reports'
   | 'notifications'
   | 'profile'
   | 'wallet'
@@ -139,6 +145,41 @@ export const StaffMainContainer = () => {
     return unsubscribe;
   }, []);
 
+  // Android hardware back button handler
+  const lastBackPressRef = useRef<number>(0);
+  useEffect(() => {
+    const onBackPress = () => {
+      // 1. Close drawer if open
+      if (drawerOpen) {
+        setDrawerOpen(false);
+        return true;
+      }
+      // 2. Close clinic modal if open
+      if (clinicModalOpen) {
+        setClinicModalOpen(false);
+        return true;
+      }
+      // 3. If on any other tab than dashboard, navigate to dashboard
+      if (activeTab !== 'dashboard') {
+        setActiveTab('dashboard');
+        return true;
+      }
+      // 4. If already on dashboard, double-tap back to exit safely
+      const now = Date.now();
+      if (now - lastBackPressRef.current < 2000) {
+        BackHandler.exitApp();
+        return true;
+      }
+      lastBackPressRef.current = now;
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('Press back again to exit', ToastAndroid.SHORT);
+      }
+      return true;
+    };
+
+    const backSub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => backSub.remove();
+  }, [drawerOpen, clinicModalOpen, activeTab]);
 
   const openDrawer = () => setDrawerOpen(true);
   const openNotifications = () => setActiveTab('notifications');
@@ -160,14 +201,52 @@ export const StaffMainContainer = () => {
   const canSeeUserManagement =
     canOpen('staff');
 
-  // Define Menu items allowed for each role
+  // Web-aligned Shared Clinic Navigation Catalog
+  const sharedClinicNav: MenuItem[] = [
+    { id: 'patients', label: 'Patients' },
+    { id: 'appointments', label: 'Appointments' },
+    { id: 'book_appointment', label: 'Book Appointment' },
+    { id: 'video_services', label: 'Video Services' },
+    { id: 'treatment_billing', label: 'Treatment Billing' },
+    { id: 'medicine_billing', label: 'Medicine Billing' },
+    { id: 'pharmacy_inventory', label: 'Medicines' },
+    { id: 'lab_management', label: 'Lab Management' },
+    { id: 'lab_tests', label: 'Lab Tests' },
+    { id: 'lab_reports', label: 'Lab Reports' },
+  ];
+
+  // Full Custom Role navigation catalog matching Web's customRoleNav (used for Nurse & custom roles)
+  const customRoleNavCatalog: MenuItem[] = [
+    { id: 'clinics', label: 'Clinic Management' },
+    { id: 'patients', label: 'Patients' },
+    { id: 'appointments', label: 'Appointments' },
+    { id: 'book_appointment', label: 'Book Appointment' },
+    { id: 'video_services', label: 'Video Services' },
+    { id: 'treatment_billing', label: 'Treatment Billing' },
+    { id: 'medicine_billing', label: 'Medicine Billing' },
+    { id: 'pharmacy_inventory', label: 'Medicines' },
+    { id: 'lab_management', label: 'Lab Management' },
+    { id: 'lab_tests', label: 'Lab Tests' },
+    { id: 'lab_reports', label: 'Lab Reports' },
+    { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
+    {
+      id: 'user_role_mgmt',
+      label: 'User & Role Management',
+      isGroup: true,
+      children: [
+        { id: 'staff', label: 'Create User', iconType: 'create_user' },
+        { id: 'role_permissions', label: 'Role Permissions', iconType: 'role_permissions' },
+      ],
+    },
+  ];
+
+  // Define Menu items allowed for each role (matching web roleNavigationConfig.ts)
   const getMenuItemsForRole = (roleStr: string): MenuItem[] => {
     switch (roleStr) {
       case 'super_admin':
         return [
           { id: 'dashboard', label: 'Super Admin Dashboard' },
-          { id: 'clinics', label: 'Tenant Clinics' },
-          { id: 'patients', label: 'Patients Directory' },
+          { id: 'clinics', label: 'Clinic Management' },
           {
             id: 'user_role_mgmt',
             label: 'User & Role Management',
@@ -177,84 +256,75 @@ export const StaffMainContainer = () => {
               { id: 'role_permissions', label: 'Role Permissions', iconType: 'role_permissions' },
             ],
           },
-          { id: 'audit_logs', label: 'Audit Trail Logs' },
           { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'clinic_admin':
         return [
           { id: 'dashboard', label: 'Admin Dashboard' },
           { id: 'clinics', label: 'Clinic Management' },
-          { id: 'patients', label: 'Patients' },
-          { id: 'appointments', label: 'Appointments' },
-          { id: 'treatment_billing', label: 'Treatment Billing' },
-          { id: 'medicine_billing', label: 'Medicine Billing' },
-          { id: 'pharmacy_inventory', label: 'Medicines Stock' },
-          { id: 'lab_management', label: 'Lab Tests' },
+          ...sharedClinicNav,
           { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
-          ...(canSeeUserManagement
-            ? [
-                {
-                  id: 'user_role_mgmt' as const,
-                  label: 'User & Role Management',
-                  isGroup: true,
-                  children: [
-                    { id: 'staff' as const, label: 'Create User', iconType: 'create_user' as const },
-                    { id: 'role_permissions' as const, label: 'Role Permissions', iconType: 'role_permissions' as const },
-                  ],
-                },
-              ]
-            : []),
+          {
+            id: 'user_role_mgmt',
+            label: 'User & Role Management',
+            isGroup: true,
+            children: [
+              { id: 'staff', label: 'Create User', iconType: 'create_user' },
+              { id: 'role_permissions', label: 'Role Permissions', iconType: 'role_permissions' },
+            ],
+          },
         ];
       case 'doctor':
         return [
           { id: 'dashboard', label: 'Doctor Dashboard' },
-          { id: 'appointments', label: 'Patient Consultations' },
-          { id: 'prescriptions', label: 'Prescription Creator' },
-          { id: 'patients', label: 'Patient Medical History' },
-          { id: 'lab_management', label: 'Lab Reports' },
+          ...sharedClinicNav,
           { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'receptionist':
         return [
           { id: 'dashboard', label: 'Reception Dashboard' },
-          { id: 'book_appointment', label: 'Book Appointment' },
-          { id: 'appointments', label: 'Appointment Queue' },
-          { id: 'patients', label: 'Patient Registration' },
+          ...sharedClinicNav,
           { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'pharmacist':
         return [
-          { id: 'dashboard', label: 'Pharmacy Hub' },
-          { id: 'pharmacy_inventory', label: 'Medicine Stock' },
-          { id: 'medicine_billing', label: 'Medicine Bills' },
+          { id: 'dashboard', label: 'Pharmacist Dashboard' },
+          { id: 'medicine_billing', label: 'Medicine Billing' },
+          { id: 'pharmacy_inventory', label: 'Medicines' },
           { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'lab_technician':
         return [
-          { id: 'dashboard', label: 'Lab Hub' },
-          { id: 'lab_management', label: 'Lab Test Board' },
+          { id: 'dashboard', label: 'Lab Dashboard' },
+          { id: 'lab_management', label: 'Lab Management' },
+          { id: 'lab_tests', label: 'Lab Tests' },
+          { id: 'lab_reports', label: 'Lab Reports' },
+          { id: 'treatment_billing', label: 'Treatment Billing' },
+          { id: 'medicine_billing', label: 'Medicine Billing' },
+          { id: 'patients', label: 'Patients' },
+          { id: 'clinics', label: 'Clinic Management' },
           { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'accountant':
         return [
-          { id: 'dashboard', label: 'Finance Hub' },
-          { id: 'treatment_billing', label: 'Treatment Bills' },
-          { id: 'medicine_billing', label: 'Medicine Bills' },
+          { id: 'dashboard', label: 'Accounts Dashboard' },
+          { id: 'treatment_billing', label: 'Treatment Billing' },
+          { id: 'medicine_billing', label: 'Medicine Billing' },
+          { id: 'pharmacy_inventory', label: 'Medicines' },
           { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'nurse':
         return [
-          { id: 'dashboard', label: 'Nurse Station' },
-          { id: 'patients', label: 'Vitals Check-in' },
-          { id: 'appointments', label: 'Appointments Queue' },
-          { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
+          { id: 'dashboard', label: 'Nurse Dashboard' },
+          ...customRoleNavCatalog,
         ];
       default:
         return [
-          { id: 'dashboard', label: 'Dashboard' },
-          { id: 'patients', label: 'Patients' },
-          { id: 'appointments', label: 'Appointments' },
-          { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
+          {
+            id: 'dashboard',
+            label: `${getRoleDisplayName(staffRole)} Dashboard`,
+          },
+          ...customRoleNavCatalog,
         ];
     }
   };
@@ -266,16 +336,23 @@ export const StaffMainContainer = () => {
     { id: 'patients', label: 'Patients' },
     { id: 'appointments', label: 'Appointments' },
     { id: 'book_appointment', label: 'Book Appointment' },
-    { id: 'prescriptions', label: 'Prescriptions' },
+    { id: 'video_services', label: 'Video Services' },
     { id: 'treatment_billing', label: 'Treatment Billing' },
     { id: 'medicine_billing', label: 'Medicine Billing' },
-    { id: 'pharmacy_inventory', label: 'Medicines Stock' },
-    { id: 'lab_management', label: 'Lab Tests' },
-    { id: 'audit_logs', label: 'Audit Logs' },
-    { id: 'user_role_mgmt', label: 'User & Role Management', isGroup: true, children: [
-      { id: 'staff', label: 'Create User', iconType: 'create_user' },
-      { id: 'role_permissions', label: 'Role Permissions', iconType: 'role_permissions' },
-    ] },
+    { id: 'pharmacy_inventory', label: 'Medicines' },
+    { id: 'lab_management', label: 'Lab Management' },
+    { id: 'lab_tests', label: 'Lab Tests' },
+    { id: 'lab_reports', label: 'Lab Reports' },
+    { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
+    {
+      id: 'user_role_mgmt',
+      label: 'User & Role Management',
+      isGroup: true,
+      children: [
+        { id: 'staff', label: 'Create User', iconType: 'create_user' },
+        { id: 'role_permissions', label: 'Role Permissions', iconType: 'role_permissions' },
+      ],
+    },
   ];
   for (const item of extraItems) if (!candidates.some(existing => existing.id === item.id)) candidates.push(item);
   const menuItems = candidates.flatMap(item => {
@@ -324,14 +401,8 @@ export const StaffMainContainer = () => {
           case 'accountant':
             return <AccountantDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
           case 'nurse':
-            return <NurseDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
           default:
-            return <View style={{ flex: 1 }}><StaffHeader title="Dashboard" onOpenDrawer={openDrawer} />
-              <View style={{ padding: 24 }}><Text>Welcome, {user?.full_name || user?.fullName || 'User'}</Text>
-                <Text>Open the menu to access your permitted modules.</Text>
-                {!!permissionsError && <Text>Unable to load permissions.</Text>}
-                <TouchableOpacity onPress={refreshPermissions}><Text>Refresh permissions</Text></TouchableOpacity>
-              </View></View>;
+            return <NurseDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
         }
       case 'clinics':
         return <ClinicsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} />;
@@ -345,6 +416,8 @@ export const StaffMainContainer = () => {
         return <AppointmentsManagerScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr: string) => setActiveTab(scr as any)} />;
       case 'book_appointment':
         return <BookAppointmentScreen onOpenDrawer={openDrawer} />;
+      case 'video_services':
+        return <StaffVideoServicesScreen onOpenDrawer={openDrawer} />;
       case 'prescriptions':
         return <PrescriptionsScreen onOpenDrawer={openDrawer} />;
       case 'pharmacy_inventory':
@@ -354,9 +427,11 @@ export const StaffMainContainer = () => {
       case 'treatment_billing':
         return <TreatmentBillingScreen onOpenDrawer={openDrawer} />;
       case 'lab_management':
-        return <LabManagementScreen onOpenDrawer={openDrawer} />;
-      case 'audit_logs':
-        return <AuditLogsScreen onOpenDrawer={openDrawer} />;
+        return <ClinicsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} />;
+      case 'lab_tests':
+        return <LabManagementScreen onOpenDrawer={openDrawer} initialTab="orders" />;
+      case 'lab_reports':
+        return <LabManagementScreen onOpenDrawer={openDrawer} initialTab="reports" />;
       case 'notifications':
         return <NotificationsCenterScreen onOpenDrawer={openDrawer} />;
       case 'wallet':
@@ -382,6 +457,8 @@ export const StaffMainContainer = () => {
       case 'staff':
       case 'patients':
         return <Users color={color} size={size} />;
+      case 'video_services':
+        return <Video color={color} size={size} />;
       case 'user_role_mgmt':
         return <UserCog color={color} size={size} />;
       case 'treatment_billing':
@@ -391,6 +468,9 @@ export const StaffMainContainer = () => {
       case 'prescriptions':
         return <Pill color={color} size={size} />;
       case 'lab_management':
+        return <Building2 color={color} size={size} />;
+      case 'lab_tests':
+      case 'lab_reports':
         return <TestTube color={color} size={size} />;
       case 'notifications':
         return <Bell color={color} size={size} />;
@@ -430,7 +510,7 @@ export const StaffMainContainer = () => {
                       {activeClinicName}
                     </Text>
                     <Text style={styles.roleSubtitle}>
-                      {staffRole.replace('_', ' ')} {isMultiClinic ? '▼' : ''}
+                      {getRoleDisplayName(staffRole)} {isMultiClinic ? '▼' : ''}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -442,7 +522,9 @@ export const StaffMainContainer = () => {
 
               {/* ── 2. SECTION TITLE ── */}
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>ADMIN</Text>
+                <Text style={styles.sectionTitle}>
+                  {getRoleSectionLabel(staffRole)}
+                </Text>
               </View>
 
               {/* ── 3. NAVIGATION MENU LIST ── */}

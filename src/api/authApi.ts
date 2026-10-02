@@ -149,6 +149,17 @@ export async function resetAuthPasswordApi(payload: {
   });
 }
 
+export async function forgotPasswordApi(payload: {
+  userType: 'staff' | 'patient';
+  email?: string;
+  phone?: string;
+}): Promise<ApiResponse<{ resetToken?: string }>> {
+  return apiFetch<any>('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 /**
  * Switch Active Clinic
  * Route: POST /api/auth/switch-clinic
@@ -166,12 +177,7 @@ export async function switchClinicApi(
  * Update Profile API
  * Route: PUT /api/auth/profile
  */
-export async function updateProfileApi(payload: {
-  fullName?: string;
-  phone?: string;
-  address?: string;
-  profile_photo_url?: string;
-}): Promise<ApiResponse<any>> {
+export async function updateProfileApi(payload: Record<string, any>): Promise<ApiResponse<any>> {
   const { fullName, ...fields } = payload;
   return apiFetch<any>('/auth/profile', {
     method: 'PUT',

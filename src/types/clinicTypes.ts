@@ -62,10 +62,18 @@ export interface PatientModel {
   age?: number;
   blood_group?: string;
   address?: string;
+  city?: string;
+  state?: string;
   emergency_contact?: string;
+  emergency_contact_name?: string;
   allergies?: string;
   medical_history?: string;
+  is_active?: number | boolean;
+  is_portal_enabled?: number | boolean;
   registered_at?: string;
+  created_at?: string;
+  clinic_name?: string;
+  patient_code?: string;
   last_visit?: string;
 }
 
@@ -240,22 +248,6 @@ export interface NotificationItem {
   message: string;
   type: 'appointment' | 'prescription' | 'billing' | 'lab' | 'system' | 'broadcast';
   is_read: boolean;
-  created_at: string;
-}
-
-// Audit Log Model
-export interface AuditLog {
-  id: number;
-  clinic_id?: number;
-  user_id: number;
-  user_type: 'staff' | 'patient';
-  user_name: string;
-  user_role: string;
-  action: string;
-  table_name: string;
-  record_id?: number;
-  ip_address?: string;
-  details?: string;
   created_at: string;
 }
 

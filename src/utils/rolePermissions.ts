@@ -11,8 +11,52 @@ export function normalizeRoleName(value: string): string {
   return aliases[name] || name;
 }
 
+export const roleDisplayNames: Record<string, string> = {
+  super_admin: 'Super Admin',
+  clinic_admin: 'Clinic Admin',
+  doctor: 'Doctor',
+  receptionist: 'Receptionist',
+  pharmacist: 'Pharmacist',
+  lab_technician: 'Lab Technician',
+  accountant: 'Accountant',
+  patient: 'Patient',
+  nurse: 'Nurse',
+};
+
+export const roleSectionLabels: Record<string, string> = {
+  clinic_admin: 'Admin',
+  doctor: 'Doctor',
+  patient: 'Patient',
+  receptionist: 'Receptionist',
+  super_admin: 'Super Admin',
+  pharmacist: 'Pharmacist',
+  lab_technician: 'Lab',
+  accountant: 'Accounts',
+  nurse: 'Nurse',
+};
+
+export function getRoleDisplayName(role?: string | null): string {
+  if (!role) return 'Staff';
+  const normalized = normalizeRoleName(role);
+  return roleDisplayNames[normalized] || role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export function getRoleSectionLabel(role?: string | null): string {
+  if (!role) return 'STAFF';
+  const normalized = normalizeRoleName(role);
+  const label = roleSectionLabels[normalized] || getRoleDisplayName(role);
+  return label.toUpperCase();
+}
+
+
 export const normalizeObjectName = (value: string): string =>
   value.trim().toLowerCase().replace(/[\s_-]+/g, '_');
+
+export const normalizeObjectKey = (value: string): string =>
+  value.trim().toLowerCase().replace(/[\s_]+/g, ' ');
+
+export const normalizeObjectNameToken = (value: string): string =>
+  value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').replace(/_+/g, '_');
 
 export type PermissionAction = 'view' | 'add' | 'edit' | 'delete' | 'execute';
 export type PermissionFlags = Record<PermissionAction, boolean>;
@@ -28,6 +72,44 @@ export function permissionFlags(row: any): PermissionFlags {
   };
 }
 
+export const objectNameAliases: Record<string, string[]> = {
+  'super admin dashboard': ['super_admin_dashboard', 'dashboard', 'admin_dashboard'],
+  'admin dashboard': ['admin_dashboard', 'dashboard'],
+  'doctor dashboard': ['dashboard_doctor', 'dashboard', 'admin_dashboard'],
+  'reception dashboard': ['dashboard_receptionist', 'dashboard', 'admin_dashboard'],
+  'pharmacist dashboard': ['dashboard_pharmacist', 'dashboard', 'admin_dashboard'],
+  'lab dashboard': ['dashboard_lab', 'dashboard', 'admin_dashboard'],
+  'accounts dashboard': ['dashboard_accountant', 'dashboard', 'admin_dashboard'],
+  'patient dashboard': ['dashboard_patient', 'dashboard', 'admin_dashboard'],
+  'user & role management': ['staff_users', 'user_management'],
+  'clinic management': ['clinics', 'clinic_management'],
+  'clinic dashboard': ['dashboard', 'clinics', 'clinic_management'],
+  appointments: ['appointments', 'my_appointments'],
+  'video service': ['video service', 'video_service', 'video_services'],
+  'video services': ['video service', 'video_service', 'video_services'],
+  billing: ['treatment_bills', 'medicine_bills'],
+  'treatment billing': ['treatment_bills'],
+  'medicine billing': ['medicine_bills'],
+  'lab tests': ['lab_tests'],
+  'lab management': ['Lab_profile', 'lab_profile', 'lab_tests', 'lab_reports'],
+  'lab profile': ['Lab_profile', 'lab_profile'],
+  'lab reports': ['lab_reports'],
+  notifications: ['notifications'],
+  'audit logs': ['audit_logs'],
+  patients: ['patients', 'my_patients'],
+  doctors: ['staff_users'],
+  'my patients': ['my_patients', 'patients'],
+  'my appointments': ['appointments'],
+  medicines: ['medicines', 'pharmacy_inventory'],
+  'pharmacy inventory': ['medicines'],
+  invoices: ['medicine_bills', 'treatment_bills'],
+  payments: ['treatment_bills', 'medicine_bills'],
+  history: ['treatment_bills', 'medicine_bills'],
+  'clinic profile': ['clinic_management', 'clinics'],
+  'my profile': ['my_profile', 'staff_users'],
+  'change password': ['my_profile', 'staff_users'],
+};
+
 // Access uses the same role -> object flag map as the web client. The clinic
 // list endpoint is for editing the matrix, not resolving login access.
 export function normalizePermissionMap(value: unknown, objects: any[] = []): PermissionMap {
@@ -35,16 +117,46 @@ export function normalizePermissionMap(value: unknown, objects: any[] = []): Per
   const source = record?.permissions ?? record?.data ?? record;
   const result: PermissionMap = {};
   if (!source || typeof source !== 'object' || Array.isArray(source)) return result;
+
+  const setEntry = (key: string, flags: PermissionFlags) => {
+    if (!key) return;
+    const cleanKey = key.trim().toLowerCase();
+    const underscoreKey = cleanKey.replace(/[\s_-]+/g, '_');
+    const spaceKey = cleanKey.replace(/[\s_]+/g, ' ');
+    const noSpaceKey = cleanKey.replace(/[^a-z0-9]+/g, '');
+
+    result[underscoreKey] = flags;
+    result[spaceKey] = flags;
+    result[noSpaceKey] = flags;
+
+    // Also populate known aliases
+    const aliases = objectNameAliases[spaceKey] || objectNameAliases[underscoreKey] || [];
+    for (const alias of aliases) {
+      const aliasUnder = alias.toLowerCase().replace(/[\s_-]+/g, '_');
+      const aliasSpace = alias.toLowerCase().replace(/[\s_]+/g, ' ');
+      result[aliasUnder] = flags;
+      result[aliasSpace] = flags;
+    }
+  };
+
   for (const [name, flags] of Object.entries(source)) {
     if (flags && typeof flags === 'object' && !Array.isArray(flags)) {
-      result[normalizeObjectName(name)] = permissionFlags(flags);
+      setEntry(name, permissionFlags(flags));
     }
   }
+
   for (const object of objects) {
-    const name = normalizeObjectName(String(object.object_name || ''));
-    const display = normalizeObjectName(String(object.display_name || object.system_object_name || ''));
-    if (display && result[name] && !result[display]) result[display] = result[name];
+    const name = String(object.object_name || '').trim();
+    const display = String(object.display_name || object.system_object_name || '').trim();
+    const existing = result[normalizeObjectName(name)] || result[normalizeObjectKey(name)];
+    if (existing) {
+      if (display) setEntry(display, existing);
+    } else {
+      const displayFlags = result[normalizeObjectName(display)] || result[normalizeObjectKey(display)];
+      if (displayFlags && name) setEntry(name, displayFlags);
+    }
   }
+
   return result;
 }
 

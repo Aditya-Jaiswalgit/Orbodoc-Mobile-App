@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
+  BackHandler,
   Modal,
   Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  ToastAndroid,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -34,6 +36,7 @@ import NotificationsScreen from '../screens/patient/NotificationsScreen';
 import PatientsProfileScreen from '../screens/patient/PatientsProfileScreen';
 import TreatmentBillingScreen from '../screens/patient/TreatmentBillingScreen';
 import VideoServicesScreen from '../screens/patient/VideoServicesScreen';
+import { canUseStaffScreen } from './staffAccess';
 
 export type PatientTabType =
   | 'dashboard'
@@ -91,13 +94,54 @@ const renderTabVectorIcon = (tab: PatientTabType, color: string, size: number = 
 export const PatientMainContainer = () => {
   const [activeTab, setActiveTab] = useState<PatientTabType>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { user, logout } = useAuthContext();
+  const { user, logout, permissionsMap = {} } = useAuthContext();
+
+  const canPatientOpen = (tabId: PatientTabType) => {
+    if (tabId === 'dashboard' || tabId === 'notifications') return true;
+    if (!permissionsMap || Object.keys(permissionsMap).length === 0) return true;
+    return canUseStaffScreen('patient', permissionsMap, tabId);
+  };
+
+  const visibleMenuItems = useMemo(() => {
+    return MENU_ITEMS.filter(item => canPatientOpen(item.id));
+  }, [permissionsMap]);
 
   const patientName = user?.fullName || user?.full_name || 'bulbul';
   const initial = patientName.charAt(0).toUpperCase();
 
   const openDrawer = () => setDrawerOpen(true);
   const openNotifications = () => setActiveTab('notifications');
+
+  // Android hardware back button handler
+  const lastBackPressRef = useRef<number>(0);
+  useEffect(() => {
+    const onBackPress = () => {
+      // 1. Close drawer if open
+      if (drawerOpen) {
+        setDrawerOpen(false);
+        return true;
+      }
+      // 2. If on any other tab than dashboard, navigate to dashboard
+      if (activeTab !== 'dashboard') {
+        setActiveTab('dashboard');
+        return true;
+      }
+      // 3. Double tap to exit safely on dashboard
+      const now = Date.now();
+      if (now - lastBackPressRef.current < 2000) {
+        BackHandler.exitApp();
+        return true;
+      }
+      lastBackPressRef.current = now;
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('Press back again to exit', ToastAndroid.SHORT);
+      }
+      return true;
+    };
+
+    const backSub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => backSub.remove();
+  }, [drawerOpen, activeTab]);
 
   const renderActiveScreen = () => {
     switch (activeTab) {
@@ -255,7 +299,7 @@ export const PatientMainContainer = () => {
 
                 {/* Navigation Menu Links */}
                 <View style={styles.menuList}>
-                  {MENU_ITEMS.map((item) => {
+                  {visibleMenuItems.map((item) => {
                     const isActive = activeTab === item.id;
                     return (
                       <TouchableOpacity

@@ -88,14 +88,13 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
             <Text style={styles.kpiSub}>Across registered clinics</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.kpiCard, { backgroundColor: '#fff7ed', borderColor: '#fed7aa' }]}
-            onPress={() => onNavigateScreen('audit_logs')}>
+          <View
+            style={[styles.kpiCard, { backgroundColor: '#fff7ed', borderColor: '#fed7aa' }]}>
             <Text style={styles.kpiIcon}>💰</Text>
             <Text style={styles.kpiValue}>{displayAmount(revenue)}</Text>
             <Text style={styles.kpiLabel}>Platform Revenue</Text>
             <Text style={styles.kpiSub}>Total treatment and medicine bills</Text>
-          </TouchableOpacity>
+          </View>
         </View>
 
         {/* Quick Actions */}
@@ -110,9 +109,9 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
 
           <TouchableOpacity
             style={styles.actionBtnAlt}
-            onPress={() => onNavigateScreen('audit_logs')}>
-            <Text style={styles.actionIcon}>📋</Text>
-            <Text style={styles.actionTextAlt}>Audit Trail & Export</Text>
+            onPress={() => onNavigateScreen('staff')}>
+            <Text style={styles.actionIcon}>👥</Text>
+            <Text style={styles.actionTextAlt}>User Management</Text>
           </TouchableOpacity>
         </View>
 

@@ -29,28 +29,42 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({
           <Text style={styles.heroSub}>Track sample collection, generate lab reports and attach files.</Text>
         </View>
 
-        {/* Action Launcher */}
-        <TouchableOpacity
-          style={styles.labActionBtn}
-          onPress={() => onNavigateScreen('lab_management')}>
-          <Text style={styles.labBtnIcon}>🧪</Text>
-          <Text style={styles.labBtnText}>Open Lab Test Orders Board</Text>
-        </TouchableOpacity>
+        {/* Action Launchers */}
+        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
+          <TouchableOpacity
+            style={[styles.labActionBtn, { flex: 1, marginBottom: 0 }]}
+            onPress={() => onNavigateScreen('lab_tests')}>
+            <Text style={styles.labBtnIcon}>🧪</Text>
+            <Text style={styles.labBtnText}>Test Orders</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.labActionBtn, { flex: 1, marginBottom: 0, backgroundColor: '#4f46e5' }]}
+            onPress={() => onNavigateScreen('lab_reports')}>
+            <Text style={styles.labBtnIcon}>📋</Text>
+            <Text style={styles.labBtnText}>Lab Reports</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* KPIs */}
         <View style={styles.kpiGrid}>
-          <View style={[styles.kpiBox, { backgroundColor: '#f0fdf4' }]}>
+          <TouchableOpacity
+            style={[styles.kpiBox, { backgroundColor: '#f0fdf4' }]}
+            onPress={() => onNavigateScreen('lab_tests')}>
             <Text style={styles.kpiVal}>14</Text>
             <Text style={styles.kpiLab}>Pending Orders</Text>
-          </View>
-          <View style={[styles.kpiBox, { backgroundColor: '#eff6ff' }]}>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.kpiBox, { backgroundColor: '#eff6ff' }]}
+            onPress={() => onNavigateScreen('lab_tests')}>
             <Text style={styles.kpiVal}>6</Text>
             <Text style={styles.kpiLab}>Samples Collected</Text>
-          </View>
-          <View style={[styles.kpiBox, { backgroundColor: '#faf5ff' }]}>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.kpiBox, { backgroundColor: '#faf5ff' }]}
+            onPress={() => onNavigateScreen('lab_reports')}>
             <Text style={styles.kpiVal}>8</Text>
             <Text style={styles.kpiLab}>Reports Ready</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Pending Tests List */}
