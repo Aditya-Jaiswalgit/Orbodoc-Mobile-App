@@ -73,5 +73,7 @@ export interface AuthContextType {
   saveAuthSession: (data: AuthResponseData, userType: UserRoleType) => Promise<void>;
   switchClinic: (clinicId: number) => Promise<boolean>;
   logout: () => void;
+  updateUserProfile?: (profile: Partial<AuthUser> & Record<string, unknown>) => void;
+  updateClinicName?: (id: number | string, name: string) => void;
 }
 

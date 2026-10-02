@@ -8,6 +8,7 @@ import {
   Switch,
   StyleSheet,
   ActivityIndicator,
+  BackHandler,
   useWindowDimensions,
   Modal,
   TextInput,
@@ -54,7 +55,7 @@ function formatRoleTitle(value: string): string {
 }
 
 export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissionsProps) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const isMobile = width < 768;
 
   const { token, user, role: currentRole, activeClinicId, assignedClinics = [], isMultiPlan, refreshPermissions, permissionsMap = {} } = useAuthContext();
@@ -79,6 +80,29 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
   const [activeTab, setActiveTab] = useState<'roles' | 'permissions'>('roles');
   const [selectedRole, setSelectedRole] = useState<string | number>('');
   const [showRoleDropdown, setShowRoleDropdown] = useState<boolean>(false);
+  const screenRef = useRef<React.ComponentRef<typeof View>>(null);
+  const rolePickerRef = useRef<React.ComponentRef<typeof View>>(null);
+  const [roleMenuPosition, setRoleMenuPosition] = useState<{
+    left: number; top?: number; bottom?: number; width: number; maxHeight: number;
+  } | null>(null);
+  const roleMenuRequest = useRef(0);
+  const closeRoleDropdown = () => {
+    roleMenuRequest.current += 1;
+    setShowRoleDropdown(false);
+  };
+  useEffect(() => {
+    roleMenuRequest.current += 1;
+    setShowRoleDropdown(false);
+  }, [width, height]);
+  useEffect(() => {
+    if (!showRoleDropdown) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      roleMenuRequest.current += 1;
+      setShowRoleDropdown(false);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [showRoleDropdown]);
 
   const [saving, setSaving] = useState<boolean>(false);
 
@@ -142,6 +166,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
   const loadRoleDataFromApi = async () => { await Promise.allSettled([clinics.refresh(), resource.refresh(), counts.refresh(), refreshPermissions?.()]); };
   useEffect(() => {
     scopeRef.current = scope;
+    roleMenuRequest.current += 1;
     setDrafts({}); setSelectedRole(''); setIsAddRoleModalOpen(false); setSaving(false);
     setRoleFormSaving(false); setEditingRole(null); setShowRoleDropdown(false); setCustomRoleSetupId('');
     return () => { scopeRef.current = ''; };
@@ -184,11 +209,21 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
         if (scopeRef.current !== scope || !editAccessRef.current) return;
         const flags = { can_view: Number(row.can_view), can_add: Number(row.can_add),
           can_edit: Number(row.can_edit), can_delete: Number(row.can_delete), can_execute: Number(row.can_execute || 0) };
-        const existing = permissionsMatrix.find(p => String(p.role_id) === String(row.role_id) && String(p.sys_obj_id) === String(row.sys_obj_id));
-        const id = existing?.id ?? row.id;
-        const result = id ? await updateRolePermissionApi(id, flags)
-          : await createRolePermissionApi({ ...flags, role_id: row.role_id, sys_obj_id: row.sys_obj_id, clinic_id: managedClinicId, user_id: user?.id });
-        if (!result.success) throw new Error(result.message);
+        // Older clinics can have duplicate rows. Keep all copies consistent so
+        // both the matrix and the login permission map resolve the same flags.
+        const existing = permissionsMatrix.filter(p => String(p.role_id) === String(row.role_id) && String(p.sys_obj_id) === String(row.sys_obj_id));
+        const ids = [...new Set(existing.map(p => p.id).filter(id => id != null))];
+        if (!ids.length && row.id != null) ids.push(row.id);
+        if (ids.length) {
+          for (const id of ids) {
+            if (scopeRef.current !== scope || !editAccessRef.current) return;
+            const result = await updateRolePermissionApi(id!, flags);
+            if (!result.success) throw new Error(result.message);
+          }
+        } else {
+          const result = await createRolePermissionApi({ ...flags, role_id: row.role_id, sys_obj_id: row.sys_obj_id, clinic_id: managedClinicId, user_id: user?.id });
+          if (!result.success) throw new Error(result.message);
+        }
         if (scopeRef.current !== scope) return;
         setDrafts(previous => { const next = { ...previous }; delete next[key]; return next; });
       }
@@ -251,11 +286,36 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
   };
 
   const selectedRoleObject = permissionRoles.find((r) => String(r.id) === String(selectedRole));
+  const toggleRoleDropdown = () => {
+    if (showRoleDropdown) { closeRoleDropdown(); return; }
+    if (saving || loading || resource.error) return;
+    const request = ++roleMenuRequest.current;
+    // Window measurements include the current page scroll offset. Subtract the
+    // screen origin so status bars and the app header don't shift the menu.
+    rolePickerRef.current?.measureInWindow((x, y) => {
+      screenRef.current?.measureInWindow((screenX, screenY, screenWidth, screenHeight) => {
+        if (request !== roleMenuRequest.current || scopeRef.current !== scope || screenWidth <= 16 || screenHeight <= 16) return;
+        const menuWidth = Math.min(200, screenWidth - 16);
+        const anchorTop = y - screenY;
+        const belowTop = anchorTop + 48;
+        const belowSpace = screenHeight - belowTop - 8;
+        const aboveSpace = anchorTop - 6 - 8;
+        const opensAbove = belowSpace < 100 && aboveSpace > belowSpace;
+        setRoleMenuPosition({
+          left: Math.max(8, Math.min(x - screenX, screenWidth - menuWidth - 8)),
+          width: menuWidth,
+          maxHeight: Math.max(0, Math.min(294, opensAbove ? aboveSpace : belowSpace)),
+          ...(opensAbove ? { bottom: screenHeight - anchorTop + 6 } : { top: belowTop }),
+        });
+        setShowRoleDropdown(true);
+      });
+    });
+  };
 
   if (!canView) return <View style={styles.container}><Text>You do not have permission to view roles and permissions.</Text></View>;
 
   return (
-    <View style={styles.container}>
+    <View ref={screenRef} collapsable={false} testID="role-permissions-screen" style={styles.container}>
       {onOpenDrawer && (
         <StaffHeader
           onOpenDrawer={onOpenDrawer}
@@ -270,7 +330,9 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
       )}
 
       <ScrollView
+        testID="role-permissions-page"
         style={styles.body}
+        scrollEnabled={!showRoleDropdown}
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
@@ -427,13 +489,13 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
               {/* Dropdown Selector Bar & Save Button */}
               <View style={[styles.permControlsBar, isMobile && styles.permControlsBarMobile]}>
                 {/* Role Selector Trigger Dropdown */}
-                <View style={styles.rolePickerContainer}>
+                <View ref={rolePickerRef} collapsable={false} testID="permission-role-anchor" style={styles.rolePickerContainer}>
                   <TouchableOpacity
                     style={styles.roleDropdownSelector}
                     accessibilityLabel="Select permission role"
                     accessibilityState={{ expanded: showRoleDropdown }}
                     disabled={saving || loading || !!resource.error}
-                    onPress={() => setShowRoleDropdown(!showRoleDropdown)}
+                    onPress={toggleRoleDropdown}
                     activeOpacity={0.8}
                   >
                     <Text style={styles.roleDropdownSelectorText}>
@@ -441,53 +503,6 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                     </Text>
                     <ChevronDown color="#64748B" size={18} />
                   </TouchableOpacity>
-
-                  {/* Keep the list inside its parent's native touch bounds on Android. */}
-                  {showRoleDropdown && (
-                    <View style={styles.dropdownMenuCard}>
-                      <ScrollView
-                        testID="permission-role-options"
-                        style={styles.roleOptionsScroll}
-                        nestedScrollEnabled
-                        showsVerticalScrollIndicator
-                        persistentScrollbar
-                        keyboardShouldPersistTaps="handled">
-                        {permissionRoles.map((r) => {
-                          const isSelected = String(r.id) === String(selectedRole);
-                          return (
-                            <TouchableOpacity
-                              key={String(r.id)}
-                              accessibilityLabel={`Manage role ${r.role_name}`}
-                              accessibilityRole="button"
-                              accessibilityState={{ selected: isSelected }}
-                              style={[
-                                styles.dropdownMenuItem,
-                                isSelected && styles.dropdownMenuItemActive,
-                              ]}
-                              onPress={() => {
-                                setSelectedRole(r.id);
-                                setShowRoleDropdown(false);
-                              }}
-                            >
-                              {isSelected ? (
-                                <Check color="#0D9488" size={16} style={{ marginRight: 8 }} />
-                              ) : (
-                                <View style={{ width: 24 }} />
-                              )}
-                              <Text
-                                style={[
-                                  styles.dropdownMenuText,
-                                  isSelected && styles.dropdownMenuTextActive,
-                                ]}
-                              >
-                                {r.role_name}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </ScrollView>
-                    </View>
-                  )}
                 </View>
 
                 {/* Save Changes Button */}
@@ -599,6 +614,57 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
           )}
         </View>
       </ScrollView>
+
+      {/* Separate from the page scroll so the overlay receives native swipe gestures. */}
+      {showRoleDropdown && roleMenuPosition && (
+        <View testID="permission-role-overlay" style={styles.roleMenuLayer}>
+          <TouchableOpacity accessibilityLabel="Close permission role list" activeOpacity={1}
+            style={StyleSheet.absoluteFill} onPress={closeRoleDropdown} />
+          <View testID="permission-role-menu" style={[styles.dropdownMenuCard, roleMenuPosition]}>
+            <ScrollView
+              testID="permission-role-options"
+              style={styles.roleOptionsScroll}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+              persistentScrollbar
+              keyboardShouldPersistTaps="handled">
+              {permissionRoles.map((r) => {
+                const isSelected = String(r.id) === String(selectedRole);
+                return (
+                  <TouchableOpacity
+                    key={String(r.id)}
+                    accessibilityLabel={`Manage role ${r.role_name}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    style={[
+                      styles.dropdownMenuItem,
+                      isSelected && styles.dropdownMenuItemActive,
+                    ]}
+                    onPress={() => {
+                      setSelectedRole(r.id);
+                      closeRoleDropdown();
+                    }}
+                  >
+                    {isSelected ? (
+                      <Check color="#0D9488" size={16} style={{ marginRight: 8 }} />
+                    ) : (
+                      <View style={{ width: 24 }} />
+                    )}
+                    <Text
+                      style={[
+                        styles.dropdownMenuText,
+                        isSelected && styles.dropdownMenuTextActive,
+                      ]}
+                    >
+                      {r.role_name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      )}
 
       {/* ── ADD / EDIT ROLE MODAL (EXACT MATCH TO UPLOADED SCREENSHOTS) ───── */}
       <Modal visible={isAddRoleModalOpen} transparent animationType="fade" onRequestClose={() => { if (!roleFormSaving) setIsAddRoleModalOpen(false); }}>
@@ -829,7 +895,7 @@ const styles = StyleSheet.create({
   // Permissions Tab Controls
   permControlsBar: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 12,
     marginTop: 12,
     marginBottom: 16,
@@ -839,7 +905,8 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'stretch',
   },
-  rolePickerContainer: { flexShrink: 1, minWidth: 160 },
+  rolePickerContainer: { zIndex: 100 },
+  roleMenuLayer: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 1000 },
   roleOptionsScroll: { maxHeight: 280, flexShrink: 1 },
   roleDropdownSelector: {
     flexDirection: 'row',
@@ -855,10 +922,9 @@ const styles = StyleSheet.create({
   },
   roleDropdownSelectorText: { color: '#0F172A', fontSize: 14, fontWeight: '600' },
 
-  // In-flow layout lets the entire list receive touches, not just the trigger.
+  // Same floating card as before, positioned relative to the screen root.
   dropdownMenuCard: {
-    marginTop: 6,
-    maxHeight: 292,
+    position: 'absolute',
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     borderWidth: 1,

@@ -6,9 +6,10 @@ import {
   fetchClinicPlans, updateVideoAvailability, type ClinicPlan,
 } from '../api/staffHeaderApi';
 import { useNotificationInbox } from './useNotificationInbox';
+import { notifyProfileUpdated, subscribeProfileUpdated } from '../utils/profileEvents';
 
 export function useStaffHeaderData(notificationsOpen: boolean, planOpen: boolean, _profileOpen: boolean) {
-  const { user, token, activeClinicId } = useAuthContext();
+  const { user, token, activeClinicId, updateUserProfile } = useAuthContext();
   const scope = `${user?.id}:${activeClinicId}:${token}`;
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
@@ -19,6 +20,8 @@ export function useStaffHeaderData(notificationsOpen: boolean, planOpen: boolean
   const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const [videoBusy, setVideoBusy] = useState(false);
   const [planRetry, setPlanRetry] = useState(0);
+  const [profileRevision, setProfileRevision] = useState(0);
+  useEffect(() => subscribeProfileUpdated(() => setProfileRevision(value => value + 1)), []);
 
   useEffect(() => {
     scopeRef.current = scope;
@@ -62,7 +65,7 @@ export function useStaffHeaderData(notificationsOpen: boolean, planOpen: boolean
       if (current && result.success && result.data) setProfile(result.data.user || result.data);
     }).catch(() => { if (current) setProfile(null); });
     return () => { current = false; };
-  }, [scope]);
+  }, [scope, profileRevision]);
 
   const changeNotifications = async (clear: boolean) => {
     const success = await (clear ? inbox.clearAll() : inbox.markAllRead());
@@ -79,6 +82,8 @@ export function useStaffHeaderData(notificationsOpen: boolean, planOpen: boolean
       if (scopeRef.current !== scope) return;
       if (!result.success) throw new Error(result.message);
       setProfile(previous => ({ ...previous, is_video_enabled: enabled ? 1 : 0 }));
+      updateUserProfile?.({ is_video_enabled: enabled ? 1 : 0 });
+      notifyProfileUpdated();
     } catch {
       if (scopeRef.current === scope) Alert.alert('Unable to update video calling', 'Please try again.');
     } finally {

@@ -170,16 +170,18 @@ export async function updateProfileApi(payload: {
   fullName?: string;
   phone?: string;
   address?: string;
+  profile_photo_url?: string;
 }): Promise<ApiResponse<any>> {
+  const { fullName, ...fields } = payload;
   return apiFetch<any>('/auth/profile', {
     method: 'PUT',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...fields, ...(fullName !== undefined ? { full_name: fullName } : {}) }),
   });
 }
 
 /**
  * Change Password API
- * Route: POST /api/auth/change-password
+ * Route: PUT /api/auth/change-password
  */
 export async function changePasswordApi(payload: {
   currentPassword?: string;
@@ -188,7 +190,7 @@ export async function changePasswordApi(payload: {
   new_password?: string;
 }): Promise<ApiResponse<any>> {
   return apiFetch<any>('/auth/change-password', {
-    method: 'POST',
+    method: 'PUT',
     body: JSON.stringify({
       currentPassword: payload.currentPassword || payload.current_password,
       current_password: payload.current_password || payload.currentPassword,

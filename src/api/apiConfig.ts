@@ -27,7 +27,7 @@ export async function apiFetch<T>(
   const url = `${BASE_URL}${cleanEndpoint}`;
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     Accept: 'application/json',
     ...(globalAuthToken ? { Authorization: `Bearer ${globalAuthToken}` } : {}),
     ...((options.headers as Record<string, string>) || {}),
@@ -65,8 +65,8 @@ export async function apiFetch<T>(
       };
     }
     return {
-      success: json?.success === undefined ? true : Boolean(json.success),
-      message: json?.message || 'Success',
+      success: json?.success === undefined ? json?.status !== false : Boolean(json.success),
+      message: json?.message || json?.msg || json?.error || 'Success',
       data: json?.data !== undefined ? json.data : json,
     };
   } catch {

@@ -1,6 +1,6 @@
 import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
-import { Modal, ScrollView, Switch, Text, TextInput, TouchableOpacity } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { RolePermissions } from '../src/screens/staff/RolePermissions';
 import { apiFetch } from '../src/api/apiConfig';
 import { showErrorToast } from '../src/utils/toast';
@@ -8,6 +8,7 @@ import { showErrorToast } from '../src/utils/toast';
 const mockRefreshPermissions = jest.fn(async () => {});
 let mockRole = 'clinic_admin';
 let mockMultiClinic = true;
+let mockRoleMenuY = 400;
 let mockAccess = { view: true, add: true, edit: true, delete: true, execute: true };
 jest.mock('../src/context/AuthContext', () => ({ useAuthContext: () => ({
   token: 'token', user: { id: 10, roleId: 2 }, role: mockRole, activeClinicId: 71, isMultiClinic: mockMultiClinic, isMultiPlan: mockMultiClinic,
@@ -29,7 +30,7 @@ let nextId: number;
 let rejectedObject: string;
 let failPlan: boolean;
 beforeEach(() => {
-  jest.clearAllMocks(); mockRole = 'clinic_admin'; mockMultiClinic = true;
+  jest.clearAllMocks(); mockRole = 'clinic_admin'; mockMultiClinic = true; mockRoleMenuY = 400;
   mockAccess = { view: true, add: true, edit: true, delete: true, execute: true };
   nextId = 100; permissions = []; rejectedObject = ''; failPlan = false;
   roles = [
@@ -84,7 +85,17 @@ function button(label: string) {
   return screen.root.findAllByType(TouchableOpacity).find(b => b.props.accessibilityLabel === label ||
     b.findAllByType(Text).some(t => t.props.children === label))!;
 }
-async function press(label: string) { await act(async () => button(label).props.onPress()); }
+async function press(label: string) {
+  if (label === 'Select permission role') {
+    type Measurement = (x: number, y: number, width: number, height: number) => void;
+    const views = screen.root.findAllByType(View);
+    views.find(node => node.props.testID === 'role-permissions-screen')!.instance.measureInWindow =
+      (callback: Measurement) => callback(0, 20, 390, 760);
+    views.find(node => node.props.testID === 'permission-role-anchor')!.instance.measureInWindow =
+      (callback: Measurement) => callback(30, mockRoleMenuY, 300, 42);
+  }
+  await act(async () => button(label).props.onPress());
+}
 async function render() { await act(async () => { screen = Renderer.create(<RolePermissions />); }); }
 async function matrix() { await render(); await press('Permissions'); }
 async function selectRole(name: string) { await press('Select permission role'); await press('Manage role ' + name); }
@@ -106,6 +117,16 @@ test('roles, counts and modules come from the chosen clinic and plan', async () 
   expect(textValues()).not.toContain('Medicines');
   expect(fetchMock).toHaveBeenCalledWith('/user_role/list?clinic_id=71');
   expect(fetchMock).toHaveBeenCalledWith('/role_per/list?clinic_id=71');
+});
+
+test('duplicate legacy permission rows are updated together', async () => {
+  permissions = [88, 87].map(permission_id => ({ permission_id, clinic_id: 71, role_id: 23, sys_obj_id: 11,
+    can_view: 0, can_add: 0, can_edit: 0, can_delete: 0, can_execute: 0 }));
+  await matrix(); await selectRole('Billing Staff');
+  await act(async () => screen.root.findAllByType(Switch)[1].props.onValueChange(true));
+  await press('Save Changes');
+  expect(permissions.every(p => p.can_view === 1)).toBe(true);
+  expect(writes().map(([url]) => url)).toEqual(['/role_per/update/88', '/role_per/update/87']);
 });
 
 test('existing rows normalize all five flags and update their permission ID', async () => {
@@ -285,4 +306,28 @@ test('a long role picker retains the last option and applies its permissions aft
   expect(button('Manage role Extra Role 0').props.accessibilityState.selected).toBe(true);
   await press('Select permission role');
   expect(button('Select permission role').props.accessibilityState.expanded).toBe(false);
+});
+
+
+test('role options float at the original trigger offset without enlarging page content', async () => {
+  await matrix();
+  await press('Select permission role');
+  const page = () => screen.root.findAllByType(ScrollView).find(node => node.props.testID === 'role-permissions-page')!;
+  expect(page().findAllByType(ScrollView).some(node => node.props.testID === 'permission-role-options')).toBe(false);
+  const card = screen.root.findAllByType(View).find(node => node.props.testID === 'permission-role-menu')!;
+  expect(StyleSheet.flatten(card.props.style)).toMatchObject({ position: 'absolute', left: 30, top: 428, width: 200, maxHeight: 294 });
+  expect(page().props.scrollEnabled).toBe(false);
+  await press('Close permission role list');
+  expect(button('Select permission role').props.accessibilityState.expanded).toBe(false);
+  expect(page().props.scrollEnabled).toBe(true);
+});
+
+test('role overlay stays inside the screen when the trigger is near the bottom', async () => {
+  mockRoleMenuY = 740;
+  await matrix();
+  await press('Select permission role');
+  const card = screen.root.findAllByType(View).find(node => node.props.testID === 'permission-role-menu')!;
+  expect(StyleSheet.flatten(card.props.style)).toMatchObject({ bottom: 46, width: 200, maxHeight: 294 });
+  await press('Manage role Billing Staff');
+  expect(button('Select permission role').findAllByType(Text)[0].props.children).toBe('Billing Staff');
 });

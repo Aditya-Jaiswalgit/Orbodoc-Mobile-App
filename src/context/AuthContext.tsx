@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { setGlobalAuthToken } from '../api/apiConfig';
 import {
   fetchMyClinicsApi,
@@ -181,6 +181,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUserProfile = useCallback((profile: Partial<AuthUser> & Record<string, unknown>) => {
+    setUser(previous => previous ? { ...previous, ...profile,
+      fullName: profile.full_name ?? profile.fullName ?? previous.fullName,
+    } : null);
+  }, []);
+  const updateClinicName = useCallback((id: number | string, name: string) => {
+    setAssignedClinics(previous => previous.map(clinic => String(clinic.id) === String(id) ? { ...clinic, name } : clinic));
+  }, []);
+
   const logout = () => {
     sessionRevision.current += 1;
     setIsLoading(false);
@@ -237,6 +246,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         saveAuthSession,
         switchClinic,
         logout,
+        updateUserProfile,
+        updateClinicName,
       }}>
       {children}
     </AuthContext.Provider>

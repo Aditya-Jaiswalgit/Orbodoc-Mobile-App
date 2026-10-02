@@ -20,7 +20,7 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
 }));
 jest.mock('../src/context/AuthContext', () => ({ useAuthContext: () => ({
   token: 'test-token', user: { id: 10, roleId: 2 }, activeClinicId: mockClinicId,
-  role: mockRole, permissionsMap: { staff_users: { view: true, add: mockCanAdd, edit: mockCanEdit, delete: mockCanDelete, execute: true } },
+  role: mockRole, permissionsMap: { clinics: { view: true, add: mockCanAdd, edit: mockCanEdit, delete: mockCanDelete, execute: true }, staff_users: { view: true, add: mockCanAdd, edit: mockCanEdit, delete: mockCanDelete, execute: true } },
   isMultiClinic: mockMultiClinic, isMultiPlan: mockMultiClinic,
   activeClinicName: 'Test Clinic', assignedClinics: [{ id: mockClinicId, name: 'Test Clinic' }, ...(mockMultiClinic ? [{ id: 72, name: 'Second Clinic' }] : [])],
 }) }));
@@ -66,6 +66,7 @@ beforeEach(() => {
       phone: '9876543210', email: 'test@example.com', is_active: 1,
       address: '42 Clinic Road, Jaipur',
     } }) as any;
+    if (endpoint.includes('/admin-network')) return success({ data: [{ id: 10, full_name: 'Real Admin', is_active: 1 }] }) as any;
     if (endpoint === '/clinics/my-clinics') return success({ clinics: [{ id: mockClinicId, name: 'Test Clinic' }, { id: 72, name: 'Second Clinic' }] }) as any;
     if (endpoint === '/dashboard/super-admin') return success({ stats: {
       total_clinics: 6, active_clinics: 5, active_staff: 17, active_patients: 41,
@@ -524,7 +525,7 @@ test('clinic performance uses the selected clinic API and does not preload fake 
   expect(texts).toContain('₹22.00');
   expect(texts.join(' ')).not.toContain('Rahul Sharma');
   expect(fetchMock.mock.calls.some(([url]) => url.startsWith('/dashboard?clinic_id=71&date='))).toBe(true);
-  expect(fetchMock.mock.calls.some(([url]) => url.includes('admin-network'))).toBe(false);
+  expect(fetchMock.mock.calls.some(([url]) => url.includes('admin-network'))).toBe(true);
 });
 
 function passwordModal() {

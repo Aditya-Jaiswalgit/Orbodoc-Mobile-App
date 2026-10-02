@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Alert,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -22,6 +23,7 @@ import {
   Columns,
   MoreVertical,
   Calendar as CalendarIcon,
+  Check,
   CheckCircle,
   XCircle,
   IndianRupee,
@@ -34,6 +36,8 @@ import {
   Plus,
   X,
   Eye,
+  EyeOff,
+  KeyRound,
   Edit2,
   UserPlus,
   Trash2,
@@ -44,13 +48,18 @@ import {
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { Pagination } from '../../components/common/Pagination';
 import { CustomCalendarPicker } from '../../components/common/CustomCalendarPicker';
+import { ColumnSelectorModal } from '../../components/common/ColumnSelectorModal';
 import { showSuccessToast, showErrorToast } from '../../utils/toast';
 import { useAuthContext } from '../../context/AuthContext';
 import { useRemoteData } from '../../hooks/useRemoteData';
 import { fetchUserRolesApi } from '../../api/roleManagementApi';
 import { dashboardNumber, displayAmount } from '../../utils/dashboardValues';
 import { navigateStaffScreen } from '../../utils/navigationEvents';
+import { chooseAndUploadClinicLogo, profilePhotoUrl } from '../../api/profilePhotoApi';
+import { resetStaffPasswordApi } from '../../api/userManagementApi';
 import { apiFetch } from '../../api/apiConfig';
+import { canUseStaffScreen } from '../../navigation/staffAccess';
+import { notifyProfileUpdated } from '../../utils/profileEvents';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -61,6 +70,7 @@ export interface ClinicItem {
   id: string | number;
   name: string;
   code: string;
+  logo_url?: string;
   address: string;
   email: string;
   phone: string;
@@ -81,6 +91,7 @@ export interface ClinicItem {
 }
 
 export interface ClinicFormState {
+  logo_url?: string;
   id?: string | number;
   name: string;
   email: string;
@@ -116,8 +127,44 @@ export interface ClinicAdminItem {
   full_name: string;
   email: string;
   phone: string;
+  address?: string;
   status: 'Active' | 'Inactive';
 }
+
+export type ClinicColumnKey =
+  | 'name'
+  | 'address'
+  | 'contact'
+  | 'created'
+  | 'country'
+  | 'website'
+  | 'license_number'
+  | 'available_days'
+  | 'available_from'
+  | 'available_to'
+  | 'admins'
+  | 'status'
+  | 'actions';
+
+export const clinicColumnOptions: Array<{
+  key: ClinicColumnKey;
+  label: string;
+  defaultVisible: boolean;
+}> = [
+  { key: 'name', label: 'Clinic Name', defaultVisible: true },
+  { key: 'address', label: 'Address', defaultVisible: true },
+  { key: 'contact', label: 'Contact', defaultVisible: true },
+  { key: 'created', label: 'Created', defaultVisible: false },
+  { key: 'country', label: 'Country', defaultVisible: false },
+  { key: 'website', label: 'Website', defaultVisible: false },
+  { key: 'license_number', label: 'License Number', defaultVisible: false },
+  { key: 'available_days', label: 'Available Days', defaultVisible: false },
+  { key: 'available_from', label: 'Available From', defaultVisible: false },
+  { key: 'available_to', label: 'Available To', defaultVisible: false },
+  { key: 'admins', label: 'Admins', defaultVisible: true },
+  { key: 'status', label: 'Status', defaultVisible: true },
+  { key: 'actions', label: 'Actions', defaultVisible: true },
+];
 
 export function checkIsMultiClinicPlan(planData: any, userData: any, assignedClinics?: any[]): boolean {
   if (planData) {
@@ -163,8 +210,16 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
-  const { token, user, activeClinicId, activeClinicName, isMultiClinic } = useAuthContext();
-  const scope = [token, user?.id, activeClinicId].join(':');
+  const { token, user, activeClinicId, activeClinicName, isMultiPlan, role, permissionsMap = {}, updateClinicName } = useAuthContext();
+  const canView = canUseStaffScreen(role, permissionsMap, 'clinics');
+  const canAdd = canView && canUseStaffScreen(role, permissionsMap, 'clinics', 'add');
+  const canEdit = canView && canUseStaffScreen(role, permissionsMap, 'clinics', 'edit');
+  const canDelete = canView && canUseStaffScreen(role, permissionsMap, 'clinics', 'delete');
+  const canViewAdmins = canUseStaffScreen(role, permissionsMap, 'staff');
+  const canAddAdmin = canViewAdmins && canUseStaffScreen(role, permissionsMap, 'staff', 'add');
+  const canEditAdmin = canViewAdmins && canUseStaffScreen(role, permissionsMap, 'staff', 'edit');
+  const canDeleteAdmin = canViewAdmins && canUseStaffScreen(role, permissionsMap, 'staff', 'delete');
+  const scope = [token, user?.id, activeClinicId, canView, canAdd, canEdit, canDelete, canViewAdmins, canAddAdmin, canEditAdmin, canDeleteAdmin].join(':');
   const scopeRef = useRef(scope); scopeRef.current = scope;
   const busyRef = useRef(false);
   useEffect(() => { scopeRef.current = scope; return () => { scopeRef.current = ''; }; }, [scope]);
@@ -176,9 +231,20 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
       code: c.code || '', email: c.email || '', phone: c.phone || '', address: c.address || '',
       admins_count: c.admins_count, status: Number(c.is_active) === 1 ? 'Active' : 'Inactive',
     } as ClinicItem)), refreshed: new Date().toLocaleString() };
-  });
+  }, Boolean(token && canView));
   const clinics = useMemo(() => resource.data?.rows ?? [], [resource.data]);
-  const isMultiClinicPlan = isMultiClinic || clinics.some(c => checkIsMultiClinicPlan(null, c));
+  const adminCounts = useRemoteData(scope + ':admin-counts:' + clinics.map(c => c.id).join(','), async (signal) => {
+    const results = await Promise.all(clinics.map(async clinic => {
+      const response = await apiFetch<{ data: Array<{ id: number | string }> }>(
+        '/staff/clinic/' + encodeURIComponent(String(clinic.id)) + '/admin-network', { signal },
+      );
+      if (!response.success || !Array.isArray(response.data?.data)) throw new Error(response.message);
+      return { clinicId: String(clinic.id), ids: [...new Set(response.data.data.map(admin => String(admin.id)))] };
+    }));
+    return { byClinic: Object.fromEntries(results.map(row => [row.clinicId, row.ids.length])),
+      total: new Set(results.flatMap(row => row.ids)).size };
+  }, Boolean(token && canView && canViewAdmins && clinics.length));
+  const isMultiClinicPlan = role === 'super_admin' || Boolean(isMultiPlan);
   const lastRefreshed = resource.error ? 'Unable to load. Please refresh.' : resource.data?.refreshed || 'Loading...';
   const [selectedClinicFilter, setSelectedClinicFilter] = useState<string>(activeClinicName || '');
   const [selectedPerformanceDate, setSelectedPerformanceDate] = useState<Date>(new Date());
@@ -187,6 +253,51 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
   const [showStatusDropdown, setShowStatusDropdown] = useState<boolean>(false);
   const [showClinicSelectDropdown, setShowClinicSelectDropdown] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
+  // Show / Hide Columns state
+  const [showColumnsModal, setShowColumnsModal] = useState<boolean>(false);
+  const [visibleClinicColumns, setVisibleClinicColumns] = useState<Record<ClinicColumnKey, boolean>>(() =>
+    Object.fromEntries(clinicColumnOptions.map((c) => [c.key, c.defaultVisible])) as Record<ClinicColumnKey, boolean>
+  );
+
+  const toggleClinicColumn = (key: ClinicColumnKey) => {
+    setVisibleClinicColumns((prev) => {
+      const isCurrentlyVisible = prev[key];
+      const visibleCount = Object.values(prev).filter(Boolean).length;
+      if (isCurrentlyVisible && visibleCount <= 1) {
+        showErrorToast('At least one column must remain visible');
+        return prev;
+      }
+      return {
+        ...prev,
+        [key]: !isCurrentlyVisible,
+      };
+    });
+  };
+
+  const resetClinicColumns = () => {
+    setVisibleClinicColumns(
+      Object.fromEntries(clinicColumnOptions.map((c) => [c.key, c.defaultVisible])) as Record<ClinicColumnKey, boolean>
+    );
+  };
+
+  const tableMinWidth = useMemo(() => {
+    let w = 0;
+    if (visibleClinicColumns.name) w += 220;
+    if (visibleClinicColumns.address) w += 200;
+    if (visibleClinicColumns.contact) w += 200;
+    if (visibleClinicColumns.created) w += 130;
+    if (visibleClinicColumns.country) w += 110;
+    if (visibleClinicColumns.website) w += 160;
+    if (visibleClinicColumns.license_number) w += 150;
+    if (visibleClinicColumns.available_days) w += 150;
+    if (visibleClinicColumns.available_from) w += 120;
+    if (visibleClinicColumns.available_to) w += 120;
+    if (visibleClinicColumns.admins) w += 90;
+    if (visibleClinicColumns.status) w += 140;
+    if (visibleClinicColumns.actions) w += 80;
+    return Math.max(width - 40, w);
+  }, [visibleClinicColumns, width]);
 
   // Pagination & Filtering
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -219,7 +330,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
     const result = await apiFetch<{ stats: Record<string, unknown> }>('/dashboard?clinic_id=' + selectedClinicId + '&date=' + selectedDate, { signal });
     if (!result.success || !result.data?.stats) throw new Error(result.message);
     return result.data.stats;
-  });
+  }, Boolean(token && canView && selectedClinicId));
   useEffect(() => { if (performance.error) showErrorToast('Performance unavailable', 'Please use Refresh to retry.'); }, [performance.error]);
   const metric = (key: string) => dashboardNumber(performance.data?.[key]);
   const treatment = metric('treatment_revenue_today'), medicine = metric('medicine_revenue_today');
@@ -228,7 +339,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
   useEffect(() => { setSelectedClinicFilter(activeClinicName || ''); }, [activeClinicName]);
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    try { await Promise.all([resource.refresh(), performance.refresh()]); }
+    try { await Promise.all([resource.refresh(), performance.refresh(), adminCounts.refresh()]); }
     finally { if (scopeRef.current === scope) setIsRefreshing(false); }
   };
   const mutate = async (action: () => Promise<{ success: boolean; message?: string }>, done: () => void) => {
@@ -238,7 +349,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
       const result = await action();
       if (scopeRef.current !== scope) return;
       if (!result.success) throw new Error(result.message);
-      done(); await resource.refresh();
+      done(); await Promise.all([resource.refresh(), adminCounts.refresh()]);
     } catch (error) {
       if (scopeRef.current === scope) showErrorToast('Unable to save', error instanceof Error ? error.message : 'Please retry.');
     } finally { busyRef.current = false; }
@@ -246,7 +357,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 
   const handleToggleClinicStatus = (id: string | number) => {
     const targetClinic = clinics.find((c) => String(c.id) === String(id));
-    if (!targetClinic) return;
+    if (!targetClinic || (targetClinic.status === 'Active' ? !canDelete : !canEdit)) return;
 
     const isCurrentlyActive = targetClinic.status === 'Active';
     const actionText = isCurrentlyActive ? 'deactivate' : 'activate';
@@ -285,8 +396,8 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
   const admins = useRemoteData(scope + ':admins:' + viewAdminsModal?.id, async (signal) => {
     const result = await apiFetch<{ data: any[] }>('/staff/clinic/' + viewAdminsModal!.id + '/admin-network', { signal });
     if (!result.success || !Array.isArray(result.data?.data)) throw new Error(result.message);
-    return result.data.data.map(a => ({ ...a, id: String(a.id), status: Number(a.is_active) === 1 ? 'Active' : 'Inactive' } as ClinicAdminItem));
-  }, Boolean(viewAdminsModal));
+    return result.data.data.map(a => ({ ...a, id: String(a.id), address: a.address || '', status: Number(a.is_active) === 1 ? 'Active' : 'Inactive' } as ClinicAdminItem));
+  }, Boolean(viewAdminsModal && canViewAdmins));
   const adminsList = admins.data ?? [];
   useEffect(() => { if (admins.error) showErrorToast('Unable to load administrators', 'Close and reopen to retry.'); }, [admins.error]);
 
@@ -301,7 +412,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 
   // Admin Handlers
   const handleCreateClinicAdmin = async () => {
-    if (addAdminSaving || !addAdminModalClinic || busyRef.current) return;
+    if (!canAddAdmin || addAdminSaving || !addAdminModalClinic || busyRef.current) return;
     if (!adminFullName.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail.trim()) || !/^[6-9]\d{9}$/.test(adminPhone) || adminPassword.length < 8) {
       showErrorToast('Validation Error', 'Enter valid name, email, mobile and a password of at least 8 characters.'); return;
     }
@@ -323,9 +434,145 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
   };
   const handleToggleClinicAdminStatus = (id: string) => {
     const admin = adminsList.find(a => a.id === id);
-    if (!admin) return;
+    if (!admin || !canEditAdmin || (admin.status === 'Active' && !canDeleteAdmin)) return;
     void mutate(() => apiFetch('/staff/' + id, { method: 'PUT', body: JSON.stringify({ is_active: admin.status === 'Active' ? 0 : 1 }) }),
       () => { void admins.refresh(); showSuccessToast('Status Updated', 'Administrator status updated.'); });
+  };
+
+  // Edit Clinic Admin State
+  const [editingClinicAdmin, setEditingClinicAdmin] = useState<ClinicAdminItem | null>(null);
+  const [editAdminFullName, setEditAdminFullName] = useState('');
+  const [editAdminPhone, setEditAdminPhone] = useState('');
+  const [editAdminAddress, setEditAdminAddress] = useState('');
+  const [editAdminIsActive, setEditAdminIsActive] = useState(true);
+  const [showEditAdminStatusDropdown, setShowEditAdminStatusDropdown] = useState(false);
+  const [editAdminSaving, setEditAdminSaving] = useState(false);
+
+  // Reset Password State
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+  const [newPasswordVal, setNewPasswordVal] = useState('');
+  const [confirmPasswordVal, setConfirmPasswordVal] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resetPasswordSaving, setResetPasswordSaving] = useState(false);
+  const [resetPasswordErrors, setResetPasswordErrors] = useState<{ password?: string; confirm?: string }>({});
+
+  const handleOpenEditClinicAdmin = (admin: ClinicAdminItem) => {
+    if (!canEditAdmin) return;
+    setEditingClinicAdmin(admin);
+    setEditAdminFullName(admin.full_name || '');
+    setEditAdminPhone(admin.phone || '');
+    setEditAdminAddress(admin.address || '');
+    setEditAdminIsActive(admin.status === 'Active');
+    setShowEditAdminStatusDropdown(false);
+  };
+
+  const handleSaveEditClinicAdmin = async () => {
+    if (!editingClinicAdmin || editAdminSaving || busyRef.current || !canEditAdmin) return;
+    if (!editAdminFullName.trim() || !/^[6-9]\d{9}$/.test(editAdminPhone.trim())) {
+      showErrorToast('Validation Error', 'Enter valid full name and 10-digit mobile number.');
+      return;
+    }
+    setEditAdminSaving(true);
+    try {
+      await mutate(
+        () =>
+          apiFetch('/staff/' + editingClinicAdmin.id, {
+            method: 'PUT',
+            body: JSON.stringify({
+              full_name: editAdminFullName.trim(),
+              phone: editAdminPhone.trim(),
+              address: editAdminAddress.trim(),
+              is_active: editAdminIsActive ? 1 : 0,
+            }),
+          }),
+        () => {
+          setEditingClinicAdmin(null);
+          void admins.refresh();
+          showSuccessToast('Success', 'Clinic admin updated successfully.');
+        }
+      );
+    } finally {
+      if (scopeRef.current === scope) setEditAdminSaving(false);
+    }
+  };
+
+  const handleOpenResetPassword = () => {
+    if (!editingClinicAdmin) return;
+    setNewPasswordVal('');
+    setConfirmPasswordVal('');
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+    setResetPasswordErrors({});
+    setIsResetPasswordOpen(true);
+  };
+
+  const handleExecuteResetPassword = async () => {
+    if (!editingClinicAdmin || resetPasswordSaving || busyRef.current) return;
+    const errors: { password?: string; confirm?: string } = {};
+    if (!newPasswordVal.trim()) {
+      errors.password = 'New password is required.';
+    } else if (newPasswordVal.length < 8) {
+      errors.password = 'Password must contain at least 8 characters.';
+    }
+
+    if (!confirmPasswordVal.trim()) {
+      errors.confirm = 'Please confirm the new password.';
+    } else if (confirmPasswordVal !== newPasswordVal) {
+      errors.confirm = 'Passwords do not match.';
+    }
+
+    setResetPasswordErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+
+    setResetPasswordSaving(true);
+    try {
+      await mutate(
+        () => resetStaffPasswordApi(editingClinicAdmin.id, newPasswordVal.trim()),
+        () => {
+          setIsResetPasswordOpen(false);
+          setNewPasswordVal('');
+          setConfirmPasswordVal('');
+          setResetPasswordErrors({});
+          showSuccessToast('Success', `Password reset successfully for ${editingClinicAdmin.full_name}.`);
+        }
+      );
+    } finally {
+      if (scopeRef.current === scope) setResetPasswordSaving(false);
+    }
+  };
+
+  const handleDeleteClinicAdmin = (admin: ClinicAdminItem) => {
+    if (!canDeleteAdmin || busyRef.current) return;
+    const message = `Are you sure you want to delete clinic admin "${admin.full_name}"? This action cannot be undone.`;
+    const executeDelete = () =>
+      mutate(
+        () => apiFetch('/staff/' + admin.id, { method: 'DELETE' }),
+        () => {
+          void admins.refresh();
+          void adminCounts.refresh();
+          showSuccessToast('Success', `Clinic admin "${admin.full_name}" deleted successfully.`);
+        }
+      );
+
+    const globalObj: any = typeof globalThis !== 'undefined' ? globalThis : {};
+    if (globalObj.window && typeof globalObj.window.confirm === 'function') {
+      if (globalObj.window.confirm(message)) {
+        void executeDelete();
+      }
+    } else {
+      Alert.alert(
+        'Confirm Deletion',
+        message,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: () => void executeDelete() },
+        ],
+        { cancelable: true }
+      );
+    }
   };
 
   // Register / Edit Clinic Modal State (Screenshots 1 & 2 Match)
@@ -336,13 +583,30 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
   const [showFormCityDropdown, setShowFormCityDropdown] = useState(false);
   const [showFormCountryDropdown, setShowFormCountryDropdown] = useState(false);
   const [clinicSaving, setClinicSaving] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
+  const logoEditor = useRef(0);
+  useEffect(() => { logoEditor.current += 1; setLogoUploading(false); }, [modalVisible, editingClinicId, scope]);
+  useEffect(() => { setLogoFailed(false); }, [clinicForm.logo_url]);
+  const handleChooseLogo = async () => {
+    if (busyRef.current || (editingClinicId ? !canEdit : !canAdd || !isMultiClinicPlan)) return;
+    const revision = logoEditor.current;
+    const current = () => scopeRef.current === scope && logoEditor.current === revision;
+    busyRef.current = true; setLogoUploading(true);
+    try {
+      const url = await chooseAndUploadClinicLogo(current);
+      if (url && current()) setClinicForm(form => ({ ...form, logo_url: url }));
+    } catch (error) {
+      if (current()) showErrorToast('Unable to upload logo', error instanceof Error ? error.message : 'Please retry.');
+    } finally { busyRef.current = false; if (current()) setLogoUploading(false); }
+  };
   const locations = useRemoteData(scope + ':clinic-locations', async (signal) => {
     const [states, countries] = await Promise.all([
       apiFetch<any[]>('/location/states', { signal }), apiFetch<any[]>('/location/countries', { signal }),
     ]);
     if (!states.success || !countries.success || !Array.isArray(states.data) || !Array.isArray(countries.data)) throw new Error('Unable to load locations');
     return { states: states.data, countries: countries.data };
-  }, modalVisible);
+  }, Boolean(token && canView));
   const cities = useRemoteData(scope + ':clinic-cities:' + clinicForm.state, async (signal) => {
     const result = await apiFetch<any[]>('/location/cities/' + encodeURIComponent(clinicForm.state), { signal });
     if (!result.success || !Array.isArray(result.data)) throw new Error('Unable to load cities');
@@ -356,20 +620,103 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
   const stateLabel = stateOptions.find(row => String(row.id) === String(clinicForm.state))?.state_name || clinicForm.state || 'Select state';
   const cityLabel = cityOptions.find(row => String(row.id) === String(clinicForm.city))?.city_name || clinicForm.city || 'Select city';
 
+  const formatClinicDate = (dateString?: string) => {
+    if (!dateString) return '—';
+    try {
+      const d = new Date(dateString);
+      if (isNaN(d.getTime())) return dateString;
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const formatClinicTime = (val?: string) => {
+    if (!val) return '—';
+    const clean = String(val).trim();
+    if (clean.length >= 5 && /^\d{2}:\d{2}/.test(clean)) {
+      return clean.slice(0, 5);
+    }
+    return clean;
+  };
+
+  const resolvedViewClinicState = useMemo(() => {
+    if (!viewClinicModal?.state) return '';
+    const st = String(viewClinicModal.state);
+    if (/^\d+$/.test(st)) {
+      const found = stateOptions.find(s => String(s.id) === st);
+      return found ? found.state_name : '';
+    }
+    return st;
+  }, [viewClinicModal?.state, stateOptions]);
+
+  const resolvedViewClinicCity = useMemo(() => {
+    if (!viewClinicModal?.city) return '';
+    const ct = String(viewClinicModal.city);
+    if (/^\d+$/.test(ct)) {
+      const found = cityOptions.find(c => String(c.id) === ct);
+      return found ? found.city_name : '';
+    }
+    return ct;
+  }, [viewClinicModal?.city, cityOptions]);
+
+  const handleOpenViewClinicModal = async (clinic: ClinicItem) => {
+    setActiveActionMenuClinicId(null);
+    const immediateState = stateOptions.find(s => String(s.id) === String(clinic.state))?.state_name;
+    setViewClinicModal({
+      ...clinic,
+      state: immediateState || clinic.state,
+    });
+
+    try {
+      const response = await apiFetch<{ clinic?: any }>(`/clinics/${encodeURIComponent(String(clinic.id))}`);
+      if (response.success && response.data) {
+        const detailed = (response.data as any).clinic || response.data;
+        if (detailed && typeof detailed === 'object') {
+          setViewClinicModal(prev => {
+            if (!prev || String(prev.id) !== String(clinic.id)) return prev;
+            return {
+              ...prev,
+              ...detailed,
+              city: detailed.city || prev.city,
+              state: detailed.state || prev.state,
+              country: detailed.country || prev.country || 'India',
+              created_at: detailed.created_at || prev.created_at,
+              available_days: detailed.available_days || prev.available_days,
+              available_from: detailed.available_from || prev.available_from,
+              available_to: detailed.available_to || prev.available_to,
+              website: detailed.website || prev.website,
+              license_number: detailed.license_number || prev.license_number,
+            };
+          });
+        }
+      }
+    } catch {
+      // Keep initial clinic modal on network error
+    }
+  };
+
   useEffect(() => {
-    setViewClinicModal(null); setViewAdminsModal(null); setAddAdminModalClinic(null); setModalVisible(false);
+    setViewClinicModal(null); setViewAdminsModal(null); setAddAdminModalClinic(null); setModalVisible(false); setEditingClinicAdmin(null);
     setAdminPassword(''); setIsRefreshing(false); setClinicSaving(false); setAddAdminSaving(false);
   }, [scope]);
 
   const handleOpenAddClinicModal = () => {
+    if (!canAdd || !isMultiClinicPlan) return;
     setEditingClinicId(null);
     setClinicForm({ ...DEFAULT_CLINIC_FORM });
     setModalVisible(true);
   };
 
   const handleOpenEditClinicModal = (item: ClinicItem) => {
+    if (!canEdit) return;
     setEditingClinicId(item.id);
     setClinicForm({
+      logo_url: item.logo_url || '',
       name: item.name,
       email: item.email,
       phone: item.phone,
@@ -387,8 +734,8 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
   };
 
   const handleSaveClinic = async () => {
-    if (clinicSaving || busyRef.current) return;
-    if (!clinicForm.name.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clinicForm.email.trim()) || !clinicForm.phone.trim() || !clinicForm.address.trim()) {
+    if (clinicSaving || busyRef.current || (editingClinicId ? !canEdit : !canAdd || !isMultiClinicPlan)) return;
+    if (!clinicForm.name.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clinicForm.email.trim()) || !/^\d{10}$/.test(clinicForm.phone.trim()) || !clinicForm.address.trim()) {
       showErrorToast('Validation Error', 'Enter clinic name, valid email, phone and address.'); return;
     }
     setClinicSaving(true);
@@ -403,19 +750,22 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
         if (match[3]) hours = hours % 12 + (match[3].toUpperCase() === 'PM' ? 12 : 0);
         return hours <= 23 && Number(match[2]) <= 59 ? String(hours).padStart(2, '0') + ':' + match[2] + ':00' : null;
       };
+      if (!toTime(clinicForm.available_from) || !toTime(clinicForm.available_to) || toTime(clinicForm.available_from)! >= toTime(clinicForm.available_to)!) {
+        showErrorToast('Validation Error', 'Select a valid opening time before the closing time.'); return;
+      }
       const form = clinicForm;
       const payload = { ...form, state: Number(form.state), city: Number(form.city),
         available_from: toTime(form.available_from), available_to: toTime(form.available_to) };
       await mutate(() => apiFetch('/clinics' + (editingClinicId ? '/' + editingClinicId : ''), {
         method: editingClinicId ? 'PUT' : 'POST', body: JSON.stringify(payload),
-      }), () => { setModalVisible(false); showSuccessToast('Clinic Saved', 'Clinic saved successfully.'); });
+      }), () => { if (editingClinicId) updateClinicName?.(editingClinicId, form.name.trim()); setModalVisible(false); notifyProfileUpdated(); showSuccessToast('Clinic Saved', 'Clinic saved successfully.'); });
     } finally { if (scopeRef.current === scope) setClinicSaving(false); }
   };
 
   const totalClinicsCount = resource.data ? clinics.length : '\u2014';
   const activeClinicsCount = resource.data ? clinics.filter(c => c.status === 'Active').length : '\u2014';
   const inactiveClinicsCount = resource.data ? clinics.filter(c => c.status === 'Inactive').length : '\u2014';
-  const totalAdminsCount = clinics.length && clinics.every(c => c.admins_count != null) ? clinics.reduce((acc, c) => acc + c.admins_count, 0) : '\u2014';
+  const totalAdminsCount = adminCounts.data?.total ?? (resource.data && !clinics.length ? 0 : '\u2014');
 
   return (
     <View style={styles.container}>
@@ -706,12 +1056,16 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
               <Text style={styles.tableTitleText}>Clinic ({filteredClinics.length})</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity style={styles.columnsBtn}>
+              <TouchableOpacity
+                style={styles.columnsBtn}
+                onPress={() => setShowColumnsModal(true)}
+                activeOpacity={0.7}
+              >
                 <Columns color="#334155" size={14} style={{ marginRight: 6 }} />
                 <Text style={styles.columnsBtnText}>Columns</Text>
               </TouchableOpacity>
               {isMultiClinicPlan && (
-                <TouchableOpacity style={styles.addBtn} onPress={handleOpenAddClinicModal}>
+                <TouchableOpacity style={styles.addBtn} disabled={!canAdd} onPress={handleOpenAddClinicModal}>
                   <Plus color="#FFFFFF" size={14} style={{ marginRight: 4 }} />
                   <Text style={styles.addBtnText}>Add Clinic</Text>
                 </TouchableOpacity>
@@ -725,38 +1079,50 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
             <View style={{ padding: 12, gap: 10 }}>
               {paginatedClinics.map((item) => (
                 <View key={String(item.id)} style={styles.mobileClinicCard}>
+                  {/* Card Header: Clinic Name, Status, Actions */}
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                    <View style={styles.clinicLogoSquare}>
-                      <Building color="#0D9488" size={20} />
-                    </View>
-                    <View style={{ flex: 1, marginLeft: 10 }}>
-                      <Text style={styles.clinicTitleText}>{item.name}</Text>
-                      <Text style={styles.codeText}>{item.code}</Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.statusPillBadge,
-                        item.status === 'Active' ? styles.statusActiveBg : styles.statusInactiveBg,
-                      ]}
-                    >
-                      <Text
+                    {visibleClinicColumns.name && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                        <View style={styles.clinicLogoSquare}>
+                          <Building color="#0D9488" size={20} />
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 10 }}>
+                          <Text style={styles.clinicTitleText}>{item.name}</Text>
+                          {item.code ? <Text style={styles.codeText}>{item.code}</Text> : null}
+                        </View>
+                      </View>
+                    )}
+                    {!visibleClinicColumns.name && <View style={{ flex: 1 }} />}
+
+                    {visibleClinicColumns.status && (
+                      <View
                         style={[
-                          styles.statusPillText,
-                          item.status === 'Active' ? styles.statusActiveText : styles.statusInactiveText,
+                          styles.statusPillBadge,
+                          item.status === 'Active' ? styles.statusActiveBg : styles.statusInactiveBg,
                         ]}
                       >
-                        {item.status}
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={{ padding: 6, marginLeft: 4 }}
-                      onPress={() =>
-                        setActiveActionMenuClinicId(
-                          activeActionMenuClinicId === item.id ? null : item.id
-                        )
-                      }>
-                      <MoreVertical color="#64748B" size={16} />
-                    </TouchableOpacity>
+                        <Text
+                          style={[
+                            styles.statusPillText,
+                            item.status === 'Active' ? styles.statusActiveText : styles.statusInactiveText,
+                          ]}
+                        >
+                          {item.status}
+                        </Text>
+                      </View>
+                    )}
+
+                    {visibleClinicColumns.actions && (
+                      <TouchableOpacity
+                        style={{ padding: 6, marginLeft: 4 }}
+                        onPress={() =>
+                          setActiveActionMenuClinicId(
+                            activeActionMenuClinicId === item.id ? null : item.id
+                          )
+                        }>
+                        <MoreVertical color="#64748B" size={16} />
+                      </TouchableOpacity>
+                    )}
                   </View>
 
                   {activeActionMenuClinicId === item.id && (
@@ -764,25 +1130,24 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       <TouchableOpacity
                         style={styles.popoverItem}
                         onPress={() => {
-                          setActiveActionMenuClinicId(null);
-                          setViewClinicModal(item);
+                          handleOpenViewClinicModal(item);
                         }}>
                         <Eye size={15} color="#334155" style={{ marginRight: 8 }} />
                         <Text style={styles.popoverItemText}>View Clinic</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={styles.popoverItem}
+                        style={styles.popoverItem} disabled={!canViewAdmins}
                         onPress={() => {
                           setActiveActionMenuClinicId(null);
-                          setViewAdminsModal(item);
+                          if (canViewAdmins) setViewAdminsModal(item);
                         }}>
                         <Users size={15} color="#334155" style={{ marginRight: 8 }} />
                         <Text style={styles.popoverItemText}>View Admins</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={styles.popoverItem}
+                        style={styles.popoverItem} disabled={!canEdit}
                         onPress={() => {
                           setActiveActionMenuClinicId(null);
                           handleOpenEditClinicModal(item);
@@ -792,10 +1157,10 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={styles.popoverItem}
+                        style={styles.popoverItem} disabled={!canAddAdmin}
                         onPress={() => {
                           setActiveActionMenuClinicId(null);
-                          setAddAdminModalClinic(item);
+                          if (canAddAdmin) setAddAdminModalClinic(item);
                         }}>
                         <UserPlus size={15} color="#334155" style={{ marginRight: 8 }} />
                         <Text style={styles.popoverItemText}>Add Admin</Text>
@@ -815,11 +1180,47 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     </View>
                   )}
 
+                  {/* Meta items */}
                   <View style={styles.mobileMetaRow}>
-                    <Text style={styles.metaText}>📍 {item.address}</Text>
-                    <Text style={styles.metaText}>✉️ {item.email}</Text>
-                    <Text style={styles.metaText}>📞 {item.phone}</Text>
-                    <Text style={styles.metaText}>👥 {item.admins_count ?? '\u2014'} Admins</Text>
+                    {visibleClinicColumns.address && (
+                      <Text style={styles.metaText}>📍 {item.address || '—'}</Text>
+                    )}
+                    {visibleClinicColumns.contact && (
+                      <>
+                        {item.email ? <Text style={styles.metaText}>✉️ {item.email}</Text> : null}
+                        {item.phone ? <Text style={styles.metaText}>📞 {item.phone}</Text> : null}
+                      </>
+                    )}
+                    {visibleClinicColumns.created && (
+                      <Text style={styles.metaText}>
+                        📅 Created: {item.created_at ? new Date(item.created_at).toLocaleDateString() : '—'}
+                      </Text>
+                    )}
+                    {visibleClinicColumns.country && (
+                      <Text style={styles.metaText}>🌐 Country: {item.country || '—'}</Text>
+                    )}
+                    {visibleClinicColumns.website && (
+                      <Text style={styles.metaText}>🔗 Website: {item.website || '—'}</Text>
+                    )}
+                    {visibleClinicColumns.license_number && (
+                      <Text style={styles.metaText}>📋 License: {item.license_number || '—'}</Text>
+                    )}
+                    {visibleClinicColumns.available_days && (
+                      <Text style={styles.metaText}>🗓️ Days: {item.available_days || '—'}</Text>
+                    )}
+                    {visibleClinicColumns.available_from && (
+                      <Text style={styles.metaText}>
+                        ⏰ From: {item.available_from ? String(item.available_from).slice(0, 5) : '—'}
+                      </Text>
+                    )}
+                    {visibleClinicColumns.available_to && (
+                      <Text style={styles.metaText}>
+                        ⏰ To: {item.available_to ? String(item.available_to).slice(0, 5) : '—'}
+                      </Text>
+                    )}
+                    {visibleClinicColumns.admins && (
+                      <Text style={styles.metaText}>👥 {adminCounts.data?.byClinic[String(item.id)] ?? item.admins_count ?? '\u2014'} Admins</Text>
+                    )}
                   </View>
                 </View>
               ))}
@@ -832,157 +1233,239 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
               nestedScrollEnabled={true}
               scrollEventThrottle={16}
               decelerationRate="normal">
-              <View style={{ minWidth: 800 }}>
+              <View style={{ minWidth: tableMinWidth }}>
                 <View style={styles.tableHeaderRow}>
-                  <Text style={[styles.thCell, { flex: 2 }]}>Clinic Name</Text>
-                  <Text style={[styles.thCell, { flex: 2.5 }]}>Address</Text>
-                  <Text style={[styles.thCell, { flex: 2.5 }]}>Contact</Text>
-                  <Text style={[styles.thCell, { flex: 1, textAlign: 'center' }]}>Admins</Text>
-                  <Text style={[styles.thCell, { flex: 1.5, textAlign: 'center' }]}>Status</Text>
-                  <Text style={[styles.thCell, { flex: 1, textAlign: 'right' }]}>Actions</Text>
+                  {visibleClinicColumns.name && <Text style={[styles.thCell, { width: 220 }]}>Clinic Name</Text>}
+                  {visibleClinicColumns.address && <Text style={[styles.thCell, { width: 200 }]}>Address</Text>}
+                  {visibleClinicColumns.contact && <Text style={[styles.thCell, { width: 200 }]}>Contact</Text>}
+                  {visibleClinicColumns.created && <Text style={[styles.thCell, { width: 130 }]}>Created</Text>}
+                  {visibleClinicColumns.country && <Text style={[styles.thCell, { width: 110 }]}>Country</Text>}
+                  {visibleClinicColumns.website && <Text style={[styles.thCell, { width: 160 }]}>Website</Text>}
+                  {visibleClinicColumns.license_number && <Text style={[styles.thCell, { width: 150 }]}>License Number</Text>}
+                  {visibleClinicColumns.available_days && <Text style={[styles.thCell, { width: 150 }]}>Available Days</Text>}
+                  {visibleClinicColumns.available_from && <Text style={[styles.thCell, { width: 120 }]}>Available From</Text>}
+                  {visibleClinicColumns.available_to && <Text style={[styles.thCell, { width: 120 }]}>Available To</Text>}
+                  {visibleClinicColumns.admins && <Text style={[styles.thCell, { width: 90, textAlign: 'center' }]}>Admins</Text>}
+                  {visibleClinicColumns.status && <Text style={[styles.thCell, { width: 140, textAlign: 'center' }]}>Status</Text>}
+                  {visibleClinicColumns.actions && <Text style={[styles.thCell, { width: 80, textAlign: 'right' }]}>Actions</Text>}
                 </View>
 
                 {paginatedClinics.map((item) => (
                   <View key={String(item.id)} style={styles.tableBodyRow}>
                     {/* Clinic Name */}
-                    <View style={{ flex: 2, flexDirection: 'row', alignItems: 'center' }}>
-                      <View style={styles.clinicLogoSquare}>
-                        <Building color="#0D9488" size={18} />
+                    {visibleClinicColumns.name && (
+                      <View style={{ width: 220, flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={styles.clinicLogoSquare}>
+                          <Building color="#0D9488" size={18} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.clinicTitleText} numberOfLines={1}>
+                            {item.name}
+                          </Text>
+                          {item.code ? <Text style={styles.codeText}>{item.code}</Text> : null}
+                        </View>
                       </View>
-                      <Text style={styles.clinicTitleText} numberOfLines={1}>
-                        {item.name}
-                      </Text>
-                    </View>
+                    )}
 
                     {/* Address */}
-                    <View style={{ flex: 2.5, flexDirection: 'row', alignItems: 'center' }}>
-                      <MapPin color="#94A3B8" size={14} style={{ marginRight: 4 }} />
-                      <Text style={styles.tdText} numberOfLines={1}>
-                        {item.address}
-                      </Text>
-                    </View>
+                    {visibleClinicColumns.address && (
+                      <View style={{ width: 200, flexDirection: 'row', alignItems: 'center' }}>
+                        <MapPin color="#94A3B8" size={14} style={{ marginRight: 4 }} />
+                        <Text style={styles.tdText} numberOfLines={1}>
+                          {item.address || '—'}
+                        </Text>
+                      </View>
+                    )}
 
                     {/* Contact */}
-                    <View style={{ flex: 2.5 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Mail color="#94A3B8" size={12} style={{ marginRight: 4 }} />
-                        <Text style={styles.tdText} numberOfLines={1}>
-                          {item.email}
+                    {visibleClinicColumns.contact && (
+                      <View style={{ width: 200 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Mail color="#94A3B8" size={12} style={{ marginRight: 4 }} />
+                          <Text style={styles.tdText} numberOfLines={1}>
+                            {item.email || '—'}
+                          </Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+                          <Phone color="#94A3B8" size={12} style={{ marginRight: 4 }} />
+                          <Text style={styles.tdText}>{item.phone || '—'}</Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Created */}
+                    {visibleClinicColumns.created && (
+                      <View style={{ width: 130, justifyContent: 'center' }}>
+                        <Text style={styles.tdText}>
+                          {item.created_at ? new Date(item.created_at).toLocaleDateString() : '—'}
                         </Text>
                       </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                        <Phone color="#94A3B8" size={12} style={{ marginRight: 4 }} />
-                        <Text style={styles.tdText}>{item.phone}</Text>
+                    )}
+
+                    {/* Country */}
+                    {visibleClinicColumns.country && (
+                      <View style={{ width: 110, justifyContent: 'center' }}>
+                        <Text style={styles.tdText}>{item.country || '—'}</Text>
                       </View>
-                    </View>
+                    )}
+
+                    {/* Website */}
+                    {visibleClinicColumns.website && (
+                      <View style={{ width: 160, justifyContent: 'center' }}>
+                        <Text style={styles.tdText} numberOfLines={1}>
+                          {item.website || '—'}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* License Number */}
+                    {visibleClinicColumns.license_number && (
+                      <View style={{ width: 150, justifyContent: 'center' }}>
+                        <Text style={styles.tdText} numberOfLines={1}>
+                          {item.license_number || '—'}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Available Days */}
+                    {visibleClinicColumns.available_days && (
+                      <View style={{ width: 150, justifyContent: 'center' }}>
+                        <Text style={styles.tdText} numberOfLines={1}>
+                          {item.available_days || '—'}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Available From */}
+                    {visibleClinicColumns.available_from && (
+                      <View style={{ width: 120, justifyContent: 'center' }}>
+                        <Text style={styles.tdText}>
+                          {item.available_from ? String(item.available_from).slice(0, 5) : '—'}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Available To */}
+                    {visibleClinicColumns.available_to && (
+                      <View style={{ width: 120, justifyContent: 'center' }}>
+                        <Text style={styles.tdText}>
+                          {item.available_to ? String(item.available_to).slice(0, 5) : '—'}
+                        </Text>
+                      </View>
+                    )}
 
                     {/* Admins Count */}
-                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <Users color="#64748B" size={14} style={{ marginRight: 4 }} />
-                        <Text style={styles.tdText}>{item.admins_count ?? '\u2014'}</Text>
+                    {visibleClinicColumns.admins && (
+                      <View style={{ width: 90, alignItems: 'center', justifyContent: 'center' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Users color="#64748B" size={14} style={{ marginRight: 4 }} />
+                          <Text style={styles.tdText}>{adminCounts.data?.byClinic[String(item.id)] ?? item.admins_count ?? '\u2014'}</Text>
+                        </View>
                       </View>
-                    </View>
+                    )}
 
                     {/* Status & Toggle Switch */}
-                    <View style={{ flex: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                      <View
-                        style={[
-                          styles.statusPillBadge,
-                          item.status === 'Active' ? styles.statusActiveBg : styles.statusInactiveBg,
-                        ]}
-                      >
-                        <Text
+                    {visibleClinicColumns.status && (
+                      <View style={{ width: 140, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                        <View
                           style={[
-                            styles.statusPillText,
-                            item.status === 'Active' ? styles.statusActiveText : styles.statusInactiveText,
+                            styles.statusPillBadge,
+                            item.status === 'Active' ? styles.statusActiveBg : styles.statusInactiveBg,
                           ]}
                         >
-                          {item.status}
-                        </Text>
-                      </View>
+                          <Text
+                            style={[
+                              styles.statusPillText,
+                              item.status === 'Active' ? styles.statusActiveText : styles.statusInactiveText,
+                            ]}
+                          >
+                            {item.status}
+                          </Text>
+                        </View>
 
-                      <Switch
-                        value={item.status === 'Active'}
-                        onValueChange={() => handleToggleClinicStatus(item.id)}
-                        trackColor={{ false: '#E2E8F0', true: '#99F6E4' }}
-                        thumbColor={item.status === 'Active' ? '#0D9488' : '#F1F5F9'}
-                      />
-                    </View>
+                        <Switch
+                          value={item.status === 'Active'}
+                          onValueChange={() => handleToggleClinicStatus(item.id)}
+                          trackColor={{ false: '#E2E8F0', true: '#99F6E4' }}
+                          thumbColor={item.status === 'Active' ? '#0D9488' : '#F1F5F9'}
+                        />
+                      </View>
+                    )}
 
                     {/* Actions Menu Popover */}
-                    <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center', zIndex: 50 }}>
-                      <TouchableOpacity
-                        style={{ padding: 6 }}
-                        onPress={() =>
-                          setActiveActionMenuClinicId(
-                            activeActionMenuClinicId === item.id ? null : item.id
-                          )
-                        }>
-                        <MoreVertical color="#64748B" size={16} />
-                      </TouchableOpacity>
+                    {visibleClinicColumns.actions && (
+                      <View style={{ width: 80, alignItems: 'flex-end', justifyContent: 'center', zIndex: 50 }}>
+                        <TouchableOpacity
+                          style={{ padding: 6 }}
+                          onPress={() =>
+                            setActiveActionMenuClinicId(
+                              activeActionMenuClinicId === item.id ? null : item.id
+                            )
+                          }>
+                          <MoreVertical color="#64748B" size={16} />
+                        </TouchableOpacity>
 
-                      {activeActionMenuClinicId === item.id && (
-                        <View style={styles.actionPopoverMenu}>
-                          {/* 1. View Clinic */}
-                          <TouchableOpacity
-                            style={styles.popoverItem}
-                            onPress={() => {
-                              setActiveActionMenuClinicId(null);
-                              setViewClinicModal(item);
-                            }}>
-                            <Eye size={15} color="#334155" style={{ marginRight: 8 }} />
-                            <Text style={styles.popoverItemText}>View Clinic</Text>
-                          </TouchableOpacity>
+                        {activeActionMenuClinicId === item.id && (
+                          <View style={styles.actionPopoverMenu}>
+                            {/* 1. View Clinic */}
+                            <TouchableOpacity
+                              style={styles.popoverItem}
+                              onPress={() => {
+                                handleOpenViewClinicModal(item);
+                              }}>
+                              <Eye size={15} color="#334155" style={{ marginRight: 8 }} />
+                              <Text style={styles.popoverItemText}>View Clinic</Text>
+                            </TouchableOpacity>
 
-                          {/* 2. View Admins */}
-                          <TouchableOpacity
-                            style={styles.popoverItem}
-                            onPress={() => {
-                              setActiveActionMenuClinicId(null);
-                              setViewAdminsModal(item);
-                            }}>
-                            <Users size={15} color="#334155" style={{ marginRight: 8 }} />
-                            <Text style={styles.popoverItemText}>View Admins</Text>
-                          </TouchableOpacity>
+                            {/* 2. View Admins */}
+                            <TouchableOpacity
+                              style={styles.popoverItem} disabled={!canViewAdmins}
+                              onPress={() => {
+                                setActiveActionMenuClinicId(null);
+                                if (canViewAdmins) setViewAdminsModal(item);
+                              }}>
+                              <Users size={15} color="#334155" style={{ marginRight: 8 }} />
+                              <Text style={styles.popoverItemText}>View Admins</Text>
+                            </TouchableOpacity>
 
-                          {/* 3. Edit Clinic */}
-                          <TouchableOpacity
-                            style={styles.popoverItem}
-                            onPress={() => {
-                              setActiveActionMenuClinicId(null);
-                              handleOpenEditClinicModal(item);
-                            }}>
-                            <Edit2 size={15} color="#334155" style={{ marginRight: 8 }} />
-                            <Text style={styles.popoverItemText}>Edit Clinic</Text>
-                          </TouchableOpacity>
+                            {/* 3. Edit Clinic */}
+                            <TouchableOpacity
+                              style={styles.popoverItem} disabled={!canEdit}
+                              onPress={() => {
+                                setActiveActionMenuClinicId(null);
+                                handleOpenEditClinicModal(item);
+                              }}>
+                              <Edit2 size={15} color="#334155" style={{ marginRight: 8 }} />
+                              <Text style={styles.popoverItemText}>Edit Clinic</Text>
+                            </TouchableOpacity>
 
-                          {/* 4. Add Admin */}
-                          <TouchableOpacity
-                            style={styles.popoverItem}
-                            onPress={() => {
-                              setActiveActionMenuClinicId(null);
-                              setAddAdminModalClinic(item);
-                            }}>
-                            <UserPlus size={15} color="#334155" style={{ marginRight: 8 }} />
-                            <Text style={styles.popoverItemText}>Add Admin</Text>
-                          </TouchableOpacity>
+                            {/* 4. Add Admin */}
+                            <TouchableOpacity
+                              style={styles.popoverItem} disabled={!canAddAdmin}
+                              onPress={() => {
+                                setActiveActionMenuClinicId(null);
+                                if (canAddAdmin) setAddAdminModalClinic(item);
+                              }}>
+                              <UserPlus size={15} color="#334155" style={{ marginRight: 8 }} />
+                              <Text style={styles.popoverItemText}>Add Admin</Text>
+                            </TouchableOpacity>
 
-                          {/* 5. Deactivate Clinic / Activate Clinic */}
-                          <TouchableOpacity
-                            style={[styles.popoverItem, { borderTopWidth: 1, borderTopColor: '#F1F5F9', marginTop: 2 }]}
-                            onPress={() => {
-                              setActiveActionMenuClinicId(null);
-                              handleToggleClinicStatus(item.id);
-                            }}>
-                            <Trash2 size={15} color={item.status === 'Active' ? '#DC2626' : '#16A34A'} style={{ marginRight: 8 }} />
-                            <Text style={[styles.popoverItemText, { color: item.status === 'Active' ? '#DC2626' : '#16A34A' }]}>
-                              {item.status === 'Active' ? 'Deactivate Clinic' : 'Activate Clinic'}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                    </View>
+                            {/* 5. Deactivate Clinic / Activate Clinic */}
+                            <TouchableOpacity
+                              style={[styles.popoverItem, { borderTopWidth: 1, borderTopColor: '#F1F5F9', marginTop: 2 }]}
+                              onPress={() => {
+                                setActiveActionMenuClinicId(null);
+                                handleToggleClinicStatus(item.id);
+                              }}>
+                              <Trash2 size={15} color={item.status === 'Active' ? '#DC2626' : '#16A34A'} style={{ marginRight: 8 }} />
+                              <Text style={[styles.popoverItemText, { color: item.status === 'Active' ? '#DC2626' : '#16A34A' }]}>
+                                {item.status === 'Active' ? 'Deactivate Clinic' : 'Activate Clinic'}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+                    )}
                   </View>
                 ))}
               </View>
@@ -1003,6 +1486,18 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
           />
         </View>
       </ScrollView>
+
+      {/* ────────────────────────────────────────────────────────────────────────── */}
+      {/* 👁️ SHOW / HIDE COLUMNS MODAL (REUSABLE COMPONENT)                          */}
+      {/* ────────────────────────────────────────────────────────────────────────── */}
+      <ColumnSelectorModal
+        visible={showColumnsModal}
+        onClose={() => setShowColumnsModal(false)}
+        columns={clinicColumnOptions}
+        visibleColumns={visibleClinicColumns}
+        onToggleColumn={toggleClinicColumn}
+        onReset={resetClinicColumns}
+      />
 
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {/* ✏️ ADD & EDIT CLINIC MODAL (EXACT UPLOADED SCREENSHOTS MATCH)               */}
@@ -1042,12 +1537,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <View style={styles.clinicLogoUploadBox}>
                     <Text style={styles.logoBoxLabel}>Clinic Logo</Text>
                     <View style={styles.cameraIconCircleBadge}>
-                      <Camera size={22} color="#64748B" />
-                      <View style={styles.smallCloseBadge}>
+                      {clinicForm.logo_url && !logoFailed ? <Image source={{ uri: profilePhotoUrl(clinicForm.logo_url) }} onError={() => setLogoFailed(true)} style={{ width: '100%', height: '100%', borderRadius: 100 }} /> : <Camera size={22} color="#64748B" />}
+                      <TouchableOpacity style={styles.smallCloseBadge} disabled={logoUploading || clinicSaving} onPress={() => setClinicForm(form => ({ ...form, logo_url: '' }))}>
                         <X size={10} color="#64748B" />
-                      </View>
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity style={{ marginTop: 4 }}>
+                    <TouchableOpacity style={{ marginTop: 4 }} disabled={logoUploading || clinicSaving} onPress={handleChooseLogo}>
                       <Text style={styles.changeLogoLink}>Change logo</Text>
                     </TouchableOpacity>
                     <Text style={styles.logoHelperText}>PNG/JPG only, max 2MB</Text>
@@ -1292,7 +1787,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <TouchableOpacity
                     style={styles.addAdminSubmitBtn}
                     onPress={handleSaveClinic}
-                    disabled={clinicSaving}>
+                    disabled={logoUploading || clinicSaving || (editingClinicId ? !canEdit : !canAdd || !isMultiClinicPlan)}>
                     {clinicSaving ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
@@ -1331,7 +1826,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.viewClinicTitle}>{viewClinicModal?.name}</Text>
                     <Text style={styles.viewClinicSubtitle}>
-                      {viewClinicModal?.city || ''} • {viewClinicModal?.country || 'India'}
+                      {resolvedViewClinicCity || viewClinicModal?.city ? `${resolvedViewClinicCity || viewClinicModal?.city} • ` : ''}{viewClinicModal?.country || 'India'}
                     </Text>
                     <View style={styles.viewClinicStatusTag}>
                       <Text style={styles.viewClinicStatusText}>{viewClinicModal?.status}</Text>
@@ -1358,11 +1853,11 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     <View style={[styles.grid2ColRow, isMobile && { flexDirection: 'column', gap: 10 }]}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>Email Address</Text>
-                        <Text style={styles.infoBoxVal}>{viewClinicModal?.email}</Text>
+                        <Text style={styles.infoBoxVal}>{viewClinicModal?.email || '—'}</Text>
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>Phone Number</Text>
-                        <Text style={styles.infoBoxVal}>{viewClinicModal?.phone}</Text>
+                        <Text style={styles.infoBoxVal}>{viewClinicModal?.phone || '—'}</Text>
                       </View>
                     </View>
 
@@ -1373,7 +1868,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>License Number</Text>
-                        <Text style={styles.infoBoxVal}>{viewClinicModal?.license_number || ''}</Text>
+                        <Text style={styles.infoBoxVal}>{viewClinicModal?.license_number || '—'}</Text>
                       </View>
                     </View>
                   </View>
@@ -1387,18 +1882,18 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     <View style={[styles.grid2ColRow, isMobile && { flexDirection: 'column', gap: 10 }]}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>Address</Text>
-                        <Text style={styles.infoBoxVal}>{viewClinicModal?.address}</Text>
+                        <Text style={styles.infoBoxVal}>{viewClinicModal?.address || '—'}</Text>
                       </View>
                     </View>
 
                     <View style={[styles.grid2ColRow, { marginTop: 12 }, isMobile && { flexDirection: 'column', gap: 10, marginTop: 10 }]}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>City</Text>
-                        <Text style={styles.infoBoxVal}>{viewClinicModal?.city || ''}</Text>
+                        <Text style={styles.infoBoxVal}>{resolvedViewClinicCity || viewClinicModal?.city || '—'}</Text>
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>State</Text>
-                        <Text style={styles.infoBoxVal}>{viewClinicModal?.state || ''}</Text>
+                        <Text style={styles.infoBoxVal}>{resolvedViewClinicState || viewClinicModal?.state || '—'}</Text>
                       </View>
                     </View>
 
@@ -1409,7 +1904,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>Created</Text>
-                        <Text style={styles.infoBoxVal}>{viewClinicModal?.created_at || 'Jul 29, 2026'}</Text>
+                        <Text style={styles.infoBoxVal}>{formatClinicDate(viewClinicModal?.created_at)}</Text>
                       </View>
                     </View>
                   </View>
@@ -1423,15 +1918,15 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     <View style={[styles.grid3ColRow, isMobile && { flexDirection: 'column', gap: 10 }]}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>Available Days</Text>
-                        <Text style={styles.infoBoxVal}>{viewClinicModal?.available_days || 'Mon,Tue,Wed,Thu,Fri'}</Text>
+                        <Text style={styles.infoBoxVal}>{viewClinicModal?.available_days || '—'}</Text>
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>Available From</Text>
-                        <Text style={styles.infoBoxVal}>{viewClinicModal?.available_from || '00:30'}</Text>
+                        <Text style={styles.infoBoxVal}>{formatClinicTime(viewClinicModal?.available_from)}</Text>
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>Available To</Text>
-                        <Text style={styles.infoBoxVal}>{viewClinicModal?.available_to || '02:30'}</Text>
+                        <Text style={styles.infoBoxVal}>{formatClinicTime(viewClinicModal?.available_to)}</Text>
                       </View>
                     </View>
                   </View>
@@ -1483,7 +1978,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     onPress={() => {
                       const c = viewAdminsModal;
                       setViewAdminsModal(null);
-                      setAddAdminModalClinic(c);
+                      if (canAddAdmin) setAddAdminModalClinic(c);
                     }}>
                     <Plus color="#FFFFFF" size={14} style={{ marginRight: 4 }} />
                     <Text style={styles.addNewAdminBtnText}>Add New Admin</Text>
@@ -1498,7 +1993,19 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   scrollEventThrottle={16}
                   keyboardShouldPersistTaps="handled"
                   decelerationRate="normal">
-                  {isMobile ? (
+                  {admins.loading ? (
+                    <View style={{ paddingVertical: 36, alignItems: 'center', justifyContent: 'center' }}>
+                      <ActivityIndicator size="small" color="#0D9488" />
+                      <Text style={{ marginTop: 8, fontSize: 12, color: '#64748B' }}>Loading administrators...</Text>
+                    </View>
+                  ) : adminsList.length === 0 ? (
+                    <View style={{ paddingVertical: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed', borderRadius: 12, backgroundColor: '#FFFFFF', marginVertical: 8 }}>
+                      <Users size={32} color="#94A3B8" />
+                      <Text style={{ marginTop: 8, fontSize: 13, color: '#64748B', fontWeight: '500' }}>
+                        No clinic admins found for this clinic
+                      </Text>
+                    </View>
+                  ) : isMobile ? (
                     /* Mobile Card View (No Data Overlap) */
                     <View style={{ gap: 10 }}>
                       {adminsList.map((admin) => (
@@ -1530,18 +2037,38 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                             <Text style={styles.adminTdText}>✉️ {admin.email}</Text>
                             <Text style={styles.adminTdText}>📞 {admin.phone}</Text>
                           </View>
+
+                          {/* Action Buttons: Edit & Delete */}
+                          <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9', flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                            {canEditAdmin && (
+                              <TouchableOpacity
+                                style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' }}
+                                onPress={() => handleOpenEditClinicAdmin(admin)}>
+                                <Edit2 size={13} color="#0D9488" style={{ marginRight: 5 }} />
+                                <Text style={{ fontSize: 12, fontWeight: '600', color: '#0F172A' }}>Edit</Text>
+                              </TouchableOpacity>
+                            )}
+                            {canDeleteAdmin && (
+                              <TouchableOpacity
+                                style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, borderWidth: 1, borderColor: '#FEE2E2', backgroundColor: '#FEF2F2' }}
+                                onPress={() => handleDeleteClinicAdmin(admin)}>
+                                <Trash2 size={13} color="#DC2626" style={{ marginRight: 5 }} />
+                                <Text style={{ fontSize: 12, fontWeight: '600', color: '#DC2626' }}>Delete</Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
                         </View>
                       ))}
                     </View>
                   ) : (
-                    /* Desktop Table View (No Delete Button) */
+                    /* Desktop Table View */
                     <View style={styles.adminsTableContainer}>
                       <View style={styles.adminsTableHeaderRow}>
                         <Text style={[styles.adminsTh, { flex: 2.2 }]}>Name</Text>
                         <Text style={[styles.adminsTh, { flex: 2.5 }]}>Email</Text>
                         <Text style={[styles.adminsTh, { flex: 1.8 }]}>Phone</Text>
                         <Text style={[styles.adminsTh, { flex: 1.2, textAlign: 'center' }]}>Status</Text>
-                        <Text style={[styles.adminsTh, { flex: 1, textAlign: 'right' }]}>Actions</Text>
+                        <Text style={[styles.adminsTh, { flex: 1.4, textAlign: 'right' }]}>Actions</Text>
                       </View>
 
                       {adminsList.map((admin) => (
@@ -1582,14 +2109,18 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                             </TouchableOpacity>
                           </View>
 
-                          {/* Actions (Delete Button Removed) */}
-                          <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end' }}>
-                            <TouchableOpacity
-                              onPress={() => {
-                                setViewAdminsModal(null); navigateStaffScreen('staff');
-                              }}>
-                              <Edit2 size={15} color="#334155" />
-                            </TouchableOpacity>
+                          {/* Actions: Edit & Delete */}
+                          <View style={{ flex: 1.4, flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+                            {canEditAdmin && (
+                              <TouchableOpacity onPress={() => handleOpenEditClinicAdmin(admin)}>
+                                <Edit2 size={15} color="#0D9488" />
+                              </TouchableOpacity>
+                            )}
+                            {canDeleteAdmin && (
+                              <TouchableOpacity onPress={() => handleDeleteClinicAdmin(admin)}>
+                                <Trash2 size={15} color="#DC2626" />
+                              </TouchableOpacity>
+                            )}
                           </View>
                         </View>
                       ))}
@@ -1732,13 +2263,283 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <TouchableOpacity
                     style={styles.addAdminSubmitBtn}
                     onPress={handleCreateClinicAdmin}
-                    disabled={addAdminSaving}>
+                    disabled={addAdminSaving || !canAddAdmin}>
                     {addAdminSaving ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
                       <>
                         <UserPlus size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
                         <Text style={styles.addAdminSubmitText}>Create Clinic Admin</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* ────────────────────────────────────────────────────────────────────────── */}
+      {/* ✏️ EDIT CLINIC ADMIN MODAL                                                */}
+      {/* ────────────────────────────────────────────────────────────────────────── */}
+      <Modal visible={!!editingClinicAdmin} animationType="fade" transparent>
+        <TouchableWithoutFeedback onPress={() => { setShowEditAdminStatusDropdown(false); setEditingClinicAdmin(null); }}>
+          <View style={styles.modalBg}>
+            <TouchableWithoutFeedback onPress={() => setShowEditAdminStatusDropdown(false)}>
+              <View style={[styles.addAdminCard, isMobile && { width: '96%', maxHeight: '92%' }]}>
+                {/* Header */}
+                <View style={styles.addAdminHeader}>
+                  <View style={styles.userPlusIconBox}>
+                    <Edit2 color="#0D9488" size={20} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.addAdminTitle}>
+                      Edit Clinic Admin
+                    </Text>
+                    <Text style={styles.addAdminSubtitle}>
+                      Update clinic administrator information
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => { setShowEditAdminStatusDropdown(false); setEditingClinicAdmin(null); }}>
+                    <X size={18} color="#64748B" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Form Fields */}
+                <ScrollView
+                  style={{ padding: 16 }}
+                  showsVerticalScrollIndicator={true}
+                  nestedScrollEnabled={true}
+                  keyboardShouldPersistTaps="handled">
+                  <Text style={styles.formLabelText}>
+                    Full Name <Text style={{ color: '#EF4444' }}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={[styles.formInputBox, styles.formInputFocused]}
+                    placeholder="Enter full name"
+                    placeholderTextColor="#94A3B8"
+                    value={editAdminFullName}
+                    onChangeText={setEditAdminFullName}
+                  />
+
+                  <Text style={[styles.formLabelText, { marginTop: 10 }]}>
+                    Phone Number <Text style={{ color: '#EF4444' }}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={styles.formInputBox}
+                    placeholder="9876543210"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="phone-pad"
+                    value={editAdminPhone}
+                    onChangeText={setEditAdminPhone}
+                  />
+
+                  <Text style={[styles.formLabelText, { marginTop: 10 }]}>Address</Text>
+                  <TextInput
+                    style={[styles.formInputBox, { height: 60, textAlignVertical: 'top' }]}
+                    placeholder="Enter clinic admin's address (optional)"
+                    placeholderTextColor="#94A3B8"
+                    multiline
+                    value={editAdminAddress}
+                    onChangeText={setEditAdminAddress}
+                  />
+
+                  <Text style={[styles.formLabelText, { marginTop: 10 }]}>Email Address</Text>
+                  <TextInput
+                    style={[styles.formInputBox, { backgroundColor: '#F1F5F9', color: '#64748B' }]}
+                    value={editingClinicAdmin?.email}
+                    editable={false}
+                  />
+
+                  {/* Active Status Card */}
+                  <View style={styles.adminStatusCard}>
+                    <View style={{ flex: 1, marginRight: 8 }}>
+                      <Text style={styles.adminStatusCardTitle}>Active Status</Text>
+                      <Text style={styles.adminStatusCardSubtitle}>Enable or disable this admin's access</Text>
+                    </View>
+                    <View style={{ position: 'relative' }}>
+                      <TouchableOpacity
+                        style={styles.adminStatusDropdownBtn}
+                        onPress={() => setShowEditAdminStatusDropdown(!showEditAdminStatusDropdown)}>
+                        <Text style={styles.adminStatusDropdownText}>
+                          {editAdminIsActive ? 'Active' : 'Inactive'}
+                        </Text>
+                        <ChevronDown size={14} color="#64748B" style={{ marginLeft: 6 }} />
+                      </TouchableOpacity>
+
+                      {showEditAdminStatusDropdown && (
+                        <View style={styles.adminStatusDropdownMenu}>
+                          <TouchableOpacity
+                            style={[styles.adminStatusDropdownOption, editAdminIsActive && styles.adminStatusDropdownOptionSelected]}
+                            onPress={() => {
+                              setEditAdminIsActive(true);
+                              setShowEditAdminStatusDropdown(false);
+                            }}>
+                            <Text style={[styles.adminStatusOptionText, editAdminIsActive && styles.adminStatusOptionTextActive]}>
+                              Active
+                            </Text>
+                            {editAdminIsActive && <Check size={14} color="#0D9488" />}
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.adminStatusDropdownOption, !editAdminIsActive && styles.adminStatusDropdownOptionSelected]}
+                            onPress={() => {
+                              setEditAdminIsActive(false);
+                              setShowEditAdminStatusDropdown(false);
+                            }}>
+                            <Text style={[styles.adminStatusOptionText, !editAdminIsActive && styles.adminStatusOptionTextActive]}>
+                              Inactive
+                            </Text>
+                            {!editAdminIsActive && <Check size={14} color="#0D9488" />}
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Reset Password Card */}
+                  <View style={styles.adminResetPasswordCard}>
+                    <Text style={styles.adminResetPasswordTitle}>Reset Password</Text>
+                    <Text style={styles.adminResetPasswordSubtitle}>
+                      Set a secure temporary password for this clinic admin.
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.adminResetPasswordBtn}
+                      onPress={handleOpenResetPassword}>
+                      <KeyRound size={16} color="#0D9488" style={{ marginRight: 6 }} />
+                      <Text style={styles.adminResetPasswordBtnText}>Reset Password</Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+
+                {/* Footer */}
+                <View style={styles.addAdminFooterRow}>
+                  <TouchableOpacity
+                    style={styles.addAdminCancelBtn}
+                    onPress={() => { setShowEditAdminStatusDropdown(false); setEditingClinicAdmin(null); }}>
+                    <Text style={styles.addAdminCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.addAdminSubmitBtn}
+                    onPress={handleSaveEditClinicAdmin}
+                    disabled={editAdminSaving || !canEditAdmin}>
+                    {editAdminSaving ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Edit2 size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                        <Text style={styles.addAdminSubmitText}>Update Admin</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* ────────────────────────────────────────────────────────────────────────── */}
+      {/* 🔑 RESET PASSWORD MODAL                                                    */}
+      {/* ────────────────────────────────────────────────────────────────────────── */}
+      <Modal visible={isResetPasswordOpen} animationType="fade" transparent>
+        <TouchableWithoutFeedback onPress={() => setIsResetPasswordOpen(false)}>
+          <View style={styles.modalBg}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.addAdminCard, isMobile && { width: '96%', maxHeight: '92%' }]}>
+                {/* Header */}
+                <View style={styles.addAdminHeader}>
+                  <View style={styles.userPlusIconBox}>
+                    <KeyRound color="#0D9488" size={20} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.addAdminTitle}>Reset Password</Text>
+                    <Text style={styles.addAdminSubtitle}>
+                      Set a secure temporary password for {editingClinicAdmin?.full_name || 'this clinic admin'}.
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setIsResetPasswordOpen(false)}>
+                    <X size={18} color="#64748B" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Body */}
+                <View style={{ padding: 16 }}>
+                  <Text style={styles.formLabelText}>
+                    New password <Text style={{ color: '#EF4444' }}>*</Text>
+                  </Text>
+                  <View style={[styles.passwordInputContainer, !!resetPasswordErrors.password && styles.invalidInputBox]}>
+                    <TextInput
+                      style={styles.passwordInputField}
+                      placeholder="Enter at least 8 characters"
+                      placeholderTextColor="#94A3B8"
+                      secureTextEntry={!showNewPassword}
+                      value={newPasswordVal}
+                      onChangeText={(val) => {
+                        setNewPasswordVal(val);
+                        setResetPasswordErrors((prev) => ({
+                          ...prev,
+                          password: '',
+                          confirm: confirmPasswordVal && confirmPasswordVal !== val ? 'Passwords do not match.' : '',
+                        }));
+                      }}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowNewPassword(!showNewPassword)}
+                      style={styles.passwordEyeBtn}>
+                      {showNewPassword ? <EyeOff size={16} color="#64748B" /> : <Eye size={16} color="#64748B" />}
+                    </TouchableOpacity>
+                  </View>
+                  {!!resetPasswordErrors.password && (
+                    <Text style={styles.fieldErrorText}>{resetPasswordErrors.password}</Text>
+                  )}
+
+                  <Text style={[styles.formLabelText, { marginTop: 12 }]}>
+                    Confirm password <Text style={{ color: '#EF4444' }}>*</Text>
+                  </Text>
+                  <View style={[styles.passwordInputContainer, !!resetPasswordErrors.confirm && styles.invalidInputBox]}>
+                    <TextInput
+                      style={styles.passwordInputField}
+                      placeholder="Re-enter the new password"
+                      placeholderTextColor="#94A3B8"
+                      secureTextEntry={!showConfirmPassword}
+                      value={confirmPasswordVal}
+                      onChangeText={(val) => {
+                        setConfirmPasswordVal(val);
+                        setResetPasswordErrors((prev) => ({ ...prev, confirm: '' }));
+                      }}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      style={styles.passwordEyeBtn}>
+                      {showConfirmPassword ? <EyeOff size={16} color="#64748B" /> : <Eye size={16} color="#64748B" />}
+                    </TouchableOpacity>
+                  </View>
+                  {!!resetPasswordErrors.confirm && (
+                    <Text style={styles.fieldErrorText}>{resetPasswordErrors.confirm}</Text>
+                  )}
+                </View>
+
+                {/* Footer */}
+                <View style={styles.addAdminFooterRow}>
+                  <TouchableOpacity
+                    style={styles.addAdminCancelBtn}
+                    onPress={() => setIsResetPasswordOpen(false)}
+                    disabled={resetPasswordSaving}>
+                    <Text style={styles.addAdminCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.addAdminSubmitBtn}
+                    onPress={handleExecuteResetPassword}
+                    disabled={resetPasswordSaving}>
+                    {resetPasswordSaving ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <KeyRound size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                        <Text style={styles.addAdminSubmitText}>Reset Password</Text>
                       </>
                     )}
                   </TouchableOpacity>
@@ -2513,6 +3314,149 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     marginBottom: 8,
+  },
+
+  // Active Status in Edit Admin Modal
+  adminStatusCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 14,
+    backgroundColor: '#FFFFFF',
+  },
+  adminStatusCardTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  adminStatusCardSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  adminStatusDropdownBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    minWidth: 96,
+  },
+  adminStatusDropdownText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#0F172A',
+  },
+  adminStatusDropdownMenu: {
+    position: 'absolute',
+    top: 36,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    elevation: 6,
+    zIndex: 999,
+    minWidth: 110,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  adminStatusDropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  adminStatusDropdownOptionSelected: {
+    backgroundColor: '#F0FDFA',
+  },
+  adminStatusOptionText: {
+    fontSize: 13,
+    color: '#334155',
+  },
+  adminStatusOptionTextActive: {
+    color: '#0D9488',
+    fontWeight: '600',
+  },
+
+  // Reset Password Card in Edit Admin Modal
+  adminResetPasswordCard: {
+    backgroundColor: '#F0FDFA',
+    borderWidth: 1,
+    borderColor: '#CCFBF1',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 14,
+  },
+  adminResetPasswordTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  adminResetPasswordSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 3,
+    marginBottom: 12,
+  },
+  adminResetPasswordBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#99F6E4',
+    borderRadius: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+  },
+  adminResetPasswordBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0D9488',
+  },
+
+  // Password Input Field with Eye Icon
+  passwordInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 10,
+    marginTop: 4,
+  },
+  passwordInputField: {
+    flex: 1,
+    paddingVertical: 9,
+    fontSize: 13,
+    color: '#0F172A',
+  },
+  passwordEyeBtn: {
+    padding: 6,
+  },
+  invalidInputBox: {
+    borderColor: '#EF4444',
+    borderWidth: 1.5,
+  },
+  fieldErrorText: {
+    fontSize: 12,
+    color: '#EF4444',
+    marginTop: 4,
+    fontWeight: '500',
   },
 });
 

@@ -44,6 +44,7 @@ import {
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { Pagination } from '../../components/common/Pagination';
+import { ColumnSelectorModal, ColumnOption } from '../../components/common/ColumnSelectorModal';
 import { showSuccessToast, showErrorToast } from '../../utils/toast';
 import {
   fetchAllUsersApi,
@@ -131,6 +132,32 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
   const canChooseCreateClinic = isSuperAdmin || (normalizeRoleName(role) === 'clinic_admin' && isMultiPlan);
   const [visibleColumns, setVisibleColumns] = useState(() => ({ ...defaultColumns, is_doctor: !isMobile }));
   const [showColumns, setShowColumns] = useState(false);
+
+  const userColumnOptions: Array<ColumnOption<UserColumn>> = useMemo(
+    () =>
+      (Object.keys(userColumns) as UserColumn[]).map((key) => ({
+        key,
+        label: userColumns[key],
+        defaultVisible: defaultColumns[key],
+      })),
+    []
+  );
+
+  const toggleUserColumn = useCallback((key: UserColumn) => {
+    setVisibleColumns((prev) => {
+      const isCurrentlyVisible = prev[key];
+      const count = Object.values(prev).filter(Boolean).length;
+      if (isCurrentlyVisible && count <= 1) {
+        showErrorToast('At least one column must remain visible');
+        return prev;
+      }
+      return { ...prev, [key]: !isCurrentlyVisible };
+    });
+  }, []);
+
+  const resetUserColumns = useCallback(() => {
+    setVisibleColumns({ ...defaultColumns, is_doctor: !isMobile });
+  }, [isMobile]);
 
   const contextClinics = useMemo(() => {
     const list: string[] = [];
@@ -1037,34 +1064,15 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
         </View>
       </ScrollView>
 
-      {showColumns && (
-        <Modal visible animationType="fade" transparent onRequestClose={() => setShowColumns(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.editModalCard, isMobile && styles.editModalCardMobile]}>
-              <View style={styles.editModalHeader}>
-                <Text style={[styles.editModalTitle, { flex: 1 }]}>Columns</Text>
-                <TouchableOpacity style={styles.closeHeaderBtn} accessibilityLabel="Close columns" hitSlop={8} onPress={() => setShowColumns(false)}>
-                  <X size={18} color="#64748B" />
-                </TouchableOpacity>
-              </View>
-              <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-                {(Object.keys(userColumns) as UserColumn[]).map(key => (
-                  <View key={key} style={styles.columnOptionRow}>
-                    <Text style={styles.columnOptionLabel}>{userColumns[key]}</Text>
-                    <Switch
-                      accessibilityLabel={'Show ' + userColumns[key]}
-                      value={visibleColumns[key]}
-                      onValueChange={value => setVisibleColumns(previous => ({ ...previous, [key]: value }))}
-                      trackColor={{ false: '#CBD5E1', true: '#0D9488' }}
-                      thumbColor="#FFFFFF"
-                    />
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
-      )}
+      {/*  SHOW / HIDE COLUMNS MODAL (REUSABLE COMPONENT)                           */}
+      <ColumnSelectorModal
+        visible={showColumns}
+        onClose={() => setShowColumns(false)}
+        columns={userColumnOptions}
+        visibleColumns={visibleColumns}
+        onToggleColumn={toggleUserColumn}
+        onReset={resetUserColumns}
+      />
 
       {/*  VIEW USER DETAILS MODAL                                                  */}
 

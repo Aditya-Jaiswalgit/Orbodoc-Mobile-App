@@ -1,6 +1,7 @@
 import { apiFetch, BASE_URL, setGlobalAuthToken } from '../src/api/apiConfig';
 import { resetStaffPasswordApi } from '../src/api/userManagementApi';
 import { fetchUserRolesApi } from '../src/api/roleManagementApi';
+import { updateProfileApi } from '../src/api/authApi';
 
 const originalFetch = globalThis.fetch;
 const fetchMock = jest.fn();
@@ -51,4 +52,18 @@ test('malformed and offline responses are failures, not successful empty lists',
   expect(await fetchUserRolesApi(71)).toMatchObject({ success: false, error: 'InvalidResponse' });
   fetchMock.mockRejectedValue(new Error('Offline'));
   expect(await fetchUserRolesApi(71)).toMatchObject({ success: false, error: 'NetworkError' });
+});
+
+test('profile updates use backend full_name and retain intentionally empty editable fields', async () => {
+  fetchMock.mockResolvedValue(response(200, { success: true, data: { user: { full_name: 'Saved' } } }));
+  await updateProfileApi({ fullName: 'Saved', phone: '9876543210', address: '', profile_photo_url: '/uploads/photo.png' });
+  expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ full_name: 'Saved', phone: '9876543210', address: '', profile_photo_url: '/uploads/photo.png' });
+});
+
+test('legacy status false responses do not report successful uploads', async () => {
+  fetchMock.mockResolvedValue(response(200, { status: false, msg: 'Profile photo is required' }));
+  expect(await apiFetch('/staff/upload_profile', { method: 'POST', body: new FormData() }))
+    .toMatchObject({ success: false, message: 'Profile photo is required' });
+  expect(fetchMock.mock.calls[0][1].headers['Content-Type']).toBeUndefined();
+  expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer session-token');
 });

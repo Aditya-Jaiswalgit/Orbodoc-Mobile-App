@@ -1,7 +1,9 @@
 // src/screens/staff/MyProfileScreen.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import {
   ActivityIndicator,
+  Image,
+  RefreshControl,
   Modal,
   ScrollView,
   StyleSheet,
@@ -30,9 +32,7 @@ import {
   Camera,
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
-import { useAuthContext } from '../../context/AuthContext';
-import { fetchProfileApi, updateProfileApi } from '../../api/authApi';
-import { showSuccessToast, showErrorToast } from '../../utils/toast';
+import { useStaffProfile } from '../../hooks/useStaffProfile';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -43,108 +43,14 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
-  const { user, activeClinicName, role } = useAuthContext();
-
-  const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [saving, setSaving] = useState<boolean>(false);
-  const [videoCallingEnabled, setVideoCallingEnabled] = useState<boolean>(true);
-
-  // Profile Form & Details State
-  const [fullName, setFullName] = useState<string>('Dr. Rahul Sharma');
-  const [email, setEmail] = useState<string>('rahul.sharma@aarogyacare.com');
-  const [phone, setPhone] = useState<string>('9898989898');
-  const [address, setAddress] = useState<string>('');
-  const [department, setDepartment] = useState<string>('Artho');
-  const [clinicName, setClinicName] = useState<string>('Aarogya Care Clinic');
-  const [userRole, setUserRole] = useState<string>('Clinic Admin');
-  const [joinedDate, setJoinedDate] = useState<string>('July 2026');
-  const [joinedDateFormatted, setJoinedDateFormatted] = useState<string>('29 Jul 2026');
-  const [lastLoginTime, setLastLoginTime] = useState<string>('20/9/2026, 8:24:31 am');
-  const [verificationStatus, setVerificationStatus] = useState<string>('Verified');
-
-  // Load user profile on mount
-  const loadProfile = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetchProfileApi().catch(() => null);
-      if (res && res.success && res.data) {
-        const u = res.data.user || res.data;
-        if (u.fullName || u.full_name || u.name) {
-          setFullName(u.fullName || u.full_name || u.name);
-        }
-        if (u.email) setEmail(u.email);
-        if (u.phone || u.phone_number || u.mobile) {
-          setPhone(u.phone || u.phone_number || u.mobile);
-        }
-        if (u.address) setAddress(u.address);
-        if (u.department) setDepartment(u.department);
-        if (u.clinic_name || u.clinicName) setClinicName(u.clinic_name || u.clinicName);
-        if (u.role_name || u.roleName || u.role) {
-          setUserRole(u.role_name || u.roleName || u.role);
-        }
-        if (u.created_at || u.joinedDate) {
-          const d = new Date(u.created_at || u.joinedDate);
-          if (!isNaN(d.getTime())) {
-            setJoinedDate(d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
-            setJoinedDateFormatted(d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
-          }
-        }
-      } else if (user) {
-        setFullName(user.fullName || (user as any).full_name || 'Dr. Rahul Sharma');
-        setEmail(user.email || 'rahul.sharma@aarogyacare.com');
-        setPhone(user.phone || (user as any).phone_number || '9898989898');
-        setClinicName(activeClinicName || 'Aarogya Care Clinic');
-        if (role) setUserRole(role.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase()));
-      }
-    } catch (err) {
-      console.log('Error loading profile:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, activeClinicName, role]);
-
-  useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
-
-  // Derived Initials
-  const initials = fullName
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase() || 'DR';
-
-  // Save changes handler
-  const handleSaveChanges = async () => {
-    if (!fullName.trim() || !phone.trim()) {
-      showErrorToast('Validation Error', 'Full Name and Phone Number are required.');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const res = await updateProfileApi({
-        fullName: fullName.trim(),
-        phone: phone.trim(),
-        address: address.trim(),
-      }).catch(() => null);
-
-      showSuccessToast('Profile Updated', 'Your profile details have been saved successfully.');
-      setIsEditing(false);
-    } catch (err) {
-      showSuccessToast('Profile Updated', 'Profile updated successfully!');
-      setIsEditing(false);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    loadProfile();
-    setIsEditing(false);
-  };
+  const {
+    isEditing, setIsEditing, loading, saving, uploading, videoBusy, error, ready, loadProfile,
+    fullName, setFullName, email, phone, setPhone, address, setAddress, department,
+    clinicName, userRole, joinedDate, joinedDateFormatted, lastLoginTime, verificationStatus,
+    videoCallingEnabled, canManageVideoCalling, handleToggleVideo, handleSaveChanges,
+    handleCancelEdit, handleChoosePhoto, photoUrl, onPhotoError,
+  } = useStaffProfile();
+  const initials = fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || '?';
 
   return (
     <View style={styles.container}>
@@ -159,7 +65,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
         }}
       />
 
-      <ScrollView
+      <ScrollView refreshControl={<RefreshControl refreshing={loading} onRefresh={loadProfile} />}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
@@ -180,6 +86,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
           {!isEditing ? (
             <TouchableOpacity
               style={styles.editProfileBtn}
+              disabled={loading || !ready || Boolean(error)}
               onPress={() => setIsEditing(true)}
               activeOpacity={0.8}>
               <Edit2 size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
@@ -190,7 +97,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
               <TouchableOpacity
                 style={styles.saveChangesBtn}
                 onPress={handleSaveChanges}
-                disabled={saving}
+                disabled={saving || uploading}
                 activeOpacity={0.8}>
                 {saving ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
@@ -204,6 +111,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
 
               <TouchableOpacity
                 style={styles.cancelBtn}
+                disabled={saving || uploading}
                 onPress={handleCancelEdit}
                 activeOpacity={0.8}>
                 <X size={16} color="#334155" style={{ marginRight: 4 }} />
@@ -225,7 +133,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                 {/* Left: Circular Avatar Badge */}
                 <View style={styles.avatarCircleOuterRing}>
                   <View style={styles.avatarCircleInner}>
-                    <Text style={styles.avatarInitialsText}>{initials}</Text>
+                    {photoUrl ? <Image source={{ uri: photoUrl }} onError={onPhotoError} style={{ width: '100%', height: '100%', borderRadius: 100 }} /> : <Text style={styles.avatarInitialsText}>{initials}</Text>}
                   </View>
                 </View>
 
@@ -269,7 +177,8 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   </View>
                   <Switch
                     value={videoCallingEnabled}
-                    onValueChange={(val) => setVideoCallingEnabled(val)}
+                    disabled={!canManageVideoCalling || videoBusy || saving || uploading}
+                    onValueChange={handleToggleVideo}
                     trackColor={{ false: '#E2E8F0', true: '#99F6E4' }}
                     thumbColor={videoCallingEnabled ? '#0D9488' : '#CBD5E1'}
                   />
@@ -369,7 +278,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                 <Text style={styles.photoUploadSub}>Upload JPG/PNG/WEBP (max 2MB)</Text>
               </View>
 
-              <TouchableOpacity style={styles.choosePhotoBtn} activeOpacity={0.7}>
+              <TouchableOpacity style={styles.choosePhotoBtn} activeOpacity={0.7} disabled={uploading || saving} onPress={handleChoosePhoto}>
                 <Upload size={14} color="#334155" style={{ marginRight: 6 }} />
                 <Text style={styles.choosePhotoBtnText}>Choose Photo</Text>
               </TouchableOpacity>
@@ -412,7 +321,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                 <TextInput
                   style={styles.formTextInput}
                   value={phone}
-                  onChangeText={(v) => setPhone(v)}
+                  onChangeText={(v) => setPhone(v.replace(/\D/g, '').slice(0, 10))}
                   keyboardType="phone-pad"
                   placeholder="Enter phone number"
                   placeholderTextColor="#94A3B8"
