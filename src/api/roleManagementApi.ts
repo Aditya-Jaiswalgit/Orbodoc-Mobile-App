@@ -1,6 +1,6 @@
 import { apiFetch } from './apiConfig';
 import { ApiResponse } from '../types/auth';
-import { permissionEnabled } from '../utils/rolePermissions';
+import { permissionEnabled, normalizeRoleName, ROLE_NAME_TO_DEFAULT_ID } from '../utils/rolePermissions';
 
 export interface SystemObject {
   id: number | string;
@@ -154,12 +154,124 @@ export async function fetchPlanObjectIds(clinicId: string | number): Promise<Set
 
 /**
  * 7. Get Permissions by Role ID
- * Route: GET /api/role_per/permission/{roleId}
+ * Comprehensive resolver: Queries /role_per/permission/{roleId} AND merges with
+ * the live clinic matrix from /role_per/list?clinic_id={clinicId} so that permissions
+ * updated by Admin in the web portal are immediately reflected.
  */
 export async function fetchPermissionMapByRoleApi(
-  roleId: string | number
+  roleId: string | number,
+  clinicId?: string | number | null,
+  roleNameHint?: string | null
 ): Promise<ApiResponse<Record<string, any>>> {
-  return apiFetch<Record<string, any>>(`/role_per/permission/${encodeURIComponent(String(roleId))}`);
+  const mergedMap: Record<string, any> = {};
+  let anySuccess = false;
+
+  // 1. Direct call to /role_per/permission/:roleId
+  try {
+    const direct = await apiFetch<Record<string, any>>(`/role_per/permission/${encodeURIComponent(String(roleId))}`);
+    if (direct.success && direct.data && typeof direct.data === 'object' && !Array.isArray(direct.data)) {
+      anySuccess = true;
+      for (const [key, val] of Object.entries(direct.data)) {
+        if (val && typeof val === 'object') {
+          mergedMap[key] = {
+            view: permissionEnabled((val as any).view ?? (val as any).can_view),
+            add: permissionEnabled((val as any).add ?? (val as any).can_add),
+            edit: permissionEnabled((val as any).edit ?? (val as any).can_edit),
+            delete: permissionEnabled((val as any).delete ?? (val as any).can_delete),
+            execute: permissionEnabled((val as any).execute ?? (val as any).can_execute),
+          };
+        }
+      }
+    }
+  } catch {
+    // continue to clinic list
+  }
+
+  // 2. Fetch /role_per/list?clinic_id= to get the live clinic permissions matrix
+  if (clinicId) {
+    try {
+      const [listRes, rolesRes] = await Promise.all([
+        apiFetch<any[]>(`/role_per/list?clinic_id=${encodeURIComponent(String(clinicId))}`),
+        apiFetch<any[]>(`/user_role/list?clinic_id=${encodeURIComponent(String(clinicId))}`).catch(() => null),
+      ]);
+
+      if (listRes.success) {
+        anySuccess = true;
+        const listData = Array.isArray(listRes.data)
+          ? listRes.data
+          : Array.isArray((listRes.data as any)?.data)
+          ? (listRes.data as any).data
+          : [];
+
+        // Collect all role IDs associated with this role
+        const targetRoleIds = new Set<string>();
+        targetRoleIds.add(String(roleId).trim());
+
+        const normalizedHint = roleNameHint ? normalizeRoleName(roleNameHint) : '';
+        if (normalizedHint && ROLE_NAME_TO_DEFAULT_ID[normalizedHint] != null) {
+          targetRoleIds.add(String(ROLE_NAME_TO_DEFAULT_ID[normalizedHint]));
+        }
+
+        // Check if /user_role/list has matching roles for this role name
+        if (rolesRes?.success && rolesRes?.data) {
+          const roleList = extractArrayData(rolesRes);
+          for (const r of roleList) {
+            const rName = normalizeRoleName(String(r.role_name ?? r.role ?? r.name ?? ''));
+            const rId = String(r.role_id ?? r.id ?? '').trim();
+            if (rId && (rId === String(roleId).trim() || (normalizedHint && rName === normalizedHint))) {
+              targetRoleIds.add(rId);
+            }
+          }
+        }
+
+        // listData contains all matrix rows. Merge flags for matching role
+        for (const item of listData) {
+          const itemRoleId = String(item.role_id ?? '').trim();
+          const itemRoleName = normalizeRoleName(String(item.role_name ?? item.role ?? ''));
+
+          const matchesRole =
+            targetRoleIds.has(itemRoleId) ||
+            (normalizedHint && itemRoleName === normalizedHint);
+
+          if (matchesRole) {
+            const objName = item.object_name || item.system_object_name || item.display_name;
+            if (objName) {
+              const current = mergedMap[objName] || {
+                view: false,
+                add: false,
+                edit: false,
+                delete: false,
+                execute: false,
+              };
+
+              mergedMap[objName] = {
+                view: current.view || permissionEnabled(item.can_view ?? item.view),
+                add: current.add || permissionEnabled(item.can_add ?? item.add),
+                edit: current.edit || permissionEnabled(item.can_edit ?? item.edit),
+                delete: current.delete || permissionEnabled(item.can_delete ?? item.delete),
+                execute: current.execute || permissionEnabled(item.can_execute ?? item.execute),
+              };
+            }
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (anySuccess || Object.keys(mergedMap).length > 0) {
+    return {
+      success: true,
+      message: 'Permissions resolved',
+      data: mergedMap,
+    };
+  }
+
+  return {
+    success: false,
+    message: 'Unable to load permissions',
+  };
 }
 
 /**

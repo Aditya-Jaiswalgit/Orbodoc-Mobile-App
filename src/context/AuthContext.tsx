@@ -14,7 +14,7 @@ import {
 } from '../types/auth';
 import { useRemoteData } from '../hooks/useRemoteData';
 import { fetchPermissionMapByRoleApi, fetchSystemObjectsApi } from '../api/roleManagementApi';
-import { normalizePermissionMap, normalizeRoleName, PermissionMap } from '../utils/rolePermissions';
+import { normalizePermissionMap, normalizeRoleName, resolveRoleId, PermissionMap } from '../utils/rolePermissions';
 import {
   clearStoredSession,
   getStoredSession,
@@ -34,23 +34,7 @@ export function normalizeAppRole(user: AuthUser | null): string {
     (user as any).user_role ||
     ''
   );
-  const normalizedRole = normalizeRoleName(rawRole);
-
-  if (normalizedRole) return normalizedRole;
-
-  // Fallback by role_id if numeric
-  const roleId = Number(user.roleId || user.role_id);
-  if (roleId === 1) return 'super_admin';
-  if (roleId === 2) return 'clinic_admin';
-  if (roleId === 3) return 'doctor';
-  if (roleId === 4) return 'receptionist';
-  if (roleId === 5) return 'pharmacist';
-  if (roleId === 6) return 'lab_technician';
-  if (roleId === 7) return 'accountant';
-  if (roleId === 8) return 'nurse';
-  if (roleId === 9) return 'patient';
-
-  return 'staff';
+  return normalizeRoleName(rawRole) || 'staff';
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [plan, setPlan] = useState<AuthResponseData['plan'] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isBootstrapping, setIsBootstrapping] = useState<boolean>(true);
-  const [loginPermissions, setLoginPermissions] = useState<{ key: string; map: PermissionMap }>({ key: '', map: {} });
+  const [authPermissions, setAuthPermissions] = useState<PermissionMap>({});
 
   const sessionRevision = useRef(0);
   const switching = useRef(false);
@@ -87,28 +71,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (stored && isMounted) {
           setToken(stored.token);
           setGlobalAuthToken(stored.token);
-          setUser(stored.user);
+          let restoredUser = stored.user;
+          if (restoredUser) {
+            const resolvedId = resolveRoleId(restoredUser, stored.token, stored.userType);
+            if (resolvedId != null && !restoredUser.role_id) {
+              restoredUser = { ...restoredUser, role_id: resolvedId, roleId: resolvedId };
+            }
+          }
+          setUser(restoredUser);
           setUserType(stored.userType);
           setActiveClinicId(stored.activeClinicId);
           setAssignedClinics(stored.assignedClinics || []);
           setPlan(stored.plan ?? null);
-
-          if (stored.permissionsKey && stored.permissionsMap) {
-            setLoginPermissions({ key: stored.permissionsKey, map: stored.permissionsMap });
+          if (stored.permissionsMap && Object.keys(stored.permissionsMap).length > 0) {
+            setAuthPermissions(stored.permissionsMap);
           }
 
-          // Verify session in background and refresh profile/clinics
+          // Verify session in background and refresh profile/clinics/permissions
           try {
-            const [profileRes, clinicsRes] = await Promise.all([
+            const currentStaffRole = normalizeAppRole(restoredUser);
+            const resolvedRoleId = resolveRoleId(restoredUser, stored.token, currentStaffRole);
+
+            const [profileRes, clinicsRes, permsRes, objectsRes] = await Promise.all([
               fetchProfileApi(),
               fetchMyClinicsApi(),
+              Boolean(resolvedRoleId && stored.userType !== 'patient')
+                ? fetchPermissionMapByRoleApi(resolvedRoleId!, stored.activeClinicId, currentStaffRole)
+                : Promise.resolve(null),
+              fetchSystemObjectsApi().catch(() => null),
             ]);
 
             if (!isMounted) return;
 
             if (profileRes.success && profileRes.data) {
               const profileData = profileRes.data.user || profileRes.data;
-              const mergedUser = { ...stored.user, ...profileData };
+              const mergedUser: AuthUser = {
+                ...restoredUser,
+                ...profileData,
+                role_id: (restoredUser as any)?.role_id,
+                roleId: (restoredUser as any)?.roleId,
+              } as AuthUser;
               setUser(mergedUser);
               await updateStoredSession({ user: mergedUser });
             } else if (
@@ -139,6 +141,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   .filter((clinic: UserClinic) => Number.isFinite(clinic.id) && clinic.id > 0);
                 setAssignedClinics(formattedClinics);
                 await updateStoredSession({ assignedClinics: formattedClinics });
+              }
+            }
+
+            if (permsRes?.success && permsRes?.data) {
+              const freshMap = normalizePermissionMap(permsRes.data, objectsRes?.data ?? []);
+              if (Object.keys(freshMap).length > 0) {
+                setAuthPermissions(freshMap);
+                await updateStoredSession({ permissionsMap: freshMap });
               }
             }
           } catch {
@@ -172,6 +182,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     const sessionToken = authData.accessToken || authData.token || null;
     let userData = authData.user;
+    if (userData) {
+      const resolvedId = resolveRoleId(userData, sessionToken, type);
+      if (resolvedId != null && !userData.role_id) {
+        userData = { ...userData, role_id: resolvedId, roleId: resolvedId };
+      }
+    }
 
     setToken(sessionToken);
     setGlobalAuthToken(sessionToken);
@@ -192,9 +208,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const numericClinicId = initialClinicId ? Number(initialClinicId) : null;
     setActiveClinicId(numericClinicId);
 
-    const permKey = [sessionToken, userData?.id, initialClinicId || null, userData?.role_id ?? userData?.roleId].join(':');
-    const permMap = normalizePermissionMap(authData.permissions);
-    setLoginPermissions({ key: permKey, map: permMap });
+    const normPerms = normalizePermissionMap(authData.permissions);
+    if (Object.keys(normPerms).length > 0) {
+      setAuthPermissions(normPerms);
+    }
 
     if (sessionToken && userData) {
       // Save session immediately so app reopening retains login even if user closes app instantly
@@ -205,8 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         activeClinicId: numericClinicId,
         assignedClinics: clinics,
         plan: authData.plan ?? null,
-        permissionsKey: permKey,
-        permissionsMap: permMap,
+        permissionsMap: Object.keys(normPerms).length > 0 ? normPerms : undefined,
       });
 
       try {
@@ -225,7 +241,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // 1. Profile Data Update
         if (profileRes.success && profileRes.data) {
           const profileData = profileRes.data.user || profileRes.data;
-          latestUser = { ...latestUser, ...profileData };
+          latestUser = {
+            ...latestUser,
+            ...profileData,
+            role_id: (latestUser as any)?.role_id,
+            roleId: (latestUser as any)?.roleId,
+          };
           setUser(latestUser);
         }
 
@@ -281,11 +302,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const newAuthData = response.data;
       setPlan(newAuthData?.plan ?? null);
       const newToken = newAuthData?.accessToken || newAuthData?.token || token;
-      const nextUser = { ...user, ...newAuthData?.user, activeClinicId: clinicId, clinic_id: clinicId, clinicId };
+      const nextUser: AuthUser = { ...user, ...newAuthData?.user, activeClinicId: clinicId, clinic_id: clinicId, clinicId } as AuthUser;
       const permKey = [newToken, nextUser.id, clinicId, nextUser.role_id ?? nextUser.roleId].join(':');
       const permMap = normalizePermissionMap(newAuthData?.permissions);
 
-      setLoginPermissions({ key: permKey, map: permMap });
+      setAuthPermissions(permMap);
       setGlobalAuthToken(newToken);
       setToken(newToken);
       setUser(nextUser);
@@ -339,45 +360,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActiveClinicId(null);
     setAssignedClinics([]);
     setPlan(null);
-    setLoginPermissions({ key: '', map: {} });
+    setAuthPermissions({});
     setGlobalAuthToken(null);
     clearStoredSession().catch(() => {});
   };
 
   const role = normalizeAppRole(user);
-  const permissionRoleId = user?.role_id ?? user?.roleId;
-  const permissionScope = [token, user?.id, activeClinicId, permissionRoleId].join(':');
-  const fallbackPermissions = useMemo(() => {
-    if (loginPermissions.map && Object.keys(loginPermissions.map).length > 0) {
-      return loginPermissions.map;
-    }
-    return {};
-  }, [loginPermissions.map]);
+  const permissionRoleId = resolveRoleId(user, token, role);
 
-  const permissionResource = useRemoteData(permissionScope + ':access', async () => {
-    try {
-      const [response, objects] = await Promise.all([
-        fetchPermissionMapByRoleApi(permissionRoleId!),
-        fetchSystemObjectsApi().catch(() => null),
-      ]);
-      const fetchedData = response?.success && response?.data ? response.data : null;
-      const map = fetchedData ? normalizePermissionMap(fetchedData, objects?.data ?? []) : {};
-      if (Object.keys(map).length > 0) {
-        return map;
+  // Directly fetch live permissions from the backend for every authenticated staff role
+  const canFetchPermissions = Boolean(token && userType !== 'patient' && permissionRoleId);
+  const permissionScope = [token, user?.id, activeClinicId, permissionRoleId, role].join(':');
+
+  const permissionResource = useRemoteData<PermissionMap>(
+    permissionScope + ':access',
+    async () => {
+      const targetRoleId = permissionRoleId || resolveRoleId(user, token, role) || 3;
+      try {
+        const [response, objects] = await Promise.all([
+          fetchPermissionMapByRoleApi(targetRoleId, activeClinicId, role),
+          fetchSystemObjectsApi().catch(() => null),
+        ]);
+        const fetchedData = response?.success && response?.data ? response.data : null;
+        if (!fetchedData) return {};
+        const map = normalizePermissionMap(fetchedData, objects?.data ?? []);
+        if (Object.keys(map).length > 0) {
+          updateStoredSession({ permissionsMap: map }).catch(() => {});
+          return map;
+        }
+        return {};
+      } catch {
+        return {};
       }
-      return fallbackPermissions;
-    } catch {
-      return fallbackPermissions;
-    }
-  }, Boolean(token && userType === 'staff' && activeClinicId && permissionRoleId));
+    },
+    canFetchPermissions
+  );
 
+  const refreshRef = useRef(permissionResource.refresh);
+  refreshRef.current = permissionResource.refresh;
+
+  const refreshPermissions = useCallback(() => {
+    return refreshRef.current();
+  }, []);
+
+  // Exact Web parity: Merge base login permissions with live role permissions
   const effectivePermissionsMap = useMemo(() => {
     const fetched = permissionResource.data;
+    const merged: PermissionMap = { ...authPermissions };
+
     if (fetched && Object.keys(fetched).length > 0) {
-      return { ...fallbackPermissions, ...fetched };
+      for (const [key, flags] of Object.entries(fetched)) {
+        if (!merged[key]) {
+          merged[key] = flags;
+        } else {
+          merged[key] = {
+            view: merged[key].view || flags.view,
+            add: merged[key].add || flags.add,
+            edit: merged[key].edit || flags.edit,
+            delete: merged[key].delete || flags.delete,
+            execute: merged[key].execute || flags.execute,
+          };
+        }
+      }
     }
-    return fallbackPermissions;
-  }, [permissionResource.data, fallbackPermissions]);
+    return merged;
+  }, [permissionResource.data, authPermissions]);
 
   const isMultiClinic = assignedClinics.length > 1 || !!user?.isMultiClinic;
   const isMultiPlan = String(plan?.plan_type ?? plan?.planType ?? '').trim().toLowerCase() === 'multi'
@@ -403,7 +450,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         permissionsMap: effectivePermissionsMap,
         permissionsLoading: permissionResource.loading,
         permissionsError: permissionResource.error,
-        refreshPermissions: permissionResource.refresh,
+        refreshPermissions,
         saveAuthSession,
         switchClinic,
         logout,

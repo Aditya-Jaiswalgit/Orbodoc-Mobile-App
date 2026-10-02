@@ -24,13 +24,13 @@ export interface AuthUser {
   full_name?: string;
   email?: string;
   phone?: string;
-  role_id?: number;
-  roleId?: number;
+  role_id?: number | string;
+  roleId?: number | string;
   roleName?: string;
   role?: string;
-  clinicId?: number;
-  clinic_id?: number;
-  activeClinicId?: number;
+  clinicId?: number | string;
+  clinic_id?: number | string;
+  activeClinicId?: number | string;
   clinics?: UserClinic[];
   isMultiClinic?: boolean;
   department?: string;

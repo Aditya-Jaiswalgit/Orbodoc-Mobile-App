@@ -35,6 +35,7 @@ import { useAuthContext } from '../../context/AuthContext';
 import { useStaffHeaderData } from '../../hooks/useStaffHeaderData';
 import { dashboardNumber, displayAmount, displayDate } from '../../utils/dashboardValues';
 import { navigateStaffScreen } from '../../utils/navigationEvents';
+import { normalizeRoleName } from '../../utils/rolePermissions';
 
 interface StaffHeaderProps {
   onOpenDrawer: () => void;
@@ -50,12 +51,24 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
 }) => {
   const {
     user,
+    role,
     activeClinicId,
     activeClinicName,
     assignedClinics,
     switchClinic,
     logout,
   } = useAuthContext();
+
+  const rawRole = role || user?.role || user?.roleName || user?.role_name || '';
+  const normalizedRole = normalizeRoleName(rawRole);
+  const isClinicAdmin = normalizedRole === 'clinic_admin';
+  const isDoctor = normalizedRole === 'doctor';
+  const isIndependentDoctor =
+    isDoctor &&
+    String((user as { doctor_type?: string } | null)?.doctor_type || '')
+      .trim()
+      .toLowerCase() === 'independent_doctor';
+  const isProviderWalletUser = isClinicAdmin || isIndependentDoctor;
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [switchingClinic, setSwitchingClinic] = useState(false);
@@ -115,15 +128,19 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
         </TouchableOpacity>
 
         <View style={styles.headerRightGroup}>
-          {/* Gold Crown Subscription Button */}
-          <TouchableOpacity style={styles.crownCircleBtn} onPress={() => setPlanModalOpen(true)} activeOpacity={0.8}>
-            <Crown size={16} color="#D97706" />
-          </TouchableOpacity>
+          {/* Gold Crown Subscription Button (Web Parity: ONLY Clinic Admin) */}
+          {isClinicAdmin && (
+            <TouchableOpacity style={styles.crownCircleBtn} onPress={() => setPlanModalOpen(true)} activeOpacity={0.8}>
+              <Crown size={16} color="#D97706" />
+            </TouchableOpacity>
+          )}
 
-          {/* Wallet Icon Button */}
-          <TouchableOpacity style={styles.walletCircleBtn} onPress={() => onNavigate('/wallet')} activeOpacity={0.8}>
-            <CreditCard size={16} color="#FFFFFF" />
-          </TouchableOpacity>
+          {/* Wallet Icon Button (Web Parity: ONLY Clinic Admin or Independent Doctor) */}
+          {isProviderWalletUser && (
+            <TouchableOpacity style={styles.walletCircleBtn} onPress={() => onNavigate('/wallet')} activeOpacity={0.8}>
+              <CreditCard size={16} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
 
           {/* Notification Bell Icon */}
           <TouchableOpacity
@@ -223,19 +240,22 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
 
           <View style={styles.menuDivider} />
 
-          {/* My Plan */}
-          <TouchableOpacity
-            style={styles.profileMenuItemRowBtn}
-            onPress={() => {
-              setProfileMenuOpen(false);
-              setPlanModalOpen(true);
-            }}
-            activeOpacity={0.7}>
-            <Crown size={18} color="#D97706" />
-            <Text style={styles.menuItemTitle}>My Plan</Text>
-          </TouchableOpacity>
-
-          <View style={styles.menuDivider} />
+          {/* My Plan (Web Parity: ONLY Clinic Admin) */}
+          {isClinicAdmin && (
+            <>
+              <TouchableOpacity
+                style={styles.profileMenuItemRowBtn}
+                onPress={() => {
+                  setProfileMenuOpen(false);
+                  setPlanModalOpen(true);
+                }}
+                activeOpacity={0.7}>
+                <Crown size={18} color="#D97706" />
+                <Text style={styles.menuItemTitle}>My Plan</Text>
+              </TouchableOpacity>
+              <View style={styles.menuDivider} />
+            </>
+          )}
 
           {/* Logout */}
           <TouchableOpacity

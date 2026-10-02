@@ -48,6 +48,80 @@ export function getRoleSectionLabel(role?: string | null): string {
   return label.toUpperCase();
 }
 
+export function decodeJwtPayload(token: string | null | undefined): Record<string, any> | null {
+  if (!token || typeof token !== 'string') return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+    let output = '';
+    let buffer = 0;
+    let bits = 0;
+    for (let i = 0; i < padded.length; i++) {
+      const char = padded.charAt(i);
+      if (char === '=') break;
+      const index = chars.indexOf(char);
+      if (index === -1) continue;
+      buffer = (buffer << 6) | index;
+      bits += 6;
+      if (bits >= 8) {
+        bits -= 8;
+        output += String.fromCharCode((buffer >> bits) & 0xff);
+      }
+    }
+    return JSON.parse(output);
+  } catch {
+    return null;
+  }
+}
+
+export const ROLE_NAME_TO_DEFAULT_ID: Record<string, number> = {
+  super_admin: 1,
+  clinic_admin: 2,
+  doctor: 3,
+  receptionist: 4,
+  pharmacist: 5,
+  lab_technician: 6,
+  accountant: 7,
+  nurse: 8,
+  patient: 9,
+};
+
+export function resolveRoleId(
+  user: any,
+  token?: string | null,
+  fallbackRole?: string | null
+): string | number | undefined {
+  if (user?.role_id != null && String(user.role_id).trim()) return user.role_id;
+  if (user?.roleId != null && String(user.roleId).trim()) return user.roleId;
+  if (typeof user?.role === 'object' && user?.role?.id != null) return user.role.id;
+
+  if (token) {
+    const decoded = decodeJwtPayload(token);
+    if (decoded?.roleId != null && String(decoded.roleId).trim()) return decoded.roleId;
+    if (decoded?.role_id != null && String(decoded.role_id).trim()) return decoded.role_id;
+  }
+
+  const roleNameCandidate =
+    (typeof user?.role === 'string' ? user.role : null) ||
+    user?.roleName ||
+    user?.role_name ||
+    fallbackRole;
+
+  if (roleNameCandidate) {
+    const normalized = normalizeRoleName(String(roleNameCandidate));
+    if (normalized && ROLE_NAME_TO_DEFAULT_ID[normalized] != null) {
+      return ROLE_NAME_TO_DEFAULT_ID[normalized];
+    }
+  }
+
+  return undefined;
+}
+
 
 export const normalizeObjectName = (value: string): string =>
   value.trim().toLowerCase().replace(/[\s_-]+/g, '_');
@@ -91,7 +165,7 @@ export const objectNameAliases: Record<string, string[]> = {
   'treatment billing': ['treatment_bills'],
   'medicine billing': ['medicine_bills'],
   'lab tests': ['lab_tests'],
-  'lab management': ['Lab_profile', 'lab_profile', 'lab_tests', 'lab_reports'],
+  'lab management': ['Lab_profile', 'lab_profile'],
   'lab profile': ['Lab_profile', 'lab_profile'],
   'lab reports': ['lab_reports'],
   notifications: ['notifications'],

@@ -67,7 +67,7 @@ import { fetchHeaderUnreadCount } from '../api/staffHeaderApi';
 import { subscribeStaffNavigation } from '../utils/navigationEvents';
 import { canUseStaffScreen } from './staffAccess';
 import { StaffHeader } from '../components/common/StaffHeader';
-import { getRoleDisplayName, getRoleSectionLabel } from '../utils/rolePermissions';
+import { getRoleDisplayName, getRoleSectionLabel, normalizeRoleName } from '../utils/rolePermissions';
 
 export type StaffTabType =
   | 'dashboard'
@@ -84,6 +84,7 @@ export type StaffTabType =
   | 'treatment_billing'
   | 'lab_management'
   | 'lab_tests'
+  | 'lab_inventory'
   | 'lab_reports'
   | 'notifications'
   | 'profile'
@@ -123,6 +124,16 @@ export const StaffMainContainer = () => {
 
   const staffRole = role || 'staff';
   const canOpen = (screen: string) => canUseStaffScreen(staffRole, permissionsMap, screen);
+
+  if (__DEV__) {
+    console.debug('[PERMISSIONS DEBUG]', {
+      role: staffRole,
+      clinicId: activeClinicId,
+      canLabTests: canOpen('lab_tests'),
+      canLabInventory: canOpen('lab_inventory'),
+      totalPermKeys: Object.keys(permissionsMap).length,
+    });
+  }
 
   const [activeTab, setActiveTab] = useState<StaffTabType>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -197,25 +208,30 @@ export const StaffMainContainer = () => {
     else Alert.alert('Clinic switch failed', 'Your current clinic is unchanged. Please retry.');
   };
 
-  // Use the live view grant for management navigation.
-  const canSeeUserManagement =
-    canOpen('staff');
-
-  // Web-aligned Shared Clinic Navigation Catalog
+  // 1. Shared Clinical Navigation (Exact Web parity with roleNavigationConfig.ts sharedClinicNav)
   const sharedClinicNav: MenuItem[] = [
     { id: 'patients', label: 'Patients' },
     { id: 'appointments', label: 'Appointments' },
-    { id: 'book_appointment', label: 'Book Appointment' },
     { id: 'video_services', label: 'Video Services' },
     { id: 'treatment_billing', label: 'Treatment Billing' },
     { id: 'medicine_billing', label: 'Medicine Billing' },
     { id: 'pharmacy_inventory', label: 'Medicines' },
-    { id: 'lab_management', label: 'Lab Management' },
     { id: 'lab_tests', label: 'Lab Tests' },
+    { id: 'lab_inventory', label: 'Lab Inventory' },
     { id: 'lab_reports', label: 'Lab Reports' },
   ];
 
-  // Full Custom Role navigation catalog matching Web's customRoleNav (used for Nurse & custom roles)
+  const userRoleManagementGroup: MenuItem = {
+    id: 'user_role_mgmt',
+    label: 'User & Role Management',
+    isGroup: true,
+    children: [
+      { id: 'staff', label: 'Create User', iconType: 'create_user' },
+      { id: 'role_permissions', label: 'Role Permissions', iconType: 'role_permissions' },
+    ],
+  };
+
+  // 2. Full Custom Role navigation catalog matching Web's customRoleNav (used for Nurse & all custom roles)
   const customRoleNavCatalog: MenuItem[] = [
     { id: 'clinics', label: 'Clinic Management' },
     { id: 'patients', label: 'Patients' },
@@ -227,35 +243,23 @@ export const StaffMainContainer = () => {
     { id: 'pharmacy_inventory', label: 'Medicines' },
     { id: 'lab_management', label: 'Lab Management' },
     { id: 'lab_tests', label: 'Lab Tests' },
+    { id: 'lab_inventory', label: 'Lab Inventory' },
     { id: 'lab_reports', label: 'Lab Reports' },
     { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
-    {
-      id: 'user_role_mgmt',
-      label: 'User & Role Management',
-      isGroup: true,
-      children: [
-        { id: 'staff', label: 'Create User', iconType: 'create_user' },
-        { id: 'role_permissions', label: 'Role Permissions', iconType: 'role_permissions' },
-      ],
-    },
+    userRoleManagementGroup,
   ];
 
-  // Define Menu items allowed for each role (matching web roleNavigationConfig.ts)
-  const getMenuItemsForRole = (roleStr: string): MenuItem[] => {
-    switch (roleStr) {
+  // 3. Exact Web Role Navigation Config (matching Web's roleNavigationConfig.ts)
+  const getNavConfigForRole = (roleStr: string): MenuItem[] => {
+    const normalized = normalizeRoleName(roleStr);
+    switch (normalized) {
       case 'super_admin':
         return [
           { id: 'dashboard', label: 'Super Admin Dashboard' },
           { id: 'clinics', label: 'Clinic Management' },
-          {
-            id: 'user_role_mgmt',
-            label: 'User & Role Management',
-            isGroup: true,
-            children: [
-              { id: 'staff', label: 'Create User', iconType: 'create_user' },
-              { id: 'role_permissions', label: 'Role Permissions', iconType: 'role_permissions' },
-            ],
-          },
+          userRoleManagementGroup,
+          ...sharedClinicNav,
+          { id: 'lab_management', label: 'Lab Management' },
           { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'clinic_admin':
@@ -264,15 +268,7 @@ export const StaffMainContainer = () => {
           { id: 'clinics', label: 'Clinic Management' },
           ...sharedClinicNav,
           { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
-          {
-            id: 'user_role_mgmt',
-            label: 'User & Role Management',
-            isGroup: true,
-            children: [
-              { id: 'staff', label: 'Create User', iconType: 'create_user' },
-              { id: 'role_permissions', label: 'Role Permissions', iconType: 'role_permissions' },
-            ],
-          },
+          userRoleManagementGroup,
         ];
       case 'doctor':
         return [
@@ -298,6 +294,7 @@ export const StaffMainContainer = () => {
           { id: 'dashboard', label: 'Lab Dashboard' },
           { id: 'lab_management', label: 'Lab Management' },
           { id: 'lab_tests', label: 'Lab Tests' },
+          { id: 'lab_inventory', label: 'Lab Inventory' },
           { id: 'lab_reports', label: 'Lab Reports' },
           { id: 'treatment_billing', label: 'Treatment Billing' },
           { id: 'medicine_billing', label: 'Medicine Billing' },
@@ -319,6 +316,7 @@ export const StaffMainContainer = () => {
           ...customRoleNavCatalog,
         ];
       default:
+        // Any custom created role
         return [
           {
             id: 'dashboard',
@@ -329,37 +327,19 @@ export const StaffMainContainer = () => {
     }
   };
 
-  const candidates = getMenuItemsForRole(staffRole);
-  // Custom roles and extra grants use the same screen catalog as built-in roles.
-  const extraItems: MenuItem[] = [
-    { id: 'clinics', label: 'Clinic Management' },
-    { id: 'patients', label: 'Patients' },
-    { id: 'appointments', label: 'Appointments' },
-    { id: 'book_appointment', label: 'Book Appointment' },
-    { id: 'video_services', label: 'Video Services' },
-    { id: 'treatment_billing', label: 'Treatment Billing' },
-    { id: 'medicine_billing', label: 'Medicine Billing' },
-    { id: 'pharmacy_inventory', label: 'Medicines' },
-    { id: 'lab_management', label: 'Lab Management' },
-    { id: 'lab_tests', label: 'Lab Tests' },
-    { id: 'lab_reports', label: 'Lab Reports' },
-    { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
-    {
-      id: 'user_role_mgmt',
-      label: 'User & Role Management',
-      isGroup: true,
-      children: [
-        { id: 'staff', label: 'Create User', iconType: 'create_user' },
-        { id: 'role_permissions', label: 'Role Permissions', iconType: 'role_permissions' },
-      ],
-    },
-  ];
-  for (const item of extraItems) if (!candidates.some(existing => existing.id === item.id)) candidates.push(item);
-  const menuItems = candidates.flatMap(item => {
-    if (item.children) {
-      const children = item.children.filter(child => canOpen(child.id));
-      return children.length ? [{ ...item, children }] : [];
+  const roleBaseConfig = getNavConfigForRole(staffRole);
+
+  // 4. Exact Web filterNavConfig: filter items strictly by permission
+  const menuItems = roleBaseConfig.flatMap(item => {
+    if (item.isGroup && item.children) {
+      const visibleChildren = item.children.filter(child => canOpen(child.id));
+      const canShowGroup = canOpen(item.id) || visibleChildren.length > 0;
+      return canShowGroup && visibleChildren.length > 0
+        ? [{ ...item, children: visibleChildren }]
+        : [];
     }
+    // Dashboard is always visible
+    if (item.id === 'dashboard') return [item];
     return canOpen(item.id) ? [item] : [];
   });
 
@@ -429,6 +409,7 @@ export const StaffMainContainer = () => {
       case 'lab_management':
         return <ClinicsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} />;
       case 'lab_tests':
+      case 'lab_inventory':
         return <LabManagementScreen onOpenDrawer={openDrawer} initialTab="orders" />;
       case 'lab_reports':
         return <LabManagementScreen onOpenDrawer={openDrawer} initialTab="reports" />;
@@ -470,6 +451,7 @@ export const StaffMainContainer = () => {
       case 'lab_management':
         return <Building2 color={color} size={size} />;
       case 'lab_tests':
+      case 'lab_inventory':
       case 'lab_reports':
         return <TestTube color={color} size={size} />;
       case 'notifications':
