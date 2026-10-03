@@ -179,8 +179,9 @@ export interface MedicineBill {
 }
 
 export interface TreatmentBillItem {
-  id?: number;
+  id?: number | string;
   service_name: string;
+  service_code?: string;
   description?: string;
   quantity: number;
   unit_price: number;
@@ -190,19 +191,44 @@ export interface TreatmentBillItem {
 }
 
 export interface TreatmentBill {
-  id: number;
+  id: number | string;
   clinic_id: number;
-  patient_id: number;
-  patient_name: string;
-  appointment_id?: number;
-  bill_number: string;
-  bill_date: string;
+  patient_id: number | string;
+  patient_name?: string;
+  patient_phone?: string;
+  phone?: string;
+  patient_code?: string;
+  appointment_id?: number | string;
+  appointment_date?: string;
+  appointment_time?: string;
+  doctor_name?: string;
+  bill_number?: string;
+  bill_date?: string;
   subtotal: number;
   discount_amount: number;
   tax_amount: number;
-  net_amount: number;
-  payment_status: 'paid' | 'pending' | 'partially_paid' | 'cancelled';
-  payment_mode?: 'cash' | 'card' | 'upi' | 'insurance';
+  total_amount: number;
+  net_amount?: number;
+  paid_amount?: number;
+  pending_amount?: number;
+  payment_status?: 'paid' | 'pending' | 'partial' | 'partially_paid' | 'cancelled';
+  status?: 'pending' | 'partial' | 'paid' | 'cancelled';
+  payment_mode?: 'cash' | 'card' | 'upi' | 'insurance' | 'net_banking' | 'cheque' | string;
+  payment_method?: 'cash' | 'card' | 'upi' | 'insurance' | 'net_banking' | 'cheque' | string;
+  description?: string;
+  created_by?: string | number;
+  created_by_name?: string;
+  accountant_name?: string;
+  created_at?: string;
+  updated_at?: string;
+  clinic_name?: string;
+  clinic_address?: string;
+  clinic_city?: string;
+  clinic_state?: string;
+  clinic_postal_code?: string;
+  clinic_phone?: string;
+  clinic_email?: string;
+  clinic_logo_url?: string;
   items: TreatmentBillItem[];
 }
 
