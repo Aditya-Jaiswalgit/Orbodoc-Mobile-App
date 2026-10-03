@@ -16,6 +16,8 @@ export interface UserClinic {
   id: number;
   name: string;
   is_primary?: number;
+  entity_type?: string;
+  clinic_entity_type?: string;
 }
 
 export interface AuthUser {
@@ -33,6 +35,8 @@ export interface AuthUser {
   activeClinicId?: number | string;
   clinics?: UserClinic[];
   isMultiClinic?: boolean;
+  entity_type?: string;
+  clinic_entity_type?: string;
   department?: string;
   specialization?: string;
   profilePhoto?: string;

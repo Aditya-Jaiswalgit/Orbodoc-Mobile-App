@@ -123,12 +123,33 @@ export const StaffMainContainer = () => {
   } = useAuthContext();
 
   const staffRole = role || 'staff';
-  const canOpen = (screen: string) => canUseStaffScreen(staffRole, permissionsMap, screen);
+
+  const currentClinic = assignedClinics.find(c => Number(c.id) === Number(activeClinicId))
+    ?? (assignedClinics.length === 1 ? assignedClinics[0] : null);
+
+  const activeEntityType = String(
+    (currentClinic as any)?.entity_type ||
+    (currentClinic as any)?.clinic_entity_type ||
+    (user as any)?.entity_type ||
+    (user as any)?.clinic_entity_type ||
+    ''
+  ).trim().toLowerCase();
+
+  const isLabEntity = activeEntityType === 'lab';
+
+  const canOpen = (screen: string) => {
+    if (screen === 'lab_management' && staffRole === 'lab_technician' && !isLabEntity) {
+      return false;
+    }
+    return canUseStaffScreen(staffRole, permissionsMap, screen);
+  };
 
   if (__DEV__) {
     console.debug('[PERMISSIONS DEBUG]', {
       role: staffRole,
       clinicId: activeClinicId,
+      entityType: activeEntityType,
+      isLabEntity,
       canLabTests: canOpen('lab_tests'),
       canLabInventory: canOpen('lab_inventory'),
       totalPermKeys: Object.keys(permissionsMap).length,
@@ -241,7 +262,7 @@ export const StaffMainContainer = () => {
     { id: 'treatment_billing', label: 'Treatment Billing' },
     { id: 'medicine_billing', label: 'Medicine Billing' },
     { id: 'pharmacy_inventory', label: 'Medicines' },
-    { id: 'lab_management', label: 'Lab Management' },
+    ...(isLabEntity ? [{ id: 'lab_management' as StaffTabType, label: 'Lab Management' }] : []),
     { id: 'lab_tests', label: 'Lab Tests' },
     { id: 'lab_inventory', label: 'Lab Inventory' },
     { id: 'lab_reports', label: 'Lab Reports' },
@@ -280,19 +301,17 @@ export const StaffMainContainer = () => {
         return [
           { id: 'dashboard', label: 'Reception Dashboard' },
           ...sharedClinicNav,
-          { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'pharmacist':
         return [
           { id: 'dashboard', label: 'Pharmacist Dashboard' },
           { id: 'medicine_billing', label: 'Medicine Billing' },
           { id: 'pharmacy_inventory', label: 'Medicines' },
-          { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'lab_technician':
         return [
           { id: 'dashboard', label: 'Lab Dashboard' },
-          { id: 'lab_management', label: 'Lab Management' },
+          ...(isLabEntity ? [{ id: 'lab_management' as StaffTabType, label: 'Lab Management' }] : []),
           { id: 'lab_tests', label: 'Lab Tests' },
           { id: 'lab_inventory', label: 'Lab Inventory' },
           { id: 'lab_reports', label: 'Lab Reports' },
@@ -308,7 +327,6 @@ export const StaffMainContainer = () => {
           { id: 'treatment_billing', label: 'Treatment Billing' },
           { id: 'medicine_billing', label: 'Medicine Billing' },
           { id: 'pharmacy_inventory', label: 'Medicines' },
-          { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
       case 'nurse':
         return [

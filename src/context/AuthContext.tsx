@@ -137,6 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     id: Number(c.id || c.clinic_id),
                     name: c.name || c.clinic_name || c.title || 'Unnamed clinic',
                     is_primary: c.is_primary ? 1 : 0,
+                    entity_type: c.entity_type || c.clinic_entity_type || undefined,
                   }))
                   .filter((clinic: UserClinic) => Number.isFinite(clinic.id) && clinic.id > 0);
                 setAssignedClinics(formattedClinics);
@@ -261,6 +262,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: Number(c.id || c.clinic_id),
                 name: c.name || c.clinic_name || c.title || 'Unnamed clinic',
                 is_primary: c.is_primary ? 1 : 0,
+                entity_type: c.entity_type || c.clinic_entity_type || undefined,
               }))
               .filter((clinic: UserClinic) => Number.isFinite(clinic.id) && clinic.id > 0);
             setAssignedClinics(latestClinics);
