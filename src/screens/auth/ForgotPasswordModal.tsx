@@ -23,7 +23,6 @@ import {
   Mail,
   Phone,
   ShieldCheck,
-  Sparkles,
   X,
 } from 'lucide-react-native';
 import {
@@ -73,7 +72,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
 
   // Resend Timer
   const [resendTimer, setResendTimer] = useState<number>(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reset or Sync when modal opens
   useEffect(() => {
@@ -621,7 +620,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   keyboardContainer: {
     width: '100%',

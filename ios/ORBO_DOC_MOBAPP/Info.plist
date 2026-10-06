@@ -36,6 +36,10 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is used for video consultations with your doctor.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access is used for audio during video consultations.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Select a photo for your profile.</string>
 	<key>UILaunchStoryboardName</key>

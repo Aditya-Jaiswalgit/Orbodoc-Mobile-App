@@ -66,6 +66,7 @@ export interface PatientModel {
   state?: string;
   emergency_contact?: string;
   emergency_contact_name?: string;
+  emergency_relation?: string;
   allergies?: string;
   medical_history?: string;
   is_active?: number | boolean;
@@ -75,6 +76,7 @@ export interface PatientModel {
   clinic_name?: string;
   patient_code?: string;
   last_visit?: string;
+  total_visits?: number;
 }
 
 // Appointment Model
@@ -88,7 +90,13 @@ export interface Appointment {
   doctor_name: string;
   doctor_specialization?: string;
   appointment_date: string;
+  appointment_time?: string;
   time_slot: string;
+  consultation_mode?: 'in_person' | 'video';
+  duration_minutes?: number;
+  video_room_id?: string | null;
+  call_started_at?: string | null;
+  call_ended_at?: string | null;
   type: 'consultation' | 'follow_up' | 'emergency' | 'teleconsultation';
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
   reason?: string;

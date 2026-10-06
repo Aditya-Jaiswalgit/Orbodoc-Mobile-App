@@ -46,7 +46,6 @@ import ReceptionistDashboardScreen from '../screens/dashboards/ReceptionistDashb
 import SuperAdminDashboardScreen from '../screens/dashboards/SuperAdminDashboardScreen';
 
 // Feature Screens
-import BookAppointmentScreen from '../screens/patient/BookAppointmentScreen';
 import AppointmentsManagerScreen from '../screens/staff/AppointmentsManagerScreen';
 import ClinicsManagementScreen from '../screens/staff/ClinicsManagementScreen';
 import LabManagementScreen from '../screens/staff/LabManagementScreen';
@@ -409,11 +408,11 @@ export const StaffMainContainer = () => {
       case 'role_permissions':
         return <RolePermissionsScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} />;
       case 'patients':
-        return <PatientsManagementScreen onOpenDrawer={openDrawer} />;
+        return <PatientsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(screen) => setActiveTab(screen as StaffTabType)} />;
       case 'appointments':
         return <AppointmentsManagerScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr: string) => setActiveTab(scr as any)} />;
       case 'book_appointment':
-        return <BookAppointmentScreen onOpenDrawer={openDrawer} />;
+        return <AppointmentsManagerScreen onOpenDrawer={openDrawer} />;
       case 'video_services':
         return <StaffVideoServicesScreen onOpenDrawer={openDrawer} />;
       case 'prescriptions':
@@ -792,5 +791,3 @@ const styles = StyleSheet.create({
 });
 
 export default StaffMainContainer;
-
-

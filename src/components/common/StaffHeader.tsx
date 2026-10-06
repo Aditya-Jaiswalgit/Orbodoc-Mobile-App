@@ -59,7 +59,8 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
     logout,
   } = useAuthContext();
 
-  const rawRole = role || user?.role || user?.roleName || user?.role_name || '';
+  const legacyRoleName = (user as (typeof user & { role_name?: string }) | null)?.role_name;
+  const rawRole = role || user?.role || user?.roleName || legacyRoleName || '';
   const normalizedRole = normalizeRoleName(rawRole);
   const isClinicAdmin = normalizedRole === 'clinic_admin';
   const isDoctor = normalizedRole === 'doctor';

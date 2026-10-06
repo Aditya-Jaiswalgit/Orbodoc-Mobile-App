@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Linking,
   Modal,
+  NativeModules,
   Platform,
   RefreshControl,
   ScrollView,
@@ -27,6 +28,7 @@ import {
   Clock,
   Columns,
   CreditCard,
+  Download,
   Eye,
   FileText,
   IndianRupee,
@@ -345,7 +347,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({ onOpenDrawer, onNaviga
     let pendingCount = 0;
 
     bills.forEach((b) => {
-      const tot = Number(b.total_amount || b.net_amount) || 0;
+      const tot = Number(b.total_amount) || 0;
       const pd = Number(b.paid_amount) || 0;
       const due = Math.max(0, tot - pd);
       totalCollected += pd;
@@ -434,7 +436,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({ onOpenDrawer, onNaviga
       return;
     }
     const currentPaid = Number(bill.paid_amount) || 0;
-    const total = Number(bill.total_amount || bill.net_amount) || 0;
+    const total = Number(bill.total_amount) || 0;
     const balance = Math.max(0, total - currentPaid);
 
     setSelectedBill(bill);
@@ -453,7 +455,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({ onOpenDrawer, onNaviga
     }
 
     const currentPaid = Number(selectedBill.paid_amount) || 0;
-    const total = Number(selectedBill.total_amount || selectedBill.net_amount) || 0;
+    const total = Number(selectedBill.total_amount) || 0;
     const remainingDue = Math.max(0, total - currentPaid);
 
     if (amount > remainingDue + 0.01) {
@@ -516,18 +518,32 @@ export const TreatmentBillingScreen: React.FC<Props> = ({ onOpenDrawer, onNaviga
     );
   };
 
-  // Open PDF via Browser
-  const handleOpenPDF = (billId: string | number) => {
-    const pdfUrl = `${BASE_URL}/treatment-bills/${billId}/pdf`;
-    Linking.openURL(pdfUrl).catch(() => {
-      Alert.alert('PDF Link', `Unable to open PDF directly. URL:\n${pdfUrl}`);
-    });
+  // Download the protected PDF using the active authenticated session.
+  const handleDownloadPDF = async (bill: TreatmentBill) => {
+    if (Platform.OS !== 'android') {
+      Alert.alert('Not Available', 'PDF download is currently available on Android.');
+      return;
+    }
+    if (!token) {
+      Alert.alert('Sign In Required', 'Please sign in again to download this invoice.');
+      return;
+    }
+    try {
+      const billNumber = String(bill.bill_number || bill.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+      const fileName = `treatment-bill-${billNumber}.pdf`;
+      await NativeModules.BillPdfDownload.downloadPdf(
+        `${BASE_URL}/treatment-bills/${bill.id}/pdf`, token, fileName,
+      );
+      Alert.alert('Download Started', `${fileName} is downloading to your Downloads folder.`);
+    } catch (error: any) {
+      Alert.alert('Download Failed', error?.message || 'Could not download the invoice PDF.');
+    }
   };
 
   // Share Representation
   const getBillShareText = (bill: TreatmentBill) => {
     const billId = String(bill.id || '');
-    const amount = formatCurrency(bill.total_amount || bill.net_amount || 0);
+    const amount = formatCurrency(bill.total_amount || 0);
     const paid = formatCurrency(bill.paid_amount || 0);
     const date = formatDate(bill.created_at || bill.bill_date);
     const patient = bill.patient_name || 'Patient';
@@ -819,9 +835,9 @@ export const TreatmentBillingScreen: React.FC<Props> = ({ onOpenDrawer, onNaviga
               {bills.map((bill) => {
                 const status = normalizeBillStatus(bill);
                 const badge = getStatusBadgeStyle(status);
-                const totalAmount = Number(bill.total_amount || bill.net_amount) || 0;
+                const totalAmount = Number(bill.total_amount) || 0;
                 const paidAmount = Number(bill.paid_amount) || 0;
-                const pendingAmount = Math.max(0, totalAmount - paidAmount);
+                const pendingAmount = totalAmount - paidAmount;
 
                 return (
                   <View key={String(bill.id)} style={styles.mobileBillCard}>
@@ -952,9 +968,9 @@ export const TreatmentBillingScreen: React.FC<Props> = ({ onOpenDrawer, onNaviga
                 {bills.map((bill) => {
                   const status = normalizeBillStatus(bill);
                   const badge = getStatusBadgeStyle(status);
-                  const totalAmount = Number(bill.total_amount || bill.net_amount) || 0;
+                  const totalAmount = Number(bill.total_amount) || 0;
                   const paidAmount = Number(bill.paid_amount) || 0;
-                  const pendingAmount = Math.max(0, totalAmount - paidAmount);
+                  const pendingAmount = totalAmount - paidAmount;
 
                   return (
                     <View key={String(bill.id)} style={styles.tableBodyRow}>
@@ -1209,13 +1225,6 @@ export const TreatmentBillingScreen: React.FC<Props> = ({ onOpenDrawer, onNaviga
                 <Text style={styles.modalSubtitle}>Official Medical / Dental Treatment Invoice</Text>
               </View>
               <View style={styles.receiptHeaderRight}>
-                {selectedBill && (
-                  <TouchableOpacity
-                    style={styles.receiptActionBtn}
-                    onPress={() => handleOpenPDF(selectedBill.id)}>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#0D9488' }}>Open PDF</Text>
-                  </TouchableOpacity>
-                )}
                 <TouchableOpacity
                   onPress={() => setViewInvoiceModalVisible(false)}
                   style={styles.modalCloseBtn}>
@@ -1231,78 +1240,87 @@ export const TreatmentBillingScreen: React.FC<Props> = ({ onOpenDrawer, onNaviga
               </View>
             ) : selectedBill ? (
               <ScrollView contentContainerStyle={styles.invoiceReceiptContent}>
-                {/* Clinic Branding */}
-                <View style={styles.clinicBrandingCard}>
-                  <Text style={styles.clinicBrandingName}>
-                    {selectedBill.clinic_name || activeClinicName || 'Aarogya Care Clinic'}
-                  </Text>
-                  <Text style={styles.clinicBrandingAddress}>
-                    Comprehensive Multi-Speciality Clinic
-                  </Text>
-                  <Text style={styles.clinicBrandingContact}>
-                    Official Healthcare Billing Statement
-                  </Text>
+                <View style={styles.invoiceTopRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.clinicBrandingName}>{selectedBill.clinic_name || activeClinicName || 'Clinic'}</Text>
+                    <Text style={styles.clinicBrandingContact}>PATIENT CARE & TREATMENT SERVICES</Text>
+                    {[selectedBill.clinic_address, selectedBill.clinic_phone, selectedBill.clinic_email]
+                      .filter(Boolean).map((value, index) => <Text key={index} style={styles.clinicBrandingAddress}>{value}</Text>)}
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.invoiceType}>TREATMENT INVOICE</Text>
+                    <Text style={styles.metaBillNo}>{selectedBill.bill_number || `TB-${selectedBill.id}`}</Text>
+                    <Text style={styles.metaSub}>Issued {formatDate(selectedBill.created_at || selectedBill.bill_date)}</Text>
+                  </View>
                 </View>
 
                 {/* Patient & Invoice Meta */}
                 <View style={styles.receiptMetaGrid}>
                   <View style={styles.metaCol}>
-                    <Text style={styles.metaHeader}>Billed To:</Text>
+                    <Text style={styles.metaHeader}>BILL TO</Text>
                     <Text style={styles.metaPatientName}>{selectedBill.patient_name || 'Patient'}</Text>
                     {selectedBill.patient_phone ? (
                       <Text style={styles.metaSub}>📞 {selectedBill.patient_phone}</Text>
                     ) : null}
-                    {selectedBill.doctor_name ? (
-                      <Text style={styles.metaSub}>👨‍⚕️ Dr. {selectedBill.doctor_name}</Text>
-                    ) : null}
                   </View>
                   <View style={[styles.metaCol, { alignItems: 'flex-end' }]}>
-                    <Text style={styles.metaHeader}>Invoice Details:</Text>
-                    <Text style={styles.metaBillNo}>{selectedBill.bill_number || `#${selectedBill.id}`}</Text>
-                    <Text style={styles.metaSub}>Date: {formatDate(selectedBill.created_at || selectedBill.bill_date)}</Text>
-                    <Text style={styles.metaSub}>Payment: {capitalize(selectedBill.payment_method || 'Cash')}</Text>
+                    <Text style={styles.metaHeader}>DOCTOR & APPOINTMENT</Text>
+                    <Text style={styles.metaPatientName}>{selectedBill.doctor_name ? `Dr. ${selectedBill.doctor_name}` : '—'}</Text>
+                    <Text style={styles.metaSub}>Appointment: {selectedBill.appointment_date ? `${formatDate(selectedBill.appointment_date)}${selectedBill.appointment_time ? `, ${selectedBill.appointment_time}` : ''}` : '—'}</Text>
                   </View>
                 </View>
+
+                <View style={styles.paymentStatusBanner}>
+                  <Text style={styles.paymentStatusText}>Payment Method: <Text style={{ fontWeight: '800' }}>{capitalize(selectedBill.payment_method || selectedBill.payment_mode || 'Cash')}</Text></Text>
+                  <Text style={[styles.paymentStatusLabel, normalizeBillStatus(selectedBill) === 'paid' ? styles.paidLabel : styles.dueLabel]}>{normalizeBillStatus(selectedBill).toUpperCase()}</Text>
+                </View>
+                <Text style={styles.invoiceSectionTitle}>TREATMENT & SERVICE ITEMS</Text>
 
                 {/* Itemized Table */}
                 <View style={styles.receiptTableContainer}>
                   <View style={styles.receiptTableHeader}>
-                    <Text style={[styles.receiptTh, { flex: 2 }]}>Service Item</Text>
-                    <Text style={[styles.receiptTh, { flex: 0.6, textAlign: 'center' }]}>Qty</Text>
-                    <Text style={[styles.receiptTh, { flex: 1, textAlign: 'right' }]}>Rate</Text>
-                    <Text style={[styles.receiptTh, { flex: 1, textAlign: 'right' }]}>Total</Text>
+                    <Text style={[styles.receiptTh, { flex: 0.3 }]}>#</Text>
+                    <Text style={[styles.receiptTh, { flex: 1.8 }]}>Item</Text>
+                    <Text style={[styles.receiptTh, { flex: 0.45, textAlign: 'center' }]}>Qty</Text>
+                    <Text style={[styles.receiptTh, { flex: 0.9, textAlign: 'right' }]}>Rate</Text>
+                    <Text style={[styles.receiptTh, { flex: 0.5, textAlign: 'right' }]}>Disc.</Text>
+                    <Text style={[styles.receiptTh, { flex: 0.9, textAlign: 'right' }]}>Total</Text>
                   </View>
 
                   {(selectedBill.items || []).length > 0 ? (
                     selectedBill.items.map((item, idx) => (
                       <View key={idx} style={styles.receiptTableRow}>
-                        <View style={{ flex: 2 }}>
+                        <Text style={[styles.receiptTd, { flex: 0.3 }]}>{idx + 1}</Text>
+                        <View style={{ flex: 1.8 }}>
                           <Text style={styles.receiptItemTitle}>{item.service_name}</Text>
                           {item.service_code ? (
                             <Text style={styles.receiptItemCode}>#{item.service_code}</Text>
                           ) : null}
                         </View>
-                        <Text style={[styles.receiptTd, { flex: 0.6, textAlign: 'center' }]}>
+                        <Text style={[styles.receiptTd, { flex: 0.45, textAlign: 'center' }]}>
                           {item.quantity}
                         </Text>
                         <Text style={[styles.receiptTd, { flex: 1, textAlign: 'right' }]}>
                           ₹{Number(item.unit_price || 0).toFixed(2)}
                         </Text>
-                        <Text style={[styles.receiptTdTotal, { flex: 1, textAlign: 'right' }]}>
+                        <Text style={[styles.receiptTd, { flex: 0.5, textAlign: 'right' }]}>{Number(item.discount_pct || 0)}%</Text>
+                        <Text style={[styles.receiptTdTotal, { flex: 0.9, textAlign: 'right' }]}>
                           ₹{Number(item.total_price || 0).toFixed(2)}
                         </Text>
                       </View>
                     ))
                   ) : (
                     <View style={styles.receiptTableRow}>
-                      <View style={{ flex: 2 }}>
+                      <Text style={[styles.receiptTd, { flex: 0.3 }]}>1</Text>
+                      <View style={{ flex: 1.8 }}>
                         <Text style={styles.receiptItemTitle}>Treatment Consultation & Services</Text>
                       </View>
-                      <Text style={[styles.receiptTd, { flex: 0.6, textAlign: 'center' }]}>1</Text>
-                      <Text style={[styles.receiptTd, { flex: 1, textAlign: 'right' }]}>
+                      <Text style={[styles.receiptTd, { flex: 0.45, textAlign: 'center' }]}>1</Text>
+                      <Text style={[styles.receiptTd, { flex: 0.9, textAlign: 'right' }]}>
                         {formatCurrency(selectedBill.total_amount)}
                       </Text>
-                      <Text style={[styles.receiptTdTotal, { flex: 1, textAlign: 'right' }]}>
+                      <Text style={[styles.receiptTd, { flex: 0.5, textAlign: 'right' }]}>0%</Text>
+                      <Text style={[styles.receiptTdTotal, { flex: 0.9, textAlign: 'right' }]}>
                         {formatCurrency(selectedBill.total_amount)}
                       </Text>
                     </View>
@@ -1310,50 +1328,52 @@ export const TreatmentBillingScreen: React.FC<Props> = ({ onOpenDrawer, onNaviga
                 </View>
 
                 {/* Receipt Summary Card */}
-                <View style={styles.receiptSummaryCard}>
-                  <View style={styles.receiptSummaryRow}>
-                    <Text style={styles.receiptSumLabel}>Subtotal</Text>
-                    <Text style={styles.receiptSumVal}>
-                      {formatCurrency(selectedBill.subtotal || selectedBill.total_amount)}
-                    </Text>
+                <View style={styles.invoiceSummaryLayout}>
+                  <View style={styles.invoiceNotes}>
+                    <Text style={styles.metaHeader}>NOTES</Text>
+                    <Text style={styles.clinicBrandingAddress}>Thank you for choosing us for your care.</Text>
                   </View>
-                  {Number(selectedBill.discount_amount) > 0 && (
+                  <View style={styles.receiptSummaryCard}>
+                    <View style={styles.receiptSummaryRow}>
+                      <Text style={styles.receiptSumLabel}>Subtotal</Text>
+                      <Text style={styles.receiptSumVal}>
+                        {formatCurrency(selectedBill.subtotal || selectedBill.total_amount)}
+                      </Text>
+                    </View>
                     <View style={styles.receiptSummaryRow}>
                       <Text style={styles.receiptSumLabel}>Discount</Text>
                       <Text style={[styles.receiptSumVal, { color: '#16A34A' }]}>
                         - {formatCurrency(selectedBill.discount_amount)}
                       </Text>
                     </View>
-                  )}
-                  {Number(selectedBill.tax_amount) > 0 && (
                     <View style={styles.receiptSummaryRow}>
                       <Text style={styles.receiptSumLabel}>Tax</Text>
                       <Text style={styles.receiptSumVal}>+ {formatCurrency(selectedBill.tax_amount)}</Text>
                     </View>
-                  )}
-                  <View style={[styles.receiptSummaryRow, styles.receiptGrandRow]}>
-                    <Text style={styles.receiptGrandLabel}>Total Amount</Text>
-                    <Text style={styles.receiptGrandVal}>
-                      {formatCurrency(selectedBill.total_amount || selectedBill.net_amount)}
-                    </Text>
-                  </View>
-                  <View style={styles.receiptSummaryRow}>
-                    <Text style={styles.receiptSumLabel}>Paid Amount</Text>
-                    <Text style={[styles.receiptSumVal, { color: '#166534' }]}>
-                      {formatCurrency(selectedBill.paid_amount || 0)}
-                    </Text>
-                  </View>
-                  <View style={styles.receiptSummaryRow}>
-                    <Text style={styles.receiptSumLabel}>Remaining Balance Due</Text>
-                    <Text style={[styles.receiptSumVal, { color: '#DC2626' }]}>
-                      {formatCurrency(
-                        Math.max(
-                          0,
-                          Number(selectedBill.total_amount || selectedBill.net_amount || 0) -
-                            Number(selectedBill.paid_amount || 0)
-                        )
-                      )}
-                    </Text>
+                    <View style={[styles.receiptSummaryRow, styles.receiptGrandRow]}>
+                      <Text style={styles.receiptGrandLabel}>Total</Text>
+                      <Text style={styles.receiptGrandVal}>
+                        {formatCurrency(selectedBill.total_amount || 0)}
+                      </Text>
+                    </View>
+                    <View style={styles.receiptSummaryRow}>
+                      <Text style={styles.receiptSumLabel}>Amount Paid</Text>
+                      <Text style={[styles.receiptSumVal, { color: '#166534' }]}>
+                        {formatCurrency(selectedBill.paid_amount || 0)}
+                      </Text>
+                    </View>
+                    <View style={styles.receiptSummaryRow}>
+                      <Text style={[styles.receiptSumLabel, { color: '#DC2626', fontWeight: '800' }]}>Balance Due</Text>
+                      <Text style={[styles.receiptSumVal, { color: '#DC2626' }]}>
+                        {formatCurrency(
+                          Math.max(
+                            0,
+                            Number(selectedBill.total_amount || 0) -
+                              Number(selectedBill.paid_amount || 0)
+                          )
+                        )}
+                      </Text>
+                    </View>
                   </View>
                 </View>
 
@@ -1379,6 +1399,16 @@ export const TreatmentBillingScreen: React.FC<Props> = ({ onOpenDrawer, onNaviga
                       <Text style={[styles.receiptStampText, { color: '#991B1B' }]}>CANCELLED</Text>
                     </View>
                   )}
+                </View>
+                <View style={styles.invoicePdfFooter}>
+                  <Text style={styles.invoiceFooterNote}>This is a system-generated treatment invoice. Thank you for your visit.</Text>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    style={styles.invoiceDownloadButton}
+                    onPress={() => handleDownloadPDF(selectedBill)}>
+                    <Download size={18} color="#FFFFFF" />
+                    <Text style={styles.invoiceDownloadButtonText}>Download PDF</Text>
+                  </TouchableOpacity>
                 </View>
               </ScrollView>
             ) : null}
@@ -1415,7 +1445,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({ onOpenDrawer, onNaviga
                 <View style={styles.paymentMetaRow}>
                   <Text style={styles.paymentMetaLabel}>Total Invoice Amount</Text>
                   <Text style={styles.paymentMetaValue}>
-                    {formatCurrency(selectedBill?.total_amount || selectedBill?.net_amount)}
+                    {formatCurrency(selectedBill?.total_amount || 0)}
                   </Text>
                 </View>
                 <View style={styles.paymentMetaRow}>
@@ -1430,7 +1460,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({ onOpenDrawer, onNaviga
                     {formatCurrency(
                       Math.max(
                         0,
-                        Number(selectedBill?.total_amount || selectedBill?.net_amount || 0) -
+                        Number(selectedBill?.total_amount || 0) -
                           Number(selectedBill?.paid_amount || 0)
                       )
                     )}
@@ -2393,25 +2423,64 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  receiptActionBtn: {
-    padding: 6,
-    borderRadius: 6,
-    backgroundColor: '#F0FDFA',
-    borderWidth: 1,
-    borderColor: '#CCFBF1',
-  },
   invoiceReceiptContent: {
     padding: 16,
     gap: 14,
   },
-  clinicBrandingCard: {
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+  invoiceTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingBottom: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: '#0D9488',
   },
+  invoiceType: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0D9488',
+    textAlign: 'right',
+  },
+  invoiceSectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  paymentStatusBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F0FDFA',
+    borderWidth: 1,
+    borderColor: '#CCFBF1',
+    borderRadius: 8,
+    padding: 12,
+  },
+  paymentStatusText: { fontSize: 12, color: '#0F172A' },
+  paymentStatusLabel: { fontSize: 11, fontWeight: '800' },
+  paidLabel: { color: '#16A34A' },
+  dueLabel: { color: '#B45309' },
+  invoiceSummaryLayout: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  invoiceNotes: { flex: 1, gap: 8, paddingTop: 4 },
+  invoicePdfFooter: { alignItems: 'center', gap: 12, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#CBD5E1' },
+  invoiceFooterNote: { fontSize: 10, color: '#64748B', textAlign: 'center' },
+  invoiceDownloadButton: {
+    minHeight: 48,
+    width: '100%',
+    borderRadius: 8,
+    backgroundColor: '#0D9488',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  invoiceDownloadButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
   clinicBrandingName: {
     fontSize: 16,
     fontWeight: '900',

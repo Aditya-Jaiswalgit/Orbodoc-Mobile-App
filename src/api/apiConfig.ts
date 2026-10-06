@@ -1,11 +1,7 @@
 import { ApiResponse } from '../types/auth';
 
-// Base API configuration loaded dynamically from Environment Variable
-const envBaseUrl =
-  (globalThis as any)?.process?.env?.API_BASE_URL ||
-  (globalThis as any)?.process?.env?.REACT_APP_API_BASE_URL;
-
-export const BASE_URL = (envBaseUrl || 'https://api.orbodoc.com/api').replace(/\/$/, '');
+// Keep development and release builds on the same API used by the web app.
+export const BASE_URL = 'https://api.orbodoc.com/api';
 
 export const API_TIMEOUT = 15000; // 15 seconds
 

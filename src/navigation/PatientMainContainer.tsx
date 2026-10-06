@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
+  Alert,
   BackHandler,
   Modal,
   Platform,
@@ -37,6 +38,11 @@ import PatientsProfileScreen from '../screens/patient/PatientsProfileScreen';
 import TreatmentBillingScreen from '../screens/patient/TreatmentBillingScreen';
 import VideoServicesScreen from '../screens/patient/VideoServicesScreen';
 import { canUseStaffScreen } from './staffAccess';
+import { io } from 'socket.io-client';
+import { BASE_URL } from '../api/apiConfig';
+import { getAppointmentsApi } from '../api/appointmentApi';
+import { Appointment } from '../types/clinicTypes';
+import { VideoCallRoomScreen } from '../screens/common/VideoCallRoomScreen';
 
 export type PatientTabType =
   | 'dashboard'
@@ -94,7 +100,9 @@ const renderTabVectorIcon = (tab: PatientTabType, color: string, size: number = 
 export const PatientMainContainer = () => {
   const [activeTab, setActiveTab] = useState<PatientTabType>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { user, logout, permissionsMap = {} } = useAuthContext();
+  const { user, token, userType, logout, permissionsMap = {} } = useAuthContext();
+  const [activeVideoCall, setActiveVideoCall] = useState<{ appointment: Appointment; roomId: string } | null>(null);
+  const handledIncomingCallRef = useRef('');
 
   const canPatientOpen = (tabId: PatientTabType) => {
     if (tabId === 'dashboard' || tabId === 'notifications') return true;
@@ -108,6 +116,36 @@ export const PatientMainContainer = () => {
 
   const patientName = user?.fullName || user?.full_name || 'bulbul';
   const initial = patientName.charAt(0).toUpperCase();
+
+  useEffect(() => {
+    if (!token || !user?.id || userType !== 'patient') return;
+    const socketUrl = BASE_URL.replace(/\/api\/?$/, '').replace(/\/$/, '');
+    const socket = io(socketUrl, { transports: ['websocket', 'polling'], reconnection: true });
+    socket.on('connect', () => socket.emit('register-user', { userType: 'patient', userId: String(user.id) }));
+    socket.on('incoming-call', (call: { appointment_id?: number | string; video_room_id?: string; doctor_id?: number; patient_id?: number; caller_name?: string; caller_role?: string }) => {
+      if (call.caller_role !== 'doctor' || !call.appointment_id || !call.video_room_id) return;
+      const appointmentKey = String(call.appointment_id);
+      if (handledIncomingCallRef.current === appointmentKey) return;
+      handledIncomingCallRef.current = appointmentKey;
+      Alert.alert('Incoming Video Consultation', `${call.caller_name || 'Your doctor'} is calling.`, [
+        { text: 'Decline', style: 'cancel', onPress: () => { socket.emit('call-rejected', { appointment_id: call.appointment_id, doctor_id: call.doctor_id, patient_id: call.patient_id, caller_role: 'patient' }); handledIncomingCallRef.current = ''; } },
+        { text: 'Join', onPress: () => {
+          void getAppointmentsApi(token, 'page=1&limit=200').then(response => {
+            const data = response.data as any;
+            const rows: Appointment[] = Array.isArray(data) ? data : Array.isArray(data?.appointments) ? data.appointments : Array.isArray(data?.data) ? data.data : [];
+            const appointment = rows.find(row => String(row.id) === String(call.appointment_id));
+            if (!response.success || !appointment) {
+              Alert.alert('Appointment unavailable', 'Refresh your appointments and try joining again.');
+              return;
+            }
+            socket.emit('call-accepted', { appointment_id: call.appointment_id, video_room_id: call.video_room_id, doctor_id: call.doctor_id, patient_id: call.patient_id, caller_role: 'doctor' });
+            setActiveVideoCall({ appointment: { ...appointment, video_room_id: call.video_room_id }, roomId: call.video_room_id! });
+          }).catch(() => Alert.alert('Unable to join', 'Please try again from Appointments.'));
+        } },
+      ]);
+    });
+    return () => { socket.disconnect(); };
+  }, [token, user?.id, userType]);
 
   const openDrawer = () => setDrawerOpen(true);
   const openNotifications = () => setActiveTab('notifications');
@@ -180,6 +218,7 @@ export const PatientMainContainer = () => {
 
   return (
     <View style={styles.container}>
+      {activeVideoCall && token && user ? <VideoCallRoomScreen appointment={activeVideoCall.appointment} roomId={activeVideoCall.roomId} callerRole="patient" userId={user.id} token={token} onClose={() => setActiveVideoCall(null)} /> : null}
       {/* Dynamic Screen Content */}
       <View style={styles.screenContainer}>{renderActiveScreen()}</View>
 

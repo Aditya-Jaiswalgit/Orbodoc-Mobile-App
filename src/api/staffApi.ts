@@ -9,8 +9,12 @@ export async function getStaffApi(token: string): Promise<ApiResponse<StaffMembe
   });
 }
 
-export async function getDoctorsApi(token: string): Promise<ApiResponse<StaffMember[]>> {
-  return apiFetch<StaffMember[]>('/staff/doctors', {
+export async function getDoctorsApi(
+  token: string,
+  clinicId?: number | string | null,
+): Promise<ApiResponse<StaffMember[]>> {
+  const query = clinicId ? `?clinic_id=${encodeURIComponent(String(clinicId))}` : '';
+  return apiFetch<StaffMember[]>(`/staff/doctors${query}`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   });

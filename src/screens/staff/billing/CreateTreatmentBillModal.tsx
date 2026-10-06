@@ -21,7 +21,6 @@ import {
   Plus,
   Receipt,
   Trash2,
-  User,
   X,
 } from 'lucide-react-native';
 import { TreatmentBill, TreatmentBillItem } from '../../../types/clinicTypes';
@@ -38,6 +37,14 @@ export interface PatientOption {
   full_name: string;
   phone?: string;
   patient_code?: string;
+  email?: string;
+  gender?: string;
+  age?: number;
+  date_of_birth?: string;
+  blood_group?: string;
+  city?: string;
+  state?: string;
+  clinic_name?: string;
 }
 
 export interface AppointmentOption {
@@ -72,6 +79,17 @@ const BILL_STATUSES = [
   { key: 'partial', label: 'Partially Paid' },
   { key: 'paid', label: 'Paid' },
 ];
+
+const extractRows = <T,>(value: unknown): T[] => {
+  if (Array.isArray(value)) return value as T[];
+  if (!value || typeof value !== 'object') return [];
+  const record = value as { data?: unknown; patients?: unknown };
+  if (Array.isArray(record.data)) return record.data as T[];
+  if (Array.isArray(record.patients)) return record.patients as T[];
+  return [];
+};
+
+const roundCurrency = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> = ({
   visible,
@@ -109,6 +127,8 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
   const [paidAmount, setPaidAmount] = useState('');
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [items, setItems] = useState<TreatmentBillItem[]>([]);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   // New Item Input
   const [itemInput, setItemInput] = useState({
@@ -128,6 +148,8 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
   }>({});
 
   const [submitting, setSubmitting] = useState(false);
+  const patientSearchRequestRef = useRef(0);
+  const consultantFeeEditedRef = useRef(false);
 
   // Reset or Init Form
   const resetForm = useCallback(() => {
@@ -142,6 +164,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
     setStatus('pending');
     setDescription('');
     setConsultantFee('0');
+    consultantFeeEditedRef.current = false;
     setPaidAmount('');
     setShowServiceForm(false);
     setItems([]);
@@ -175,7 +198,15 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
         patient_code: editingBill.patient_code,
       });
       setPatientSearchTerm(editingBill.patient_name || '');
-      setSelectedAppointment(editingBill.appointment_id ? { id: editingBill.appointment_id } : null);
+      setSelectedAppointment(
+        editingBill.appointment_id
+          ? {
+              id: editingBill.appointment_id,
+              appointment_date: editingBill.appointment_date,
+              appointment_time: editingBill.appointment_time,
+            }
+          : null,
+      );
 
       const rawItems = editingBill.items || [];
       const isSingleDocFee =
@@ -208,46 +239,31 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
       setDescription(editingBill.description || '');
     } else {
       resetForm();
-      // Pre-load recent patients for instant suggestion
-      if (token) {
-        fetchPatientsApi({ clinic_id: activeClinicId, limit: 10 }, token)
-          .then((res) => {
-            if (res.success && res.data) {
-              const list = Array.isArray(res.data.data)
-                ? res.data.data
-                : Array.isArray((res.data as any).patients)
-                ? (res.data as any).patients
-                : Array.isArray(res.data)
-                ? res.data
-                : [];
-              setPatientSuggestions(
-                list.map((p: any) => ({
-                  id: p.id,
-                  full_name: p.full_name || p.name || 'Unnamed Patient',
-                  phone: p.phone,
-                  patient_code: p.patient_code || p.code,
-                }))
-              );
-            }
-          })
-          .catch(() => {});
-      }
     }
   }, [visible, editingBill, activeClinicId, token, resetForm]);
 
   // Search Patients dynamically
   useEffect(() => {
+    const requestId = ++patientSearchRequestRef.current;
     if (!visible || selectedPatient) {
+      setPatientSearching(false);
+      setPatientSuggestions([]);
       return;
     }
     const term = patientSearchTerm.trim();
     if (!term) {
+      setPatientSuggestions([]);
+      setPatientSearching(false);
       return;
     }
+    setPatientSuggestions([]);
+    setPatientSearching(true);
 
     const timer = setTimeout(async () => {
-      if (!token) return;
-      setPatientSearching(true);
+      if (!token) {
+        setPatientSearching(false);
+        return;
+      }
       try {
         const res = await fetchPatientsApi(
           {
@@ -257,16 +273,12 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
           },
           token
         );
+        if (requestId !== patientSearchRequestRef.current) return;
         if (res.success && res.data) {
-          const list = Array.isArray(res.data.data)
-            ? res.data.data
-            : Array.isArray((res.data as any).patients)
-            ? (res.data as any).patients
-            : Array.isArray(res.data)
-            ? res.data
-            : [];
+          const list = extractRows<Record<string, any>>(res.data);
           setPatientSuggestions(
-            list.map((p: any) => ({
+            list.map((p) => ({
+              ...p,
               id: p.id,
               full_name: p.full_name || p.name || 'Unnamed Patient',
               phone: p.phone,
@@ -277,13 +289,16 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
           setPatientSuggestions([]);
         }
       } catch {
-        setPatientSuggestions([]);
+        if (requestId === patientSearchRequestRef.current) setPatientSuggestions([]);
       } finally {
-        setPatientSearching(false);
+        if (requestId === patientSearchRequestRef.current) setPatientSearching(false);
       }
     }, 250);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (requestId === patientSearchRequestRef.current) patientSearchRequestRef.current += 1;
+    };
   }, [patientSearchTerm, visible, selectedPatient, token, activeClinicId]);
 
   // Load Completed Appointments & Prescriptions when Patient or Appointment changes
@@ -303,28 +318,30 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
         const query = `clinic_id=${activeClinicId}&patient_id=${selectedPatient.id}&limit=100`;
         const res = await getAppointmentsApi(token, query);
         if (!isCancelled && res.success && res.data) {
-          const rawAppts: any[] = Array.isArray(res.data)
-            ? res.data
-            : Array.isArray((res.data as any)?.data)
-            ? (res.data as any).data
-            : [];
+          const rawAppts = extractRows<Record<string, any>>(res.data);
 
           const completedAppts = rawAppts.filter((a: any) => {
             const s = String(a.status || '').toLowerCase().trim();
             return s === 'complete' || s === 'completed';
           });
 
-          const list = (completedAppts.length > 0 ? completedAppts : rawAppts).map((a: any) => ({
+          const list = completedAppts.map((a: any) => ({
             id: a.id,
-            patient_id: a.patient_id,
+            patient_id: a.patient_id ?? undefined,
             patient_name: a.patient_name,
             doctor_name: a.doctor_name,
             appointment_date: a.appointment_date,
-            appointment_time: a.appointment_time,
+            appointment_time: a.appointment_time || a.time_slot,
             status: a.status,
           }));
 
           setAppointmentOptions(list);
+          if (editingBill?.appointment_id) {
+            const linkedAppointment = list.find(
+              (appointment) => String(appointment.id) === String(editingBill.appointment_id),
+            );
+            if (linkedAppointment) setSelectedAppointment(linkedAppointment);
+          }
         }
       } catch {
         if (!isCancelled) setAppointmentOptions([]);
@@ -337,17 +354,12 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
       try {
         const rxRes = await getPrescriptionsApi(token, {
           patient_id: selectedPatient.id,
-          clinic_id: activeClinicId,
-          appointment_id: selectedAppointment?.id,
+          clinic_id: activeClinicId ?? undefined,
           limit: 20,
         });
 
         if (!isCancelled && rxRes.success && rxRes.data) {
-          const rawRows: any[] = Array.isArray(rxRes.data)
-            ? rxRes.data
-            : Array.isArray((rxRes.data as any)?.data)
-            ? (rxRes.data as any).data
-            : [];
+          const rawRows = extractRows<Record<string, any>>(rxRes.data);
 
           const detailedList = await Promise.all(
             rawRows.map(async (rx: any) => {
@@ -376,22 +388,22 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
             setPrescriptionHistory(detailedList);
 
             // Web Parity: Auto-suggest consultant fee from recent prescription or strictly 0 if none
-            if (items.length === 0) {
+            if (itemsRef.current.length === 0 && !consultantFeeEditedRef.current) {
               const suggested = detailedList.find((item: any) => Number(item.consultation_fee) > 0);
               const nextFee = suggested ? Number(suggested.consultation_fee) || 0 : 0;
-              setConsultantFee(String(nextFee));
+              setConsultantFee(String(roundCurrency(nextFee)));
             }
           }
         } else if (!isCancelled) {
           setPrescriptionHistory([]);
-          if (items.length === 0) {
+          if (itemsRef.current.length === 0 && !consultantFeeEditedRef.current) {
             setConsultantFee('0');
           }
         }
       } catch {
         if (!isCancelled) {
           setPrescriptionHistory([]);
-          if (items.length === 0) {
+          if (itemsRef.current.length === 0 && !consultantFeeEditedRef.current) {
             setConsultantFee('0');
           }
         }
@@ -405,7 +417,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
     return () => {
       isCancelled = true;
     };
-  }, [selectedPatient, selectedAppointment?.id, visible, token, activeClinicId]);
+  }, [selectedPatient, visible, token, activeClinicId, editingBill?.appointment_id]);
 
   // Totals Calculation
   const formTotals = useMemo(() => {
@@ -434,14 +446,14 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
       });
 
       return {
-        subtotal: Math.round(sub * 100) / 100,
-        discount_amount: Math.round(discTotal * 100) / 100,
-        tax_amount: Math.round(taxTotal * 100) / 100,
-        total_amount: Math.round(finalTotal * 100) / 100,
+        subtotal: roundCurrency(sub),
+        discount_amount: roundCurrency(discTotal),
+        tax_amount: roundCurrency(taxTotal),
+        total_amount: roundCurrency(finalTotal),
       };
     }
 
-    const fee = Math.max(0, parseFloat(consultantFee) || 0);
+    const fee = roundCurrency(Math.max(0, parseFloat(consultantFee) || 0));
     return {
       subtotal: fee,
       discount_amount: 0,
@@ -527,6 +539,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
     setPrescriptionHistory([]);
     if (items.length === 0) {
       setConsultantFee('0');
+      consultantFeeEditedRef.current = false;
     }
     setPaidAmount('');
     if (formErrors.patient_id) {
@@ -544,6 +557,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
     setPrescriptionHistory([]);
     if (items.length === 0) {
       setConsultantFee('0');
+      consultantFeeEditedRef.current = false;
     }
   };
 
@@ -551,7 +565,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
   const handleSubmitBill = async () => {
     if (!token) return;
 
-    const fallbackFee = Math.max(0, parseFloat(consultantFee) || 0);
+    const fallbackFee = roundCurrency(Math.max(0, parseFloat(consultantFee) || 0));
     const hasAmount =
       items.length > 0 ? items.some((it) => Number(it.total_price) > 0) : fallbackFee > 0;
 
@@ -590,7 +604,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
 
     const normalizedSubtotal = items.length > 0 ? formTotals.subtotal : fallbackFee;
     const normalizedTotal = items.length > 0 ? formTotals.total_amount : fallbackFee;
-    const paidNum = Math.max(0, parseFloat(paidAmount) || 0);
+    const paidNum = roundCurrency(Math.max(0, parseFloat(paidAmount) || 0));
 
     setSubmitting(true);
 
@@ -736,6 +750,13 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                         setShowPatientSuggestions(true);
                         if (selectedPatient) {
                           setSelectedPatient(null);
+                          setSelectedAppointment(null);
+                          setAppointmentOptions([]);
+                          setPrescriptionHistory([]);
+                          if (items.length === 0) {
+                            setConsultantFee('0');
+                            consultantFeeEditedRef.current = false;
+                          }
                         }
                         if (formErrors.patient_id) {
                           setFormErrors((prev) => ({ ...prev, patient_id: undefined }));
@@ -755,7 +776,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                   </View>
 
                   {/* Suggestions Dropdown (Web Parity) */}
-                  {showPatientSuggestions && !selectedPatient && (
+                  {showPatientSuggestions && !selectedPatient && patientSearchTerm.trim().length > 0 && (
                     <View style={styles.suggestionsContainer}>
                       {patientSuggestions.length === 0 && !patientSearching && patientSearchTerm.trim() ? (
                         <View style={{ padding: 12 }}>
@@ -780,6 +801,32 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                     </View>
                   )}
                 </View>
+
+                {selectedPatient && (
+                  <View style={styles.selectedPatientCard}>
+                    <Text style={styles.selectedPatientName}>{selectedPatient.full_name}</Text>
+                    <Text style={styles.selectedPatientMeta}>
+                      Patient ID: {selectedPatient.id}
+                      {selectedPatient.patient_code ? `  |  ${selectedPatient.patient_code}` : ''}
+                    </Text>
+                    <View style={styles.patientDetailsGrid}>
+                      {[
+                        ['Mobile', selectedPatient.phone],
+                        ['Email', selectedPatient.email],
+                        ['Gender', selectedPatient.gender],
+                        ['Age', selectedPatient.age ? `${selectedPatient.age} years` : undefined],
+                        ['Blood group', selectedPatient.blood_group],
+                        ['City', [selectedPatient.city, selectedPatient.state].filter(Boolean).join(', ')],
+                      ]
+                        .filter(([, value]) => Boolean(value))
+                        .map(([label, value]) => (
+                          <Text key={label} style={styles.patientDetailText}>
+                            <Text style={styles.patientDetailLabel}>{label}: </Text>{value}
+                          </Text>
+                        ))}
+                    </View>
+                  </View>
+                )}
 
                 {formErrors.patient_id && (
                   <View style={styles.inlineError}>
@@ -851,6 +898,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                             selectedAppointment?.id === a.id && styles.dropdownItemSelected,
                           ]}
                           onPress={() => {
+                            consultantFeeEditedRef.current = false;
                             setSelectedAppointment(selectedAppointment?.id === a.id ? null : a);
                             setShowApptDropdown(false);
                             if (formErrors.appointment_id) {
@@ -1115,6 +1163,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                   value={items.length > 0 ? String(formTotals.subtotal) : consultantFee}
                   onChangeText={(val) => {
                     if (items.length > 0) return;
+                    consultantFeeEditedRef.current = true;
                     setConsultantFee(val);
                     if (parseFloat(val) > 0 && formErrors.amount) {
                       setFormErrors((prev) => ({ ...prev, amount: undefined }));
@@ -1557,6 +1606,31 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#64748B',
     marginTop: 2,
+  },
+  selectedPatientCard: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: '#F0FDFA',
+    borderWidth: 1,
+    borderColor: '#99F6E4',
+    borderRadius: 8,
+  },
+  selectedPatientMeta: {
+    marginTop: 3,
+    fontSize: 11,
+    color: '#475569',
+  },
+  patientDetailsGrid: {
+    marginTop: 8,
+    gap: 4,
+  },
+  patientDetailText: {
+    fontSize: 11,
+    color: '#334155',
+  },
+  patientDetailLabel: {
+    fontWeight: '600',
+    color: '#0F766E',
   },
   selectBox: {
     flexDirection: 'row',

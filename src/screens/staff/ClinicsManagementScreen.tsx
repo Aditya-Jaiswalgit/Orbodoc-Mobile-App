@@ -219,7 +219,8 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
   const canAddAdmin = canViewAdmins && canUseStaffScreen(role, permissionsMap, 'staff', 'add');
   const canEditAdmin = canViewAdmins && canUseStaffScreen(role, permissionsMap, 'staff', 'edit');
   const canDeleteAdmin = canViewAdmins && canUseStaffScreen(role, permissionsMap, 'staff', 'delete');
-  const scope = [token, user?.id, activeClinicId, canView, canAdd, canEdit, canDelete, canViewAdmins, canAddAdmin, canEditAdmin, canDeleteAdmin].join(':');
+  const canExecuteAdmin = canViewAdmins && canUseStaffScreen(role, permissionsMap, 'staff', 'execute');
+  const scope = [token, user?.id, activeClinicId, canView, canAdd, canEdit, canDelete, canViewAdmins, canAddAdmin, canEditAdmin, canDeleteAdmin, canExecuteAdmin].join(':');
   const scopeRef = useRef(scope); scopeRef.current = scope;
   const busyRef = useRef(false);
   useEffect(() => { scopeRef.current = scope; return () => { scopeRef.current = ''; }; }, [scope]);
@@ -508,6 +509,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
   };
 
   const handleExecuteResetPassword = async () => {
+    if (!canExecuteAdmin) return;
     if (!editingClinicAdmin || resetPasswordSaving || busyRef.current) return;
     const errors: { password?: string; confirm?: string } = {};
     if (!newPasswordVal.trim()) {
@@ -2403,12 +2405,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     <Text style={styles.adminResetPasswordSubtitle}>
                       Set a secure temporary password for this clinic admin.
                     </Text>
-                    <TouchableOpacity
+                    {canExecuteAdmin ? <TouchableOpacity
                       style={styles.adminResetPasswordBtn}
                       onPress={handleOpenResetPassword}>
                       <KeyRound size={16} color="#0D9488" style={{ marginRight: 6 }} />
                       <Text style={styles.adminResetPasswordBtnText}>Reset Password</Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity> : null}
                   </View>
                 </ScrollView>
 
@@ -2526,7 +2528,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <TouchableOpacity
                     style={styles.addAdminCancelBtn}
                     onPress={() => setIsResetPasswordOpen(false)}
-                    disabled={resetPasswordSaving}>
+                    disabled={resetPasswordSaving || !canExecuteAdmin}>
                     <Text style={styles.addAdminCancelText}>Cancel</Text>
                   </TouchableOpacity>
 
