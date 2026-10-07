@@ -1700,6 +1700,7 @@ const styles = StyleSheet.create({
 
   // Table Card Container
   tableCardContainer: {
+    width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
@@ -1809,6 +1810,8 @@ const styles = StyleSheet.create({
 
   // Single Mobile Bill Card (Exact match with screenshot 2)
   mobileBillCard: {
+    width: '100%',
+    alignSelf: 'stretch',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',

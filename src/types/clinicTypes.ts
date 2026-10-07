@@ -145,9 +145,12 @@ export interface Medicine {
   name: string;
   generic_name?: string;
   category: string;
+  form?: string;
   manufacturer?: string;
   batch_number?: string;
   expiry_date?: string;
+  hsn_code?: string;
+  gst_percent?: number;
   unit_price: number;
   selling_price: number;
   stock_quantity: number;

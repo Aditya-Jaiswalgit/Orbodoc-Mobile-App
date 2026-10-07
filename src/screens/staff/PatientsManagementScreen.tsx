@@ -7,7 +7,6 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -177,13 +176,13 @@ const PatientsManagementContent: React.FC<Props> = ({
     role,
     permissionsMap = {},
   } = useAuthContext();
+  const canViewPatients = canUseStaffScreen(role, permissionsMap, 'patients', 'view');
   const canAddPatient = canUseStaffScreen(role, permissionsMap, 'patients', 'add');
   const canEditPatient = canUseStaffScreen(role, permissionsMap, 'patients', 'edit');
+  const canExportPatients = canViewPatients && canUseStaffScreen(role, permissionsMap, 'patients', 'execute');
   const canBookAppointment = canUseStaffScreen(role, permissionsMap, 'appointments', 'add');
   const canViewPrescriptions = canUseStaffScreen(role, permissionsMap, 'prescriptions', 'view');
-  const canManagePatientActions = canUseStaffScreen(role, permissionsMap, 'patients', 'view') || canEditPatient || canBookAppointment || canViewPrescriptions ||
-    canUseStaffScreen(role, permissionsMap, 'prescriptions', 'add') ||
-    canUseStaffScreen(role, permissionsMap, 'prescriptions', 'edit');
+  const canManagePatientActions = canViewPatients || canEditPatient || canBookAppointment || canViewPrescriptions;
   const [patients, setPatients] = useState<PatientModel[]>([]);
   const [stats, setStats] = useState<PatientStats>({
     total_patients: 0,
@@ -245,6 +244,13 @@ const PatientsManagementContent: React.FC<Props> = ({
 
   const loadPatients = useCallback(
     async (showRefresh = false) => {
+      if (!canViewPatients) {
+        setPatients([]);
+        setTotalItems(0);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
       if (!token) {
         setPatients([]);
         setLoading(false);
@@ -296,11 +302,12 @@ const PatientsManagementContent: React.FC<Props> = ({
       pageSize,
       statusFilter,
       token,
+      canViewPatients,
     ],
   );
 
   const loadStats = useCallback(async () => {
-    if (!token) return;
+    if (!token || !canViewPatients) return;
     try {
       const response = await fetchPatientsApi(
         { clinic_id: activeClinicId || undefined, page: 1, limit: 1 },
@@ -311,9 +318,13 @@ const PatientsManagementContent: React.FC<Props> = ({
     } catch {
       // Keep the last successfully loaded clinic snapshot if stats are temporarily unavailable.
     }
-  }, [activeClinicId, token]);
+  }, [activeClinicId, canViewPatients, token]);
 
   const handleExportPatients = useCallback(async () => {
+    if (!canExportPatients) {
+      showErrorToast('Permission denied', 'You do not have permission to export patient records.');
+      return;
+    }
     if (!token) return;
     setExporting(true);
     try {
@@ -435,6 +446,7 @@ const PatientsManagementContent: React.FC<Props> = ({
   }, [
     activeClinicId,
     bloodGroupFilter,
+    canExportPatients,
     dateFrom,
     dateTo,
     debouncedSearch,
@@ -473,6 +485,7 @@ const PatientsManagementContent: React.FC<Props> = ({
 
   const openPatientDetails = useCallback(
     async (patient: PatientModel) => {
+      if (!canViewPatients) return;
       setDetailsVisible(true);
       setDetailsLoading(true);
       setSelectedPatient(patient);
@@ -511,7 +524,7 @@ const PatientsManagementContent: React.FC<Props> = ({
         setDetailsLoading(false);
       }
     },
-    [token],
+    [canViewPatients, token],
   );
 
   const openEditForm = useCallback(async () => {
@@ -591,52 +604,30 @@ const PatientsManagementContent: React.FC<Props> = ({
   );
 
   const togglePatientStatus = useCallback(
-    (patient = selectedPatient) => {
+    async (patient = selectedPatient) => {
       if (!canEditPatient) return;
       if (!patient || !token) return;
       const isActive = Number(patient.is_active ?? 1) === 1;
       const nextValue = isActive ? 0 : 1;
-      Alert.alert(
-        `${isActive ? 'Deactivate' : 'Activate'} Patient`,
-        `${isActive ? 'Deactivate' : 'Activate'} ${patient.full_name}?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: isActive ? 'Deactivate' : 'Activate',
-            style: isActive ? 'destructive' : 'default',
-            onPress: async () => {
-              try {
-                const response = await updatePatientApi(
-                  patient.id,
-                  { is_active: nextValue },
-                  token,
-                );
-                if (!response.success)
-                  throw new Error(
-                    response.message || 'Could not update patient status.',
-                  );
-                showSuccessToast(
-                  'Status updated',
-                  `${patient.full_name} is now ${
-                    nextValue ? 'active' : 'inactive'
-                  }.`,
-                );
-                setSelectedPatient(previous =>
-                  previous?.id === patient.id
-                    ? { ...previous, is_active: nextValue }
-                    : previous,
-                );
-                await Promise.all([loadPatients(), loadStats()]);
-              } catch (error: any) {
-                showErrorToast(
-                  'Status update failed',
-                  error?.message || 'Could not update patient status.',
-                );
-              }
-            },
-          },
-        ],
-      );
+      try {
+        const response = await updatePatientApi(
+          patient.id,
+          { is_active: nextValue },
+          token,
+        );
+        if (!response.success)
+          throw new Error(response.message || 'Could not update patient status.');
+        showSuccessToast(
+          'Status updated',
+          `${patient.full_name} is now ${nextValue ? 'active' : 'inactive'}.`,
+        );
+        setSelectedPatient(previous =>
+          previous?.id === patient.id ? { ...previous, is_active: nextValue } : previous,
+        );
+        await Promise.all([loadPatients(), loadStats()]);
+      } catch (error: any) {
+        showErrorToast('Status update failed', error?.message || 'Could not update patient status.');
+      }
     },
     [canEditPatient, loadPatients, loadStats, selectedPatient, token],
   );
@@ -710,7 +701,7 @@ const PatientsManagementContent: React.FC<Props> = ({
           <UserPlus size={16} color="#FFFFFF" />
           <Text style={styles.addButtonText}>Add Patient</Text>
         </TouchableOpacity> : null}
-        <TouchableOpacity
+        {canExportPatients ? <TouchableOpacity
           style={[styles.exportButton, focusedCard === 'export' && focusedCardOutline]}
           onPress={() => { focusCard('export'); handleExportPatients(); }}
           disabled={exporting}
@@ -723,27 +714,27 @@ const PatientsManagementContent: React.FC<Props> = ({
           <Text style={styles.exportButtonText}>
             {exporting ? 'Exporting' : 'Export'}
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> : null}
       </View>
 
-      <PatientStatsCards
+      {canViewPatients ? <PatientStatsCards
         total={Number(stats.total_patients) || 0}
         active={Number(stats.active_patients) || 0}
         inactive={Number(stats.inactive_patients) || 0}
         today={Number(stats.today_visits) || 0}
         thisWeek={Number(stats.new_this_week) || 0}
         onSelect={handleStatSelect}
-      />
+      /> : null}
 
-      <View style={styles.sectionTitleRow}>
+      {canViewPatients ? <View style={styles.sectionTitleRow}>
         <View style={styles.sectionTitleCopy}>
           <Text style={styles.sectionTitle}>Patient Directory</Text>
           <Text style={styles.sectionSubtitle}>
             {totalItems.toLocaleString()} patients in this clinic
           </Text>
         </View>
-      </View>
-      <View style={[styles.searchCard, focusedCard === 'search' && focusedCardOutline]}>
+      </View> : null}
+      {canViewPatients ? <View style={[styles.searchCard, focusedCard === 'search' && focusedCardOutline]}>
         <Search size={18} color="#64748B" />
         <TextInput
           style={styles.searchInput}
@@ -759,7 +750,8 @@ const PatientsManagementContent: React.FC<Props> = ({
             <X size={17} color="#64748B" />
           </TouchableOpacity>
         ) : null}
-      </View>
+      </View> : null}
+      {canViewPatients ? <>
       <PatientFilterPanel
         status={statusFilter}
         gender={genderFilter}
@@ -793,13 +785,20 @@ const PatientsManagementContent: React.FC<Props> = ({
           </Text>
         </View>
       </View>
+      </> : null}
     </View>
   );
 
   return (
     <View style={styles.container}>
       <StaffHeader onOpenDrawer={onOpenDrawer} title="Patient Management" />
-      <FlatList
+      {!canViewPatients ? <View style={styles.noViewContent}>
+        {listHeader}
+        <View style={styles.permissionState}>
+          <Text style={styles.emptyTitle}>Patient list access required</Text>
+          <Text style={styles.emptySubtitle}>Your role does not have permission to view patient records.</Text>
+        </View>
+      </View> : <FlatList
         data={visiblePatients}
         keyExtractor={patient => String(patient.id)}
         contentContainerStyle={styles.content}
@@ -869,7 +868,7 @@ const PatientsManagementContent: React.FC<Props> = ({
             <View style={styles.footerSpacer} />
           )
         }
-      />
+      />}
 
       <PatientFormModal
         visible={formVisible}
@@ -939,6 +938,7 @@ const PatientsManagementContent: React.FC<Props> = ({
         visible={Boolean(medicalHistoryPatient)}
         patient={medicalHistoryPatient}
         token={token}
+        canExport={canExportPatients}
         onClose={() => setMedicalHistoryPatient(null)}
       />
       <ColumnSelectorModal
@@ -984,7 +984,7 @@ const PatientsManagementContent: React.FC<Props> = ({
               ]}
             >
               <Text style={styles.actionMenuTitle}>Actions</Text>
-              <PatientAction
+              {canViewPatients ? <PatientAction
                 icon={Eye}
                 label="View Details"
                 highlighted
@@ -993,7 +993,7 @@ const PatientsManagementContent: React.FC<Props> = ({
                   setActionMenu(null);
                   openPatientDetails(patient);
                 }}
-              />
+              /> : null}
               {canEditPatient ? <PatientAction
                 icon={ClipboardList}
                 label="Edit Patient"
@@ -1014,7 +1014,7 @@ const PatientsManagementContent: React.FC<Props> = ({
                   setBookingVisible(true);
                 }}
               /> : null}
-              <PatientAction
+              {canViewPatients ? <PatientAction
                 icon={Stethoscope}
                 label="Consultation"
                 onPress={() => {
@@ -1022,8 +1022,8 @@ const PatientsManagementContent: React.FC<Props> = ({
                   setActionMenu(null);
                   setConsultationPatient(patient);
                 }}
-              />
-              <PatientAction
+              /> : null}
+              {canViewPrescriptions ? <PatientAction
                 icon={FileText}
                 label="Prescription"
                 onPress={() => {
@@ -1031,8 +1031,8 @@ const PatientsManagementContent: React.FC<Props> = ({
                   setActionMenu(null);
                   setPrescriptionPatient(patient);
                 }}
-              />
-              <PatientAction
+              /> : null}
+              {canViewPatients ? <PatientAction
                 icon={History}
                 label="Medical History"
                 onPress={() => {
@@ -1040,7 +1040,7 @@ const PatientsManagementContent: React.FC<Props> = ({
                   setActionMenu(null);
                   setMedicalHistoryPatient(patient);
                 }}
-              />
+              /> : null}
             </View>
           ) : null}
         </View>
@@ -1370,6 +1370,19 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
   },
+  permissionState: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+  },
+  noViewContent: { flex: 1 },
   emptyIcon: {
     width: 48,
     height: 48,

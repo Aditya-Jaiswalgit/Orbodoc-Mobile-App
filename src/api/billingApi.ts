@@ -3,16 +3,74 @@ import { ApiResponse } from '../types/auth';
 import { MedicineBill, TreatmentBill } from '../types/clinicTypes';
 
 // Medicine Bills
-export async function getMedicineBillsApi(token: string): Promise<ApiResponse<MedicineBill[]>> {
-  return apiFetch<MedicineBill[]>('/medicine-bills', {
+export interface FetchMedicineBillsParams {
+  clinic_id?: number | string | null;
+  search?: string;
+  status?: string;
+  date?: string;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface MedicineBillsResponseData {
+  data: Array<MedicineBill & Record<string, any>>;
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface MedicineBillCreatePayload {
+  clinic_id: number | string;
+  patient_id: number;
+  pharmacist_id?: number;
+  prescription_id?: number;
+  subtotal: number;
+  discount_amount: number;
+  tax_amount: number;
+  total_amount: number;
+  paid_amount: number;
+  payment_method: string;
+  status: string;
+  notes?: string;
+  items: Array<{
+    medicine_id: number;
+    medicine_name: string;
+    batch_number?: string;
+    quantity: number;
+    unit_price: number;
+    discount_pct: number;
+    tax_pct: number;
+    total_price: number;
+  }>;
+}
+
+export async function getMedicineBillsApi(token: string, params: FetchMedicineBillsParams = {}): Promise<ApiResponse<MedicineBillsResponseData | MedicineBill[]>> {
+  const query = new URLSearchParams();
+  if (params.clinic_id != null) query.set('clinic_id', String(params.clinic_id));
+  if (params.search?.trim()) query.set('search', params.search.trim());
+  if (params.status && params.status !== 'all') query.set('status', params.status);
+  if (params.date) query.set('date', params.date);
+  if (params.date_from) query.set('date_from', params.date_from);
+  if (params.date_to) query.set('date_to', params.date_to);
+  if (params.page) query.set('page', String(params.page));
+  if (params.limit) query.set('limit', String(params.limit));
+  return apiFetch<MedicineBillsResponseData | MedicineBill[]>(`/medicine-bills${query.size ? `?${query.toString()}` : ''}`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   });
 }
 
+export async function getMedicineBillByIdApi(token: string, id: number | string): Promise<ApiResponse<{ bill: MedicineBill } | MedicineBill>> {
+  return apiFetch<{ bill: MedicineBill } | MedicineBill>(`/medicine-bills/${id}`, {
+    method: 'GET', headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export async function createMedicineBillApi(
   token: string,
-  billData: Partial<MedicineBill>
+  billData: MedicineBillCreatePayload
 ): Promise<ApiResponse<MedicineBill>> {
   return apiFetch<MedicineBill>('/medicine-bills', {
     method: 'POST',
@@ -24,12 +82,18 @@ export async function createMedicineBillApi(
 export async function recordMedicineBillPaymentApi(
   token: string,
   id: number,
-  paymentData: { payment_status: string; payment_mode: string }
+  paymentData: { paid_amount: number; status?: string }
 ): Promise<ApiResponse<MedicineBill>> {
   return apiFetch<MedicineBill>(`/medicine-bills/${id}/payment`, {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(paymentData),
+  });
+}
+
+export async function updateMedicineBillApi(token: string, id: number, data: Partial<MedicineBill>): Promise<ApiResponse<{ bill: MedicineBill } | MedicineBill>> {
+  return apiFetch<{ bill: MedicineBill } | MedicineBill>(`/medicine-bills/${id}`, {
+    method: 'PUT', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(data),
   });
 }
 

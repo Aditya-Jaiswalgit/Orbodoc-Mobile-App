@@ -957,6 +957,10 @@ export function PatientDetailsModal({
   const registrationDate = formatShortPatientDate(patient?.registered_at || patient?.created_at);
   const lastVisit = formatShortPatientDate(summary?.last_visit || patient?.last_visit);
   const address = patient?.address || [patient?.city, patient?.state].filter(Boolean).join(', ');
+  const formatMoney = (value?: number | null) =>
+    value === null || value === undefined || !Number.isFinite(Number(value))
+      ? null
+      : `₹${Number(value).toFixed(2)}`;
   const row = (label: string, value?: string | number | null, Icon?: React.ComponentType<{ size?: number; color?: string }>) =>
     hasPatientDetail(value) ? (
       <View key={label} style={styles.detailRow}>
@@ -1062,6 +1066,14 @@ export function PatientDetailsModal({
               </DetailSection>
               <DetailSection title="Emergency Contact" icon={ShieldAlert}>
                 {row('Contact', patient.emergency_contact, Phone)}
+              </DetailSection>
+              <DetailSection title="Billing Summary" icon={Wallet}>
+                {row('Treatment Bill', formatMoney(summary?.treatment_total_amount))}
+                {row('Medicine Bill', formatMoney(summary?.medicine_total_amount))}
+                {row('Grand Total', formatMoney(summary?.grand_total_amount))}
+                {row('Treatment Due', formatMoney(summary?.treatment_due))}
+                {row('Medicine Due', formatMoney(summary?.medicine_due))}
+                {row('Total Due', formatMoney(summary?.total_due))}
               </DetailSection>
               <View style={[styles.detailSection, { display: 'none' }]}>
                 <Text style={styles.sectionHeading}>CONSULTATION HISTORY</Text>

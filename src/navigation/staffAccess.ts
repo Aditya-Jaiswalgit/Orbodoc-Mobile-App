@@ -31,11 +31,12 @@ export function canUseStaffScreen(
   role: string,
   permissions: PermissionMap,
   screen: string,
-  action: PermissionAction = 'view'
+  action?: PermissionAction
 ): boolean {
   if (normalizeRoleName(role) === 'super_admin') return true;
   if (['dashboard', 'profile', 'change_password'].includes(screen)) return true;
   if (!permissions || Object.keys(permissions).length === 0) return false;
+  const requiredAction = action ?? (screen === 'book_appointment' ? 'add' : 'view');
 
   const targetObjects = screenObjects[screen] ?? [screen];
   const allCandidates = new Set<string>();
@@ -58,7 +59,7 @@ export function canUseStaffScreen(
   }
 
   for (const candidate of allCandidates) {
-    if (permissions[candidate]?.[action] === true) {
+    if (permissions[candidate]?.[requiredAction] === true) {
       return true;
     }
   }

@@ -378,22 +378,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     permissionScope + ':access',
     async () => {
       const targetRoleId = permissionRoleId || resolveRoleId(user, token, role) || 3;
-      try {
-        const [response, objects] = await Promise.all([
-          fetchPermissionMapByRoleApi(targetRoleId, activeClinicId, role),
-          fetchSystemObjectsApi().catch(() => null),
-        ]);
-        const fetchedData = response?.success && response?.data ? response.data : null;
-        if (!fetchedData) return {};
-        const map = normalizePermissionMap(fetchedData, objects?.data ?? []);
-        if (Object.keys(map).length > 0) {
-          updateStoredSession({ permissionsMap: map }).catch(() => {});
-          return map;
-        }
-        return {};
-      } catch {
-        return {};
+      const [response, objects] = await Promise.all([
+        fetchPermissionMapByRoleApi(targetRoleId, activeClinicId, role),
+        fetchSystemObjectsApi().catch(() => null),
+      ]);
+      if (!response?.success || !response?.data) {
+        throw new Error(response?.message || 'Unable to load role permissions.');
       }
+      const map = normalizePermissionMap(response.data, objects?.data ?? []);
+      if (Object.keys(map).length > 0) {
+        updateStoredSession({ permissionsMap: map }).catch(() => {});
+      }
+      return map;
     },
     canFetchPermissions
   );
@@ -407,26 +403,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Exact Web parity: Merge base login permissions with live role permissions
   const effectivePermissionsMap = useMemo(() => {
+    if (permissionResource.error) return {};
     const fetched = permissionResource.data;
-    const merged: PermissionMap = { ...authPermissions };
-
     if (fetched && Object.keys(fetched).length > 0) {
-      for (const [key, flags] of Object.entries(fetched)) {
-        if (!merged[key]) {
-          merged[key] = flags;
-        } else {
-          merged[key] = {
-            view: merged[key].view || flags.view,
-            add: merged[key].add || flags.add,
-            edit: merged[key].edit || flags.edit,
-            delete: merged[key].delete || flags.delete,
-            execute: merged[key].execute || flags.execute,
-          };
-        }
-      }
+      return fetched;
     }
-    return merged;
-  }, [permissionResource.data, authPermissions]);
+    return authPermissions;
+  }, [permissionResource.data, permissionResource.error, authPermissions]);
 
   const isMultiClinic = assignedClinics.length > 1 || !!user?.isMultiClinic;
   const isMultiPlan = String(plan?.plan_type ?? plan?.planType ?? '').trim().toLowerCase() === 'multi'
