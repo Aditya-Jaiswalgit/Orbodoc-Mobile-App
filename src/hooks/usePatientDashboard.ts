@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getPatientDashboardApi, PatientDashboardData } from '../api/patientApi';
+import {
+  getPatientDashboardApi,
+  PatientDashboardData,
+} from '../api/patientApi';
 
 export const usePatientDashboard = (token: string | null) => {
-  const [dashboardData, setDashboardData] = useState<PatientDashboardData | null>(null);
+  const [dashboardData, setDashboardData] =
+    useState<PatientDashboardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);

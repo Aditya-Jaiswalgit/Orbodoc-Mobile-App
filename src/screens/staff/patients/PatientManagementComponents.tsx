@@ -36,7 +36,10 @@ import {
 } from 'lucide-react-native';
 import { PatientModel } from '../../../types/clinicTypes';
 import { CustomCalendarPicker } from '../../../components/common/CustomCalendarPicker';
-import { focusedCardOutline, usePatientCardFocus } from '../../../components/common/PatientCardFocusContext';
+import {
+  focusedCardOutline,
+  usePatientCardFocus,
+} from '../../../components/common/PatientCardFocusContext';
 import { apiFetch } from '../../../api/apiConfig';
 import {
   PatientBillingSummary,
@@ -171,7 +174,8 @@ export function PatientStatsCards({
   return (
     <View style={styles.statsGrid}>
       {cards.map(({ key, label, value, tint, color, icon: Icon }) => {
-        const selected = focusedCard === `stat-${key}` ||
+        const selected =
+          focusedCard === `stat-${key}` ||
           (key === 'active' && focusedCard === 'stat-inactive');
         const cardStyle = [
           styles.statCard,
@@ -257,7 +261,12 @@ function FilterDropdown({
   style?: any;
 }) {
   const [open, setOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0, maxHeight: 300 });
+  const [menuPosition, setMenuPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+    maxHeight: 300,
+  });
   const triggerRef = useRef<any>(null);
   const { height: screenHeight, width: screenWidth } = useWindowDimensions();
   const { focusCard } = usePatientCardFocus();
@@ -265,16 +274,21 @@ function FilterDropdown({
 
   const showMenu = () => {
     focusCard('filters');
-    triggerRef.current?.measureInWindow((x: number, y: number, width: number, height: number) => {
-      const left = Math.max(8, Math.min(x, screenWidth - width - 8));
-      setMenuPosition({
-        top: y + height + 3,
-        left,
-        width: Math.min(width, screenWidth - left - 8),
-        maxHeight: Math.max(140, Math.min(320, screenHeight - y - height - 20)),
-      });
-      setOpen(true);
-    });
+    triggerRef.current?.measureInWindow(
+      (x: number, y: number, width: number, height: number) => {
+        const left = Math.max(8, Math.min(x, screenWidth - width - 8));
+        setMenuPosition({
+          top: y + height + 3,
+          left,
+          width: Math.min(width, screenWidth - left - 8),
+          maxHeight: Math.max(
+            140,
+            Math.min(320, screenHeight - y - height - 20),
+          ),
+        });
+        setOpen(true);
+      },
+    );
   };
 
   return (
@@ -308,22 +322,35 @@ function FilterDropdown({
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={options.length > 6}
             >
-            {options.map(option => (
-              <TouchableOpacity
-                key={option.value}
-                style={[
-                  styles.filterDropdownOption,
-                  option.value === value && styles.filterDropdownOptionSelected,
-                ]}
-                onPress={() => {
-                  onChange(option.value);
-                  setOpen(false);
-                }}
-              >
-                {option.value === value ? <Check size={15} color={COLORS.teal} /> : <View style={styles.filterDropdownCheckSpacer} />}
-                <Text style={[styles.filterDropdownOptionText, option.value === value && styles.filterDropdownOptionTextSelected]}>{option.label}</Text>
-              </TouchableOpacity>
-            ))}
+              {options.map(option => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.filterDropdownOption,
+                    option.value === value &&
+                      styles.filterDropdownOptionSelected,
+                  ]}
+                  onPress={() => {
+                    onChange(option.value);
+                    setOpen(false);
+                  }}
+                >
+                  {option.value === value ? (
+                    <Check size={15} color={COLORS.teal} />
+                  ) : (
+                    <View style={styles.filterDropdownCheckSpacer} />
+                  )}
+                  <Text
+                    style={[
+                      styles.filterDropdownOptionText,
+                      option.value === value &&
+                        styles.filterDropdownOptionTextSelected,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </ScrollView>
           </View>
         </View>
@@ -362,7 +389,12 @@ export function PatientFilterPanel({
   const { width: screenWidth } = useWindowDimensions();
   const compactFilters = screenWidth < 355;
   return (
-    <View style={[styles.filterCard, focusedCard === 'filters' && focusedCardOutline]}>
+    <View
+      style={[
+        styles.filterCard,
+        focusedCard === 'filters' && focusedCardOutline,
+      ]}
+    >
       <View
         style={[
           styles.filterSelectRow,
@@ -457,12 +489,21 @@ export function PatientFilterPanel({
       <View style={styles.filterToolsRow}>
         <TouchableOpacity
           style={styles.clearFiltersIconButton}
-          onPress={() => { focusCard('filters'); onClearFilters(); }}
+          onPress={() => {
+            focusCard('filters');
+            onClearFilters();
+          }}
           accessibilityLabel="Clear patient filters"
         >
           <FilterX size={16} color="#94A3B8" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.columnsButton} onPress={() => { focusCard('filters'); onOpenColumns(); }}>
+        <TouchableOpacity
+          style={styles.columnsButton}
+          onPress={() => {
+            focusCard('filters');
+            onOpenColumns();
+          }}
+        >
           <Columns3 size={15} color="#334155" />
           <Text style={styles.columnsButtonText}>Columns</Text>
         </TouchableOpacity>
@@ -514,21 +555,35 @@ export function PatientFormModal({
     if (!visible) return;
     const controller = new AbortController();
     setLocationsLoading(true);
-    apiFetch<PatientLocationState[]>('/location/states', { signal: controller.signal }).then(result => {
-      if (!result.success || !Array.isArray(result.data)) {
-        setFormError(result.message || 'Could not load states. Please reopen the form.');
-        return;
-      }
-      setStates(result.data);
-    }).catch(() => setFormError('Could not load states. Please reopen the form.'))
-      .finally(() => { if (!controller.signal.aborted) setLocationsLoading(false); });
+    apiFetch<PatientLocationState[]>('/location/states', {
+      signal: controller.signal,
+    })
+      .then(result => {
+        if (!result.success || !Array.isArray(result.data)) {
+          setFormError(
+            result.message || 'Could not load states. Please reopen the form.',
+          );
+          return;
+        }
+        setStates(result.data);
+      })
+      .catch(() =>
+        setFormError('Could not load states. Please reopen the form.'),
+      )
+      .finally(() => {
+        if (!controller.signal.aborted) setLocationsLoading(false);
+      });
     return () => controller.abort();
   }, [visible]);
 
   useEffect(() => {
     if (!visible || !states.length) return;
     const normalized = form.state.trim().toLowerCase();
-    const currentState = states.find(item => item.state_name.trim().toLowerCase() === normalized || item.state_code?.trim().toLowerCase() === normalized);
+    const currentState = states.find(
+      item =>
+        item.state_name.trim().toLowerCase() === normalized ||
+        item.state_code?.trim().toLowerCase() === normalized,
+    );
     if (currentState) setSelectedStateId(String(currentState.id));
   }, [form.state, states, visible]);
 
@@ -540,16 +595,29 @@ export function PatientFormModal({
     }
     const controller = new AbortController();
     setCitiesLoading(true);
-    apiFetch<PatientLocationCity[]>(`/location/cities/${encodeURIComponent(selectedStateId)}`, { signal: controller.signal }).then(result => {
-      if (!result.success || !Array.isArray(result.data)) {
-        setFormError(result.message || 'Could not load cities for this state.');
-        return;
-      }
-      setCities(result.data);
-      const currentCity = result.data.find(item => item.city_name.trim().toLowerCase() === initialCityName.current.trim().toLowerCase());
-      setSelectedCityId(currentCity ? String(currentCity.id) : '');
-    }).catch(() => setFormError('Could not load cities for this state.'))
-      .finally(() => { if (!controller.signal.aborted) setCitiesLoading(false); });
+    apiFetch<PatientLocationCity[]>(
+      `/location/cities/${encodeURIComponent(selectedStateId)}`,
+      { signal: controller.signal },
+    )
+      .then(result => {
+        if (!result.success || !Array.isArray(result.data)) {
+          setFormError(
+            result.message || 'Could not load cities for this state.',
+          );
+          return;
+        }
+        setCities(result.data);
+        const currentCity = result.data.find(
+          item =>
+            item.city_name.trim().toLowerCase() ===
+            initialCityName.current.trim().toLowerCase(),
+        );
+        setSelectedCityId(currentCity ? String(currentCity.id) : '');
+      })
+      .catch(() => setFormError('Could not load cities for this state.'))
+      .finally(() => {
+        if (!controller.signal.aborted) setCitiesLoading(false);
+      });
     return () => controller.abort();
   }, [selectedStateId, visible]);
 
@@ -563,7 +631,10 @@ export function PatientFormModal({
     const phone = form.phone.trim();
     if (!name) return setFormError('Patient name is required.');
     if (!form.date_of_birth) return setFormError('Date of birth is required.');
-    if (new Date(`${form.date_of_birth}T00:00:00`) < new Date('1900-01-01T00:00:00'))
+    if (
+      new Date(`${form.date_of_birth}T00:00:00`) <
+      new Date('1900-01-01T00:00:00')
+    )
       return setFormError('Date of birth must be on or after 01/01/1900.');
     if (new Date(`${form.date_of_birth}T00:00:00`) > new Date())
       return setFormError('Date of birth cannot be in the future.');
@@ -605,22 +676,51 @@ export function PatientFormModal({
     const dateOfBirthField = key === 'date_of_birth';
     return (
       <View style={styles.formField} key={key}>
-        <Text style={styles.fieldLabel}>{label}{options.required ? <Text style={styles.requiredMark}> *</Text> : null}</Text>
+        <Text style={styles.fieldLabel}>
+          {label}
+          {options.required ? (
+            <Text style={styles.requiredMark}> *</Text>
+          ) : null}
+        </Text>
         {dateOfBirthField ? (
-          <View style={[styles.dateInputRow, focusedCard === focusId && focusedCardOutline]}>
+          <View
+            style={[
+              styles.dateInputRow,
+              focusedCard === focusId && focusedCardOutline,
+            ]}
+          >
             <TextInput
               value={dobInput}
               onFocus={() => focusCard(focusId)}
               onChangeText={value => {
                 const digits = value.replace(/\D/g, '').slice(0, 8);
-                const formatted = digits.length > 4 ? `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}` : digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+                const formatted =
+                  digits.length > 4
+                    ? `${digits.slice(0, 2)}/${digits.slice(
+                        2,
+                        4,
+                      )}/${digits.slice(4)}`
+                    : digits.length > 2
+                    ? `${digits.slice(0, 2)}/${digits.slice(2)}`
+                    : digits;
                 setDobInput(formatted);
                 const match = formatted.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
                 if (!match) update('date_of_birth', '');
                 else {
                   const [, day, month, year] = match;
-                  const parsed = new Date(Number(year), Number(month) - 1, Number(day));
-                  update('date_of_birth', parsed.getFullYear() === Number(year) && parsed.getMonth() === Number(month) - 1 && parsed.getDate() === Number(day) ? `${year}-${month}-${day}` : '');
+                  const parsed = new Date(
+                    Number(year),
+                    Number(month) - 1,
+                    Number(day),
+                  );
+                  update(
+                    'date_of_birth',
+                    parsed.getFullYear() === Number(year) &&
+                      parsed.getMonth() === Number(month) - 1 &&
+                      parsed.getDate() === Number(day)
+                      ? `${year}-${month}-${day}`
+                      : '',
+                  );
                 }
               }}
               placeholder={placeholder}
@@ -630,9 +730,16 @@ export function PatientFormModal({
               style={styles.dateTextInput}
             />
             <CustomCalendarPicker
-              selectedDate={form.date_of_birth ? new Date(`${form.date_of_birth}T00:00:00`) : undefined}
+              selectedDate={
+                form.date_of_birth
+                  ? new Date(`${form.date_of_birth}T00:00:00`)
+                  : undefined
+              }
               placeholder=""
-              triggerStyle={[styles.datePickerButton, styles.datePickerCalendarTrigger]}
+              triggerStyle={[
+                styles.datePickerButton,
+                styles.datePickerCalendarTrigger,
+              ]}
               triggerTextStyle={styles.datePickerHiddenText}
               fromYear={1900}
               toYear={new Date().getFullYear()}
@@ -640,7 +747,9 @@ export function PatientFormModal({
               maximumDate={new Date()}
               onOpen={() => focusCard(focusId)}
               onDateChange={date => {
-                const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                const iso = `${date.getFullYear()}-${String(
+                  date.getMonth() + 1,
+                ).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                 update('date_of_birth', iso);
                 setDobInput(formatPatientDate(iso));
               }}
@@ -650,11 +759,20 @@ export function PatientFormModal({
           <TextInput
             value={String(form[key] ?? '')}
             onFocus={() => focusCard(focusId)}
-            onChangeText={value => update(key, options.numericOnly ? value.replace(/\D/g, '').slice(0, options.maxLength || 10) : value)}
+            onChangeText={value =>
+              update(
+                key,
+                options.numericOnly
+                  ? value.replace(/\D/g, '').slice(0, options.maxLength || 10)
+                  : value,
+              )
+            }
             placeholder={placeholder}
             placeholderTextColor="#718096"
             keyboardType={options.keyboardType || 'default'}
-            autoCapitalize={options.keyboardType === 'email-address' ? 'none' : 'sentences'}
+            autoCapitalize={
+              options.keyboardType === 'email-address' ? 'none' : 'sentences'
+            }
             multiline={options.multiline}
             maxLength={options.maxLength}
             style={[
@@ -668,14 +786,21 @@ export function PatientFormModal({
     );
   };
 
-  const selectLocation = (kind: 'state' | 'city', item: PatientLocationState | PatientLocationCity) => {
+  const selectLocation = (
+    kind: 'state' | 'city',
+    item: PatientLocationState | PatientLocationCity,
+  ) => {
     setFormError('');
     if (kind === 'state' && 'state_name' in item) {
       initialCityName.current = '';
       setSelectedStateId(String(item.id));
       setSelectedCityId('');
       setCities([]);
-      setForm(previous => ({ ...previous, state: item.state_name || '', city: '' }));
+      setForm(previous => ({
+        ...previous,
+        state: item.state_name || '',
+        city: '',
+      }));
     } else if ('city_name' in item) {
       setSelectedCityId(String(item.id));
       update('city', item.city_name || '');
@@ -684,8 +809,12 @@ export function PatientFormModal({
   };
 
   const age = getPatientAge(form.date_of_birth);
-  const selectedState = states.find(item => String(item.id) === selectedStateId)?.state_name || form.state;
-  const selectedCity = cities.find(item => String(item.id) === selectedCityId)?.city_name || form.city;
+  const selectedState =
+    states.find(item => String(item.id) === selectedStateId)?.state_name ||
+    form.state;
+  const selectedCity =
+    cities.find(item => String(item.id) === selectedCityId)?.city_name ||
+    form.city;
 
   return (
     <Modal
@@ -700,8 +829,14 @@ export function PatientFormModal({
             styles.formModal,
             screenWidth >= 700 && styles.formModalDesktop,
             {
-              width: Math.max(300, screenWidth - (screenWidth >= 700 ? 48 : 24)),
-              height: Math.min(screenHeight * (screenWidth >= 700 ? 0.84 : 0.91), 760),
+              width: Math.max(
+                300,
+                screenWidth - (screenWidth >= 700 ? 48 : 24),
+              ),
+              height: Math.min(
+                screenHeight * (screenWidth >= 700 ? 0.84 : 0.91),
+                760,
+              ),
             },
           ]}
         >
@@ -726,58 +861,188 @@ export function PatientFormModal({
             <View style={styles.formSection}>
               <View style={styles.patientFormSectionHeadingRow}>
                 <UserRound size={14} color={COLORS.muted} />
-                <Text style={styles.patientFormSectionHeading}>Personal Information</Text>
+                <Text style={styles.patientFormSectionHeading}>
+                  Personal Information
+                </Text>
               </View>
-              {field('Name', 'full_name', 'Enter patient name', { required: true, maxLength: 100 })}
-              {field('Date of Birth', 'date_of_birth', 'DD/MM/YYYY', { required: true })}
+              {field('Name', 'full_name', 'Enter patient name', {
+                required: true,
+                maxLength: 100,
+              })}
+              {field('Date of Birth', 'date_of_birth', 'DD/MM/YYYY', {
+                required: true,
+              })}
               <View style={styles.formField}>
                 <Text style={styles.fieldLabel}>Age</Text>
-                <TextInput value={age === null ? '-' : `${age} years`} editable={false} style={[styles.formInput, styles.disabledInput]} />
+                <TextInput
+                  value={age === null ? '-' : `${age} years`}
+                  editable={false}
+                  style={[styles.formInput, styles.disabledInput]}
+                />
               </View>
               <View style={styles.formField}>
-                <Text style={styles.fieldLabel}>Gender<Text style={styles.requiredMark}> *</Text></Text>
-                <View style={[styles.genderChoices, focusedCard === 'patient-form-gender' && styles.genderChoicesFocused]}>
+                <Text style={styles.fieldLabel}>
+                  Gender<Text style={styles.requiredMark}> *</Text>
+                </Text>
+                <View
+                  style={[
+                    styles.genderChoices,
+                    focusedCard === 'patient-form-gender' &&
+                      styles.genderChoicesFocused,
+                  ]}
+                >
                   {(['male', 'female', 'other'] as const).map(choice => (
-                    <TouchableOpacity key={choice} onPress={() => { focusCard('patient-form-gender'); update('gender', choice); }} style={styles.genderRadioOption}>
-                      <View style={[styles.radioOuter, form.gender === choice && styles.radioOuterSelected]}>{form.gender === choice ? <View style={styles.radioInner} /> : null}</View>
-                      <Text style={styles.genderRadioText}>{choice[0].toUpperCase() + choice.slice(1)}</Text>
+                    <TouchableOpacity
+                      key={choice}
+                      onPress={() => {
+                        focusCard('patient-form-gender');
+                        update('gender', choice);
+                      }}
+                      style={styles.genderRadioOption}
+                    >
+                      <View
+                        style={[
+                          styles.radioOuter,
+                          form.gender === choice && styles.radioOuterSelected,
+                        ]}
+                      >
+                        {form.gender === choice ? (
+                          <View style={styles.radioInner} />
+                        ) : null}
+                      </View>
+                      <Text style={styles.genderRadioText}>
+                        {choice[0].toUpperCase() + choice.slice(1)}
+                      </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
               <View style={styles.formField}>
                 <Text style={styles.fieldLabel}>Blood Group</Text>
-                <TouchableOpacity style={[styles.formSelect, focusedCard === 'patient-form-blood_group' && focusedCardOutline]} onPress={() => { focusCard('patient-form-blood_group'); setPicker('blood'); }}>
-                  <Text style={[styles.formSelectText, !form.blood_group && styles.formPlaceholder]}>{form.blood_group || 'Select blood group'}</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.formSelect,
+                    focusedCard === 'patient-form-blood_group' &&
+                      focusedCardOutline,
+                  ]}
+                  onPress={() => {
+                    focusCard('patient-form-blood_group');
+                    setPicker('blood');
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.formSelectText,
+                      !form.blood_group && styles.formPlaceholder,
+                    ]}
+                  >
+                    {form.blood_group || 'Select blood group'}
+                  </Text>
                   <ChevronDown size={16} color={COLORS.muted} />
                 </TouchableOpacity>
               </View>
             </View>
             <View style={styles.formSection}>
-              <View style={styles.patientFormSectionHeadingRow}><Text style={styles.patientFormSectionHeading}>Contact Information</Text></View>
-              {field('Phone', 'phone', '9876543210', { required: true, keyboardType: 'phone-pad', maxLength: 10, numericOnly: true })}
-              {field('Email', 'email', 'email@example.com', { keyboardType: 'email-address', maxLength: 254 })}
+              <View style={styles.patientFormSectionHeadingRow}>
+                <Text style={styles.patientFormSectionHeading}>
+                  Contact Information
+                </Text>
+              </View>
+              {field('Phone', 'phone', '9876543210', {
+                required: true,
+                keyboardType: 'phone-pad',
+                maxLength: 10,
+                numericOnly: true,
+              })}
+              {field('Email', 'email', 'email@example.com', {
+                keyboardType: 'email-address',
+                maxLength: 254,
+              })}
               <View style={styles.formField}>
-                <Text style={styles.fieldLabel}>State<Text style={styles.requiredMark}> *</Text></Text>
-                <TouchableOpacity style={[styles.formSelect, focusedCard === 'patient-form-state' && focusedCardOutline]} onPress={() => { focusCard('patient-form-state'); setPicker('state'); }} disabled={locationsLoading}>
-                  <Text style={[styles.formSelectText, !selectedState && styles.formPlaceholder]}>{locationsLoading ? 'Loading states...' : selectedState || 'Select state'}</Text>
+                <Text style={styles.fieldLabel}>
+                  State<Text style={styles.requiredMark}> *</Text>
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.formSelect,
+                    focusedCard === 'patient-form-state' && focusedCardOutline,
+                  ]}
+                  onPress={() => {
+                    focusCard('patient-form-state');
+                    setPicker('state');
+                  }}
+                  disabled={locationsLoading}
+                >
+                  <Text
+                    style={[
+                      styles.formSelectText,
+                      !selectedState && styles.formPlaceholder,
+                    ]}
+                  >
+                    {locationsLoading
+                      ? 'Loading states...'
+                      : selectedState || 'Select state'}
+                  </Text>
                   <ChevronDown size={16} color={COLORS.muted} />
                 </TouchableOpacity>
               </View>
               <View style={styles.formField}>
-                <Text style={styles.fieldLabel}>City<Text style={styles.requiredMark}> *</Text></Text>
-                <TouchableOpacity style={[styles.formSelect, focusedCard === 'patient-form-city' && focusedCardOutline, (!selectedStateId || citiesLoading) && styles.disabledInput]} onPress={() => { focusCard('patient-form-city'); setPicker('city'); }} disabled={!selectedStateId || citiesLoading}>
-                  <Text style={[styles.formSelectText, !selectedCity && styles.formPlaceholder]}>{citiesLoading ? 'Loading cities...' : selectedCity || (selectedStateId ? 'Select city' : 'Select state first')}</Text>
+                <Text style={styles.fieldLabel}>
+                  City<Text style={styles.requiredMark}> *</Text>
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.formSelect,
+                    focusedCard === 'patient-form-city' && focusedCardOutline,
+                    (!selectedStateId || citiesLoading) && styles.disabledInput,
+                  ]}
+                  onPress={() => {
+                    focusCard('patient-form-city');
+                    setPicker('city');
+                  }}
+                  disabled={!selectedStateId || citiesLoading}
+                >
+                  <Text
+                    style={[
+                      styles.formSelectText,
+                      !selectedCity && styles.formPlaceholder,
+                    ]}
+                  >
+                    {citiesLoading
+                      ? 'Loading cities...'
+                      : selectedCity ||
+                        (selectedStateId
+                          ? 'Select city'
+                          : 'Select state first')}
+                  </Text>
                   <ChevronDown size={16} color={COLORS.muted} />
                 </TouchableOpacity>
               </View>
-              {field('Address', 'address', 'Enter address', { multiline: true, maxLength: 200 })}
+              {field('Address', 'address', 'Enter address', {
+                multiline: true,
+                maxLength: 200,
+              })}
             </View>
             <View style={styles.formSection}>
-              <View style={styles.patientFormSectionHeadingRow}><Text style={styles.patientFormSectionHeading}>Emergency Contact</Text></View>
-              {field('Contact Name', 'emergency_contact_name', 'Enter emergency contact name', { maxLength: 100 })}
-              {field('Relation', 'emergency_relation', 'Enter relation', { maxLength: 50 })}
-              {field('Phone', 'emergency_contact', '9876543210', { keyboardType: 'phone-pad', maxLength: 10, numericOnly: true })}
+              <View style={styles.patientFormSectionHeadingRow}>
+                <Text style={styles.patientFormSectionHeading}>
+                  Emergency Contact
+                </Text>
+              </View>
+              {field(
+                'Contact Name',
+                'emergency_contact_name',
+                'Enter emergency contact name',
+                { maxLength: 100 },
+              )}
+              {field('Relation', 'emergency_relation', 'Enter relation', {
+                maxLength: 50,
+              })}
+              {field('Phone', 'emergency_contact', '9876543210', {
+                keyboardType: 'phone-pad',
+                maxLength: 10,
+                numericOnly: true,
+              })}
             </View>
             {formError ? (
               <Text style={styles.errorText}>{formError}</Text>
@@ -792,7 +1057,11 @@ export function PatientFormModal({
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.primaryButton, styles.patientFormActionButton, saving && styles.disabledButton]}
+              style={[
+                styles.primaryButton,
+                styles.patientFormActionButton,
+                saving && styles.disabledButton,
+              ]}
               disabled={saving}
               onPress={submit}
             >
@@ -809,12 +1078,47 @@ export function PatientFormModal({
       </View>
       <PatientOptionsModal
         visible={picker !== null}
-        title={picker === 'state' ? 'Select state' : picker === 'city' ? 'Select city' : 'Select blood group'}
-        options={picker === 'state' ? states.map(item => ({ id: String(item.id), label: item.state_name })) : picker === 'city' ? cities.map(item => ({ id: String(item.id), label: item.city_name })) : ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(value => ({ id: value, label: value }))}
-        selectedId={picker === 'state' ? selectedStateId : picker === 'city' ? selectedCityId : form.blood_group}
-        loading={picker === 'state' ? locationsLoading : picker === 'city' ? citiesLoading : false}
+        title={
+          picker === 'state'
+            ? 'Select state'
+            : picker === 'city'
+            ? 'Select city'
+            : 'Select blood group'
+        }
+        options={
+          picker === 'state'
+            ? states.map(item => ({
+                id: String(item.id),
+                label: item.state_name,
+              }))
+            : picker === 'city'
+            ? cities.map(item => ({
+                id: String(item.id),
+                label: item.city_name,
+              }))
+            : ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(value => ({
+                id: value,
+                label: value,
+              }))
+        }
+        selectedId={
+          picker === 'state'
+            ? selectedStateId
+            : picker === 'city'
+            ? selectedCityId
+            : form.blood_group
+        }
+        loading={
+          picker === 'state'
+            ? locationsLoading
+            : picker === 'city'
+            ? citiesLoading
+            : false
+        }
         onClose={() => {
-          focusCard(`patient-form-${picker === 'blood' ? 'blood_group' : picker}`);
+          focusCard(
+            `patient-form-${picker === 'blood' ? 'blood_group' : picker}`,
+          );
           setPicker(null);
         }}
         onSelect={id => {
@@ -856,10 +1160,19 @@ function PatientOptionsModal({
 }) {
   const [query, setQuery] = useState('');
   const { focusedCard, focusCard } = usePatientCardFocus();
-  useEffect(() => { if (visible) setQuery(''); }, [visible]);
-  const filtered = options.filter(option => option.label.toLowerCase().includes(query.trim().toLowerCase()));
+  useEffect(() => {
+    if (visible) setQuery('');
+  }, [visible]);
+  const filtered = options.filter(option =>
+    option.label.toLowerCase().includes(query.trim().toLowerCase()),
+  );
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
       <View style={styles.pickerBackdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={styles.pickerModal}>
@@ -870,20 +1183,55 @@ function PatientOptionsModal({
             onFocus={() => focusCard('patient-form-picker-search')}
             placeholder={`Search ${title.toLowerCase()}...`}
             placeholderTextColor="#718096"
-            style={[styles.pickerSearch, focusedCard === 'patient-form-picker-search' && focusedCardOutline]}
+            style={[
+              styles.pickerSearch,
+              focusedCard === 'patient-form-picker-search' &&
+                focusedCardOutline,
+            ]}
           />
-          {loading ? <ActivityIndicator color={COLORS.teal} style={styles.pickerLoading} /> : (
-            <ScrollView style={styles.pickerOptions} keyboardShouldPersistTaps="handled">
+          {loading ? (
+            <ActivityIndicator
+              color={COLORS.teal}
+              style={styles.pickerLoading}
+            />
+          ) : (
+            <ScrollView
+              style={styles.pickerOptions}
+              keyboardShouldPersistTaps="handled"
+            >
               {filtered.map(option => (
-                <TouchableOpacity key={option.id} style={[styles.pickerOption, selectedId === option.id && styles.pickerOptionSelected]} onPress={() => onSelect(option.id)}>
-                  {selectedId === option.id ? <Check size={16} color={COLORS.teal} /> : <View style={styles.pickerCheckSpacer} />}
-                  <Text style={[styles.pickerOptionText, selectedId === option.id && styles.pickerOptionTextSelected]}>{option.label}</Text>
+                <TouchableOpacity
+                  key={option.id}
+                  style={[
+                    styles.pickerOption,
+                    selectedId === option.id && styles.pickerOptionSelected,
+                  ]}
+                  onPress={() => onSelect(option.id)}
+                >
+                  {selectedId === option.id ? (
+                    <Check size={16} color={COLORS.teal} />
+                  ) : (
+                    <View style={styles.pickerCheckSpacer} />
+                  )}
+                  <Text
+                    style={[
+                      styles.pickerOptionText,
+                      selectedId === option.id &&
+                        styles.pickerOptionTextSelected,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
                 </TouchableOpacity>
               ))}
-              {!filtered.length ? <Text style={styles.pickerEmpty}>No options found.</Text> : null}
+              {!filtered.length ? (
+                <Text style={styles.pickerEmpty}>No options found.</Text>
+              ) : null}
             </ScrollView>
           )}
-          <TouchableOpacity style={styles.pickerCancel} onPress={onClose}><Text style={styles.cancelButtonText}>Cancel</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.pickerCancel} onPress={onClose}>
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -901,7 +1249,11 @@ function getPatientAge(value: string) {
   if (Number.isNaN(date.getTime())) return null;
   const today = new Date();
   let age = today.getFullYear() - date.getFullYear();
-  if (today.getMonth() < date.getMonth() || (today.getMonth() === date.getMonth() && today.getDate() < date.getDate())) age--;
+  if (
+    today.getMonth() < date.getMonth() ||
+    (today.getMonth() === date.getMonth() && today.getDate() < date.getDate())
+  )
+    age--;
   return age >= 0 ? age : null;
 }
 
@@ -954,14 +1306,24 @@ export function PatientDetailsModal({
 }) {
   const active = Number(patient?.is_active ?? 1) === 1;
   const birthDate = formatLongPatientDate(patient?.date_of_birth);
-  const registrationDate = formatShortPatientDate(patient?.registered_at || patient?.created_at);
-  const lastVisit = formatShortPatientDate(summary?.last_visit || patient?.last_visit);
-  const address = patient?.address || [patient?.city, patient?.state].filter(Boolean).join(', ');
+  const registrationDate = formatShortPatientDate(
+    patient?.registered_at || patient?.created_at,
+  );
+  const lastVisit = formatShortPatientDate(
+    summary?.last_visit || patient?.last_visit,
+  );
+  const address =
+    patient?.address ||
+    [patient?.city, patient?.state].filter(Boolean).join(', ');
   const formatMoney = (value?: number | null) =>
     value === null || value === undefined || !Number.isFinite(Number(value))
       ? null
       : `₹${Number(value).toFixed(2)}`;
-  const row = (label: string, value?: string | number | null, Icon?: React.ComponentType<{ size?: number; color?: string }>) =>
+  const row = (
+    label: string,
+    value?: string | number | null,
+    Icon?: React.ComponentType<{ size?: number; color?: string }>,
+  ) =>
     hasPatientDetail(value) ? (
       <View key={label} style={styles.detailRow}>
         <View style={styles.detailLabelGroup}>
@@ -982,7 +1344,9 @@ export function PatientDetailsModal({
         <View style={styles.detailsModal}>
           <View style={styles.modalHeader}>
             <View style={styles.headerIcon}>
-              <Text style={styles.patientDetailsAvatarText}>{patient?.full_name?.trim().charAt(0).toUpperCase() || 'P'}</Text>
+              <Text style={styles.patientDetailsAvatarText}>
+                {patient?.full_name?.trim().charAt(0).toUpperCase() || 'P'}
+              </Text>
             </View>
             <View style={styles.modalHeaderText}>
               <Text style={styles.modalTitle} numberOfLines={1}>
@@ -992,19 +1356,43 @@ export function PatientDetailsModal({
                 {patient?.patient_code || `Patient ID: ${patient?.id ?? '—'}`}
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.patientDetailsClose}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.patientDetailsClose}
+            >
               <X size={20} color={COLORS.muted} />
             </TouchableOpacity>
           </View>
-          {!loading && patient ? <View style={styles.patientDetailsHeaderActions}>
-            <View style={[styles.detailsStatusPill, active ? styles.activePill : styles.inactivePill]}>
-              <Text style={[styles.statusPillText, active ? styles.activeText : styles.inactiveText]}>{active ? 'Active' : 'Inactive'}</Text>
+          {!loading && patient ? (
+            <View style={styles.patientDetailsHeaderActions}>
+              <View
+                style={[
+                  styles.detailsStatusPill,
+                  active ? styles.activePill : styles.inactivePill,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusPillText,
+                    active ? styles.activeText : styles.inactiveText,
+                  ]}
+                >
+                  {active ? 'Active' : 'Inactive'}
+                </Text>
+              </View>
+              {canEdit ? (
+                <TouchableOpacity
+                  style={styles.editInformationButton}
+                  onPress={onEdit}
+                >
+                  <Edit3 size={15} color="#1F2937" />
+                  <Text style={styles.editInformationText}>
+                    Edit Information
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
-            {canEdit ? <TouchableOpacity style={styles.editInformationButton} onPress={onEdit}>
-              <Edit3 size={15} color="#1F2937" />
-              <Text style={styles.editInformationText}>Edit Information</Text>
-            </TouchableOpacity> : null}
-          </View> : null}
+          ) : null}
           {loading || !patient ? (
             <View style={styles.loadingBox}>
               <ActivityIndicator size="large" color={COLORS.teal} />
@@ -1039,12 +1427,14 @@ export function PatientDetailsModal({
                     </Text>
                   </View>
                 </View>
-                {canEdit ? <TouchableOpacity
-                  style={styles.editIconButton}
-                  onPress={onEdit}
-                >
-                  <Text style={styles.editIconText}>Edit</Text>
-                </TouchableOpacity> : null}
+                {canEdit ? (
+                  <TouchableOpacity
+                    style={styles.editIconButton}
+                    onPress={onEdit}
+                  >
+                    <Text style={styles.editIconText}>Edit</Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
 
               <DetailSection title="Personal Details" icon={User}>
@@ -1062,14 +1452,23 @@ export function PatientDetailsModal({
               <DetailSection title="Visit Information" icon={Calendar}>
                 {row('Registration Date', registrationDate)}
                 {row('Last Visit', lastVisit)}
-                {row('Total Visits', summary?.total_visits ?? patient.total_visits ?? 0)}
+                {row(
+                  'Total Visits',
+                  summary?.total_visits ?? patient.total_visits ?? 0,
+                )}
               </DetailSection>
               <DetailSection title="Emergency Contact" icon={ShieldAlert}>
                 {row('Contact', patient.emergency_contact, Phone)}
               </DetailSection>
               <DetailSection title="Billing Summary" icon={Wallet}>
-                {row('Treatment Bill', formatMoney(summary?.treatment_total_amount))}
-                {row('Medicine Bill', formatMoney(summary?.medicine_total_amount))}
+                {row(
+                  'Treatment Bill',
+                  formatMoney(summary?.treatment_total_amount),
+                )}
+                {row(
+                  'Medicine Bill',
+                  formatMoney(summary?.medicine_total_amount),
+                )}
                 {row('Grand Total', formatMoney(summary?.grand_total_amount))}
                 {row('Treatment Due', formatMoney(summary?.treatment_due))}
                 {row('Medicine Due', formatMoney(summary?.medicine_due))}
@@ -1126,31 +1525,41 @@ export function PatientDetailsModal({
               <View style={[styles.actionSection, { display: 'none' }]}>
                 <Text style={styles.sectionHeading}>PATIENT ACTIONS</Text>
                 <View style={styles.actionGrid}>
-                  {canBookAppointment ? <ActionButton
-                    icon={CalendarDays}
-                    title="Book Appointment"
-                    onPress={onBookAppointment}
-                  /> : null}
-                  {canOpenAppointments ? <ActionButton
-                    icon={CalendarDays}
-                    title="Appointments"
-                    onPress={onOpenAppointments}
-                  /> : null}
-                  {canOpenPrescriptions ? <ActionButton
-                    icon={FileText}
-                    title="Prescriptions"
-                    onPress={onOpenPrescriptions}
-                  /> : null}
-                  {canOpenLabs ? <ActionButton
-                    icon={FlaskConical}
-                    title="Lab Reports"
-                    onPress={onOpenLabs}
-                  /> : null}
-                  {canOpenBilling ? <ActionButton
-                    icon={Wallet}
-                    title="Billing"
-                    onPress={onOpenBilling}
-                  /> : null}
+                  {canBookAppointment ? (
+                    <ActionButton
+                      icon={CalendarDays}
+                      title="Book Appointment"
+                      onPress={onBookAppointment}
+                    />
+                  ) : null}
+                  {canOpenAppointments ? (
+                    <ActionButton
+                      icon={CalendarDays}
+                      title="Appointments"
+                      onPress={onOpenAppointments}
+                    />
+                  ) : null}
+                  {canOpenPrescriptions ? (
+                    <ActionButton
+                      icon={FileText}
+                      title="Prescriptions"
+                      onPress={onOpenPrescriptions}
+                    />
+                  ) : null}
+                  {canOpenLabs ? (
+                    <ActionButton
+                      icon={FlaskConical}
+                      title="Lab Reports"
+                      onPress={onOpenLabs}
+                    />
+                  ) : null}
+                  {canOpenBilling ? (
+                    <ActionButton
+                      icon={Wallet}
+                      title="Billing"
+                      onPress={onOpenBilling}
+                    />
+                  ) : null}
                   {patient.phone ? (
                     <ActionButton
                       icon={Phone}
@@ -1160,20 +1569,32 @@ export function PatientDetailsModal({
                   ) : null}
                 </View>
               </View>
-              {false && canChangeStatus ? <TouchableOpacity
-                style={[
-                  styles.statusAction,
-                  active ? styles.deactivateAction : styles.activateAction,
-                ]}
-                onPress={onToggleStatus}
-              >
-                <Text style={styles.statusActionText}>
-                  {active ? 'Deactivate Patient' : 'Activate Patient'}
-                </Text>
-              </TouchableOpacity> : null}
-              {false && canDelete ? <TouchableOpacity style={[styles.statusAction, { backgroundColor: '#FEE2E2', marginTop: 8 }]} onPress={onDelete}>
-                <Text style={[styles.statusActionText, { color: '#B91C1C' }]}>Delete Patient</Text>
-              </TouchableOpacity> : null}
+              {false && canChangeStatus ? (
+                <TouchableOpacity
+                  style={[
+                    styles.statusAction,
+                    active ? styles.deactivateAction : styles.activateAction,
+                  ]}
+                  onPress={onToggleStatus}
+                >
+                  <Text style={styles.statusActionText}>
+                    {active ? 'Deactivate Patient' : 'Activate Patient'}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+              {false && canDelete ? (
+                <TouchableOpacity
+                  style={[
+                    styles.statusAction,
+                    { backgroundColor: '#FEE2E2', marginTop: 8 },
+                  ]}
+                  onPress={onDelete}
+                >
+                  <Text style={[styles.statusActionText, { color: '#B91C1C' }]}>
+                    Delete Patient
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
             </ScrollView>
           )}
         </View>
@@ -1185,25 +1606,39 @@ export function PatientDetailsModal({
 function hasPatientDetail(value?: string | number | null) {
   if (value === null || value === undefined) return false;
   const normalized = String(value).trim().toLowerCase();
-  return normalized !== '' && normalized !== '-' && normalized !== 'null' && normalized !== 'undefined';
+  return (
+    normalized !== '' &&
+    normalized !== '-' &&
+    normalized !== 'null' &&
+    normalized !== 'undefined'
+  );
 }
 
 function formatShortPatientDate(value?: string | null) {
   if (!hasPatientDetail(value)) return null;
   const date = new Date(value as string);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-US');
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString('en-US');
 }
 
 function formatLongPatientDate(value?: string | null) {
   if (!hasPatientDetail(value)) return null;
   const parts = String(value).slice(0, 10).split('-').map(Number);
-  const date = parts.length === 3 && parts.every(Number.isFinite)
-    ? new Date(parts[0], parts[1] - 1, parts[2])
-    : new Date(value as string);
+  const date =
+    parts.length === 3 && parts.every(Number.isFinite)
+      ? new Date(parts[0], parts[1] - 1, parts[2])
+      : new Date(value as string);
   if (Number.isNaN(date.getTime())) return value;
   const day = date.getDate();
-  const suffix = day % 100 >= 11 && day % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[day % 10] || 'th';
-  return `${date.toLocaleDateString('en-US', { month: 'long' })} ${day}${suffix}, ${date.getFullYear()}`;
+  const suffix =
+    day % 100 >= 11 && day % 100 <= 13
+      ? 'th'
+      : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[day % 10] ||
+        'th';
+  return `${date.toLocaleDateString('en-US', {
+    month: 'long',
+  })} ${day}${suffix}, ${date.getFullYear()}`;
 }
 
 function DetailSection({
@@ -1220,7 +1655,9 @@ function DetailSection({
   return (
     <View style={styles.detailSection}>
       <View style={styles.detailSectionHeader}>
-        <View style={styles.detailSectionIcon}><Icon size={16} color="#0D9488" /></View>
+        <View style={styles.detailSectionIcon}>
+          <Icon size={16} color="#0D9488" />
+        </View>
         <Text style={styles.detailSectionTitle}>{title}</Text>
       </View>
       <View style={styles.detailSectionContent}>{visibleChildren}</View>
@@ -1407,7 +1844,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 12,
   },
-  patientFormBackdrop: { backgroundColor: 'rgba(15, 23, 42, 0.45)', alignItems: 'center', padding: 10 },
+  patientFormBackdrop: {
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    alignItems: 'center',
+    padding: 10,
+  },
   formModal: {
     maxWidth: 760,
     backgroundColor: '#FFFFFF',
@@ -1448,8 +1889,18 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 17, fontWeight: '800', color: COLORS.ink },
   modalSubtitle: { fontSize: 11, color: COLORS.muted, marginTop: 2 },
   closeButton: { padding: 7 },
-  patientFormHeader: { minHeight: 58, paddingHorizontal: 14, paddingVertical: 10, gap: 8 },
-  patientFormHeaderIcon: { width: 20, height: 22, borderRadius: 0, backgroundColor: 'transparent' },
+  patientFormHeader: {
+    minHeight: 58,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  patientFormHeaderIcon: {
+    width: 20,
+    height: 22,
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+  },
   patientFormTitle: { fontWeight: '600' },
   formContent: { padding: 14, gap: 18, paddingBottom: 20 },
   formSection: { gap: 15 },
@@ -1460,8 +1911,19 @@ const styles = StyleSheet.create({
     color: COLORS.teal,
     marginTop: 5,
   },
-  patientFormSectionHeading: { fontSize: 12, fontWeight: '500', color: '#718096' },
-  patientFormSectionHeadingRow: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingBottom: 8, borderBottomWidth: 1, borderColor: COLORS.line },
+  patientFormSectionHeading: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#718096',
+  },
+  patientFormSectionHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderColor: COLORS.line,
+  },
   formField: { gap: 6 },
   fieldLabel: { fontSize: 12, fontWeight: '500', color: '#334155' },
   requiredMark: { color: '#EF4444', fontWeight: '600' },
@@ -1487,33 +1949,136 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#F8FAFC',
   },
-  dateTextInput: { flex: 1, minWidth: 0, height: 37, paddingHorizontal: 11, color: COLORS.ink, fontSize: 13 },
-  datePickerButton: { width: 38, height: 37, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 0, paddingVertical: 0 },
+  dateTextInput: {
+    flex: 1,
+    minWidth: 0,
+    height: 37,
+    paddingHorizontal: 11,
+    color: COLORS.ink,
+    fontSize: 13,
+  },
+  datePickerButton: {
+    width: 38,
+    height: 37,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
   datePickerCalendarTrigger: { borderWidth: 0, backgroundColor: 'transparent' },
   datePickerHiddenText: { display: 'none' },
-  genderChoices: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 2, borderWidth: 1, borderColor: 'transparent', borderRadius: 9 },
+  genderChoices: {
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 2,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: 9,
+  },
   genderChoicesFocused: { borderColor: '#2DD4BF', borderWidth: 2 },
-  genderRadioOption: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 38 },
-  radioOuter: { width: 16, height: 16, borderRadius: 8, borderWidth: 1, borderColor: '#2DD4BF', alignItems: 'center', justifyContent: 'center' },
+  genderRadioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 38,
+  },
+  radioOuter: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2DD4BF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   radioOuterSelected: { borderWidth: 2 },
-  radioInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.teal },
+  radioInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.teal,
+  },
   genderRadioText: { color: '#334155', fontSize: 12 },
-  formSelect: { minHeight: 39, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 11, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, backgroundColor: '#F8FAFC' },
+  formSelect: {
+    minHeight: 39,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingHorizontal: 11,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+  },
   formSelectText: { flex: 1, color: '#334155', fontSize: 13 },
   formPlaceholder: { color: '#718096' },
-  pickerBackdrop: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: 'rgba(15,23,42,0.35)' },
-  pickerModal: { width: '100%', maxWidth: 380, maxHeight: '75%', padding: 14, borderRadius: 12, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: COLORS.line, elevation: 10 },
-  pickerTitle: { marginBottom: 12, color: COLORS.ink, fontSize: 16, fontWeight: '700' },
-  pickerSearch: { minHeight: 40, marginBottom: 8, paddingHorizontal: 10, borderWidth: 1, borderColor: COLORS.line, borderRadius: 9, backgroundColor: '#F8FAFC', color: COLORS.ink, fontSize: 13 },
+  pickerBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(15,23,42,0.35)',
+  },
+  pickerModal: {
+    width: '100%',
+    maxWidth: 380,
+    maxHeight: '75%',
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    elevation: 10,
+  },
+  pickerTitle: {
+    marginBottom: 12,
+    color: COLORS.ink,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  pickerSearch: {
+    minHeight: 40,
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    borderRadius: 9,
+    backgroundColor: '#F8FAFC',
+    color: COLORS.ink,
+    fontSize: 13,
+  },
   pickerOptions: { flexGrow: 0, maxHeight: 330 },
-  pickerOption: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 9, borderRadius: 8 },
+  pickerOption: {
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    paddingHorizontal: 9,
+    borderRadius: 8,
+  },
   pickerOptionSelected: { backgroundColor: '#E6F4F1' },
   pickerCheckSpacer: { width: 16, height: 16 },
   pickerOptionText: { flex: 1, color: '#334155', fontSize: 13 },
   pickerOptionTextSelected: { color: COLORS.teal, fontWeight: '700' },
   pickerLoading: { paddingVertical: 20 },
-  pickerEmpty: { padding: 14, color: COLORS.muted, fontSize: 12, textAlign: 'center' },
-  pickerCancel: { minHeight: 39, marginTop: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.line, borderRadius: 8 },
+  pickerEmpty: {
+    padding: 14,
+    color: COLORS.muted,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  pickerCancel: {
+    minHeight: 39,
+    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    borderRadius: 8,
+  },
   genderOption: {
     flex: 1,
     paddingVertical: 10,
@@ -1567,11 +2132,44 @@ const styles = StyleSheet.create({
   },
   loadingText: { color: COLORS.muted, fontSize: 13 },
   detailsContent: { padding: 14, gap: 12, backgroundColor: '#F0F2F3' },
-  patientDetailsAvatarText: { color: '#159E96', fontSize: 22, fontWeight: '800' },
-  patientDetailsHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingBottom: 13, backgroundColor: '#EEF4F4' },
-  patientDetailsClose: { width: 25, height: 25, borderRadius: 13, borderWidth: 1, borderColor: '#32B8AE', alignItems: 'center', justifyContent: 'center' },
-  detailsStatusPill: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 18 },
-  editInformationButton: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: '#E1E7EA', borderRadius: 10, backgroundColor: '#F8FAFC' },
+  patientDetailsAvatarText: {
+    color: '#159E96',
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  patientDetailsHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 13,
+    backgroundColor: '#EEF4F4',
+  },
+  patientDetailsClose: {
+    width: 25,
+    height: 25,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: '#32B8AE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailsStatusPill: {
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 18,
+  },
+  editInformationButton: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#E1E7EA',
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+  },
   editInformationText: { color: '#1F2937', fontSize: 12, fontWeight: '600' },
   profileHero: {
     flexDirection: 'row',
@@ -1628,8 +2226,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
-  detailSectionHeader: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 13, backgroundColor: '#EFF8F7', borderBottomWidth: 1, borderColor: '#E6EEEE' },
-  detailSectionIcon: { width: 31, height: 31, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#DDF0EE' },
+  detailSectionHeader: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    paddingHorizontal: 13,
+    backgroundColor: '#EFF8F7',
+    borderBottomWidth: 1,
+    borderColor: '#E6EEEE',
+  },
+  detailSectionIcon: {
+    width: 31,
+    height: 31,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    backgroundColor: '#DDF0EE',
+  },
   detailSectionTitle: { color: '#1F2937', fontSize: 12, fontWeight: '800' },
   detailSectionContent: { gap: 7, padding: 12 },
   detailRow: {
@@ -1642,7 +2256,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#F8FAFC',
   },
-  detailLabelGroup: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  detailLabelGroup: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   detailLabel: { flex: 1, fontSize: 11, color: COLORS.muted },
   detailValue: {
     flex: 1.2,

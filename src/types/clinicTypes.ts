@@ -24,6 +24,7 @@ export interface Clinic {
   country?: string;
   zip_code?: string;
   status: 'active' | 'inactive' | 'suspended';
+  is_active?: number | boolean;
   subscription_plan?: string;
   max_doctors?: number;
   created_at?: string;
@@ -87,8 +88,11 @@ export interface Appointment {
   doctor_id: number;
   patient_name: string;
   patient_phone?: string;
+  patient_code?: string;
   doctor_name: string;
   doctor_specialization?: string;
+  specialization?: string;
+  clinic_name?: string;
   appointment_date: string;
   appointment_time?: string;
   time_slot: string;
@@ -222,10 +226,29 @@ export interface TreatmentBill {
   net_amount?: number;
   paid_amount?: number;
   pending_amount?: number;
-  payment_status?: 'paid' | 'pending' | 'partial' | 'partially_paid' | 'cancelled';
+  payment_status?:
+    | 'paid'
+    | 'pending'
+    | 'partial'
+    | 'partially_paid'
+    | 'cancelled';
   status?: 'pending' | 'partial' | 'paid' | 'cancelled';
-  payment_mode?: 'cash' | 'card' | 'upi' | 'insurance' | 'net_banking' | 'cheque' | string;
-  payment_method?: 'cash' | 'card' | 'upi' | 'insurance' | 'net_banking' | 'cheque' | string;
+  payment_mode?:
+    | 'cash'
+    | 'card'
+    | 'upi'
+    | 'insurance'
+    | 'net_banking'
+    | 'cheque'
+    | string;
+  payment_method?:
+    | 'cash'
+    | 'card'
+    | 'upi'
+    | 'insurance'
+    | 'net_banking'
+    | 'cheque'
+    | string;
   description?: string;
   created_by?: string | number;
   created_by_name?: string;
@@ -254,7 +277,12 @@ export interface LabTestOrder {
   test_name: string;
   category: string;
   cost: number;
-  status: 'ordered' | 'sample_collected' | 'processing' | 'completed' | 'cancelled';
+  status:
+    | 'ordered'
+    | 'sample_collected'
+    | 'processing'
+    | 'completed'
+    | 'cancelled';
   ordered_date: string;
   sample_collected_at?: string;
   report_id?: number;
@@ -283,7 +311,13 @@ export interface NotificationItem {
   user_id: number;
   title: string;
   message: string;
-  type: 'appointment' | 'prescription' | 'billing' | 'lab' | 'system' | 'broadcast';
+  type:
+    | 'appointment'
+    | 'prescription'
+    | 'billing'
+    | 'lab'
+    | 'system'
+    | 'broadcast';
   is_read: boolean;
   created_at: string;
 }

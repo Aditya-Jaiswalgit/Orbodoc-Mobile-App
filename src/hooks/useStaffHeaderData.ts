@@ -3,12 +3,21 @@ import { Alert } from 'react-native';
 import { useAuthContext } from '../context/AuthContext';
 import { fetchProfileApi } from '../api/authApi';
 import {
-  fetchClinicPlans, updateVideoAvailability, type ClinicPlan,
+  fetchClinicPlans,
+  updateVideoAvailability,
+  type ClinicPlan,
 } from '../api/staffHeaderApi';
 import { useNotificationInbox } from './useNotificationInbox';
-import { notifyProfileUpdated, subscribeProfileUpdated } from '../utils/profileEvents';
+import {
+  notifyProfileUpdated,
+  subscribeProfileUpdated,
+} from '../utils/profileEvents';
 
-export function useStaffHeaderData(notificationsOpen: boolean, planOpen: boolean, _profileOpen: boolean) {
+export function useStaffHeaderData(
+  notificationsOpen: boolean,
+  planOpen: boolean,
+  _profileOpen: boolean,
+) {
   const { user, token, activeClinicId, updateUserProfile } = useAuthContext();
   const scope = `${user?.id}:${activeClinicId}:${token}`;
   const scopeRef = useRef(scope);
@@ -21,16 +30,22 @@ export function useStaffHeaderData(notificationsOpen: boolean, planOpen: boolean
   const [videoBusy, setVideoBusy] = useState(false);
   const [planRetry, setPlanRetry] = useState(0);
   const [profileRevision, setProfileRevision] = useState(0);
-  useEffect(() => subscribeProfileUpdated(() => setProfileRevision(value => value + 1)), []);
+  useEffect(
+    () => subscribeProfileUpdated(() => setProfileRevision(value => value + 1)),
+    [],
+  );
 
   useEffect(() => {
     scopeRef.current = scope;
-    return () => { scopeRef.current = ''; };
+    return () => {
+      scopeRef.current = '';
+    };
   }, [scope]);
 
   const previousNotificationsOpen = useRef(notificationsOpen);
   useEffect(() => {
-    if (notificationsOpen && !previousNotificationsOpen.current) void inbox.refresh();
+    if (notificationsOpen && !previousNotificationsOpen.current)
+      void inbox.refresh();
     previousNotificationsOpen.current = notificationsOpen;
   }, [notificationsOpen, inbox.refresh]);
 
@@ -45,34 +60,56 @@ export function useStaffHeaderData(notificationsOpen: boolean, planOpen: boolean
       return;
     }
     setPlanLoading(true);
-    fetchClinicPlans().then(result => {
-      if (!current) return;
-      if (!result.success || !Array.isArray(result.data?.clinics)) {
-        setPlanError(true);
-        return;
-      }
-      setPlan(result.data.clinics.find(clinic => Number(clinic.id) === Number(activeClinicId)) ?? null);
-    }).catch(() => { if (current) setPlanError(true); })
-      .finally(() => { if (current) setPlanLoading(false); });
-    return () => { current = false; };
+    fetchClinicPlans()
+      .then(result => {
+        if (!current) return;
+        if (!result.success || !Array.isArray(result.data?.clinics)) {
+          setPlanError(true);
+          return;
+        }
+        setPlan(
+          result.data.clinics.find(
+            clinic => Number(clinic.id) === Number(activeClinicId),
+          ) ?? null,
+        );
+      })
+      .catch(() => {
+        if (current) setPlanError(true);
+      })
+      .finally(() => {
+        if (current) setPlanLoading(false);
+      });
+    return () => {
+      current = false;
+    };
   }, [scope, activeClinicId, planOpen, planRetry]);
 
   useEffect(() => {
     let current = true;
     setProfile(null);
     setVideoBusy(false);
-    fetchProfileApi().then(result => {
-      if (current && result.success && result.data) setProfile(result.data.user || result.data);
-    }).catch(() => { if (current) setProfile(null); });
-    return () => { current = false; };
+    fetchProfileApi()
+      .then(result => {
+        if (current && result.success && result.data)
+          setProfile(result.data.user || result.data);
+      })
+      .catch(() => {
+        if (current) setProfile(null);
+      });
+    return () => {
+      current = false;
+    };
   }, [scope, profileRevision]);
 
   const changeNotifications = async (clear: boolean) => {
     const success = await (clear ? inbox.clearAll() : inbox.markAllRead());
-    if (!success && scopeRef.current === scope) Alert.alert('Unable to update notifications', 'Please try again.');
+    if (!success && scopeRef.current === scope)
+      Alert.alert('Unable to update notifications', 'Please try again.');
   };
 
-  const canManageVideoCalling = String(profile?.role_name || profile?.roleName || '').toLowerCase() === 'doctor' || Number(profile?.is_doctor) === 1;
+  const canManageVideoCalling =
+    String(profile?.role_name || profile?.roleName || '').toLowerCase() ===
+      'doctor' || Number(profile?.is_doctor) === 1;
   const videoCallingEnabled = Number(profile?.is_video_enabled) === 1;
   const toggleVideo = async (enabled: boolean) => {
     if (videoBusy || !canManageVideoCalling) return;
@@ -81,21 +118,36 @@ export function useStaffHeaderData(notificationsOpen: boolean, planOpen: boolean
       const result = await updateVideoAvailability(enabled);
       if (scopeRef.current !== scope) return;
       if (!result.success) throw new Error(result.message);
-      setProfile(previous => ({ ...previous, is_video_enabled: enabled ? 1 : 0 }));
+      setProfile(previous => ({
+        ...previous,
+        is_video_enabled: enabled ? 1 : 0,
+      }));
       updateUserProfile?.({ is_video_enabled: enabled ? 1 : 0 });
       notifyProfileUpdated();
     } catch {
-      if (scopeRef.current === scope) Alert.alert('Unable to update video calling', 'Please try again.');
+      if (scopeRef.current === scope)
+        Alert.alert('Unable to update video calling', 'Please try again.');
     } finally {
       if (scopeRef.current === scope) setVideoBusy(false);
     }
   };
 
   return {
-    notifications: inbox.notifications, unreadCount: inbox.unreadCount, notificationsLoading: inbox.loading,
-    notificationsError: Boolean(inbox.error), notificationBusy: inbox.busy,
-    refreshNotifications: inbox.refresh, markAllRead: () => changeNotifications(false), clearAll: () => changeNotifications(true),
-    plan, planLoading, planError, retryPlan: () => setPlanRetry(value => value + 1),
-    canManageVideoCalling, videoCallingEnabled, videoBusy, toggleVideo,
+    notifications: inbox.notifications,
+    unreadCount: inbox.unreadCount,
+    notificationsLoading: inbox.loading,
+    notificationsError: Boolean(inbox.error),
+    notificationBusy: inbox.busy,
+    refreshNotifications: inbox.refresh,
+    markAllRead: () => changeNotifications(false),
+    clearAll: () => changeNotifications(true),
+    plan,
+    planLoading,
+    planError,
+    retryPlan: () => setPlanRetry(value => value + 1),
+    canManageVideoCalling,
+    videoCallingEnabled,
+    videoBusy,
+    toggleVideo,
   };
 }

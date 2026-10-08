@@ -16,7 +16,7 @@ export const useAuth = () => {
   const clearError = () => setError(null);
 
   const loginStaff = async (
-    payload: StaffLoginPayload
+    payload: StaffLoginPayload,
   ): Promise<AuthResponseData | null> => {
     setLoading(true);
     setError(null);
@@ -42,7 +42,7 @@ export const useAuth = () => {
   };
 
   const loginPatient = async (
-    payload: PatientLoginPayload
+    payload: PatientLoginPayload,
   ): Promise<AuthResponseData | null> => {
     setLoading(true);
     setError(null);

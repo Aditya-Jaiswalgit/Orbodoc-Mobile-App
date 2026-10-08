@@ -5,11 +5,13 @@ import { Appointment } from '../types/clinicTypes';
 export async function getAppointmentsApi(
   token: string,
   queryParams?: string,
+  signal?: AbortSignal,
 ): Promise<ApiResponse<Appointment[]>> {
   const query = queryParams ? `?${queryParams}` : '';
   return apiFetch<Appointment[]>(`/appointments${query}`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
+    signal,
   });
 }
 
@@ -30,13 +32,10 @@ export async function getAvailableSlotsApi(
 ): Promise<ApiResponse<unknown>> {
   const params = new URLSearchParams({ doctor_id: String(doctorId), date });
   if (clinicId) params.set('clinic_id', String(clinicId));
-  return apiFetch<unknown>(
-    `/appointments/slots?${params.toString()}`,
-    {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    },
-  );
+  return apiFetch<unknown>(`/appointments/slots?${params.toString()}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
 
 export async function bookAppointmentApi(
@@ -62,6 +61,28 @@ export async function updateAppointmentStatusApi(
   });
 }
 
+export async function rescheduleAppointmentApi(
+  token: string,
+  id: number,
+  appointmentData: Pick<Appointment, 'appointment_date' | 'appointment_time'>,
+): Promise<ApiResponse<Appointment>> {
+  return apiFetch<Appointment>(`/appointments/${id}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(appointmentData),
+  });
+}
+
+export async function deleteAppointmentApi(
+  token: string,
+  id: number,
+): Promise<ApiResponse<unknown>> {
+  return apiFetch<unknown>(`/appointments/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
 export async function cancelAppointmentApi(
   token: string,
   id: number,
@@ -80,4 +101,21 @@ export async function sendAppointmentReminderApi(
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}` },
   });
+}
+
+export async function startAppointmentVideoCallApi(
+  token: string,
+  id: number,
+  allowInsufficientBalance = false,
+): Promise<ApiResponse<{ videoRoomId?: string; warning?: string }>> {
+  return apiFetch<{ videoRoomId?: string; warning?: string }>(
+    `/appointments/${id}/start-call`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(
+        allowInsufficientBalance ? { allow_insufficient_balance: true } : {},
+      ),
+    },
+  );
 }

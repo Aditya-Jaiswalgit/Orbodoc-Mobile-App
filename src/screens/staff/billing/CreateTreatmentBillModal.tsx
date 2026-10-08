@@ -1,5 +1,11 @@
 // src/screens/staff/billing/CreateTreatmentBillModal.tsx
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -30,7 +36,10 @@ import {
 } from '../../../api/billingApi';
 import { fetchPatientsApi } from '../../../api/patientApi';
 import { getAppointmentsApi } from '../../../api/appointmentApi';
-import { getPrescriptionsApi, getPrescriptionByIdApi } from '../../../api/prescriptionApi';
+import {
+  getPrescriptionsApi,
+  getPrescriptionByIdApi,
+} from '../../../api/prescriptionApi';
 
 export interface PatientOption {
   id: number | string;
@@ -89,25 +98,28 @@ const extractRows = <T,>(value: unknown): T[] => {
   return [];
 };
 
-const roundCurrency = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+const roundCurrency = (value: number) =>
+  Math.round((value + Number.EPSILON) * 100) / 100;
 
-export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> = ({
-  visible,
-  onClose,
-  onSuccess,
-  editingBill,
-  activeClinicId,
-  token,
-}) => {
+export const CreateTreatmentBillModal: React.FC<
+  CreateTreatmentBillModalProps
+> = ({ visible, onClose, onSuccess, editingBill, activeClinicId, token }) => {
   // Form State
   const [patientSearchTerm, setPatientSearchTerm] = useState('');
-  const [patientSuggestions, setPatientSuggestions] = useState<PatientOption[]>([]);
+  const [patientSuggestions, setPatientSuggestions] = useState<PatientOption[]>(
+    [],
+  );
   const [showPatientSuggestions, setShowPatientSuggestions] = useState(false);
   const [patientSearching, setPatientSearching] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<PatientOption | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<PatientOption | null>(
+    null,
+  );
 
-  const [appointmentOptions, setAppointmentOptions] = useState<AppointmentOption[]>([]);
-  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentOption | null>(null);
+  const [appointmentOptions, setAppointmentOptions] = useState<
+    AppointmentOption[]
+  >([]);
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<AppointmentOption | null>(null);
   const [appointmentsLoading, setAppointmentsLoading] = useState(false);
   const [showApptDropdown, setShowApptDropdown] = useState(false);
 
@@ -128,6 +140,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [items, setItems] = useState<TreatmentBillItem[]>([]);
   const itemsRef = useRef(items);
+  const formScrollRef = useRef<any>(null);
   itemsRef.current = items;
 
   // New Item Input
@@ -220,7 +233,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
       } else {
         setConsultantFee('0');
         setItems(
-          rawItems.map((it) => ({
+          rawItems.map(it => ({
             service_name: it.service_name || '',
             service_code: it.service_code || '',
             quantity: Number(it.quantity) || 1,
@@ -228,19 +241,35 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
             discount_pct: Number(it.discount_pct) || 0,
             tax_pct: Number(it.tax_pct) || 0,
             total_price: Number(it.total_price) || 0,
-          }))
+          })),
         );
       }
 
       setPaidAmount(String(editingBill.paid_amount || ''));
-      setPaymentMethod(editingBill.payment_method || editingBill.payment_mode || 'cash');
+      setPaymentMethod(
+        editingBill.payment_method || editingBill.payment_mode || 'cash',
+      );
       const st = String(editingBill.status || 'pending').toLowerCase();
-      setStatus(st === 'paid' ? 'paid' : st === 'partial' || st === 'partially_paid' ? 'partial' : 'pending');
+      setStatus(
+        st === 'paid'
+          ? 'paid'
+          : st === 'partial' || st === 'partially_paid'
+          ? 'partial'
+          : 'pending',
+      );
       setDescription(editingBill.description || '');
     } else {
       resetForm();
     }
   }, [visible, editingBill, activeClinicId, token, resetForm]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const frame = requestAnimationFrame(() =>
+      formScrollRef.current?.scrollTo({ y: 0, animated: false }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [visible, editingBill]);
 
   // Search Patients dynamically
   useEffect(() => {
@@ -271,33 +300,36 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
             search: term,
             limit: 10,
           },
-          token
+          token,
         );
         if (requestId !== patientSearchRequestRef.current) return;
         if (res.success && res.data) {
           const list = extractRows<Record<string, any>>(res.data);
           setPatientSuggestions(
-            list.map((p) => ({
+            list.map(p => ({
               ...p,
               id: p.id,
               full_name: p.full_name || p.name || 'Unnamed Patient',
               phone: p.phone,
               patient_code: p.patient_code || p.code,
-            }))
+            })),
           );
         } else {
           setPatientSuggestions([]);
         }
       } catch {
-        if (requestId === patientSearchRequestRef.current) setPatientSuggestions([]);
+        if (requestId === patientSearchRequestRef.current)
+          setPatientSuggestions([]);
       } finally {
-        if (requestId === patientSearchRequestRef.current) setPatientSearching(false);
+        if (requestId === patientSearchRequestRef.current)
+          setPatientSearching(false);
       }
     }, 250);
 
     return () => {
       clearTimeout(timer);
-      if (requestId === patientSearchRequestRef.current) patientSearchRequestRef.current += 1;
+      if (requestId === patientSearchRequestRef.current)
+        patientSearchRequestRef.current += 1;
     };
   }, [patientSearchTerm, visible, selectedPatient, token, activeClinicId]);
 
@@ -321,7 +353,9 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
           const rawAppts = extractRows<Record<string, any>>(res.data);
 
           const completedAppts = rawAppts.filter((a: any) => {
-            const s = String(a.status || '').toLowerCase().trim();
+            const s = String(a.status || '')
+              .toLowerCase()
+              .trim();
             return s === 'complete' || s === 'completed';
           });
 
@@ -338,7 +372,8 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
           setAppointmentOptions(list);
           if (editingBill?.appointment_id) {
             const linkedAppointment = list.find(
-              (appointment) => String(appointment.id) === String(editingBill.appointment_id),
+              appointment =>
+                String(appointment.id) === String(editingBill.appointment_id),
             );
             if (linkedAppointment) setSelectedAppointment(linkedAppointment);
           }
@@ -371,39 +406,59 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                     ...rx,
                     ...p,
                     appointment_id: p?.appointment_id ?? rx.appointment_id,
-                    appointment_date: p?.appointment_date ?? rx.appointment_date,
-                    appointment_time: p?.appointment_time ?? rx.appointment_time,
-                    consultation_fee: Number(p?.consultation_fee ?? rx.consultation_fee) || 0,
+                    appointment_date:
+                      p?.appointment_date ?? rx.appointment_date,
+                    appointment_time:
+                      p?.appointment_time ?? rx.appointment_time,
+                    consultation_fee:
+                      Number(p?.consultation_fee ?? rx.consultation_fee) || 0,
                     diagnosis: p?.diagnosis ?? rx.diagnosis ?? '',
                     advice: p?.advice ?? rx.advice ?? '',
-                    items: Array.isArray(p?.items) ? p.items : (Array.isArray(rx?.items) ? rx.items : []),
+                    items: Array.isArray(p?.items)
+                      ? p.items
+                      : Array.isArray(rx?.items)
+                      ? rx.items
+                      : [],
                   };
                 }
               } catch {}
               return rx;
-            })
+            }),
           );
 
           if (!isCancelled) {
             setPrescriptionHistory(detailedList);
 
             // Web Parity: Auto-suggest consultant fee from recent prescription or strictly 0 if none
-            if (itemsRef.current.length === 0 && !consultantFeeEditedRef.current) {
-              const suggested = detailedList.find((item: any) => Number(item.consultation_fee) > 0);
-              const nextFee = suggested ? Number(suggested.consultation_fee) || 0 : 0;
+            if (
+              itemsRef.current.length === 0 &&
+              !consultantFeeEditedRef.current
+            ) {
+              const suggested = detailedList.find(
+                (item: any) => Number(item.consultation_fee) > 0,
+              );
+              const nextFee = suggested
+                ? Number(suggested.consultation_fee) || 0
+                : 0;
               setConsultantFee(String(roundCurrency(nextFee)));
             }
           }
         } else if (!isCancelled) {
           setPrescriptionHistory([]);
-          if (itemsRef.current.length === 0 && !consultantFeeEditedRef.current) {
+          if (
+            itemsRef.current.length === 0 &&
+            !consultantFeeEditedRef.current
+          ) {
             setConsultantFee('0');
           }
         }
       } catch {
         if (!isCancelled) {
           setPrescriptionHistory([]);
-          if (itemsRef.current.length === 0 && !consultantFeeEditedRef.current) {
+          if (
+            itemsRef.current.length === 0 &&
+            !consultantFeeEditedRef.current
+          ) {
             setConsultantFee('0');
           }
         }
@@ -417,7 +472,13 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
     return () => {
       isCancelled = true;
     };
-  }, [selectedPatient, visible, token, activeClinicId, editingBill?.appointment_id]);
+  }, [
+    selectedPatient,
+    visible,
+    token,
+    activeClinicId,
+    editingBill?.appointment_id,
+  ]);
 
   // Totals Calculation
   const formTotals = useMemo(() => {
@@ -427,7 +488,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
       let taxTotal = 0;
       let finalTotal = 0;
 
-      items.forEach((it) => {
+      items.forEach(it => {
         const qty = Number(it.quantity) || 1;
         const price = Number(it.unit_price) || 0;
         const disc = Number(it.discount_pct) || 0;
@@ -464,7 +525,10 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
 
   const pendingAmount = useMemo(() => {
     const paid = Math.max(0, parseFloat(paidAmount) || 0);
-    return Math.max(0, Math.round((formTotals.total_amount - paid) * 100) / 100);
+    return Math.max(
+      0,
+      Math.round((formTotals.total_amount - paid) * 100) / 100,
+    );
   }, [formTotals.total_amount, paidAmount]);
 
   // Handle Paid Amount change
@@ -492,7 +556,10 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
     }
     const qty = Math.max(1, Number(itemInput.quantity) || 1);
     const price = Math.max(0, Number(itemInput.unit_price) || 0);
-    const disc = Math.min(100, Math.max(0, Number(itemInput.discount_pct) || 0));
+    const disc = Math.min(
+      100,
+      Math.max(0, Number(itemInput.discount_pct) || 0),
+    );
     const tax = Math.max(0, Number(itemInput.tax_pct) || 0);
 
     const base = qty * price;
@@ -511,7 +578,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
       total_price,
     };
 
-    setItems((prev) => [...prev, newItem]);
+    setItems(prev => [...prev, newItem]);
     setItemInput({
       service_name: '',
       service_code: '',
@@ -522,12 +589,12 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
     });
     setShowServiceForm(false);
     if (formErrors.amount) {
-      setFormErrors((prev) => ({ ...prev, amount: undefined }));
+      setFormErrors(prev => ({ ...prev, amount: undefined }));
     }
   };
 
   const handleRemoveBillItem = (index: number) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
+    setItems(prev => prev.filter((_, i) => i !== index));
   };
 
   // Select patient handler
@@ -543,7 +610,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
     }
     setPaidAmount('');
     if (formErrors.patient_id) {
-      setFormErrors((prev) => ({ ...prev, patient_id: undefined }));
+      setFormErrors(prev => ({ ...prev, patient_id: undefined }));
     }
   };
 
@@ -565,11 +632,19 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
   const handleSubmitBill = async () => {
     if (!token) return;
 
-    const fallbackFee = roundCurrency(Math.max(0, parseFloat(consultantFee) || 0));
+    const fallbackFee = roundCurrency(
+      Math.max(0, parseFloat(consultantFee) || 0),
+    );
     const hasAmount =
-      items.length > 0 ? items.some((it) => Number(it.total_price) > 0) : fallbackFee > 0;
+      items.length > 0
+        ? items.some(it => Number(it.total_price) > 0)
+        : fallbackFee > 0;
 
-    const nextErrors: { patient_id?: string; appointment_id?: string; amount?: string } = {};
+    const nextErrors: {
+      patient_id?: string;
+      appointment_id?: string;
+      amount?: string;
+    } = {};
 
     if (!selectedPatient) {
       nextErrors.patient_id = 'Please select a patient.';
@@ -578,7 +653,8 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
       nextErrors.appointment_id = 'Please select a completed appointment.';
     }
     if (!hasAmount) {
-      nextErrors.amount = 'Enter a consultant fee or add a service item with an amount.';
+      nextErrors.amount =
+        'Enter a consultant fee or add a service item with an amount.';
     }
 
     if (Object.keys(nextErrors).length > 0) {
@@ -602,8 +678,10 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
             },
           ];
 
-    const normalizedSubtotal = items.length > 0 ? formTotals.subtotal : fallbackFee;
-    const normalizedTotal = items.length > 0 ? formTotals.total_amount : fallbackFee;
+    const normalizedSubtotal =
+      items.length > 0 ? formTotals.subtotal : fallbackFee;
+    const normalizedTotal =
+      items.length > 0 ? formTotals.total_amount : fallbackFee;
     const paidNum = roundCurrency(Math.max(0, parseFloat(paidAmount) || 0));
 
     setSubmitting(true);
@@ -614,7 +692,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
         patient_id: selectedPatient?.id,
         phone: selectedPatient?.phone || '',
         appointment_id: selectedAppointment ? selectedAppointment.id : 0,
-        items: normalizedItems.map((item) => ({
+        items: normalizedItems.map(item => ({
           service_name: item.service_name.trim(),
           service_code: item.service_code ? item.service_code.trim() : null,
           quantity: Number(item.quantity) || 1,
@@ -634,12 +712,19 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
       };
 
       if (editingBill) {
-        const res = await updateTreatmentBillApi(token, editingBill.id, payload);
+        const res = await updateTreatmentBillApi(
+          token,
+          editingBill.id,
+          payload,
+        );
         if (res.success) {
           onSuccess('Treatment bill updated successfully');
           onClose();
         } else {
-          Alert.alert('Error', res.message || 'Failed to update treatment bill');
+          Alert.alert(
+            'Error',
+            res.message || 'Failed to update treatment bill',
+          );
         }
       } else {
         const res = await createTreatmentBillApi(token, payload);
@@ -647,7 +732,10 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
           onSuccess('Treatment bill created successfully');
           onClose();
         } else {
-          Alert.alert('Error', res.message || 'Failed to create treatment bill');
+          Alert.alert(
+            'Error',
+            res.message || 'Failed to create treatment bill',
+          );
         }
       }
     } catch (err: any) {
@@ -661,28 +749,41 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
     if (!dateStr) return '-';
     try {
       const d = new Date(dateStr);
-      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      return d.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
     } catch {
       return dateStr;
     }
   };
 
   const formatCurrency = (amt: number) =>
-    `₹${Number(amt || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    `\u20B9${Number(amt || 0).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
         style={styles.modalBackdrop}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View style={styles.modalContainer}>
           {/* Header */}
           <View style={styles.modalHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={[styles.sectionIconBox, { backgroundColor: '#0D9488', width: 34, height: 34, borderRadius: 8 }]}>
+            <View style={styles.extractedInline1}>
+              <View style={[styles.sectionIconBox, styles.extractedInline2]}>
                 <Receipt size={18} color="#FFFFFF" />
               </View>
-              <View style={{ marginLeft: 10 }}>
+              <View style={styles.extractedInline3}>
                 <Text style={styles.modalTitle}>
                   {editingBill ? 'Edit Treatment Bill' : 'Create New Bill'}
                 </Text>
@@ -693,7 +794,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                 </Text>
               </View>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={styles.extractedInline4}>
               {!editingBill && (
                 <View style={styles.draftBadge}>
                   <Text style={styles.draftBadgeText}>Draft</Text>
@@ -707,17 +808,19 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
 
           {/* Body Content */}
           <ScrollView
+            ref={formScrollRef}
             style={styles.modalBody}
-            contentContainerStyle={{ paddingBottom: 28 }}
+            contentContainerStyle={styles.modalBodyContent}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled">
+            keyboardShouldPersistTaps="handled"
+          >
             {/* SECTION 1: Bill Information */}
             <View style={styles.formSection}>
               <View style={styles.sectionHeaderRow}>
-                <View style={[styles.sectionIconBox, { backgroundColor: '#ECFDF5' }]}>
+                <View style={[styles.sectionIconBox, styles.extractedInline5]}>
                   <FileText size={16} color="#0D9488" />
                 </View>
-                <View style={{ marginLeft: 10, flex: 1 }}>
+                <View style={styles.extractedInline6}>
                   <Text style={styles.sectionTitle}>Bill Information</Text>
                   <Text style={styles.sectionSubtitle}>
                     Select the patient and their completed appointment.
@@ -726,17 +829,18 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
               </View>
 
               {/* Patient Selection (Matches Web Input Style) */}
-              <View style={{ marginTop: 12 }}>
+              <View style={styles.extractedInline7}>
                 <Text style={styles.fieldLabel}>
-                  Patient <Text style={{ color: '#EF4444' }}>*</Text>
+                  Patient <Text style={styles.extractedInline8}>*</Text>
                 </Text>
 
                 <View>
                   <View
                     style={[
                       styles.searchInputWrapper,
-                      formErrors.patient_id && { borderColor: '#EF4444' },
-                    ]}>
+                      formErrors.patient_id && styles.extractedInline9,
+                    ]}
+                  >
                     <TextInput
                       style={styles.searchInputField}
                       placeholder="Search by patient ID, name or mobile"
@@ -745,7 +849,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                       onFocus={() => {
                         setShowPatientSuggestions(true);
                       }}
-                      onChangeText={(t) => {
+                      onChangeText={t => {
                         setPatientSearchTerm(t);
                         setShowPatientSuggestions(true);
                         if (selectedPatient) {
@@ -759,69 +863,101 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                           }
                         }
                         if (formErrors.patient_id) {
-                          setFormErrors((prev) => ({ ...prev, patient_id: undefined }));
+                          setFormErrors(prev => ({
+                            ...prev,
+                            patient_id: undefined,
+                          }));
                         }
                       }}
                     />
                     {patientSearching ? (
-                      <ActivityIndicator size="small" color="#0D9488" style={{ marginRight: 6 }} />
+                      <ActivityIndicator
+                        size="small"
+                        color="#0D9488"
+                        style={styles.extractedInline10}
+                      />
                     ) : selectedPatient || patientSearchTerm ? (
                       <TouchableOpacity
                         onPress={handleClearPatient}
-                        style={{ padding: 6 }}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        style={styles.extractedInline11}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
                         <X size={16} color="#64748B" />
                       </TouchableOpacity>
                     ) : null}
                   </View>
 
                   {/* Suggestions Dropdown (Web Parity) */}
-                  {showPatientSuggestions && !selectedPatient && patientSearchTerm.trim().length > 0 && (
-                    <View style={styles.suggestionsContainer}>
-                      {patientSuggestions.length === 0 && !patientSearching && patientSearchTerm.trim() ? (
-                        <View style={{ padding: 12 }}>
-                          <Text style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center' }}>
-                            No patient found
-                          </Text>
-                        </View>
-                      ) : (
-                        patientSuggestions.map((p) => (
-                          <TouchableOpacity
-                            key={p.id}
-                            style={styles.suggestionRow}
-                            onPress={() => handleSelectPatient(p)}>
-                            <Text style={styles.suggestionName}>{p.full_name}</Text>
-                            <Text style={styles.suggestionPhone}>
-                              ID: {p.id} | Mobile: {p.phone || '-'}
-                              {p.patient_code ? ` | ${p.patient_code}` : ''}
+                  {showPatientSuggestions &&
+                    !selectedPatient &&
+                    patientSearchTerm.trim().length > 0 && (
+                      <View style={styles.suggestionsContainer}>
+                        {patientSuggestions.length === 0 &&
+                        !patientSearching &&
+                        patientSearchTerm.trim() ? (
+                          <View style={styles.extractedInline12}>
+                            <Text style={styles.extractedInline13}>
+                              No patient found
                             </Text>
-                          </TouchableOpacity>
-                        ))
-                      )}
-                    </View>
-                  )}
+                          </View>
+                        ) : (
+                          patientSuggestions.map(p => (
+                            <TouchableOpacity
+                              key={p.id}
+                              style={styles.suggestionRow}
+                              onPress={() => handleSelectPatient(p)}
+                            >
+                              <Text style={styles.suggestionName}>
+                                {p.full_name}
+                              </Text>
+                              <Text style={styles.suggestionPhone}>
+                                ID: {p.id} | Mobile: {p.phone || '-'}
+                                {p.patient_code ? ` | ${p.patient_code}` : ''}
+                              </Text>
+                            </TouchableOpacity>
+                          ))
+                        )}
+                      </View>
+                    )}
                 </View>
 
                 {selectedPatient && (
                   <View style={styles.selectedPatientCard}>
-                    <Text style={styles.selectedPatientName}>{selectedPatient.full_name}</Text>
+                    <Text style={styles.selectedPatientName}>
+                      {selectedPatient.full_name}
+                    </Text>
                     <Text style={styles.selectedPatientMeta}>
                       Patient ID: {selectedPatient.id}
-                      {selectedPatient.patient_code ? `  |  ${selectedPatient.patient_code}` : ''}
+                      {selectedPatient.patient_code
+                        ? `  |  ${selectedPatient.patient_code}`
+                        : ''}
                     </Text>
                     <View style={styles.patientDetailsGrid}>
                       {[
                         ['Mobile', selectedPatient.phone],
                         ['Email', selectedPatient.email],
                         ['Gender', selectedPatient.gender],
-                        ['Age', selectedPatient.age ? `${selectedPatient.age} years` : undefined],
+                        [
+                          'Age',
+                          selectedPatient.age
+                            ? `${selectedPatient.age} years`
+                            : undefined,
+                        ],
                         ['Blood group', selectedPatient.blood_group],
-                        ['City', [selectedPatient.city, selectedPatient.state].filter(Boolean).join(', ')],
+                        [
+                          'City',
+                          [selectedPatient.city, selectedPatient.state]
+                            .filter(Boolean)
+                            .join(', '),
+                        ],
                       ]
                         .filter(([, value]) => Boolean(value))
                         .map(([label, value]) => (
                           <Text key={label} style={styles.patientDetailText}>
-                            <Text style={styles.patientDetailLabel}>{label}: </Text>{value}
+                            <Text style={styles.patientDetailLabel}>
+                              {label}:{' '}
+                            </Text>
+                            {value}
                           </Text>
                         ))}
                     </View>
@@ -831,27 +967,34 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                 {formErrors.patient_id && (
                   <View style={styles.inlineError}>
                     <AlertCircle size={14} color="#EF4444" />
-                    <Text style={styles.inlineErrorText}>{formErrors.patient_id}</Text>
+                    <Text style={styles.inlineErrorText}>
+                      {formErrors.patient_id}
+                    </Text>
                   </View>
                 )}
               </View>
 
               {/* Appointment Selection (Matches Web Input Style) */}
-              <View style={{ marginTop: 12 }}>
+              <View style={styles.extractedInline7}>
                 <Text style={styles.fieldLabel}>
-                  Appointment <Text style={{ color: '#EF4444' }}>*</Text>
+                  Appointment <Text style={styles.extractedInline8}>*</Text>
                 </Text>
                 <TouchableOpacity
                   style={[
                     styles.selectBox,
-                    !selectedPatient && { opacity: 0.6, backgroundColor: '#F8FAFC' },
-                    formErrors.appointment_id && { borderColor: '#EF4444' },
+                    !selectedPatient && styles.extractedInline14,
+                    formErrors.appointment_id && styles.extractedInline9,
                   ]}
                   disabled={!selectedPatient}
-                  onPress={() => setShowApptDropdown((prev) => !prev)}>
+                  onPress={() => setShowApptDropdown(prev => !prev)}
+                >
                   <Text
-                    style={[styles.selectValue, !selectedAppointment && { color: '#94A3B8' }]}
-                    numberOfLines={1}>
+                    style={[
+                      styles.selectValue,
+                      !selectedAppointment && styles.extractedInline15,
+                    ]}
+                    numberOfLines={1}
+                  >
                     {selectedAppointment
                       ? `${formatDate(selectedAppointment.appointment_date)}${
                           selectedAppointment.appointment_time
@@ -862,23 +1005,28 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                   </Text>
                   {selectedAppointment ? (
                     <TouchableOpacity
-                      onPress={(e) => {
+                      onPress={e => {
                         e.stopPropagation();
                         setSelectedAppointment(null);
                       }}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
                       <X size={15} color="#64748B" />
                     </TouchableOpacity>
                   ) : (
                     <ChevronDown size={16} color="#64748B" />
                   )}
                 </TouchableOpacity>
-                <Text style={styles.helperText}>Only completed appointments are shown</Text>
+                <Text style={styles.helperText}>
+                  Only completed appointments are shown
+                </Text>
 
                 {formErrors.appointment_id && (
                   <View style={styles.inlineError}>
                     <AlertCircle size={14} color="#EF4444" />
-                    <Text style={styles.inlineErrorText}>{formErrors.appointment_id}</Text>
+                    <Text style={styles.inlineErrorText}>
+                      {formErrors.appointment_id}
+                    </Text>
                   </View>
                 )}
 
@@ -886,38 +1034,48 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                 {showApptDropdown && (
                   <View style={styles.dropdownMenu}>
                     {appointmentsLoading ? (
-                      <View style={{ padding: 12, alignItems: 'center' }}>
+                      <View style={styles.extractedInline16}>
                         <ActivityIndicator size="small" color="#0D9488" />
                       </View>
                     ) : appointmentOptions.length > 0 ? (
-                      appointmentOptions.map((a) => (
+                      appointmentOptions.map(a => (
                         <TouchableOpacity
                           key={a.id}
                           style={[
                             styles.dropdownItem,
-                            selectedAppointment?.id === a.id && styles.dropdownItemSelected,
+                            selectedAppointment?.id === a.id &&
+                              styles.dropdownItemSelected,
                           ]}
                           onPress={() => {
                             consultantFeeEditedRef.current = false;
-                            setSelectedAppointment(selectedAppointment?.id === a.id ? null : a);
+                            setSelectedAppointment(
+                              selectedAppointment?.id === a.id ? null : a,
+                            );
                             setShowApptDropdown(false);
                             if (formErrors.appointment_id) {
-                              setFormErrors((prev) => ({ ...prev, appointment_id: undefined }));
+                              setFormErrors(prev => ({
+                                ...prev,
+                                appointment_id: undefined,
+                              }));
                             }
-                          }}>
+                          }}
+                        >
                           <Text
                             style={[
                               styles.dropdownItemText,
-                              selectedAppointment?.id === a.id && { color: '#0D9488', fontWeight: '700' },
-                            ]}>
-                            #{a.id} • {formatDate(a.appointment_date)} ({a.appointment_time || 'General'})
-                            {a.doctor_name ? ` • Dr. ${a.doctor_name}` : ''}
+                              selectedAppointment?.id === a.id &&
+                                styles.extractedInline17,
+                            ]}
+                          >
+                            #{a.id} â€¢ {formatDate(a.appointment_date)} (
+                            {a.appointment_time || 'General'})
+                            {a.doctor_name ? ` â€¢ Dr. ${a.doctor_name}` : ''}
                           </Text>
                         </TouchableOpacity>
                       ))
                     ) : (
-                      <View style={{ padding: 12 }}>
-                        <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center' }}>
+                      <View style={styles.extractedInline12}>
+                        <Text style={styles.extractedInline18}>
                           No completed appointments found for this patient
                         </Text>
                       </View>
@@ -931,15 +1089,18 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
             <View style={styles.sectionDivider} />
             <View style={styles.formSection}>
               <View style={styles.sectionHeaderRow}>
-                <View style={[styles.sectionIconBox, { backgroundColor: '#ECFDF5' }]}>
+                <View style={[styles.sectionIconBox, styles.extractedInline5]}>
                   <FileText size={16} color="#0D9488" />
                 </View>
-                <View style={{ marginLeft: 10, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={styles.extractedInline19}>
                   <Text style={styles.sectionTitle}>Prescription History</Text>
                   {selectedPatient && (
                     <View style={styles.rxBadge}>
                       <Text style={styles.rxBadgeText}>
-                        {prescriptionHistory.length} {prescriptionHistory.length === 1 ? 'record' : 'records'}
+                        {prescriptionHistory.length}{' '}
+                        {prescriptionHistory.length === 1
+                          ? 'record'
+                          : 'records'}
                       </Text>
                     </View>
                   )}
@@ -947,58 +1108,110 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
               </View>
 
               {!selectedPatient && (
-                <Text style={styles.rxNoticeText}>Select patient to view prescription history.</Text>
+                <Text style={styles.rxNoticeText}>
+                  Select patient to view prescription history.
+                </Text>
               )}
 
               {selectedPatient && prescriptionLoading && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }}>
+                <View style={styles.extractedInline20}>
                   <ActivityIndicator size="small" color="#0D9488" />
-                  <Text style={styles.rxNoticeText}>Loading prescription history...</Text>
+                  <Text style={styles.rxNoticeText}>
+                    Loading prescription history...
+                  </Text>
                 </View>
               )}
 
-              {selectedPatient && !prescriptionLoading && prescriptionHistory.length === 0 && (
-                <Text style={styles.rxNoticeText}>No prescription history found for this patient.</Text>
-              )}
+              {selectedPatient &&
+                !prescriptionLoading &&
+                prescriptionHistory.length === 0 && (
+                  <Text style={styles.rxNoticeText}>
+                    No prescription history found for this patient.
+                  </Text>
+                )}
 
               {selectedPatient &&
                 !prescriptionLoading &&
                 prescriptionHistory.map((rx: any) => (
                   <View key={rx.id} style={styles.rxCard}>
-                    <Text style={styles.rxCardTitle}>Prescription #{rx.id}</Text>
+                    <Text style={styles.rxCardTitle}>
+                      Prescription #{rx.id}
+                    </Text>
                     <View style={styles.rxCardMetaRow}>
                       <Text style={styles.rxCardMetaText}>
                         Appointment Date:{' '}
                         <Text style={styles.rxCardMetaBold}>
                           {formatDate(rx.appointment_date || rx.created_at)}
-                          {rx.appointment_time ? ` at ${rx.appointment_time}` : ''}
+                          {rx.appointment_time
+                            ? ` at ${rx.appointment_time}`
+                            : ''}
                         </Text>
                       </Text>
                       <Text style={styles.rxCardMetaText}>
                         Prescribed On:{' '}
-                        <Text style={styles.rxCardMetaBold}>{formatDate(rx.created_at)}</Text>
+                        <Text style={styles.rxCardMetaBold}>
+                          {formatDate(rx.created_at)}
+                        </Text>
                       </Text>
                     </View>
-                    <Text style={styles.rxDetailText}>Appointment ID: {rx.appointment_id || '-'}</Text>
-                    <Text style={styles.rxDetailText}>Diagnosis: {rx.diagnosis || '-'}</Text>
-                    <Text style={styles.rxDetailText}>Advice: {rx.advice || '-'}</Text>
-                    <Text style={[styles.rxDetailText, { fontWeight: '700', marginTop: 6 }]}>Medicines:</Text>
+                    <Text style={styles.rxDetailText}>
+                      Appointment ID: {rx.appointment_id || '-'}
+                    </Text>
+                    <Text style={styles.rxDetailText}>
+                      Diagnosis: {rx.diagnosis || '-'}
+                    </Text>
+                    <Text style={styles.rxDetailText}>
+                      Advice: {rx.advice || '-'}
+                    </Text>
+                    <Text
+                      style={[styles.rxDetailText, styles.extractedInline21]}
+                    >
+                      Medicines:
+                    </Text>
                     {rx.items && rx.items.length > 0 ? (
                       <View style={styles.rxPillsRow}>
                         {rx.items.map((med: any, mIdx: number) => {
                           const tone =
                             mIdx % 4 === 0
-                              ? { bg: '#D1FAE5', text: '#065F46', border: '#A7F3D0' }
+                              ? {
+                                  bg: '#D1FAE5',
+                                  text: '#065F46',
+                                  border: '#A7F3D0',
+                                }
                               : mIdx % 4 === 1
-                              ? { bg: '#DBEAFE', text: '#1E40AF', border: '#BFDBFE' }
+                              ? {
+                                  bg: '#DBEAFE',
+                                  text: '#1E40AF',
+                                  border: '#BFDBFE',
+                                }
                               : mIdx % 4 === 2
-                              ? { bg: '#FEF3C7', text: '#92400E', border: '#FDE68A' }
-                              : { bg: '#FFE4E6', text: '#9F1239', border: '#FECDD3' };
+                              ? {
+                                  bg: '#FEF3C7',
+                                  text: '#92400E',
+                                  border: '#FDE68A',
+                                }
+                              : {
+                                  bg: '#FFE4E6',
+                                  text: '#9F1239',
+                                  border: '#FECDD3',
+                                };
                           return (
                             <View
                               key={mIdx}
-                              style={[styles.rxPill, { backgroundColor: tone.bg, borderColor: tone.border }]}>
-                              <Text style={[styles.rxPillText, { color: tone.text }]}>
+                              style={[
+                                styles.rxPill,
+                                {
+                                  backgroundColor: tone.bg,
+                                  borderColor: tone.border,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.rxPillText,
+                                  { color: tone.text },
+                                ]}
+                              >
                                 {med.medicine_name || med.name}
                                 {med.dosage ? ` (${med.dosage})` : ''}
                               </Text>
@@ -1017,10 +1230,10 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
             <View style={styles.sectionDivider} />
             <View style={styles.formSection}>
               <View style={styles.sectionHeaderRow}>
-                <View style={[styles.sectionIconBox, { backgroundColor: '#EFF6FF' }]}>
+                <View style={[styles.sectionIconBox, styles.extractedInline22]}>
                   <CreditCard size={16} color="#2563EB" />
                 </View>
-                <View style={{ marginLeft: 10, flex: 1 }}>
+                <View style={styles.extractedInline6}>
                   <Text style={styles.sectionTitle}>Payment Details</Text>
                   <Text style={styles.sectionSubtitle}>
                     Set the payment method, bill status and notes.
@@ -1029,35 +1242,40 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
               </View>
 
               {/* Payment Method */}
-              <View style={{ marginTop: 12 }}>
+              <View style={styles.extractedInline7}>
                 <Text style={styles.fieldLabel}>Payment Method</Text>
                 <TouchableOpacity
                   style={styles.selectBox}
-                  onPress={() => setShowMethodDropdown((prev) => !prev)}>
+                  onPress={() => setShowMethodDropdown(prev => !prev)}
+                >
                   <Text style={styles.selectValue}>
-                    {PAYMENT_METHODS.find((m) => m.key === paymentMethod)?.label || 'Cash'}
+                    {PAYMENT_METHODS.find(m => m.key === paymentMethod)
+                      ?.label || 'Cash'}
                   </Text>
                   <ChevronDown size={16} color="#64748B" />
                 </TouchableOpacity>
 
                 {showMethodDropdown && (
                   <View style={styles.dropdownMenu}>
-                    {PAYMENT_METHODS.map((m) => (
+                    {PAYMENT_METHODS.map(m => (
                       <TouchableOpacity
                         key={m.key}
                         style={[
                           styles.dropdownItem,
-                          paymentMethod === m.key && styles.dropdownItemSelected,
+                          paymentMethod === m.key &&
+                            styles.dropdownItemSelected,
                         ]}
                         onPress={() => {
                           setPaymentMethod(m.key);
                           setShowMethodDropdown(false);
-                        }}>
+                        }}
+                      >
                         <Text
                           style={[
                             styles.dropdownItemText,
-                            paymentMethod === m.key && { color: '#0D9488', fontWeight: '700' },
-                          ]}>
+                            paymentMethod === m.key && styles.extractedInline23,
+                          ]}
+                        >
                           {m.label}
                         </Text>
                       </TouchableOpacity>
@@ -1067,20 +1285,25 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
               </View>
 
               {/* Status */}
-              <View style={{ marginTop: 12 }}>
+              <View style={styles.extractedInline7}>
                 <Text style={styles.fieldLabel}>Status</Text>
                 <TouchableOpacity
                   style={styles.selectBox}
-                  onPress={() => setShowStatusDropdown((prev) => !prev)}>
+                  onPress={() => setShowStatusDropdown(prev => !prev)}
+                >
                   <Text style={styles.selectValue}>
-                    {status === 'paid' ? 'Paid' : status === 'partial' ? 'Partially Paid' : 'Pending'}
+                    {status === 'paid'
+                      ? 'Paid'
+                      : status === 'partial'
+                      ? 'Partially Paid'
+                      : 'Pending'}
                   </Text>
                   <ChevronDown size={16} color="#64748B" />
                 </TouchableOpacity>
 
                 {showStatusDropdown && (
                   <View style={styles.dropdownMenu}>
-                    {BILL_STATUSES.map((s) => (
+                    {BILL_STATUSES.map(s => (
                       <TouchableOpacity
                         key={s.key}
                         style={[
@@ -1090,12 +1313,14 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                         onPress={() => {
                           setStatus(s.key);
                           setShowStatusDropdown(false);
-                        }}>
+                        }}
+                      >
                         <Text
                           style={[
                             styles.dropdownItemText,
-                            status === s.key && { color: '#0D9488', fontWeight: '700' },
-                          ]}>
+                            status === s.key && styles.extractedInline23,
+                          ]}
+                        >
                           {s.label}
                         </Text>
                       </TouchableOpacity>
@@ -1105,7 +1330,7 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
               </View>
 
               {/* Description */}
-              <View style={{ marginTop: 12 }}>
+              <View style={styles.extractedInline7}>
                 <Text style={styles.fieldLabel}>Description</Text>
                 <TextInput
                   style={styles.textarea}
@@ -1122,12 +1347,14 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
             {/* SECTION 4: Charges & Services */}
             <View style={styles.sectionDivider} />
             <View style={styles.formSection}>
-              <View style={[styles.sectionHeaderRow, { justifyContent: 'space-between' }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                  <View style={[styles.sectionIconBox, { backgroundColor: '#ECFDF5' }]}>
+              <View style={[styles.sectionHeaderRow, styles.extractedInline24]}>
+                <View style={styles.extractedInline25}>
+                  <View
+                    style={[styles.sectionIconBox, styles.extractedInline5]}
+                  >
                     <Receipt size={16} color="#0D9488" />
                   </View>
-                  <View style={{ marginLeft: 10, flex: 1 }}>
+                  <View style={styles.extractedInline6}>
                     <Text style={styles.sectionTitle}>Charges & Services</Text>
                     <Text style={styles.sectionSubtitle}>
                       Add a consultation fee or detailed service items.
@@ -1136,8 +1363,9 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                 </View>
                 <TouchableOpacity
                   style={styles.addServiceBtn}
-                  onPress={() => setShowServiceForm((prev) => !prev)}
-                  activeOpacity={0.8}>
+                  onPress={() => setShowServiceForm(prev => !prev)}
+                  activeOpacity={0.8}
+                >
                   {showServiceForm ? (
                     <X size={15} color="#0F172A" strokeWidth={2.5} />
                   ) : (
@@ -1150,23 +1378,27 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
               </View>
 
               {/* Consultant Fees */}
-              <View style={{ marginTop: 14 }}>
+              <View style={styles.extractedInline26}>
                 <Text style={styles.fieldLabel}>Consultant Fees</Text>
                 <TextInput
                   style={[
                     styles.inputField,
-                    items.length > 0 && { backgroundColor: '#F1F5F9', color: '#64748B' },
-                    Boolean(formErrors.amount) && { borderColor: '#EF4444' },
+                    items.length > 0 && styles.extractedInline27,
+                    Boolean(formErrors.amount) && styles.extractedInline9,
                   ]}
                   keyboardType="numeric"
                   editable={items.length === 0}
-                  value={items.length > 0 ? String(formTotals.subtotal) : consultantFee}
-                  onChangeText={(val) => {
+                  value={
+                    items.length > 0
+                      ? String(formTotals.subtotal)
+                      : consultantFee
+                  }
+                  onChangeText={val => {
                     if (items.length > 0) return;
                     consultantFeeEditedRef.current = true;
                     setConsultantFee(val);
                     if (parseFloat(val) > 0 && formErrors.amount) {
-                      setFormErrors((prev) => ({ ...prev, amount: undefined }));
+                      setFormErrors(prev => ({ ...prev, amount: undefined }));
                     }
                   }}
                   placeholder="0"
@@ -1175,16 +1407,19 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                 {formErrors.amount && (
                   <View style={styles.inlineError}>
                     <AlertCircle size={14} color="#EF4444" />
-                    <Text style={styles.inlineErrorText}>{formErrors.amount}</Text>
+                    <Text style={styles.inlineErrorText}>
+                      {formErrors.amount}
+                    </Text>
                   </View>
                 )}
                 <Text style={styles.helperText}>
-                  Use this for simple treatment billing without adding service items.
+                  Use this for simple treatment billing without adding service
+                  items.
                 </Text>
               </View>
 
               {/* Paid Amount */}
-              <View style={{ marginTop: 12 }}>
+              <View style={styles.extractedInline7}>
                 <Text style={styles.fieldLabel}>Paid Amount</Text>
                 <TextInput
                   style={styles.inputField}
@@ -1201,73 +1436,97 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                 <View style={styles.serviceFormBox}>
                   <View style={styles.serviceFormHeader}>
                     <Plus size={15} color="#0F766E" strokeWidth={2.5} />
-                    <Text style={styles.serviceFormTitle}>New Service Item</Text>
+                    <Text style={styles.serviceFormTitle}>
+                      New Service Item
+                    </Text>
                   </View>
 
-                  <View style={{ marginTop: 10 }}>
-                    <Text style={styles.serviceFormInputLabel}>Service Name</Text>
+                  <View style={styles.extractedInline28}>
+                    <Text style={styles.serviceFormInputLabel}>
+                      Service Name
+                    </Text>
                     <TextInput
                       style={styles.serviceFormInput}
                       placeholder="e.g., OPD Consultation"
                       placeholderTextColor="#94A3B8"
                       value={itemInput.service_name}
-                      onChangeText={(t) => setItemInput((prev) => ({ ...prev, service_name: t }))}
+                      onChangeText={t =>
+                        setItemInput(prev => ({ ...prev, service_name: t }))
+                      }
                     />
                   </View>
 
-                  <View style={{ marginTop: 10 }}>
-                    <Text style={styles.serviceFormInputLabel}>Service Code</Text>
+                  <View style={styles.extractedInline28}>
+                    <Text style={styles.serviceFormInputLabel}>
+                      Service Code
+                    </Text>
                     <TextInput
                       style={styles.serviceFormInput}
                       placeholder="e.g., CONS001"
                       placeholderTextColor="#94A3B8"
                       value={itemInput.service_code}
-                      onChangeText={(t) => setItemInput((prev) => ({ ...prev, service_code: t }))}
+                      onChangeText={t =>
+                        setItemInput(prev => ({ ...prev, service_code: t }))
+                      }
                     />
                   </View>
 
                   <View style={styles.serviceFormGrid}>
-                    <View style={{ flex: 1 }}>
+                    <View style={styles.extractedInline29}>
                       <Text style={styles.serviceFormInputLabel}>Qty</Text>
                       <TextInput
                         style={styles.serviceFormInput}
                         keyboardType="numeric"
                         value={String(itemInput.quantity)}
-                        onChangeText={(t) =>
-                          setItemInput((prev) => ({ ...prev, quantity: parseInt(t, 10) || 1 }))
+                        onChangeText={t =>
+                          setItemInput(prev => ({
+                            ...prev,
+                            quantity: parseInt(t, 10) || 1,
+                          }))
                         }
                       />
                     </View>
-                    <View style={{ flex: 1.2 }}>
-                      <Text style={styles.serviceFormInputLabel}>Unit Price (₹)</Text>
+                    <View style={styles.extractedInline30}>
+                      <Text style={styles.serviceFormInputLabel}>
+                        {'Unit Price (\u20B9)'}
+                      </Text>
                       <TextInput
                         style={styles.serviceFormInput}
                         keyboardType="numeric"
                         value={String(itemInput.unit_price)}
-                        onChangeText={(t) =>
-                          setItemInput((prev) => ({ ...prev, unit_price: parseFloat(t) || 0 }))
+                        onChangeText={t =>
+                          setItemInput(prev => ({
+                            ...prev,
+                            unit_price: parseFloat(t) || 0,
+                          }))
                         }
                       />
                     </View>
-                    <View style={{ flex: 1 }}>
+                    <View style={styles.extractedInline29}>
                       <Text style={styles.serviceFormInputLabel}>Disc %</Text>
                       <TextInput
                         style={styles.serviceFormInput}
                         keyboardType="numeric"
                         value={String(itemInput.discount_pct)}
-                        onChangeText={(t) =>
-                          setItemInput((prev) => ({ ...prev, discount_pct: parseFloat(t) || 0 }))
+                        onChangeText={t =>
+                          setItemInput(prev => ({
+                            ...prev,
+                            discount_pct: parseFloat(t) || 0,
+                          }))
                         }
                       />
                     </View>
-                    <View style={{ flex: 1 }}>
+                    <View style={styles.extractedInline29}>
                       <Text style={styles.serviceFormInputLabel}>Tax %</Text>
                       <TextInput
                         style={styles.serviceFormInput}
                         keyboardType="numeric"
                         value={String(itemInput.tax_pct)}
-                        onChangeText={(t) =>
-                          setItemInput((prev) => ({ ...prev, tax_pct: parseFloat(t) || 0 }))
+                        onChangeText={t =>
+                          setItemInput(prev => ({
+                            ...prev,
+                            tax_pct: parseFloat(t) || 0,
+                          }))
                         }
                       />
                     </View>
@@ -1276,7 +1535,8 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                   <TouchableOpacity
                     style={styles.serviceAddBtn}
                     onPress={handleAddBillItem}
-                    activeOpacity={0.8}>
+                    activeOpacity={0.8}
+                  >
                     <Plus size={15} color="#FFFFFF" strokeWidth={2.5} />
                     <Text style={styles.serviceAddBtnText}>Add Item</Text>
                   </TouchableOpacity>
@@ -1285,14 +1545,19 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
 
               {/* Items List Header & Cards (Exact Web Match) */}
               {items.length > 0 && (
-                <View style={{ marginTop: 16 }}>
-                  <Text style={styles.itemsListTitle}>Items ({items.length})</Text>
-                  <View style={{ gap: 8, marginTop: 8 }}>
+                <View style={styles.extractedInline31}>
+                  <Text style={styles.itemsListTitle}>
+                    Items ({items.length})
+                  </Text>
+                  <View style={styles.extractedInline32}>
                     {items.map((item, idx) => (
                       <View key={idx} style={styles.addedItemCard}>
                         <View style={styles.addedItemCardHeader}>
-                          <View style={{ flex: 1, marginRight: 8 }}>
-                            <Text style={styles.addedItemTitle} numberOfLines={1}>
+                          <View style={styles.extractedInline33}>
+                            <Text
+                              style={styles.addedItemTitle}
+                              numberOfLines={1}
+                            >
                               {item.service_name}
                             </Text>
                             <Text style={styles.addedItemSubtitle}>
@@ -1301,7 +1566,8 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                           </View>
                           <TouchableOpacity
                             onPress={() => handleRemoveBillItem(idx)}
-                            style={styles.addedItemDeleteBtn}>
+                            style={styles.addedItemDeleteBtn}
+                          >
                             <Trash2 size={16} color="#EF4444" />
                           </TouchableOpacity>
                         </View>
@@ -1309,7 +1575,9 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                         <View style={styles.addedItemGrid}>
                           <View style={styles.addedItemGridCol}>
                             <Text style={styles.addedItemColLabel}>Qty</Text>
-                            <Text style={styles.addedItemColVal}>{item.quantity}</Text>
+                            <Text style={styles.addedItemColVal}>
+                              {item.quantity}
+                            </Text>
                           </View>
                           <View style={styles.addedItemGridCol}>
                             <Text style={styles.addedItemColLabel}>Rate</Text>
@@ -1317,7 +1585,12 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
                               {formatCurrency(item.unit_price)}
                             </Text>
                           </View>
-                          <View style={[styles.addedItemGridCol, { alignItems: 'flex-end' }]}>
+                          <View
+                            style={[
+                              styles.addedItemGridCol,
+                              styles.extractedInline34,
+                            ]}
+                          >
                             <Text style={styles.addedItemColLabel}>Total</Text>
                             <Text style={styles.addedItemColTotal}>
                               {formatCurrency(item.total_price)}
@@ -1332,7 +1605,9 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
 
               {items.length === 0 && (
                 <View style={styles.emptyServiceBox}>
-                  <Text style={styles.emptyServiceText}>No service items added</Text>
+                  <Text style={styles.emptyServiceText}>
+                    No service items added
+                  </Text>
                 </View>
               )}
             </View>
@@ -1342,40 +1617,57 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
             <View style={styles.formSection}>
               <Text style={styles.sectionTitle}>Bill Summary</Text>
               <View style={styles.summaryCard}>
-                <View style={{ flexDirection: 'row', gap: 16 }}>
+                <View style={styles.extractedInline35}>
                   {/* Left Column */}
-                  <View style={{ flex: 1, gap: 12 }}>
+                  <View style={styles.extractedInline36}>
                     <View>
                       <Text style={styles.summaryLabel}>Subtotal</Text>
-                      <Text style={styles.summaryValue}>{formatCurrency(formTotals.subtotal)}</Text>
+                      <Text style={styles.summaryValue}>
+                        {formatCurrency(formTotals.subtotal)}
+                      </Text>
                     </View>
                     <View>
                       <Text style={styles.summaryLabel}>Tax</Text>
-                      <Text style={styles.summaryValue}>+₹{formTotals.tax_amount.toFixed(2)}</Text>
+                      <Text style={styles.summaryValue}>
+                        {`+\u20B9${formTotals.tax_amount.toFixed(2)}`}
+                      </Text>
                     </View>
                     <View>
                       <Text style={styles.summaryLabel}>Paid</Text>
-                      <Text style={[styles.summaryValue, { color: '#0D9488' }]}>
+                      <Text
+                        style={[styles.summaryValue, styles.extractedInline37]}
+                      >
                         {formatCurrency(Number(paidAmount) || 0)}
                       </Text>
                     </View>
                   </View>
 
                   {/* Right Column */}
-                  <View style={{ flex: 1, gap: 12 }}>
+                  <View style={styles.extractedInline36}>
                     <View>
                       <Text style={styles.summaryLabel}>Discount</Text>
-                      <Text style={styles.summaryValue}>-₹{formTotals.discount_amount.toFixed(2)}</Text>
+                      <Text style={styles.summaryValue}>
+                        {`-\u20B9${formTotals.discount_amount.toFixed(2)}`}
+                      </Text>
                     </View>
                     <View>
                       <Text style={styles.summaryLabel}>Total</Text>
-                      <Text style={[styles.summaryValue, { color: '#0D9488' }]}>
+                      <Text
+                        style={[styles.summaryValue, styles.extractedInline37]}
+                      >
                         {formatCurrency(formTotals.total_amount)}
                       </Text>
                     </View>
                     <View>
                       <Text style={styles.summaryLabel}>Pending</Text>
-                      <Text style={[styles.summaryValue, { color: pendingAmount > 0 ? '#DC2626' : '#64748B' }]}>
+                      <Text
+                        style={[
+                          styles.summaryValue,
+                          pendingAmount > 0
+                            ? styles.pendingAmountDanger
+                            : styles.pendingAmountNormal,
+                        ]}
+                      >
                         {formatCurrency(pendingAmount)}
                       </Text>
                     </View>
@@ -1389,20 +1681,24 @@ export const CreateTreatmentBillModal: React.FC<CreateTreatmentBillModalProps> =
           <View style={styles.modalFooter}>
             <View style={styles.amountDueRow}>
               <Text style={styles.amountDueLabel}>AMOUNT DUE</Text>
-              <Text style={styles.amountDueValue}>{formatCurrency(pendingAmount)}</Text>
+              <Text style={styles.amountDueValue}>
+                {formatCurrency(pendingAmount)}
+              </Text>
             </View>
 
             <View style={styles.footerBtnsRow}>
               <TouchableOpacity
                 style={styles.cancelBtn}
                 onPress={onClose}
-                disabled={submitting}>
+                disabled={submitting}
+              >
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.createBillBtn}
                 onPress={handleSubmitBill}
-                disabled={submitting}>
+                disabled={submitting}
+              >
                 {submitting ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
@@ -2002,4 +2298,85 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
+
+  extractedInline1: { flexDirection: 'row', alignItems: 'center' },
+  extractedInline2: {
+    backgroundColor: '#0D9488',
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+  },
+  extractedInline3: { marginLeft: 10 },
+  extractedInline4: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  extractedInline5: { backgroundColor: '#ECFDF5' },
+  extractedInline6: { marginLeft: 10, flex: 1 },
+  extractedInline7: { marginTop: 12 },
+  extractedInline8: { color: '#EF4444' },
+  extractedInline9: { borderColor: '#EF4444' },
+  extractedInline10: { marginRight: 6 },
+  extractedInline11: { padding: 6 },
+  extractedInline12: { padding: 12 },
+  extractedInline13: {
+    fontSize: 13,
+    color: '#94A3B8',
+    textAlign: 'center',
+  },
+  extractedInline14: {
+    opacity: 0.6,
+    backgroundColor: '#F8FAFC',
+  },
+  extractedInline15: { color: '#94A3B8' },
+  extractedInline16: { padding: 12, alignItems: 'center' },
+  extractedInline17: {
+    color: '#0D9488',
+    fontWeight: '700',
+  },
+  extractedInline18: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  extractedInline19: {
+    marginLeft: 10,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  extractedInline20: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+  extractedInline21: { fontWeight: '700', marginTop: 6 },
+  extractedInline22: { backgroundColor: '#EFF6FF' },
+  extractedInline23: {
+    color: '#0D9488',
+    fontWeight: '700',
+  },
+  extractedInline24: { justifyContent: 'space-between' },
+  extractedInline25: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  extractedInline26: { marginTop: 14 },
+  extractedInline27: {
+    backgroundColor: '#F1F5F9',
+    color: '#64748B',
+  },
+  extractedInline28: { marginTop: 10 },
+  extractedInline29: { flex: 1 },
+  extractedInline30: { flex: 1.2 },
+  extractedInline31: { marginTop: 16 },
+  extractedInline32: { gap: 8, marginTop: 8 },
+  extractedInline33: { flex: 1, marginRight: 8 },
+  extractedInline34: { alignItems: 'flex-end' },
+  extractedInline35: { flexDirection: 'row', gap: 16 },
+  extractedInline36: { flex: 1, gap: 12 },
+  extractedInline37: { color: '#0D9488' },
+  modalBodyContent: { paddingBottom: 28 },
+  pendingAmountDanger: { color: '#DC2626' },
+  pendingAmountNormal: { color: '#64748B' },
 });

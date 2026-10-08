@@ -3,7 +3,11 @@ import { AppState } from 'react-native';
 
 // A resource belongs to its key (including session/clinic). Never display a
 // previous clinic's result, and coalesce repeated refreshes while it is loading.
-export function useRemoteData<T>(key: string, loader: (signal: AbortSignal) => Promise<T>, enabled = true) {
+export function useRemoteData<T>(
+  key: string,
+  loader: (signal: AbortSignal) => Promise<T>,
+  enabled = true,
+) {
   const loaderRef = useRef(loader);
   loaderRef.current = loader;
   const currentKey = useRef(key);
@@ -12,8 +16,16 @@ export function useRemoteData<T>(key: string, loader: (signal: AbortSignal) => P
   const sequence = useRef(0);
   const controllerRef = useRef<AbortController | null>(null);
   const pending = useRef<{ key: string; promise: Promise<void> } | null>(null);
-  const [state, setState] = useState<{ key: string; data: T | null; loading: boolean; error: string | null }>({
-    key, data: null, loading: enabled, error: null,
+  const [state, setState] = useState<{
+    key: string;
+    data: T | null;
+    loading: boolean;
+    error: string | null;
+  }>({
+    key,
+    data: null,
+    loading: enabled,
+    error: null,
   });
   const refresh = useCallback((): Promise<void> => {
     if (!enabled || !mounted.current) return Promise.resolve();
@@ -22,16 +34,34 @@ export function useRemoteData<T>(key: string, loader: (signal: AbortSignal) => P
     const controller = new AbortController();
     controllerRef.current = controller;
     const request = ++sequence.current;
-    setState(previous => ({ key, data: previous.key === key ? previous.data : null, loading: true, error: null }));
+    setState(previous => ({
+      key,
+      data: previous.key === key ? previous.data : null,
+      loading: true,
+      error: null,
+    }));
     const promise = (async () => {
       try {
         const data = await loaderRef.current(controller.signal);
-        if (mounted.current && currentKey.current === key && request === sequence.current) {
+        if (
+          mounted.current &&
+          currentKey.current === key &&
+          request === sequence.current
+        ) {
           setState({ key, data, loading: false, error: null });
         }
       } catch {
-        if (mounted.current && currentKey.current === key && request === sequence.current) {
-          setState({ key, data: null, loading: false, error: 'Unable to load data. Please retry.' });
+        if (
+          mounted.current &&
+          currentKey.current === key &&
+          request === sequence.current
+        ) {
+          setState({
+            key,
+            data: null,
+            loading: false,
+            error: 'Unable to load data. Please retry.',
+          });
         }
       } finally {
         if (request === sequence.current) pending.current = null;
