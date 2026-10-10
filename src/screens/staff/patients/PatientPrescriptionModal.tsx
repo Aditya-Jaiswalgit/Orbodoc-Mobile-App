@@ -1,36 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { AppModal } from '../../../components/common/AppModal';
+import { Activity, CalendarClock, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as OpenDetails, ClipboardList, Clock3, FileText, Lightbulb, Pill, RotateCcw, Search, SlidersHorizontal, Stethoscope, TestTube2, UserRound, X, } from 'lucide-react-native';
 import {
-  Activity,
-  CalendarClock,
-  CalendarDays,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronRight as OpenDetails,
-  ClipboardList,
-  Clock3,
-  FileText,
-  Lightbulb,
-  Pill,
-  RotateCcw,
-  Search,
-  SlidersHorizontal,
-  Stethoscope,
-  TestTube2,
-  UserRound,
-  X,
-} from 'lucide-react-native';
-import {
-  ActivityIndicator,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+  ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import {
   getPrescriptionByIdApi,
   getPrescriptionsApi,
@@ -397,7 +369,7 @@ export function PatientPrescriptionModal({
   };
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       transparent
       animationType="fade"
@@ -939,7 +911,7 @@ export function PatientPrescriptionModal({
           </View>
         </View>
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 

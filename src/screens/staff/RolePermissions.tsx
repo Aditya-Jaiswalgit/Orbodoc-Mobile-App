@@ -1,19 +1,7 @@
 // src/screens/staff/RolePermissions.tsx
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  StyleSheet,
-  ActivityIndicator,
-  BackHandler,
-  useWindowDimensions,
-  Modal,
-  TextInput,
-  TouchableWithoutFeedback,
-} from 'react-native';
+import { AppModal } from '../../components/common/AppModal';
+import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet, ActivityIndicator, BackHandler, useWindowDimensions, TextInput, TouchableWithoutFeedback } from 'react-native';
 import { ShieldCheck, Check, RefreshCw, Plus, Pencil, ChevronDown, X, Shield } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { showSuccessToast, showErrorToast } from '../../utils/toast';
@@ -178,6 +166,16 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
     if (!loading && !permissionRoles.some(r => String(r.id) === String(selectedRole))) setSelectedRole(permissionRoles[0]?.id ?? '');
   }, [permissionRoles, selectedRole, loading]);
   const permissionKey = (objectId: string | number) => selectedRole + ':' + objectId;
+  const hasUnsavedPermissionChanges = Boolean(
+    selectedRole && systemObjects.length && (
+      String(selectedRole) === customRoleSetupId ||
+      Object.keys(drafts).some(key => key.startsWith(`${selectedRole}:`))
+    ),
+  );
+  const canSavePermissionChanges = Boolean(
+    canEditRole && !saving && !loading && !resource.error && selectedRole &&
+    systemObjects.length && hasUnsavedPermissionChanges,
+  );
   const permissionRow = (objectId: string | number) => drafts[permissionKey(objectId)] || permissionsMatrix.find(p =>
     String(p.role_id) === String(selectedRole) && String(p.sys_obj_id) === String(objectId));
   const fields = { create: 'can_add', read: 'can_view', update: 'can_edit', delete: 'can_delete', execute: 'can_execute' } as const;
@@ -188,7 +186,19 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
       role_id: selectedRole, sys_obj_id: objectId, clinic_id: managedClinicId!,
       can_add: 0, can_view: 0, can_edit: 0, can_delete: 0, can_execute: 0,
     };
-    setDrafts(previous => ({ ...previous, [permissionKey(objectId)]: { ...row, [fields[key]]: getPermission(objectId, key) ? 0 : 1 } }));
+    const nextRow = { ...row, [fields[key]]: getPermission(objectId, key) ? 0 : 1 };
+    const savedRow = permissionsMatrix.find(p =>
+      String(p.role_id) === String(selectedRole) && String(p.sys_obj_id) === String(objectId));
+    const permissionFields = Object.values(fields);
+    const matchesSaved = permissionFields.every(field =>
+      Number(nextRow[field] || 0) === Number(savedRow?.[field] || 0));
+    const draftKey = permissionKey(objectId);
+    setDrafts(previous => {
+      const next = { ...previous };
+      if (matchesSaved) delete next[draftKey];
+      else next[draftKey] = nextRow;
+      return next;
+    });
   };
   const handleSavePermissions = async () => {
     if (!canEditRole || busyRef.current || loading || resource.error || !managedClinicId || !permissionRoles.some(r => String(r.id) === String(selectedRole))) return;
@@ -227,7 +237,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
         if (scopeRef.current !== scope) return;
         setDrafts(previous => { const next = { ...previous }; delete next[key]; return next; });
       }
-      showSuccessToast('Matrix Saved', 'Role permissions saved successfully.');
+      showSuccessToast('Role Permission Saved', 'Permissions saved successfully.');
       setCustomRoleSetupId('');
     } catch (error) {
       if (scopeRef.current === scope) showErrorToast('Unable to save', error instanceof Error ? error.message : 'Please retry. Unsaved changes are kept.');
@@ -507,9 +517,9 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
 
                 {/* Save Changes Button */}
                 <TouchableOpacity
-                  style={styles.saveChangesButton}
+                  style={[styles.saveChangesButton, !canSavePermissionChanges && styles.saveChangesButtonDisabled]}
                   onPress={handleSavePermissions}
-                  disabled={!canEditRole || saving || loading || !!resource.error || !selectedRole || !systemObjects.length}
+                  disabled={!canEditRole || saving || loading || !!resource.error || !selectedRole || !systemObjects.length || !hasUnsavedPermissionChanges}
                 >
                   {saving ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
@@ -667,7 +677,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
       )}
 
       {/* ── ADD / EDIT ROLE MODAL (EXACT MATCH TO UPLOADED SCREENSHOTS) ───── */}
-      <Modal visible={isAddRoleModalOpen} transparent animationType="fade" onRequestClose={() => { if (!roleFormSaving) setIsAddRoleModalOpen(false); }}>
+      <AppModal visible={isAddRoleModalOpen} transparent animationType="fade" onRequestClose={() => { if (!roleFormSaving) setIsAddRoleModalOpen(false); }}>
         <TouchableWithoutFeedback onPress={() => { if (!roleFormSaving) setIsAddRoleModalOpen(false); }}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
@@ -733,7 +743,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
     </View>
   );
 }
@@ -949,7 +959,7 @@ const styles = StyleSheet.create({
   dropdownMenuTextActive: { color: '#0D9488', fontWeight: '700' },
 
   saveChangesButton: {
-    backgroundColor: '#64C2B4', // Soft teal button color from screenshot 2 & 3
+    backgroundColor: '#20A69A',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -957,6 +967,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
   },
+  saveChangesButtonDisabled: { backgroundColor: '#93D4CE' },
   saveChangesButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
 
   // Matrix Desktop View

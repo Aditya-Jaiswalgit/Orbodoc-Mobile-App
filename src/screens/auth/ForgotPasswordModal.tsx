@@ -1,17 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-} from 'react-native';
+import { AppModal } from '../../components/common/AppModal';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import {
   AlertCircle,
   ArrowLeft,
@@ -260,7 +249,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
   const passwordsMatch = newPassword.length > 0 && newPassword === confirmPassword;
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="fade"
       transparent={true}
@@ -607,7 +596,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
           </View>
         </KeyboardAvoidingView>
       </View>
-    </Modal>
+    </AppModal>
   );
 };
 

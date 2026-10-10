@@ -35,7 +35,7 @@ export interface MedicineBillCreatePayload {
   status: string;
   notes?: string;
   items: Array<{
-    medicine_id: number;
+    medicine_id: number | null;
     medicine_name: string;
     batch_number?: string;
     quantity: number;
@@ -91,7 +91,16 @@ export async function recordMedicineBillPaymentApi(
   });
 }
 
-export async function updateMedicineBillApi(token: string, id: number, data: Partial<MedicineBill>): Promise<ApiResponse<{ bill: MedicineBill } | MedicineBill>> {
+export interface MedicineBillUpdatePayload {
+  discount_amount?: number;
+  tax_amount?: number;
+  paid_amount?: number;
+  payment_method?: string;
+  status?: string;
+  notes?: string;
+}
+
+export async function updateMedicineBillApi(token: string, id: number, data: MedicineBillUpdatePayload): Promise<ApiResponse<{ bill: MedicineBill } | MedicineBill>> {
   return apiFetch<{ bill: MedicineBill } | MedicineBill>(`/medicine-bills/${id}`, {
     method: 'PUT', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(data),
   });

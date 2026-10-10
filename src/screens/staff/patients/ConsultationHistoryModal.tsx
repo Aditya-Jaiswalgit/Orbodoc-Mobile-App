@@ -1,15 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { AppModal } from '../../../components/common/AppModal';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import {
   Activity,
   CalendarDays,
@@ -319,7 +310,7 @@ export function ConsultationHistoryModal({
   };
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       transparent
       animationType="fade"
@@ -640,7 +631,7 @@ export function ConsultationHistoryModal({
           </View>
         </View>
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 

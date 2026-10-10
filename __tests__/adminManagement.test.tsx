@@ -492,7 +492,7 @@ test('permission drafts are denied by default and saved with clinic and execute 
     .some(text => String(text.props.children).includes('Save')))!;
   await act(async () => save.props.onPress());
   expect(savedPermissions[0]).toMatchObject({ clinic_id: 71, role_id: '8', sys_obj_id: '11', can_execute: 1, can_view: 0 });
-  expect(showSuccessToast).toHaveBeenCalledWith('Matrix Saved', 'Role permissions saved successfully.');
+  expect(showSuccessToast).toHaveBeenCalledWith('Role Permission Saved', 'Permissions saved successfully.');
 });
 
 test('failed permission save retains drafts for retry', async () => {

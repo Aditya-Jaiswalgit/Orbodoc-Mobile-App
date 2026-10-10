@@ -129,6 +129,22 @@ test('duplicate legacy permission rows are updated together', async () => {
   expect(writes().map(([url]) => url)).toEqual(['/role_per/update/88', '/role_per/update/87']);
 });
 
+test('save button returns to pale disabled state when a permission is toggled back', async () => {
+  await matrix();
+  const save = button('Save Changes');
+  expect(save.props.disabled).toBe(true);
+  expect(StyleSheet.flatten(save.props.style).backgroundColor).toBe('#93D4CE');
+
+  const readSwitch = () => screen.root.findAllByType(Switch).find(s => s.props.accessibilityLabel === 'Patients read')!;
+  await act(async () => readSwitch().props.onValueChange(true));
+  expect(button('Save Changes').props.disabled).toBe(false);
+  expect(StyleSheet.flatten(button('Save Changes').props.style).backgroundColor).toBe('#20A69A');
+
+  await act(async () => readSwitch().props.onValueChange(false));
+  expect(button('Save Changes').props.disabled).toBe(true);
+  expect(StyleSheet.flatten(button('Save Changes').props.style).backgroundColor).toBe('#93D4CE');
+});
+
 test('existing rows normalize all five flags and update their permission ID', async () => {
   permissions = [{ permission_id: 88, clinic_id: 71, role_id: 23, sys_obj_id: 11,
     can_view: 'true', can_add: '0', can_edit: '1', can_delete: false, can_execute: 'yes' }];

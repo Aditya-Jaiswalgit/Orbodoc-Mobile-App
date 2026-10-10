@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { AppModal } from '../../components/common/AppModal';
+import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { Pagination } from '../../components/common/Pagination';
 import { RequestState } from '../../components/common/RequestState';
@@ -8,6 +9,7 @@ import { useNotificationInbox } from '../../hooks/useNotificationInbox';
 import { useRemoteData } from '../../hooks/useRemoteData';
 import { broadcastNotificationApi, getNotificationCategoriesApi } from '../../api/notificationApi';
 import { displayDate } from '../../utils/dashboardValues';
+import { showSuccessToast } from '../../utils/toast';
 
 interface Props { onOpenDrawer: () => void }
 export const NotificationsCenterScreen: React.FC<Props> = ({ onOpenDrawer }) => {
@@ -40,6 +42,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({ onOpenDrawer }) => 
   const markRead = async (id?: number) => {
     const ok = id === undefined ? await inbox.markAllRead() : await inbox.markRead(id);
     if (!ok) Alert.alert('Unable to mark as read', 'Please try again.');
+    else if (id === undefined) showSuccessToast('Notifications updated', 'All notifications are marked as read.');
   };
   const handleBroadcast = async () => {
     if (!broadcastTitle.trim() || !broadcastMessage.trim() || !category || !activeClinicId) {
@@ -53,7 +56,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({ onOpenDrawer }) => 
     if (!ok) { Alert.alert('Broadcast failed', 'The server did not confirm sending. Please retry.'); return; }
     setBroadcastModalVisible(false);
     setBroadcastTitle(''); setBroadcastMessage(''); setCategory(null);
-    Alert.alert('Broadcast sent', 'The server confirmed your announcement.');
+    showSuccessToast('Broadcast sent', 'The server confirmed your announcement.');
   };
   return (
     <View style={styles.container}>
@@ -87,7 +90,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({ onOpenDrawer }) => 
           totalItems={inbox.total} pageSize={pageSize} onPageChange={setCurrentPage}
           onPageSizeChange={size => { setPageSize(size); setCurrentPage(1); }} />
       </ScrollView>
-      <Modal visible={broadcastModalVisible} animationType="slide" transparent
+      <AppModal visible={broadcastModalVisible} animationType="slide" transparent
         onRequestClose={() => { if (!inbox.busy) setBroadcastModalVisible(false); }}>
         <View style={styles.modalBg}><ScrollView contentContainerStyle={styles.modalCard} keyboardShouldPersistTaps="handled">
           <Text style={styles.modalTitle}>Broadcast Announcement</Text>
@@ -115,7 +118,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({ onOpenDrawer }) => 
             </TouchableOpacity>
           </View>
         </ScrollView></View>
-      </Modal>
+      </AppModal>
     </View>
   );
 };

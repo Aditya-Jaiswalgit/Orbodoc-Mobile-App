@@ -1,18 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import {
-  Alert,
-  BackHandler,
-  Modal,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  ToastAndroid,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-} from 'react-native';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { AppModal } from '../components/common/AppModal';
+import { Alert, BackHandler, Platform, ScrollView, StatusBar, StyleSheet, Text, ToastAndroid, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   LayoutDashboard,
@@ -31,7 +19,7 @@ import { useAuthContext } from '../context/AuthContext';
 import { PatientDashboardScreen } from '../screens/dashboards/PatientDashboardScreen';
 import AppointmentsScreen from '../screens/patient/AppointmentsScreen';
 import BookAppointmentScreen from '../screens/patient/BookAppointmentScreen';
-import LabTestsScreen from '../screens/patient/LabTestsScreen';
+import LabTestsScreen from '../screens/patient/PatientLabTestsScreen';
 import MedicineBillingScreen from '../screens/patient/MedicineBillingScreen';
 import NotificationsScreen from '../screens/patient/NotificationsScreen';
 import PatientsProfileScreen from '../screens/patient/PatientsProfileScreen';
@@ -104,15 +92,15 @@ export const PatientMainContainer = () => {
   const [activeVideoCall, setActiveVideoCall] = useState<{ appointment: Appointment; roomId: string } | null>(null);
   const handledIncomingCallRef = useRef('');
 
-  const canPatientOpen = (tabId: PatientTabType) => {
+  const canPatientOpen = useCallback((tabId: PatientTabType) => {
     if (tabId === 'dashboard' || tabId === 'notifications') return true;
     if (!permissionsMap || Object.keys(permissionsMap).length === 0) return true;
     return canUseStaffScreen('patient', permissionsMap, tabId);
-  };
+  }, [permissionsMap]);
 
   const visibleMenuItems = useMemo(() => {
     return MENU_ITEMS.filter(item => canPatientOpen(item.id));
-  }, [permissionsMap]);
+  }, [canPatientOpen]);
 
   const patientName = user?.fullName || user?.full_name || 'bulbul';
   const initial = patientName.charAt(0).toUpperCase();
@@ -130,7 +118,7 @@ export const PatientMainContainer = () => {
       Alert.alert('Incoming Video Consultation', `${call.caller_name || 'Your doctor'} is calling.`, [
         { text: 'Decline', style: 'cancel', onPress: () => { socket.emit('call-rejected', { appointment_id: call.appointment_id, doctor_id: call.doctor_id, patient_id: call.patient_id, caller_role: 'patient' }); handledIncomingCallRef.current = ''; } },
         { text: 'Join', onPress: () => {
-          void getAppointmentsApi(token, 'page=1&limit=200').then(response => {
+          getAppointmentsApi(token, 'page=1&limit=200').then(response => {
             const data = response.data as any;
             const rows: Appointment[] = Array.isArray(data) ? data : Array.isArray(data?.appointments) ? data.appointments : Array.isArray(data?.data) ? data.data : [];
             const appointment = rows.find(row => String(row.id) === String(call.appointment_id));
@@ -191,7 +179,7 @@ export const PatientMainContainer = () => {
           />
         );
       case 'book_appointment':
-        return <BookAppointmentScreen onOpenDrawer={openDrawer} />;
+        return <BookAppointmentScreen onOpenDrawer={openDrawer} onViewVideoServices={() => setActiveTab('video_services')} />;
       case 'patients':
         return <PatientsProfileScreen onOpenDrawer={openDrawer} />;
       case 'appointments':
@@ -201,7 +189,20 @@ export const PatientMainContainer = () => {
       case 'medicine_billing':
         return <MedicineBillingScreen onOpenDrawer={openDrawer} />;
       case 'video_services':
-        return <VideoServicesScreen onOpenDrawer={openDrawer} />;
+        return (
+          <VideoServicesScreen
+            onOpenDrawer={openDrawer}
+            onBookAppointment={() => setActiveTab('book_appointment')}
+            onJoinCall={appointment => {
+              const roomId = String(appointment.video_room_id || '').trim();
+              if (!roomId) {
+                Alert.alert('Call unavailable', 'This appointment does not have a video room yet. Ask your doctor to start the call.');
+                return;
+              }
+              setActiveVideoCall({ appointment, roomId });
+            }}
+          />
+        );
       case 'lab_tests':
         return <LabTestsScreen onOpenDrawer={openDrawer} />;
       case 'notifications':
@@ -302,7 +303,7 @@ export const PatientMainContainer = () => {
       </View>
 
       {/* ─── SIDE DRAWER MENU MODAL (DARK NAVY THEME) ─── */}
-      <Modal
+      <AppModal
         visible={drawerOpen}
         animationType="fade"
         transparent={true}
@@ -397,7 +398,7 @@ export const PatientMainContainer = () => {
             </SafeAreaView>
           </View>
         </View>
-      </Modal>
+      </AppModal>
     </View>
   );
 };

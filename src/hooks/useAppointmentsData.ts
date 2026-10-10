@@ -16,6 +16,7 @@ export function useAppointmentsData(
   token: string | null,
   clinicId: number | string | null,
   enabled: boolean,
+  filters: { status?: string; date?: string; date_from?: string; date_to?: string } = {},
 ) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,9 +39,13 @@ export function useAppointmentsData(
     setLoading(true);
     setError(null);
     try {
-      const params = clinicId
-        ? `clinic_id=${encodeURIComponent(String(clinicId))}`
-        : undefined;
+      const query = new URLSearchParams();
+      if (clinicId) query.set('clinic_id', String(clinicId));
+      if (filters.status) query.set('status', filters.status);
+      if (filters.date) query.set('date', filters.date);
+      if (filters.date_from) query.set('date_from', filters.date_from);
+      if (filters.date_to) query.set('date_to', filters.date_to);
+      const params = query.toString() || undefined;
       const response = await getAppointmentsApi(
         token,
         params,
@@ -68,7 +73,7 @@ export function useAppointmentsData(
         controllerRef.current = null;
       }
     }
-  }, [clinicId, enabled, token]);
+  }, [clinicId, enabled, filters.date, filters.date_from, filters.date_to, filters.status, token]);
 
   useEffect(() => {
     refresh();

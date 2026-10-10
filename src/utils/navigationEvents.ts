@@ -3,10 +3,16 @@ type NavListener = (screen: string) => void;
 const listeners = new Set<NavListener>();
 
 export function resolveStaffScreen(path: string) {
-  const target = path.trim().replace(/^\//, '');
+  let target = path.trim();
+  try {
+    target = new URL(target, 'https://staff.local').pathname;
+  } catch {
+    target = target.split(/[?#]/, 1)[0];
+  }
+  target = target.replace(/^\//, '').replace(/\/$/, '');
   const aliases: Record<string, string> = {
     'change-password': 'change_password', medicines: 'pharmacy_inventory',
-    'lab/tests': 'lab_management', 'billing/treatment': 'treatment_billing',
+    'lab/tests': 'lab_tests', 'billing/treatment': 'treatment_billing',
   };
   return aliases[target] || target;
 }

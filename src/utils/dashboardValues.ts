@@ -18,8 +18,9 @@ export function monthlyRevenue(rows: RevenueRow[], now = new Date()) {
     if (String(row.month).slice(0, 7) !== month) continue;
     const value = dashboardNumber(row.revenue);
     if (value === null) throw new Error('Invalid revenue amount');
-    if (row.type === 'treatment') treatment += value;
-    if (row.type === 'medicine') medicine += value;
+    const type = String(row.type || '').trim().toLowerCase();
+    if (type === 'treatment') treatment += value;
+    if (type === 'medicine') medicine += value;
   }
   return { treatmentRevenue: treatment, medicineRevenue: medicine, revenueThisMonth: treatment + medicine };
 }

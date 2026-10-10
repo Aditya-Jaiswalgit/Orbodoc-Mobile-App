@@ -1,15 +1,7 @@
 // src/features/admin/users/components/UsersTableCard.tsx
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Modal,
-  Alert,
-  FlatList,
-} from 'react-native';
+import { AppModal } from '../../../../components/common/AppModal';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, FlatList } from 'react-native';
 import {
   Edit,
   Mail,
@@ -171,7 +163,7 @@ export function UsersTableCard({
       )}
 
       {/* Action Menu Modal */}
-      <Modal
+      <AppModal
         visible={!!selectedUserForMenu}
         transparent={true}
         animationType="fade"
@@ -215,7 +207,7 @@ export function UsersTableCard({
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
-      </Modal>
+      </AppModal>
     </View>
   );
 }

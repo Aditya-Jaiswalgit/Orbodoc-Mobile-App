@@ -13,6 +13,7 @@ export interface PaginationProps {
   totalPages: number;
   totalItems: number;
   pageSize: number;
+  itemLabel?: string;
   onPageChange: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
   pageSizeOptions?: number[];
@@ -23,6 +24,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   totalPages,
   totalItems,
   pageSize,
+  itemLabel = 'entries',
   onPageChange,
   onPageSizeChange,
   pageSizeOptions = [5, 10, 20, 50],
@@ -72,7 +74,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <Text style={styles.infoText}>
           Showing <Text style={styles.boldText}>{startItem}</Text> to{' '}
           <Text style={styles.boldText}>{endItem}</Text> of{' '}
-          <Text style={styles.boldText}>{totalItems}</Text> entries
+          <Text style={styles.boldText}>{totalItems}</Text> {itemLabel}
         </Text>
 
         {onPageSizeChange && (

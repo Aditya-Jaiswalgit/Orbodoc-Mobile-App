@@ -1,17 +1,8 @@
+import { AppModal } from '../../components/common/AppModal';
 import { styles } from './styles/PharmacyInventory.styles';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+  ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import {
   Check,
   ChevronDown,
@@ -58,8 +49,9 @@ import {
 
 interface Props {
   onOpenDrawer: () => void;
+  initialStock?: string;
 }
-export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer }) => {
+export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initialStock }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const actionButtonRefs = useRef<Record<number, MedicineActionAnchor | null>>(
     {},
@@ -94,7 +86,9 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All categories');
-  const [selectedStatus, setSelectedStatus] = useState('All status');
+  const [selectedStatus, setSelectedStatus] = useState(
+    initialStock === 'low' ? 'Low Stock' : 'All status',
+  );
   const [columnsVisible, setColumnsVisible] = useState(false);
   const [openFilter, setOpenFilter] = useState<'category' | 'status' | null>(
     null,
@@ -641,7 +635,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer }) => {
         subtitle="Toggle columns to show or hide in the list"
       />
 
-      <Modal
+      <AppModal
         visible={Boolean(menu)}
         transparent
         animationType="fade"
@@ -684,7 +678,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer }) => {
             ) : null}
           </View>
         </View>
-      </Modal>
+      </AppModal>
 
       <FormModal
         visible={formVisible}

@@ -1,16 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { AppModal } from '../../../components/common/AppModal';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import {
   CalendarDays,
   Check,
@@ -278,7 +268,7 @@ export function PatientAppointmentModal({
         id: String(doctor.id),
         label: doctor.full_name,
         description:
-          doctor.specialization || doctor.department || 'General consultation',
+          doctor.department || doctor.specialization || 'General consultation',
       }));
     if (picker === 'mode') return consultationModes;
     if (picker === 'time')
@@ -418,9 +408,11 @@ export function PatientAppointmentModal({
                 <TextInput
                   value={pickerQuery}
                   onChangeText={setPickerQuery}
-                  placeholder={`Search ${
-                    kind === 'doctor' ? 'doctor' : 'time slot'
-                  }...`}
+                  placeholder={
+                    kind === 'doctor'
+                      ? 'Search doctor name or specialization...'
+                      : 'Search time slot...'
+                  }
                   placeholderTextColor="#94A3B8"
                   style={styles.inlineSearchInput}
                 />
@@ -481,7 +473,7 @@ export function PatientAppointmentModal({
                 ) : (
                   <Text style={styles.emptyText}>
                     {kind === 'doctor'
-                      ? 'No doctors are available for this clinic.'
+                      ? 'No doctor found.'
                       : kind === 'time' && loadingSlots
                       ? 'Loading time slots...'
                       : 'No matching options.'}
@@ -496,7 +488,7 @@ export function PatientAppointmentModal({
   };
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="fade"
       transparent
@@ -541,8 +533,8 @@ export function PatientAppointmentModal({
               <Stethoscope size={15} color="#334155" />,
               selectedDoctor
                 ? `${selectedDoctor.full_name}${
-                    selectedDoctor.specialization
-                      ? ` - ${selectedDoctor.specialization}`
+                    selectedDoctor.department || selectedDoctor.specialization
+                      ? ` - ${selectedDoctor.department || selectedDoctor.specialization}`
                       : ''
                   }`
                 : '',
@@ -553,8 +545,8 @@ export function PatientAppointmentModal({
               <View style={styles.doctorInfo}>
                 <Text style={styles.doctorDetails}>
                   Specialization:{' '}
-                  {selectedDoctor.specialization ||
-                    selectedDoctor.department ||
+                  {selectedDoctor.department ||
+                    selectedDoctor.specialization ||
                     'General consultation'}
                 </Text>
                 {Number(selectedDoctor.consultation_fee || 0) > 0 ? (
@@ -709,7 +701,7 @@ export function PatientAppointmentModal({
           </View>
         </View>
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 

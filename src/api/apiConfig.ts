@@ -58,6 +58,8 @@ export async function apiFetch<T>(
         success: false,
         message: json?.message || json?.error || 'Request failed (' + response.status + ')',
         error: 'HTTP_' + response.status,
+        code: json?.code,
+        data: json?.data,
       };
     }
     return {

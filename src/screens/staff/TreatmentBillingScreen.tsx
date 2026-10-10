@@ -1,23 +1,9 @@
 // src/screens/staff/TreatmentBillingScreen.tsx
+import { AppModal } from '../../components/common/AppModal';
 import { styles } from './styles/TreatmentBilling.styles';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Linking,
-  Modal,
-  NativeModules,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+  ActivityIndicator, Alert, KeyboardAvoidingView, Linking, NativeModules, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions } from 'react-native';
 import {
   AlertCircle,
   Check,
@@ -29,7 +15,6 @@ import {
   Download,
   Eye,
   FileText,
-  IndianRupee,
   Mail,
   MessageCircle,
   MoreVertical,
@@ -41,6 +26,7 @@ import {
   X,
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { AppToastOverlay, AppToastNotice } from '../../components/common/AppToast';
 import { Pagination } from '../../components/common/Pagination';
 import { ColumnSelectorModal } from '../../components/common/ColumnSelectorModal';
 import { useAuthContext } from '../../context/AuthContext';
@@ -54,7 +40,7 @@ import {
 import { BASE_URL } from '../../api/apiConfig';
 import { CreateTreatmentBillModal } from './billing/CreateTreatmentBillModal';
 import { useTreatmentBills } from '../../hooks/useTreatmentBills';
-import { showErrorToast } from '../../utils/toast';
+import { showErrorToast, showSuccessToast } from '../../utils/toast';
 import {
   BillColumn,
   capitalize,
@@ -70,11 +56,15 @@ import {
 interface Props {
   onOpenDrawer: () => void;
   onNavigateScreen?: (screen: string) => void;
+  initialDateFrom?: string;
+  initialDateTo?: string;
 }
 
 export const TreatmentBillingScreen: React.FC<Props> = ({
   onOpenDrawer,
   onNavigateScreen,
+  initialDateFrom,
+  initialDateTo,
 }) => {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -159,6 +149,8 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
     search: debouncedSearch,
     page: currentPage,
     pageSize,
+    dateFrom: initialDateFrom,
+    dateTo: initialDateTo,
   });
   useEffect(() => {
     if (billsError)
@@ -167,6 +159,8 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
 
   // Modal States
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [pendingBillToast, setPendingBillToast] = useState<{ title: string; message: string } | null>(null);
+  const [visibleBillingToast, setVisibleBillingToast] = useState<AppToastNotice | null>(null);
   const [viewInvoiceModalVisible, setViewInvoiceModalVisible] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [selectedBill, setSelectedBill] = useState<TreatmentBill | null>(null);
@@ -178,6 +172,13 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
 
   // Form State for Record Payment Modal
   const [paymentAmountInput, setPaymentAmountInput] = useState<string>('');
+
+  const showBillingToast = (notice: AppToastNotice) => {
+    setVisibleBillingToast(notice);
+    setTimeout(() => {
+      setVisibleBillingToast(current => current === notice ? null : current);
+    }, 3500);
+  };
   const [paymentMethodSelect, setPaymentMethodSelect] =
     useState<string>('cash');
   const [submittingPayment, setSubmittingPayment] = useState(false);
@@ -192,36 +193,6 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
   }, [searchQuery]);
 
   // Compute Overview KPI Metrics from bills
-  const billingStats = useMemo(() => {
-    let totalCollected = 0;
-    let totalDue = 0;
-    let paidCount = 0;
-    let partialCount = 0;
-    let pendingCount = 0;
-
-    bills.forEach(b => {
-      const tot = Number(b.total_amount) || 0;
-      const pd = Number(b.paid_amount) || 0;
-      const due = Math.max(0, tot - pd);
-      totalCollected += pd;
-      totalDue += due;
-
-      const st = normalizeBillStatus(b);
-      if (st === 'paid') paidCount++;
-      else if (st === 'partial') partialCount++;
-      else if (st === 'pending') pendingCount++;
-    });
-
-    return {
-      totalCollected,
-      totalDue,
-      paidCount,
-      partialCount,
-      pendingCount,
-      totalCount: totalItems || bills.length,
-    };
-  }, [bills, totalItems]);
-
   // Table Min Width calculation for Desktop view
   const tableMinWidth = useMemo(() => {
     let w = 0;
@@ -333,9 +304,9 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
       });
 
       if (res.success) {
-        Alert.alert(
-          'Payment Recorded',
-          `Payment of ?${amount.toFixed(2)} successfully recorded.`,
+        showSuccessToast(
+          'Payment recorded',
+          `Payment of ₹${amount.toFixed(2)} successfully recorded.`,
         );
         setPaymentModalVisible(false);
         loadBills();
@@ -378,8 +349,8 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                 'Cancelled via Mobile App',
               );
               if (res.success) {
-                Alert.alert(
-                  'Bill Cancelled',
+                showSuccessToast(
+                  'Bill cancelled',
                   `Invoice #${bill.bill_number || bill.id} has been cancelled.`,
                 );
                 loadBills();
@@ -561,20 +532,20 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
         }
       >
         {/* -- TOP BANNER HEADER (Matches ClinicsManagementScreen & Web) ---------- */}
-        <View style={styles.bannerRow}>
+        <View style={[styles.bannerRow, isMobile && styles.billingBannerMobile]}>
           <View style={styles.bannerTitleBlock}>
-            <View style={styles.iconBox}>
-              <Receipt color="#0D9488" size={24} />
+            <View style={[styles.iconBox, isMobile && styles.pageIconMobile]}>
+              <Receipt color="#0D9488" size={isMobile ? 24 : 24} />
             </View>
             <View style={styles.extractedInline2}>
-              <Text style={styles.bannerTitle}>Treatment Bills</Text>
+              <Text style={[styles.bannerTitle, isMobile && styles.bannerTitleMobile]}>Treatment Bills</Text>
               <Text style={styles.bannerSubtitle}>
                 Manage bills, payments, and billing items
               </Text>
             </View>
           </View>
 
-          {canAdd && (
+          {canAdd && !isMobile && (
             <TouchableOpacity
               style={styles.addBtn}
               onPress={handleOpenCreateModal}
@@ -591,169 +562,75 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
           )}
         </View>
 
-        {/* -- 4 OVERVIEW METRIC CARDS (Exact match with ClinicsManagementScreen) -- */}
-        <View style={[styles.metricGrid4, isMobile && styles.metricGridMobile]}>
-          {/* Card 1: Total Bills */}
-          <View
-            style={[
-              styles.metricCard,
-              isMobile ? styles.metricCardMobile : styles.metricCardDesktop,
-            ]}
+        {canAdd && isMobile && (
+          <TouchableOpacity
+            style={styles.addBtnMobile}
+            onPress={handleOpenCreateModal}
+            activeOpacity={0.85}
           >
-            <View style={[styles.metricIconBox, styles.extractedInline3]}>
-              <Receipt color="#0D9488" size={isMobile ? 16 : 20} />
+            <Plus color="#FFFFFF" size={15} strokeWidth={2.5} />
+            <Text style={styles.addBtnText}>Create Bill</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* -- BILLS TABLE / LIST CARD CONTAINER -------------------------------- */}
+        <View style={[styles.tableCardContainer, isMobile && !canAdd && styles.tableCardContainerNoCreateButton]}>
+          {/* Card Header Bar */}
+          <View style={[styles.tableHeaderBar, isMobile && styles.tableHeaderBarMobile]}>
+            <View style={styles.tableHeaderLeft}>
+              <Text style={styles.tableTitleText}>All Bills</Text>
+              <Text style={styles.tableSubtitleText}>
+                View and manage treatment bills
+              </Text>
             </View>
-            <View
-              style={[
-                styles.metricValueCell,
-                isMobile
-                  ? styles.metricValueCellMobile
-                  : styles.metricValueCellDesktop,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.metricValue,
-                  isMobile && styles.extractedInline4,
-                ]}
+
+            <View style={[styles.tableHeaderActions, isMobile && styles.tableHeaderActionsMobile]}>
+              {/* Refresh Button */}
+              <TouchableOpacity
+                style={[styles.refreshBtn, isMobile && styles.refreshBtnMobile]}
+                onPress={() => loadBills()}
+                disabled={loading}
+                activeOpacity={0.7}
               >
-                {billingStats.totalCount}
-              </Text>
-              <Text
-                style={[
-                  styles.metricLabel,
-                  isMobile && styles.extractedInline5,
-                ]}
-                numberOfLines={1}
+                <RefreshCw
+                  color="#334155"
+                  size={13}
+                  style={styles.extractedInline1}
+                />
+                <Text style={styles.refreshBtnText}>Refresh</Text>
+              </TouchableOpacity>
+
+              {/* Columns Selector Button */}
+              {!isMobile && <TouchableOpacity
+                style={styles.columnsBtn}
+                onPress={() => setShowColumnModal(true)}
+                activeOpacity={0.7}
               >
-                Total Bills
-              </Text>
+                <Columns
+                  color="#334155"
+                  size={13}
+                  style={styles.extractedInline1}
+                />
+                <Text style={styles.columnsBtnText}>Columns</Text>
+              </TouchableOpacity>}
             </View>
           </View>
 
-          {/* Card 2: Total Collected */}
-          <View
-            style={[
-              styles.metricCard,
-              isMobile ? styles.metricCardMobile : styles.metricCardDesktop,
-            ]}
-          >
-            <View style={[styles.metricIconBox, styles.extractedInline6]}>
-              <IndianRupee color="#166534" size={isMobile ? 16 : 20} />
-            </View>
-            <View
-              style={[
-                styles.metricValueCell,
-                isMobile
-                  ? styles.metricValueCellMobile
-                  : styles.metricValueCellDesktop,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.metricValue,
-                  isMobile && styles.extractedInline4,
-                ]}
-                numberOfLines={1}
-              >
-                {formatCurrency(billingStats.totalCollected)}
-              </Text>
-              <Text
-                style={[
-                  styles.metricLabel,
-                  isMobile && styles.extractedInline5,
-                ]}
-                numberOfLines={1}
-              >
-                Total Collected
+          {Boolean(lastRefreshed) && (
+            <View style={styles.lastRefreshedBar}>
+                <Text style={[styles.lastRefreshedLabel, isMobile && styles.lastRefreshedLabelMobile]}>
+                Last refreshed: {lastRefreshed}
               </Text>
             </View>
-          </View>
+          )}
 
-          {/* Card 3: Partially Paid */}
-          <View
-            style={[
-              styles.metricCard,
-              isMobile ? styles.metricCardMobile : styles.metricCardDesktop,
-            ]}
-          >
-            <View style={[styles.metricIconBox, styles.extractedInline7]}>
-              <Clock color="#1E40AF" size={isMobile ? 16 : 20} />
-            </View>
-            <View
-              style={[
-                styles.metricValueCell,
-                isMobile
-                  ? styles.metricValueCellMobile
-                  : styles.metricValueCellDesktop,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.metricValue,
-                  isMobile && styles.extractedInline4,
-                ]}
-              >
-                {billingStats.partialCount}
-              </Text>
-              <Text
-                style={[
-                  styles.metricLabel,
-                  isMobile && styles.extractedInline5,
-                ]}
-                numberOfLines={1}
-              >
-                Partially Paid
-              </Text>
-            </View>
-          </View>
-
-          {/* Card 4: Outstanding Due */}
-          <View
-            style={[
-              styles.metricCard,
-              isMobile ? styles.metricCardMobile : styles.metricCardDesktop,
-            ]}
-          >
-            <View style={[styles.metricIconBox, styles.extractedInline8]}>
-              <AlertCircle color="#92400E" size={isMobile ? 16 : 20} />
-            </View>
-            <View
-              style={[
-                styles.metricValueCell,
-                isMobile
-                  ? styles.metricValueCellMobile
-                  : styles.metricValueCellDesktop,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.metricValue,
-                  billingStats.totalDue > 0
-                    ? styles.dueAmountDanger
-                    : styles.dueAmountNormal,
-                  isMobile && styles.extractedInline4,
-                ]}
-                numberOfLines={1}
-              >
-                {formatCurrency(billingStats.totalDue)}
-              </Text>
-              <Text
-                style={[
-                  styles.metricLabel,
-                  isMobile && styles.extractedInline5,
-                ]}
-                numberOfLines={1}
-              >
-                Outstanding Due
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* -- SEARCH & STATUS FILTER BAR (Matches ClinicsManagementScreen) ----- */}
+        {/* Search and status filters */}
         <View
-          style={[styles.searchFilterRow, isMobile && styles.extractedInline9]}
+          style={[
+            styles.searchFilterRow,
+            isMobile && styles.extractedInline9,
+            styles.billingFilterRow,
+          ]}
         >
           <View style={styles.searchBar}>
             <Search
@@ -812,67 +689,17 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
               </View>
             )}
           </View>
-        </View>
-
-        {/* -- BILLS TABLE / LIST CARD CONTAINER -------------------------------- */}
-        <View style={styles.tableCardContainer}>
-          {/* Card Header Bar */}
-          <View style={styles.tableHeaderBar}>
-            <View style={styles.tableHeaderLeft}>
-              <View style={styles.extractedInline13}>
-                <Receipt
-                  color="#0F172A"
-                  size={17}
-                  style={styles.extractedInline14}
-                />
-                <Text style={styles.tableTitleText}>
-                  All Bills ({totalItems || bills.length})
-                </Text>
-              </View>
-              <Text style={styles.tableSubtitleText}>
-                View and manage treatment bills
-              </Text>
-            </View>
-
-            <View style={styles.tableHeaderActions}>
-              {/* Refresh Button */}
-              <TouchableOpacity
-                style={styles.refreshBtn}
-                onPress={() => loadBills()}
-                disabled={loading}
-                activeOpacity={0.7}
-              >
-                <RefreshCw
-                  color="#334155"
-                  size={13}
-                  style={styles.extractedInline1}
-                />
-                <Text style={styles.refreshBtnText}>Refresh</Text>
-              </TouchableOpacity>
-
-              {/* Columns Selector Button */}
-              <TouchableOpacity
-                style={styles.columnsBtn}
-                onPress={() => setShowColumnModal(true)}
-                activeOpacity={0.7}
-              >
-                <Columns
-                  color="#334155"
-                  size={13}
-                  style={styles.extractedInline1}
-                />
-                <Text style={styles.columnsBtnText}>Columns</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {Boolean(lastRefreshed) && (
-            <View style={styles.lastRefreshedBar}>
-              <Text style={styles.lastRefreshedLabel}>
-                Last refreshed: {lastRefreshed}
-              </Text>
-            </View>
+          {isMobile && (
+            <TouchableOpacity
+              style={[styles.columnsBtn, styles.columnsBtnMobile]}
+              onPress={() => setShowColumnModal(true)}
+              activeOpacity={0.7}
+            >
+              <Columns color="#334155" size={15} />
+              <Text style={styles.columnsBtnText}>Columns</Text>
+            </TouchableOpacity>
           )}
+        </View>
 
           {/* TABLE / CARD CONTENT */}
           {loading && !refreshing ? (
@@ -1251,7 +1078,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
       </ScrollView>
 
       {/* -- 3-DOTS ACTION POPUP MENU (Exact match with Web Screenshot 1) ---------- */}
-      <Modal
+      <AppModal
         visible={Boolean(actionMenuBill)}
         animationType="fade"
         transparent
@@ -1366,7 +1193,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
 
       {/* -- COLUMNS SELECTOR MODAL ---------------------------------------------- */}
       <ColumnSelectorModal
@@ -1393,8 +1220,27 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
           setEditingBillForModal(null);
         }}
         onSuccess={msg => {
-          loadBills();
-          if (msg) Alert.alert('Success', msg);
+          const updated = Boolean(msg?.toLowerCase().includes('updated'));
+          if (msg) {
+            const toast = {
+              title: updated ? 'Bill Updated! 🎉' : 'Bill Created! 🎉',
+              message: msg,
+            };
+            setPendingBillToast(toast);
+            if (Platform.OS === 'android') {
+              setTimeout(() => {
+                showBillingToast(toast);
+                setPendingBillToast(current => current === toast ? null : current);
+              }, 1400);
+            }
+          }
+          void loadBills();
+        }}
+        onDismiss={() => {
+          if (pendingBillToast) {
+            showBillingToast(pendingBillToast);
+            setPendingBillToast(null);
+          }
         }}
         editingBill={editingBillForModal}
         activeClinicId={activeClinicId}
@@ -1402,31 +1248,31 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
       />
 
       {/* -- INVOICE / RECEIPT MODAL ------------------------------------------- */}
-      <Modal
+      <AppModal
         visible={viewInvoiceModalVisible}
         animationType="fade"
         transparent
         onRequestClose={() => setViewInvoiceModalVisible(false)}
       >
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalContainer, styles.extractedInline32]}>
+          <View style={[styles.modalContainer, styles.extractedInline32, styles.invoiceModalContainer, isMobile && styles.invoiceModalContainerMobile]}>
             <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>
-                  {selectedBill?.bill_number || `Invoice #${selectedBill?.id}`}
-                </Text>
+              <View style={styles.invoiceHeaderIcon}>
+                <Receipt size={19} color="#FFFFFF" />
+              </View>
+              <View style={styles.invoiceHeaderCopy}>
+                <Text style={styles.invoiceHeaderTitle}>Treatment Invoice</Text>
                 <Text style={styles.modalSubtitle}>
-                  Official Medical / Dental Treatment Invoice
+                  {selectedBill?.bill_number || `TB-${selectedBill?.id || ''}`}
                 </Text>
               </View>
-              <View style={styles.receiptHeaderRight}>
-                <TouchableOpacity
-                  onPress={() => setViewInvoiceModalVisible(false)}
-                  style={styles.modalCloseBtn}
-                >
-                  <X size={20} color="#64748B" />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Close invoice"
+                onPress={() => setViewInvoiceModalVisible(false)}
+                style={styles.modalCloseBtn}>
+                <X size={19} color="#64748B" />
+              </TouchableOpacity>
             </View>
 
             {billDetailsLoading ? (
@@ -1437,8 +1283,10 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                 </Text>
               </View>
             ) : selectedBill ? (
-              <ScrollView contentContainerStyle={styles.invoiceReceiptContent}>
-                <View style={styles.invoiceTopRow}>
+              <ScrollView style={styles.invoiceBodyScroll} contentContainerStyle={styles.invoiceBodyScrollContent}>
+                <View style={styles.invoiceDocument}>
+                <View style={[styles.invoiceReceiptContent, isMobile && styles.invoiceReceiptContentMobile]}>
+                <View style={[styles.invoiceTopRow, isMobile && styles.invoiceTopRowMobile]}>
                   <View style={styles.extractedInline35}>
                     <Text style={styles.clinicBrandingName}>
                       {selectedBill.clinic_name || activeClinicName || 'Clinic'}
@@ -1446,19 +1294,23 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                     <Text style={styles.clinicBrandingContact}>
                       PATIENT CARE & TREATMENT SERVICES
                     </Text>
-                    {[
+                    <Text style={styles.clinicBrandingAddress}>
+                      {[
                       selectedBill.clinic_address,
-                      selectedBill.clinic_phone,
-                      selectedBill.clinic_email,
+                      selectedBill.clinic_city,
+                      selectedBill.clinic_state,
+                      selectedBill.clinic_postal_code,
                     ]
                       .filter(Boolean)
-                      .map((value, index) => (
-                        <Text key={index} style={styles.clinicBrandingAddress}>
-                          {value}
-                        </Text>
-                      ))}
+                      .join(', ') || 'Clinic address'}
+                    </Text>
+                    <Text style={styles.clinicBrandingAddress}>
+                      {[selectedBill.clinic_phone, selectedBill.clinic_email]
+                        .filter(Boolean)
+                        .join(' | ') || 'Clinic contact information'}
+                    </Text>
                   </View>
-                  <View style={styles.extractedInline36}>
+                  <View style={[styles.extractedInline36, isMobile && styles.invoiceMetaBlockMobile]}>
                     <Text style={styles.invoiceType}>TREATMENT INVOICE</Text>
                     <Text style={styles.metaBillNo}>
                       {selectedBill.bill_number || `TB-${selectedBill.id}`}
@@ -1473,19 +1325,19 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                 </View>
 
                 {/* Patient & Invoice Meta */}
-                <View style={styles.receiptMetaGrid}>
+                <View style={[styles.receiptMetaGrid, isMobile && styles.receiptMetaGridMobile]}>
                   <View style={styles.metaCol}>
                     <Text style={styles.metaHeader}>BILL TO</Text>
                     <Text style={styles.metaPatientName}>
                       {selectedBill.patient_name || 'Patient'}
                     </Text>
-                    {selectedBill.patient_phone ? (
+                    {selectedBill.patient_phone || selectedBill.phone ? (
                       <Text style={styles.metaSub}>
-                        ?? {selectedBill.patient_phone}
+                        Phone: {selectedBill.patient_phone || selectedBill.phone}
                       </Text>
                     ) : null}
                   </View>
-                  <View style={[styles.metaCol, styles.extractedInline36]}>
+                  <View style={[styles.metaCol, styles.extractedInline36, isMobile && styles.invoiceMetaBlockMobile]}>
                     <Text style={styles.metaHeader}>DOCTOR & APPOINTMENT</Text>
                     <Text style={styles.metaPatientName}>
                       {selectedBill.doctor_name
@@ -1495,9 +1347,9 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                     <Text style={styles.metaSub}>
                       Appointment:{' '}
                       {selectedBill.appointment_date
-                        ? `${formatDate(selectedBill.appointment_date)}${
+                          ? `${formatDate(selectedBill.appointment_date)}${
                             selectedBill.appointment_time
-                              ? `, ${selectedBill.appointment_time}`
+                              ? `, ${String(selectedBill.appointment_time).slice(0, 5)}`
                               : ''
                           }`
                         : '—'}
@@ -1505,7 +1357,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                   </View>
                 </View>
 
-                <View style={styles.paymentStatusBanner}>
+                <View style={[styles.paymentStatusBanner, isMobile && styles.paymentStatusBannerMobile]}>
                   <Text style={styles.paymentStatusText}>
                     Payment Method:{' '}
                     <Text style={styles.extractedInline37}>
@@ -1516,24 +1368,24 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                       )}
                     </Text>
                   </Text>
-                  <Text
-                    style={[
-                      styles.paymentStatusLabel,
-                      normalizeBillStatus(selectedBill) === 'paid'
-                        ? styles.paidLabel
-                        : styles.dueLabel,
-                    ]}
-                  >
-                    {normalizeBillStatus(selectedBill).toUpperCase()}
-                  </Text>
+                  {isMobile ? (
+                    <View style={[styles.paymentStatusPill, normalizeBillStatus(selectedBill) === 'paid' ? styles.paidLabelMobile : styles.dueLabelMobile]}>
+                      {normalizeBillStatus(selectedBill) === 'paid' ? <CheckCircle2 size={12} color="#15803D" /> : <AlertCircle size={12} color="#B45309" />}
+                      <Text style={styles.paymentStatusLabelMobile}>{normalizeBillStatus(selectedBill).toUpperCase()}</Text>
+                    </View>
+                  ) : (
+                    <Text style={[styles.paymentStatusLabel, normalizeBillStatus(selectedBill) === 'paid' ? styles.paidLabel : styles.dueLabel]}>
+                      {normalizeBillStatus(selectedBill).toUpperCase()}
+                    </Text>
+                  )}
                 </View>
-                <Text style={styles.invoiceSectionTitle}>
+                <Text style={[styles.invoiceSectionTitle, isMobile && styles.invoiceSectionTitleMobile]}>
                   TREATMENT & SERVICE ITEMS
                 </Text>
 
                 {/* Itemized Table */}
-                <View style={styles.receiptTableContainer}>
-                  <View style={styles.receiptTableHeader}>
+                <View style={[styles.receiptTableContainer, isMobile && styles.receiptTableContainerMobile]}>
+                  {!isMobile && <View style={styles.receiptTableHeader}>
                     <Text style={[styles.receiptTh, styles.extractedInline38]}>
                       #
                     </Text>
@@ -1552,10 +1404,23 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                     <Text style={[styles.receiptTh, styles.extractedInline41]}>
                       Total
                     </Text>
-                  </View>
+                  </View>}
 
                   {(selectedBill.items || []).length > 0 ? (
-                    selectedBill.items.map((item, idx) => (
+                    selectedBill.items.map((item, idx) => isMobile ? (
+                      <View key={idx} style={styles.invoiceMobileLineCard}>
+                        <View style={styles.invoiceMobileLineTop}>
+                          <Text style={[styles.receiptItemTitle, styles.invoiceMobileLineName]}>{item.service_name}</Text>
+                          <Text style={styles.receiptTdTotal}>{formatCurrency(item.total_price || 0)}</Text>
+                        </View>
+                        {item.service_code && item.service_code.trim().toUpperCase() !== 'DOC_FEES' ? <Text style={styles.receiptItemCode}>{item.service_code}</Text> : null}
+                        <View style={styles.invoiceMobileLineMeta}>
+                          <View style={styles.invoiceMobileMetaCell}><Text style={styles.receiptItemCode}>Qty</Text><Text style={styles.receiptTd}>{item.quantity}</Text></View>
+                          <View style={styles.invoiceMobileMetaCell}><Text style={styles.receiptItemCode}>Rate</Text><Text style={styles.receiptTd}>{formatCurrency(item.unit_price || 0)}</Text></View>
+                          <View style={styles.invoiceMobileMetaCell}><Text style={styles.receiptItemCode}>Discount</Text><Text style={styles.receiptTd}>{Number(item.discount_pct || 0)}%</Text></View>
+                        </View>
+                      </View>
+                    ) : (
                       <View key={idx} style={styles.receiptTableRow}>
                         <Text
                           style={[styles.receiptTd, styles.extractedInline38]}
@@ -1598,53 +1463,22 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                       </View>
                     ))
                   ) : (
-                    <View style={styles.receiptTableRow}>
-                      <Text
-                        style={[styles.receiptTd, styles.extractedInline38]}
-                      >
-                        1
-                      </Text>
-                      <View style={styles.extractedInline39}>
-                        <Text style={styles.receiptItemTitle}>
-                          Treatment Consultation & Services
-                        </Text>
-                      </View>
-                      <Text
-                        style={[styles.receiptTd, styles.extractedInline40]}
-                      >
-                        1
-                      </Text>
-                      <Text
-                        style={[styles.receiptTd, styles.extractedInline41]}
-                      >
-                        {formatCurrency(selectedBill.total_amount)}
-                      </Text>
-                      <Text
-                        style={[styles.receiptTd, styles.extractedInline42]}
-                      >
-                        0%
-                      </Text>
-                      <Text
-                        style={[
-                          styles.receiptTdTotal,
-                          styles.extractedInline41,
-                        ]}
-                      >
-                        {formatCurrency(selectedBill.total_amount)}
-                      </Text>
-                    </View>
+                    null
                   )}
                 </View>
 
                 {/* Receipt Summary Card */}
-                <View style={styles.invoiceSummaryLayout}>
+                <View style={[styles.invoiceSummaryLayout, isMobile && styles.invoiceSummaryLayoutMobile]}>
                   <View style={styles.invoiceNotes}>
                     <Text style={styles.metaHeader}>NOTES</Text>
                     <Text style={styles.clinicBrandingAddress}>
-                      Thank you for choosing us for your care.
+                      {selectedBill.description || 'Thank you for choosing us for your care.'}
+                    </Text>
+                    <Text style={styles.invoicePreparedBy}>
+                      Prepared by: <Text style={styles.invoicePreparedByName}>{selectedBill.accountant_name || selectedBill.created_by_name || 'Clinic billing team'}</Text>
                     </Text>
                   </View>
-                  <View style={styles.receiptSummaryCard}>
+                  <View style={[styles.receiptSummaryCard, isMobile && styles.receiptSummaryCardMobile]}>
                     <View style={styles.receiptSummaryRow}>
                       <Text style={styles.receiptSumLabel}>Subtotal</Text>
                       <Text style={styles.receiptSumVal}>
@@ -1656,29 +1490,29 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                     <View style={styles.receiptSummaryRow}>
                       <Text style={styles.receiptSumLabel}>Discount</Text>
                       <Text
-                        style={[styles.receiptSumVal, styles.extractedInline44]}
+                        style={[styles.receiptSumVal, !isMobile && styles.extractedInline44]}
                       >
-                        - {formatCurrency(selectedBill.discount_amount)}
+                        -{formatCurrency(selectedBill.discount_amount)}
                       </Text>
                     </View>
                     <View style={styles.receiptSummaryRow}>
                       <Text style={styles.receiptSumLabel}>Tax</Text>
                       <Text style={styles.receiptSumVal}>
-                        + {formatCurrency(selectedBill.tax_amount)}
+                        +{formatCurrency(selectedBill.tax_amount)}
                       </Text>
                     </View>
                     <View
-                      style={[styles.receiptSummaryRow, styles.receiptGrandRow]}
+                      style={[styles.receiptSummaryRow, styles.receiptGrandRow, isMobile && styles.receiptGrandRowMobile]}
                     >
                       <Text style={styles.receiptGrandLabel}>Total</Text>
-                      <Text style={styles.receiptGrandVal}>
+                      <Text style={[styles.receiptGrandVal, isMobile && styles.receiptGrandValMobile]}>
                         {formatCurrency(selectedBill.total_amount || 0)}
                       </Text>
                     </View>
                     <View style={styles.receiptSummaryRow}>
                       <Text style={styles.receiptSumLabel}>Amount Paid</Text>
                       <Text
-                        style={[styles.receiptSumVal, styles.extractedInline16]}
+                      style={[styles.receiptSumVal, isMobile ? styles.receiptAmountPaidMobile : styles.extractedInline16]}
                       >
                         {formatCurrency(selectedBill.paid_amount || 0)}
                       </Text>
@@ -1707,92 +1541,40 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                   </View>
                 </View>
 
-                {/* Status Stamp */}
-                <View style={styles.stampRow}>
-                  {normalizeBillStatus(selectedBill) === 'paid' && (
-                    <View
-                      style={[styles.receiptStamp, styles.receiptStampPaid]}
-                    >
-                      <Text
-                        style={[
-                          styles.receiptStampText,
-                          styles.extractedInline16,
-                        ]}
-                      >
-                        ? FULLY PAID
-                      </Text>
-                    </View>
-                  )}
-                  {normalizeBillStatus(selectedBill) === 'partial' && (
-                    <View
-                      style={[styles.receiptStamp, styles.receiptStampPartial]}
-                    >
-                      <Text
-                        style={[
-                          styles.receiptStampText,
-                          styles.extractedInline46,
-                        ]}
-                      >
-                        PARTIALLY PAID
-                      </Text>
-                    </View>
-                  )}
-                  {normalizeBillStatus(selectedBill) === 'pending' && (
-                    <View
-                      style={[styles.receiptStamp, styles.receiptStampPending]}
-                    >
-                      <Text
-                        style={[
-                          styles.receiptStampText,
-                          styles.extractedInline47,
-                        ]}
-                      >
-                        PAYMENT PENDING
-                      </Text>
-                    </View>
-                  )}
-                  {normalizeBillStatus(selectedBill) === 'cancelled' && (
-                    <View
-                      style={[
-                        styles.receiptStamp,
-                        styles.receiptStampCancelled,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.receiptStampText,
-                          styles.extractedInline48,
-                        ]}
-                      >
-                        CANCELLED
-                      </Text>
-                    </View>
-                  )}
                 </View>
-                <View style={styles.invoicePdfFooter}>
+                <View style={styles.invoiceDocumentFooter}>
                   <Text style={styles.invoiceFooterNote}>
-                    This is a system-generated treatment invoice. Thank you for
-                    your visit.
+                    This is a system-generated treatment invoice. Thank you for your visit.
                   </Text>
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    style={styles.invoiceDownloadButton}
-                    onPress={() => handleDownloadPDF(selectedBill)}
-                  >
-                    <Download size={18} color="#FFFFFF" />
-                    <Text style={styles.invoiceDownloadButtonText}>
-                      Download PDF
-                    </Text>
-                  </TouchableOpacity>
+                </View>
                 </View>
               </ScrollView>
             ) : null}
+            <View style={styles.invoiceActionFooter}>
+              <View style={styles.invoiceActionButtonsRow}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  style={[styles.invoiceCloseAction, styles.invoiceActionButton]}
+                  onPress={() => setViewInvoiceModalVisible(false)}>
+                  <X size={16} color="#334155" />
+                  <Text style={styles.invoiceCloseActionText}>Close</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  disabled={!selectedBill || billDetailsLoading}
+                  style={[styles.invoiceDownloadButton, styles.invoiceActionButton]}
+                  onPress={() => selectedBill && handleDownloadPDF(selectedBill)}>
+                  <Download size={17} color="#FFFFFF" />
+                  <Text style={styles.invoiceDownloadButtonText}>Download PDF</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </View>
-      </Modal>
+      </AppModal>
 
       {/* -- RECORD PAYMENT MODAL ---------------------------------------------- */}
-      <Modal
+      <AppModal
         visible={paymentModalVisible}
         animationType="fade"
         transparent
@@ -1915,7 +1697,11 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
             </View>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
+      </AppModal>
+      <AppToastOverlay
+        notice={visibleBillingToast}
+        onDismiss={() => setVisibleBillingToast(null)}
+      />
     </View>
   );
 };

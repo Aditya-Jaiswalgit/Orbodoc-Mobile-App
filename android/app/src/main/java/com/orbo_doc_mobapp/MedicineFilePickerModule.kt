@@ -35,6 +35,7 @@ class MedicineFilePickerModule(private val context: ReactApplicationContext) : R
       result.putString("uri", uri.toString())
       result.putString("name", getDisplayName(uri) ?: "medicines.xlsx")
       result.putString("type", context.contentResolver.getType(uri) ?: "application/octet-stream")
+      getFileSize(uri)?.let { result.putDouble("size", it.toDouble()) }
       promise.resolve(result)
     }
   }
@@ -209,6 +210,17 @@ class MedicineFilePickerModule(private val context: ReactApplicationContext) : R
       if (cursor != null && cursor.moveToFirst()) {
         val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
         if (index >= 0) cursor.getString(index) else null
+      } else null
+    } finally { cursor?.close() }
+  }
+
+  private fun getFileSize(uri: Uri): Long? {
+    var cursor: Cursor? = null
+    return try {
+      cursor = context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)
+      if (cursor != null && cursor.moveToFirst()) {
+        val index = cursor.getColumnIndex(OpenableColumns.SIZE)
+        if (index >= 0 && !cursor.isNull(index)) cursor.getLong(index) else null
       } else null
     } finally { cursor?.close() }
   }

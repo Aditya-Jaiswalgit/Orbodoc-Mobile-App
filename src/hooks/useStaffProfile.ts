@@ -99,7 +99,8 @@ export function useStaffProfile() {
     'accountant',
   ].includes(normalizedRole);
   const isPatientRole = normalizedRole === 'patient';
-  const canManageVideoCalling = isDoctorRole;
+  const canManageVideoCalling =
+    isDoctorRole || Number(profile?.is_doctor ?? 0) === 1;
 
   const populate = (value: Profile) => {
     setFullName(value.full_name || value.fullName || '');
@@ -338,6 +339,10 @@ export function useStaffProfile() {
       !Number.isNaN(new Date(profile.last_login_at).getTime())
         ? new Date(profile.last_login_at).toLocaleString('en-IN')
         : '—',
+    videoRatePerMinute: profile?.video_rate_per_minute ?? null,
+    marketplaceStatus: profile?.marketplace_status
+      ? String(profile.marketplace_status).replace(/_/g, ' ')
+      : '',
     verificationStatus: !profile
       ? '—'
       : permissionEnabled(profile.is_verified)

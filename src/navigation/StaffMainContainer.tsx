@@ -1,18 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  Alert,
-  BackHandler,
-  Modal,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  ToastAndroid,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-} from 'react-native';
+import { AppModal } from '../components/common/AppModal';
+import { Alert, BackHandler, Platform, ScrollView, StatusBar, StyleSheet, Text, ToastAndroid, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   LayoutDashboard,
@@ -30,6 +18,7 @@ import {
   ChevronUp,
   UserCog,
   UserPlus,
+  UserCheck,
   Shield,
   Video,
 } from 'lucide-react-native';
@@ -49,6 +38,7 @@ import SuperAdminDashboardScreen from '../screens/dashboards/SuperAdminDashboard
 import AppointmentsManagerScreen from '../screens/staff/AppointmentsManagerScreen';
 import ClinicsManagementScreen from '../screens/staff/ClinicsManagementScreen';
 import LabManagementScreen from '../screens/staff/LabManagementScreen';
+import LabInventoryScreen from '../screens/staff/LabInventoryScreen';
 import MedicineBillingScreen from '../screens/staff/MedicineBillingScreen';
 import NotificationsCenterScreen from '../screens/staff/NotificationsCenterScreen';
 import PatientsManagementScreen from '../screens/staff/PatientsManagementScreen';
@@ -61,9 +51,11 @@ import StaffVideoServicesScreen from '../screens/staff/StaffVideoServicesScreen'
 import MyProfileScreen from '../screens/staff/MyProfileScreen';
 import ChangePasswordScreen from '../screens/staff/ChangePasswordScreen';
 import { ProviderWalletScreen } from '../screens/staff/ProviderWalletScreen';
+import SubscriptionPlansScreen from '../screens/staff/SubscriptionPlansScreen';
+import PendingDoctorApprovalsScreen from '../screens/staff/PendingDoctorApprovalsScreen';
 import { useRemoteData } from '../hooks/useRemoteData';
 import { fetchHeaderUnreadCount } from '../api/staffHeaderApi';
-import { subscribeStaffNavigation } from '../utils/navigationEvents';
+import { resolveStaffScreen, subscribeStaffNavigation } from '../utils/navigationEvents';
 import { canUseStaffScreen } from './staffAccess';
 import { StaffHeader } from '../components/common/StaffHeader';
 import { getRoleDisplayName, getRoleSectionLabel, normalizeRoleName } from '../utils/rolePermissions';
@@ -88,6 +80,8 @@ export type StaffTabType =
   | 'notifications'
   | 'profile'
   | 'wallet'
+  | 'subscription_plans'
+  | 'pending_doctor_approvals'
   | 'change_password';
 
 interface MenuItemChild {
@@ -156,6 +150,8 @@ export const StaffMainContainer = () => {
   }
 
   const [activeTab, setActiveTab] = useState<StaffTabType>('dashboard');
+  const [dashboardRouteFilters, setDashboardRouteFilters] = useState<Record<string, string>>({});
+  const [dashboardFilterScreen, setDashboardFilterScreen] = useState<StaffTabType | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const unread = useRemoteData([user?.id, token, activeClinicId, 'drawer-unread'].join(':'), async () => {
     const result = await fetchHeaderUnreadCount();
@@ -165,6 +161,14 @@ export const StaffMainContainer = () => {
   const [clinicModalOpen, setClinicModalOpen] = useState(false);
   const [isSwitchingClinic, setIsSwitchingClinic] = useState(false);
   const [userRoleMgmtOpen, setUserRoleMgmtOpen] = useState(true);
+
+  const navigateFromClinicDashboard = (path: string) => {
+    const destination = new URL(path, 'https://staff.local');
+    const target = resolveStaffScreen(destination.pathname) as StaffTabType;
+    setDashboardRouteFilters(Object.fromEntries(destination.searchParams.entries()));
+    setDashboardFilterScreen(target);
+    setActiveTab(target);
+  };
 
   useEffect(() => {
     const unsubscribe = subscribeStaffNavigation((screen) => {
@@ -278,7 +282,10 @@ export const StaffMainContainer = () => {
           { id: 'dashboard', label: 'Super Admin Dashboard' },
           { id: 'clinics', label: 'Clinic Management' },
           userRoleManagementGroup,
+          { id: 'subscription_plans', label: 'Subscription Plans' },
+          { id: 'pending_doctor_approvals', label: 'Pending Doctor Approvals' },
           ...sharedClinicNav,
+          { id: 'book_appointment', label: 'Book Appointment' },
           { id: 'lab_management', label: 'Lab Management' },
           { id: 'notifications', label: 'Notifications', badge: unread.data ?? undefined },
         ];
@@ -386,9 +393,9 @@ export const StaffMainContainer = () => {
           case 'super_admin':
             return <SuperAdminDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
           case 'clinic_admin':
-            return <ClinicAdminDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+            return <ClinicAdminDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={navigateFromClinicDashboard} />;
           case 'doctor':
-            return <DoctorDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+            return <DoctorDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={navigateFromClinicDashboard} />;
           case 'receptionist':
             return <ReceptionistDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
           case 'pharmacist':
@@ -408,32 +415,37 @@ export const StaffMainContainer = () => {
       case 'role_permissions':
         return <RolePermissionsScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} />;
       case 'patients':
-        return <PatientsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(screen) => setActiveTab(screen as StaffTabType)} />;
+        return <PatientsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(screen) => setActiveTab(screen as StaffTabType)} initialStatus={dashboardFilterScreen === 'patients' ? dashboardRouteFilters.status : undefined} />;
       case 'appointments':
-        return <AppointmentsManagerScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr: string) => setActiveTab(scr as any)} />;
+        return <AppointmentsManagerScreen onOpenDrawer={openDrawer} onNavigateScreen={navigateFromClinicDashboard} initialFilters={dashboardFilterScreen === 'appointments' ? dashboardRouteFilters : {}} />;
       case 'book_appointment':
         return <AppointmentsManagerScreen onOpenDrawer={openDrawer} />;
       case 'video_services':
-        return <StaffVideoServicesScreen onOpenDrawer={openDrawer} />;
+        return <StaffVideoServicesScreen onOpenDrawer={openDrawer} onNavigateScreen={(screen) => setActiveTab(screen as StaffTabType)} />;
       case 'prescriptions':
-        return <PrescriptionsScreen onOpenDrawer={openDrawer} />;
+        return <PrescriptionsScreen onOpenDrawer={openDrawer} appointmentId={dashboardFilterScreen === 'prescriptions' ? dashboardRouteFilters.appointment_id : undefined} />;
       case 'pharmacy_inventory':
-        return <PharmacyInventoryScreen onOpenDrawer={openDrawer} />;
+        return <PharmacyInventoryScreen onOpenDrawer={openDrawer} initialStock={dashboardFilterScreen === 'pharmacy_inventory' ? dashboardRouteFilters.stock : undefined} />;
       case 'medicine_billing':
         return <MedicineBillingScreen onOpenDrawer={openDrawer} />;
       case 'treatment_billing':
-        return <TreatmentBillingScreen onOpenDrawer={openDrawer} />;
+        return <TreatmentBillingScreen onOpenDrawer={openDrawer} initialDateFrom={dashboardFilterScreen === 'treatment_billing' ? dashboardRouteFilters.date_from : undefined} initialDateTo={dashboardFilterScreen === 'treatment_billing' ? dashboardRouteFilters.date_to : undefined} />;
       case 'lab_management':
         return <ClinicsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} />;
       case 'lab_tests':
+        return <LabManagementScreen onOpenDrawer={openDrawer} initialTab="orders" initialStatus={dashboardFilterScreen === 'lab_tests' ? dashboardRouteFilters.status : undefined} />;
       case 'lab_inventory':
-        return <LabManagementScreen onOpenDrawer={openDrawer} initialTab="orders" />;
+        return <LabInventoryScreen onOpenDrawer={openDrawer} />;
       case 'lab_reports':
         return <LabManagementScreen onOpenDrawer={openDrawer} initialTab="reports" />;
       case 'notifications':
         return <NotificationsCenterScreen onOpenDrawer={openDrawer} />;
       case 'wallet':
         return <ProviderWalletScreen onOpenDrawer={openDrawer} />;
+      case 'subscription_plans':
+        return <SubscriptionPlansScreen onOpenDrawer={openDrawer} />;
+      case 'pending_doctor_approvals':
+        return <PendingDoctorApprovalsScreen onOpenDrawer={openDrawer} />;
       case 'profile':
         return <MyProfileScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr: string) => setActiveTab(scr as any)} />;
       case 'change_password':
@@ -457,6 +469,10 @@ export const StaffMainContainer = () => {
         return <Users color={color} size={size} />;
       case 'video_services':
         return <Video color={color} size={size} />;
+      case 'subscription_plans':
+        return <CreditCard color={color} size={size} />;
+      case 'pending_doctor_approvals':
+        return <UserCheck color={color} size={size} />;
       case 'user_role_mgmt':
         return <UserCog color={color} size={size} />;
       case 'treatment_billing':
@@ -483,7 +499,7 @@ export const StaffMainContainer = () => {
       <View style={styles.screenContainer}>{renderActiveScreen()}</View>
 
       {/* ─── SIDE DRAWER MODAL (DARK NAVY EXACT SCREENSHOT THEME) ─── */}
-      <Modal visible={drawerOpen} animationType="fade" transparent={true} onRequestClose={() => setDrawerOpen(false)}>
+      <AppModal visible={drawerOpen} animationType="fade" transparent={true} onRequestClose={() => setDrawerOpen(false)}>
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback onPress={() => setDrawerOpen(false)}>
             <View style={styles.backdrop} />
@@ -541,19 +557,23 @@ export const StaffMainContainer = () => {
                             activeOpacity={0.7}
                             style={[styles.menuItemRow, isGroupActive && styles.activeMenuItemRow]}
                             onPress={() => setUserRoleMgmtOpen(!userRoleMgmtOpen)}>
-                            <View style={styles.itemLeft}>
+                            <View style={[styles.itemLeft, { minWidth: 0 }]}>
                               <View style={[styles.menuIconContainer, isGroupActive && styles.menuIconContainerActive]}>
                                 <UserCog color={isGroupActive ? '#5EEAD4' : '#14B8A6'} size={18} />
                               </View>
-                              <Text style={[styles.menuItemLabel, isGroupActive && styles.activeItemText]}>
+                              <Text
+                                numberOfLines={2}
+                                style={[styles.menuItemLabel, { flexShrink: 1 }, isGroupActive && styles.activeItemText]}>
                                 {item.label}
                               </Text>
                             </View>
-                            {userRoleMgmtOpen ? (
-                              <ChevronUp color="#94A3B8" size={16} />
-                            ) : (
-                              <ChevronDown color="#94A3B8" size={16} />
-                            )}
+                            <View style={{ flexShrink: 0, marginLeft: 8 }}>
+                              {userRoleMgmtOpen ? (
+                                <ChevronUp color="#94A3B8" size={16} />
+                              ) : (
+                                <ChevronDown color="#94A3B8" size={16} />
+                              )}
+                            </View>
                           </TouchableOpacity>
 
                           {/* Sub-items Tree */}
@@ -638,10 +658,10 @@ export const StaffMainContainer = () => {
             </SafeAreaView>
           </View>
         </View>
-      </Modal>
+      </AppModal>
 
       {/* ─── MULTI-CLINIC SELECTION MODAL ─── */}
-      <Modal visible={clinicModalOpen} animationType="slide" transparent={true} onRequestClose={() => setClinicModalOpen(false)}>
+      <AppModal visible={clinicModalOpen} animationType="slide" transparent={true} onRequestClose={() => setClinicModalOpen(false)}>
         <View style={styles.modalOverlayCenter}>
           <View style={styles.clinicSelectBox}>
             <View style={styles.clinicModalHeader}>
@@ -676,7 +696,7 @@ export const StaffMainContainer = () => {
             </ScrollView>
           </View>
         </View>
-      </Modal>
+      </AppModal>
     </View>
   );
 };

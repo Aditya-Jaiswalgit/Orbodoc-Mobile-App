@@ -1,14 +1,7 @@
 // src/components/common/ColumnSelectorModal.tsx
 import React, { memo, useMemo } from 'react';
-import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-} from 'react-native';
+import { AppModal } from './AppModal';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { Check, Columns, X } from 'lucide-react-native';
 
 export interface ColumnOption<K extends string = string> {
@@ -43,7 +36,7 @@ export const ColumnSelectorModal = memo(function ColumnSelectorModal<K extends s
   }, [columns, visibleColumns]);
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="fade"
       transparent
@@ -144,7 +137,7 @@ export const ColumnSelectorModal = memo(function ColumnSelectorModal<K extends s
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
-    </Modal>
+    </AppModal>
   );
 }) as <K extends string = string>(props: ColumnSelectorModalProps<K>) => React.ReactElement | null;
 

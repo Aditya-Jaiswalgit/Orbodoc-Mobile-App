@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import { appToastConfig } from './src/components/common/AppToast';
 import { AuthProvider, useAuthContext } from './src/context/AuthContext';
 import { PatientMainContainer } from './src/navigation/PatientMainContainer';
 import { StaffMainContainer } from './src/navigation/StaffMainContainer';
@@ -45,7 +46,9 @@ function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <AppNavigator />
-        <Toast />
+        <View pointerEvents="box-none" style={styles.toastLayer}>
+          <Toast config={appToastConfig} />
+        </View>
       </AuthProvider>
     </SafeAreaProvider>
   );
@@ -61,6 +64,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f8fafc',
+  },
+  toastLayer: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 10000,
+    elevation: 10000,
   },
 });
 

@@ -1,7 +1,14 @@
 import Toast from 'react-native-toast-message';
 
+// Wait for native modal dismissals and screen transitions to finish before
+// asking the root Toast host to render. A React Native Modal can cover a root
+// toast while its dismissal animation is still running.
+const showToastAfterTransition = (options: Parameters<typeof Toast.show>[0]) => {
+  setTimeout(() => Toast.show(options), 500);
+};
+
 export const showSuccessToast = (title: string, message?: string) => {
-  Toast.show({
+  showToastAfterTransition({
     type: 'success',
     text1: title,
     text2: message,
@@ -12,7 +19,7 @@ export const showSuccessToast = (title: string, message?: string) => {
 };
 
 export const showErrorToast = (title: string, message?: string) => {
-  Toast.show({
+  showToastAfterTransition({
     type: 'error',
     text1: title,
     text2: message,
@@ -23,7 +30,7 @@ export const showErrorToast = (title: string, message?: string) => {
 };
 
 export const showInfoToast = (title: string, message?: string) => {
-  Toast.show({
+  showToastAfterTransition({
     type: 'info',
     text1: title,
     text2: message,

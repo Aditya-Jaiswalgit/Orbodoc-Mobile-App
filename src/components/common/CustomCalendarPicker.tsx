@@ -1,16 +1,7 @@
 // src/components/common/CustomCalendarPicker.tsx
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
-  Pressable,
-  ScrollView,
-  TextInput,
-  useWindowDimensions,
-} from 'react-native';
+import { AppModal } from './AppModal';
+import { View, Text, TouchableOpacity, StyleSheet, Pressable, ScrollView, TextInput, useWindowDimensions } from 'react-native';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, Check, Search } from 'lucide-react-native';
 
 interface CustomCalendarPickerProps {
@@ -21,6 +12,7 @@ interface CustomCalendarPickerProps {
   triggerTextStyle?: any;
   iconColor?: string;
   placeholder?: string;
+  formatTriggerDate?: (date: Date) => string;
   onOpen?: () => void;
   fromYear?: number;
   toYear?: number;
@@ -57,6 +49,7 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
   triggerTextStyle,
   iconColor = '#0D9488',
   placeholder = 'Select date',
+  formatTriggerDate,
   onOpen,
   fromYear = 2020,
   toYear = 2035,
@@ -126,12 +119,13 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
   // Format header trigger button string e.g. "Sunday, September 20, 2026"
   const formattedTriggerText = useMemo(() => {
     if (!externalDate) return placeholder;
+    if (formatTriggerDate) return formatTriggerDate(externalDate);
     return externalDate.toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
     });
-  }, [externalDate, placeholder]);
+  }, [externalDate, formatTriggerDate, placeholder]);
 
   // Calendar Grid Calculation
   const calendarDays = useMemo(() => {
@@ -214,7 +208,7 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
       </TouchableOpacity>
 
       {/* POPUP CALENDAR MODAL / OVERLAY */}
-      <Modal visible={isOpen} transparent animationType="fade" onRequestClose={() => setIsOpen(false)}>
+      <AppModal visible={isOpen} transparent animationType="fade" onRequestClose={() => setIsOpen(false)}>
           <View style={styles.modalOverlay}>
             <Pressable style={StyleSheet.absoluteFill} onPress={() => { setDropdownType(null); setIsOpen(false); }} />
               <View style={[styles.calendarCard, { width: Math.min(320, screenWidth - 40) }]}>
@@ -305,8 +299,8 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
                 </View>
               </View>
           </View>
-      </Modal>
-      <Modal
+      </AppModal>
+      <AppModal
         visible={dropdownType !== null}
         transparent
         animationType="none"
@@ -374,7 +368,7 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
             </ScrollView>
           </View>
         </View>
-      </Modal>
+      </AppModal>
     </View>
   );
 };

@@ -1,24 +1,7 @@
 // src/screens/staff/UserManagement.tsx
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  Platform,
-  StatusBar,
-  Modal,
-  ActivityIndicator,
-  Alert,
-  useWindowDimensions,
-  RefreshControl,
-  TouchableWithoutFeedback,
-  KeyboardAvoidingView,
-  Keyboard,
-  Switch,
-} from 'react-native';
+import { AppModal } from '../../components/common/AppModal';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform, StatusBar, ActivityIndicator, Alert, useWindowDimensions, RefreshControl, TouchableWithoutFeedback, KeyboardAvoidingView, Keyboard, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   UserPlus,
@@ -860,26 +843,14 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
             /* Responsive Mobile Card View */
             <View style={{ gap: 10, marginVertical: 8 }}>
               {paginatedUsers.map((item) => {
-                const nameParts = (item.full_name || 'U').trim().split(/\s+/);
-                const initials = nameParts
-                  .map((n) => n.charAt(0))
-                  .join('')
-                  .substring(0, 2)
-                  .toUpperCase() || 'U';
-
                 return (
                   <View key={item.id} style={styles.mobileUserCard}>
                     <View style={styles.mobileCardHeader}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                        <View style={styles.circleAvatar}>
-                          <Text style={styles.circleAvatarText}>{initials}</Text>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          {visibleColumns.full_name && <Text style={styles.userNameText} numberOfLines={1}>
-                            {item.full_name}
-                          </Text>}
-                          {visibleColumns.user_id && <Text style={{ fontSize: 11, color: '#64748B' }}>ID: #{item.user_id}</Text>}
-                        </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        {visibleColumns.full_name && <Text style={styles.userNameText} numberOfLines={1}>
+                          {item.full_name}
+                        </Text>}
+                        {visibleColumns.email && <Text style={styles.mobileEmailText} numberOfLines={1}>{item.email}</Text>}
                       </View>
 
                       {visibleColumns.status && <View
@@ -902,19 +873,12 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                     </View>
 
                     <View style={styles.mobileCardMeta}>
-                      {visibleColumns.is_doctor && <Text style={styles.mobileMetaText}>Doctor: {item.is_doctor ? 'Yes' : 'No'}</Text>}
-                      {(['address', 'department', 'specialization', 'created_at'] as const).filter(key => visibleColumns[key]).map(key => (
-                        <Text key={key} style={styles.mobileMetaText}>{userColumns[key]}: {key === 'created_at' ? formatCreatedAt(item.created_at) : item[key] || '\u2014'}</Text>
-                      ))}
-                      {visibleColumns.clinic_name && <Text style={styles.mobileMetaText}>🏢 {item.clinic_name}</Text>}
-                      {visibleColumns.email && <Text style={styles.mobileMetaText}>✉️ {item.email}</Text>}
-                      {visibleColumns.phone && <Text style={styles.mobileMetaText}>📞 {item.phone}</Text>}
+                      {visibleColumns.role && <Text style={styles.mobileMetaText}>Role: {item.role}</Text>}
+                      {visibleColumns.clinic_name && <Text style={styles.mobileMetaText}>Clinic: {item.clinic_name || '-'}</Text>}
                     </View>
 
                     <View style={styles.mobileCardFooter}>
-                      {visibleColumns.role && <View style={styles.rolePillBadge}>
-                        <Text style={styles.rolePillText}>{item.role}</Text>
-                      </View>}
+                      <View />
 
                       {/* Action Buttons (Eye & Edit only - No Delete User) */}
                       {visibleColumns.actions && <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -1076,7 +1040,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
 
       {/*  VIEW USER DETAILS MODAL                                                  */}
 
-      <Modal visible={!!viewUserModal} animationType="fade" transparent>
+      <AppModal visible={!!viewUserModal} animationType="fade" transparent>
         <TouchableWithoutFeedback onPress={() => setViewUserModal(null)}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
@@ -1249,10 +1213,10 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
 
       {/*  EDIT USER MODAL (MOBILE RESPONSIVE + DYNAMIC ACTIVATE / DEACTIVATE)       */}
-      <Modal visible={!!editUserModal} animationType="fade" transparent onRequestClose={closeEditForm}>
+      <AppModal visible={!!editUserModal} animationType="fade" transparent onRequestClose={closeEditForm}>
         <TouchableWithoutFeedback onPress={closeEditForm}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
@@ -1551,11 +1515,11 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
 
       {/*  RESET PASSWORD MODAL (EXACT MATCH TO UPLOADED SCREENSHOT)               */}
 
-      <Modal visible={!!resetPasswordModalUser} animationType="fade" transparent onRequestClose={closeResetPassword}>
+      <AppModal visible={!!resetPasswordModalUser} animationType="fade" transparent onRequestClose={closeResetPassword}>
         <TouchableWithoutFeedback onPress={closeResetPassword}>
           <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <TouchableWithoutFeedback>
@@ -1671,11 +1635,11 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
             </TouchableWithoutFeedback>
           </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
 
       {/*  CREATE USER MODAL                                                       */}
       
-      <Modal visible={createUserModalOpen} animationType="fade" transparent onRequestClose={closeCreateForm}>
+      <AppModal visible={createUserModalOpen} animationType="fade" transparent onRequestClose={closeCreateForm}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <TouchableWithoutFeedback onPress={closeCreateForm}>
           <View style={styles.modalOverlay}>
@@ -1892,7 +1856,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
           </View>
         </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
-      </Modal>
+      </AppModal>
     </SafeAreaView>
   );
 }
@@ -2451,7 +2415,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     padding: 12,
-    gap: 8,
+    gap: 6,
     elevation: 1,
   },
   mobileCardHeader: {
@@ -2460,15 +2424,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   mobileCardMeta: {
-    gap: 4,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#F1F5F9',
+    gap: 8,
+    paddingTop: 0,
   },
   mobileMetaText: {
     fontSize: 12,
     color: '#475569',
+  },
+  mobileEmailText: {
+    fontSize: 11,
+    color: '#64748B',
   },
   mobileCardFooter: {
     flexDirection: 'row',

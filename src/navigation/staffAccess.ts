@@ -23,6 +23,8 @@ export const screenObjects: Record<string, string[]> = {
   lab_tests: ['lab_tests', 'lab tests', 'lab_test', 'lab test'],
   lab_inventory: ['lab_tests', 'lab_catalog', 'lab tests', 'lab_test', 'lab test', 'lab_inventory', 'lab inventory'],
   lab_reports: ['lab_reports', 'lab reports', 'lab_report', 'lab report'],
+  subscription_plans: ['subscription_plans', 'subscription plans'],
+  pending_doctor_approvals: ['pending_doctor_approvals', 'pending doctor approvals'],
   notifications: ['notifications'],
   wallet: ['dashboard'],
 };

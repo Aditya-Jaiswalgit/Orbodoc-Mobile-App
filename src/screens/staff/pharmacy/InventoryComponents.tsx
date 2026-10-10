@@ -1,14 +1,6 @@
 import React from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { AppModal } from '../../../components/common/AppModal';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Pill, X } from 'lucide-react-native';
 import { styles } from '../styles/PharmacyInventory.styles';
 export function InfoTile({ label, value }: { label: string; value: string }) {
@@ -122,7 +114,7 @@ export function FormModal({
   const isMedicine = variant === 'medicine';
   const isStock = variant === 'stock';
   return (
-    <Modal
+    <AppModal
       visible={visible}
       transparent
       animationType="fade"
@@ -276,6 +268,6 @@ export function FormModal({
           </View>
         </KeyboardAvoidingView>
       </View>
-    </Modal>
+    </AppModal>
   );
 }

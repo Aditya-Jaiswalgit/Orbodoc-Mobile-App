@@ -1,26 +1,16 @@
 // src/screens/staff/ClinicsManagementScreen.tsx
+import { AppModal } from '../../components/common/AppModal';
 import { styles } from './styles/ClinicsManagement.styles';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
-  Alert,
-  Image,
-  Modal,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-  useWindowDimensions,
-  Switch,
-  ActivityIndicator,
-} from 'react-native';
+  Alert, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions, Switch, ActivityIndicator } from 'react-native';
 import {
   Building,
+  Building2,
   RefreshCw,
   Search,
   ChevronDown,
-  Columns,
+  Columns3,
   MoreVertical,
   Calendar as CalendarIcon,
   Check,
@@ -28,7 +18,6 @@ import {
   XCircle,
   IndianRupee,
   Users,
-  ClipboardList,
   Pill,
   MapPin,
   Mail,
@@ -101,7 +90,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
   onOpenDrawer,
   onNavigateScreen,
 }) => {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const isMobile = width < 768;
 
   const {
@@ -110,6 +99,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
     activeClinicId,
     activeClinicName,
     isMultiPlan,
+    switchClinic,
     role,
     permissionsMap = {},
     updateClinicName,
@@ -211,13 +201,14 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
   const lastRefreshed = resource.error
     ? 'Unable to load. Please refresh.'
     : resource.data?.refreshed || 'Loading...';
-  const [selectedClinicFilter, setSelectedClinicFilter] = useState<string>(
-    activeClinicName || '',
+  const [selectedClinicFilterId, setSelectedClinicFilterId] = useState<string>(
+    String(activeClinicId || ''),
   );
   const [selectedPerformanceDate, setSelectedPerformanceDate] = useState<Date>(
     new Date(),
   );
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const [selectedStatusFilter, setSelectedStatusFilter] =
     useState<string>('Active');
   const [showStatusDropdown, setShowStatusDropdown] = useState<boolean>(false);
@@ -279,7 +270,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
 
   // Pagination & Filtering
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(10);
+  const [pageSize, setPageSize] = useState<number>(5);
 
   const filteredClinics = useMemo(() => {
     return clinics.filter(item => {
@@ -287,6 +278,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.phone.includes(searchQuery) ||
+        item.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.code.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus =
         selectedStatusFilter === 'All Status' ||
@@ -303,7 +295,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
   }, [filteredClinics, currentPage, pageSize]);
 
   const selectedClinicId =
-    clinics.find(c => c.name === selectedClinicFilter)?.id || activeClinicId;
+    Number(selectedClinicFilterId) || activeClinicId;
   const selectedDate = [
     selectedPerformanceDate.getFullYear(),
     String(selectedPerformanceDate.getMonth() + 1).padStart(2, '0'),
@@ -337,8 +329,8 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
     setCurrentPage(1);
   }, [searchQuery, selectedStatusFilter, pageSize, scope]);
   useEffect(() => {
-    setSelectedClinicFilter(activeClinicName || '');
-  }, [activeClinicName]);
+    setSelectedClinicFilterId(String(activeClinicId || ''));
+  }, [activeClinicId]);
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -421,6 +413,26 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
   const [activeActionMenuClinicId, setActiveActionMenuClinicId] = useState<
     string | number | null
   >(null);
+  const [actionMenuAnchor, setActionMenuAnchor] = useState<{
+    x: number; y: number; width: number; height: number;
+  } | null>(null);
+  const actionMenuButtonRef = useRef<View | null>(null);
+
+  const closeClinicActionMenu = () => {
+    setActiveActionMenuClinicId(null);
+    setActionMenuAnchor(null);
+  };
+
+  const toggleClinicActionMenu = (clinicId: string | number) => {
+    if (activeActionMenuClinicId === clinicId) {
+      closeClinicActionMenu();
+      return;
+    }
+    actionMenuButtonRef.current?.measureInWindow((x, y, anchorWidth, anchorHeight) => {
+      setActionMenuAnchor({ x, y, width: anchorWidth, height: anchorHeight });
+      setActiveActionMenuClinicId(clinicId);
+    });
+  };
 
   // View Clinic Details Modal State (Screenshot 3)
   const [viewClinicModal, setViewClinicModal] = useState<ClinicItem | null>(
@@ -1020,6 +1032,28 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
     adminCounts.data?.total ??
     (resource.data && !clinics.length ? 0 : '\u2014');
 
+  const actionMenuClinic = clinics.find(
+    clinic => String(clinic.id) === String(activeActionMenuClinicId),
+  );
+  const actionMenuWidth = 184;
+  const actionMenuHeight = 196;
+  const actionMenuLeft = actionMenuAnchor
+    ? Math.max(
+        8,
+        Math.min(
+          actionMenuAnchor.x + actionMenuAnchor.width - actionMenuWidth,
+          width - actionMenuWidth - 8,
+        ),
+      )
+    : 8;
+  const actionMenuBelowTop = actionMenuAnchor
+    ? actionMenuAnchor.y + actionMenuAnchor.height + 4
+    : 8;
+  const actionMenuTop =
+    actionMenuBelowTop + actionMenuHeight <= height - 16
+      ? actionMenuBelowTop
+      : Math.max(8, (actionMenuAnchor?.y ?? actionMenuHeight) - actionMenuHeight - 4);
+
   return (
     <View style={styles.container}>
       <StaffHeader
@@ -1044,9 +1078,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
         {/* â”€â”€ TOP BANNER HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <View style={[styles.bannerRow, isMobile && styles.bannerRowMobile]}>
           <View style={styles.extractedInline1}>
-            <View style={styles.buildingIconBox}>
-              <Building color="#0D9488" size={24} />
-            </View>
+            {isMobile ? (
+              <Building2 color="#0D9488" size={24} style={styles.bannerMobileIcon} />
+            ) : (
+              <View style={styles.buildingIconBox}>
+                <Building color="#0D9488" size={24} />
+              </View>
+            )}
             <View style={styles.extractedInline2}>
               <Text style={styles.bannerTitle}>Clinic Management</Text>
               <Text style={styles.bannerSubtitle}>
@@ -1055,14 +1093,32 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
             </View>
           </View>
 
+          <View style={[styles.headerActions, isMobile && styles.headerActionsMobile]}>
+          {isMultiClinicPlan && canAdd && (
+            <TouchableOpacity
+              style={styles.createClinicHeaderBtn}
+              onPress={handleOpenAddClinicModal}
+              activeOpacity={0.8}>
+              <Plus color="#FFFFFF" size={16} />
+              <Text style={styles.createClinicHeaderText}>Create Clinic</Text>
+            </TouchableOpacity>
+          )}
+          {!isMultiClinicPlan && (
           <TouchableOpacity
             style={[styles.upgradeLinkBtn, isMobile && styles.extractedInline3]}
-          >
+            onPress={() => {
+              void Linking.openURL('https://orbodoc.com/register/plan').catch(() =>
+                Alert.alert('Plan upgrade', 'Unable to open the plan page. Please try again.'),
+              );
+            }}
+            activeOpacity={0.75}>
             <Text style={styles.upgradeLinkText}>
               Multiple clinics ke liye{' '}
               <Text style={styles.upgradeLinkHighlight}>plan upgrade karo</Text>
             </Text>
           </TouchableOpacity>
+          )}
+          </View>
         </View>
 
         {/* â”€â”€ TOP MAIN CONTAINER CARD (DAILY PERFORMANCE & SNAPSHOT) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
@@ -1081,20 +1137,23 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 }
               >
                 <Text style={styles.controlSelectBtnText} numberOfLines={1}>
-                  {selectedClinicFilter}
+                  {clinics.find(c => String(c.id) === selectedClinicFilterId)?.name || 'Select clinic'}
                 </Text>
                 <ChevronDown color="#64748B" size={16} />
               </TouchableOpacity>
 
               {showClinicSelectDropdown && (
-                <View style={styles.controlDropdownMenu}>
+                <View style={[styles.controlDropdownMenu, isMobile && styles.controlDropdownMenuMobile]}>
                   {clinics.map(c => (
                     <TouchableOpacity
                       key={String(c.id)}
                       style={styles.controlDropdownItem}
                       onPress={() => {
-                        setSelectedClinicFilter(c.name);
+                        setSelectedClinicFilterId(String(c.id));
                         setShowClinicSelectDropdown(false);
+                        void switchClinic(Number(c.id)).then(success => {
+                          if (!success) Alert.alert('Clinic switch failed', 'Your current clinic is unchanged. Please retry.');
+                        });
                       }}
                     >
                       <Text style={styles.controlDropdownItemText}>
@@ -1112,6 +1171,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               <CustomCalendarPicker
                 selectedDate={selectedPerformanceDate}
                 onDateChange={d => setSelectedPerformanceDate(d)}
+                triggerStyle={styles.webDateTrigger}
+                triggerTextStyle={styles.webDateTriggerText}
+                formatTriggerDate={date => date.toLocaleDateString('en-US', {
+                  weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+                })}
+                maximumDate={new Date()}
+                placeholder="Select date"
               />
             </View>
 
@@ -1152,12 +1218,14 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
             </Text>
           </View>
 
-          <View style={[styles.kpiGrid4, isMobile && styles.kpiGridMobile]}>
+          <View style={[styles.kpiGrid4, isMobile && styles.dailyKpiGridMobile]}>
             {/* Appointments */}
-            <View
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => onNavigateScreen?.('appointments')}
               style={[
                 styles.kpiCard,
-                isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop,
+                isMobile ? styles.dailyKpiCardMobile : styles.kpiCardDesktop,
               ]}
             >
               <View
@@ -1167,39 +1235,42 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 ]}
               >
                 <Text
-                  style={[styles.kpiLabel, isMobile && styles.extractedInline8]}
+                  style={[styles.kpiLabel, isMobile && styles.dailyKpiLabelMobile]}
                   numberOfLines={1}
                 >
                   Appointments
                 </Text>
                 <Text
-                  style={[styles.kpiValue, isMobile && styles.extractedInline9]}
+                  style={[styles.kpiValue, isMobile && styles.dailyKpiValueMobile]}
                 >
                   {metric('appointments_today') ?? '\u2014'}
                 </Text>
                 <Text
-                  style={[styles.kpiSub, isMobile && styles.extractedInline10]}
+                  style={[styles.kpiSub, isMobile && styles.dailyKpiSubMobile]}
                   numberOfLines={1}
                 >
-                  Scheduled on date
+                  Scheduled on this date
                 </Text>
               </View>
               <View
                 style={[
                   styles.kpiIconBox,
-                  isMobile && styles.extractedInline11,
+                  isMobile && styles.dailyKpiIconMobile,
                   styles.extractedInline12,
+                  isMobile && styles.appointmentsIconMobile,
                 ]}
               >
-                <CalendarIcon color="#0D9488" size={isMobile ? 15 : 18} />
+                <CalendarIcon color={isMobile ? '#0891B2' : '#0D9488'} size={isMobile ? 20 : 18} />
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Completed */}
-            <View
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => onNavigateScreen?.('appointments')}
               style={[
                 styles.kpiCard,
-                isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop,
+                isMobile ? styles.dailyKpiCardMobile : styles.kpiCardDesktop,
               ]}
             >
               <View
@@ -1209,18 +1280,18 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 ]}
               >
                 <Text
-                  style={[styles.kpiLabel, isMobile && styles.extractedInline8]}
+                  style={[styles.kpiLabel, isMobile && styles.dailyKpiLabelMobile]}
                   numberOfLines={1}
                 >
                   Completed
                 </Text>
                 <Text
-                  style={[styles.kpiValue, isMobile && styles.extractedInline9]}
+                  style={[styles.kpiValue, isMobile && styles.dailyKpiValueMobile]}
                 >
                   {metric('completed_today') ?? '\u2014'}
                 </Text>
                 <Text
-                  style={[styles.kpiSub, isMobile && styles.extractedInline10]}
+                  style={[styles.kpiSub, isMobile && styles.dailyKpiSubMobile]}
                   numberOfLines={1}
                 >
                   Visits completed
@@ -1229,19 +1300,22 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               <View
                 style={[
                   styles.kpiIconBox,
-                  isMobile && styles.extractedInline11,
+                  isMobile && styles.dailyKpiIconMobile,
                   styles.extractedInline13,
+                  isMobile && styles.completedIconMobile,
                 ]}
               >
-                <CheckCircle color="#166534" size={isMobile ? 15 : 18} />
+                <CheckCircle color={isMobile ? '#059669' : '#166534'} size={isMobile ? 20 : 18} />
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Cancelled */}
-            <View
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => onNavigateScreen?.('appointments')}
               style={[
                 styles.kpiCard,
-                isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop,
+                isMobile ? styles.dailyKpiCardMobile : styles.kpiCardDesktop,
               ]}
             >
               <View
@@ -1251,18 +1325,18 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 ]}
               >
                 <Text
-                  style={[styles.kpiLabel, isMobile && styles.extractedInline8]}
+                  style={[styles.kpiLabel, isMobile && styles.dailyKpiLabelMobile]}
                   numberOfLines={1}
                 >
                   Cancelled
                 </Text>
                 <Text
-                  style={[styles.kpiValue, isMobile && styles.extractedInline9]}
+                  style={[styles.kpiValue, isMobile && styles.dailyKpiValueMobile]}
                 >
                   {metric('cancelled_today') ?? '\u2014'}
                 </Text>
                 <Text
-                  style={[styles.kpiSub, isMobile && styles.extractedInline10]}
+                  style={[styles.kpiSub, isMobile && styles.dailyKpiSubMobile]}
                   numberOfLines={1}
                 >
                   Appointments cancelled
@@ -1271,19 +1345,22 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               <View
                 style={[
                   styles.kpiIconBox,
-                  isMobile && styles.extractedInline11,
+                  isMobile && styles.dailyKpiIconMobile,
                   styles.extractedInline14,
+                  isMobile && styles.cancelledIconMobile,
                 ]}
               >
-                <XCircle color="#991B1B" size={isMobile ? 15 : 18} />
+                <XCircle color={isMobile ? '#E11D48' : '#991B1B'} size={isMobile ? 20 : 18} />
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Total Revenue */}
-            <View
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => onNavigateScreen?.('treatment_billing')}
               style={[
                 styles.kpiCard,
-                isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop,
+                isMobile ? styles.dailyKpiCardMobile : styles.kpiCardDesktop,
               ]}
             >
               <View
@@ -1293,18 +1370,18 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 ]}
               >
                 <Text
-                  style={[styles.kpiLabel, isMobile && styles.extractedInline8]}
+                  style={[styles.kpiLabel, isMobile && styles.dailyKpiLabelMobile]}
                   numberOfLines={1}
                 >
                   Total Revenue
                 </Text>
                 <Text
-                  style={[styles.kpiValue, isMobile && styles.extractedInline9]}
+                  style={[styles.kpiValue, isMobile && styles.dailyKpiValueMobile]}
                 >
                   {displayAmount(dailyRevenue)}
                 </Text>
                 <Text
-                  style={[styles.kpiSub, isMobile && styles.extractedInline10]}
+                  style={[styles.kpiSub, isMobile && styles.dailyKpiSubMobile]}
                   numberOfLines={1}
                 >
                   Treatment + medicine
@@ -1313,13 +1390,14 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               <View
                 style={[
                   styles.kpiIconBox,
-                  isMobile && styles.extractedInline11,
+                  isMobile && styles.dailyKpiIconMobile,
                   styles.extractedInline15,
+                  isMobile && styles.revenueIconMobile,
                 ]}
               >
-                <IndianRupee color="#7E22CE" size={isMobile ? 15 : 18} />
+                <IndianRupee color={isMobile ? '#7C3AED' : '#7E22CE'} size={isMobile ? 20 : 18} />
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* SECTION 2: Live Operational Snapshot */}
@@ -1330,22 +1408,21 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
             </Text>
           </View>
 
-          <View style={[styles.kpiGrid3, isMobile && styles.kpiGridMobile]}>
+          <View style={[styles.kpiGrid3, isMobile && styles.dailyKpiGridMobile]}>
             {/* Active Patients */}
-            <View
-              style={[
-                styles.kpiCardSnapshot,
-                isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop3,
-              ]}
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => onNavigateScreen?.('patients')}
+              style={[styles.kpiCardSnapshot, isMobile ? styles.snapshotCardMobile : styles.kpiCardDesktop3]}
             >
               <View
                 style={[
                   styles.kpiIconBox,
-                  isMobile && styles.extractedInline11,
+                  isMobile && styles.snapshotIconMobile,
                   styles.extractedInline12,
                 ]}
               >
-                <Users color="#0D9488" size={isMobile ? 15 : 18} />
+                <Users color="#0D9488" size={isMobile ? 20 : 18} />
               </View>
               <View
                 style={[
@@ -1356,7 +1433,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 <Text
                   style={[
                     styles.snapshotValue,
-                    isMobile && styles.extractedInline17,
+                    isMobile && styles.snapshotValueMobile,
                   ]}
                 >
                   {metric('total_active_patients') ?? '\u2014'}
@@ -1364,30 +1441,30 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 <Text
                   style={[
                     styles.snapshotLabel,
-                    isMobile && styles.extractedInline8,
+                    isMobile && styles.snapshotLabelMobile,
                   ]}
                   numberOfLines={1}
                 >
                   Active Patients
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Pending Lab Tests */}
-            <View
-              style={[
-                styles.kpiCardSnapshot,
-                isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop3,
-              ]}
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => onNavigateScreen?.('lab_tests')}
+              style={[styles.kpiCardSnapshot, isMobile ? styles.snapshotCardMobile : styles.kpiCardDesktop3]}
             >
               <View
                 style={[
                   styles.kpiIconBox,
-                  isMobile && styles.extractedInline11,
+                  isMobile && styles.snapshotIconMobile,
                   styles.extractedInline18,
+                  isMobile && styles.labIconMobile,
                 ]}
               >
-                <ClipboardList color="#C2410C" size={isMobile ? 15 : 18} />
+                <CalendarIcon color="#D97706" size={isMobile ? 20 : 18} />
               </View>
               <View
                 style={[
@@ -1398,7 +1475,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 <Text
                   style={[
                     styles.snapshotValue,
-                    isMobile && styles.extractedInline17,
+                    isMobile && styles.snapshotValueMobile,
                   ]}
                 >
                   {metric('pending_lab_tests') ?? '\u2014'}
@@ -1406,27 +1483,27 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 <Text
                   style={[
                     styles.snapshotLabel,
-                    isMobile && styles.extractedInline8,
+                    isMobile && styles.snapshotLabelMobile,
                   ]}
                   numberOfLines={1}
                 >
                   Pending Lab Tests
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Low Stock Medicines */}
-            <View
-              style={[
-                styles.kpiCardSnapshot,
-                isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop3,
-              ]}
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => onNavigateScreen?.('pharmacy_inventory')}
+              style={[styles.kpiCardSnapshot, isMobile ? styles.snapshotCardMobile : styles.kpiCardDesktop3]}
             >
               <View
                 style={[
                   styles.kpiIconBox,
-                  isMobile && styles.extractedInline11,
+                  isMobile && styles.snapshotIconMobile,
                   styles.extractedInline18,
+                  isMobile && styles.medicineIconMobile,
                 ]}
               >
                 <Pill color="#C2410C" size={isMobile ? 15 : 18} />
@@ -1440,7 +1517,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 <Text
                   style={[
                     styles.snapshotValue,
-                    isMobile && styles.extractedInline17,
+                    isMobile && styles.snapshotValueMobile,
                   ]}
                 >
                   {metric('low_stock_medicines') ?? '\u2014'}
@@ -1448,29 +1525,29 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 <Text
                   style={[
                     styles.snapshotLabel,
-                    isMobile && styles.extractedInline8,
+                    isMobile && styles.snapshotLabelMobile,
                   ]}
                   numberOfLines={1}
                 >
                   Low Stock Medicines
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
 
         {/* â”€â”€ MIDDLE ROW: 4 OVERVIEW METRIC CARDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <View style={[styles.metricGrid4, isMobile && styles.kpiGridMobile]}>
+        <View style={[styles.metricGrid4, isMobile && styles.summaryGridMobile]}>
           <View
             style={[
               styles.metricCard,
-              isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop,
+              isMobile ? styles.summaryCardMobile : styles.kpiCardDesktop,
             ]}
           >
             <View
               style={[
                 styles.metricIconBox,
-                isMobile && styles.extractedInline11,
+                isMobile && styles.summaryIconMobile,
                 styles.extractedInline19,
               ]}
             >
@@ -1485,7 +1562,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               <Text
                 style={[
                   styles.metricValue,
-                  isMobile && styles.extractedInline17,
+                  isMobile && styles.summaryValueMobile,
                 ]}
               >
                 {totalClinicsCount}
@@ -1493,7 +1570,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               <Text
                 style={[
                   styles.metricLabel,
-                  isMobile && styles.extractedInline8,
+                  isMobile && styles.summaryLabelMobile,
                 ]}
                 numberOfLines={1}
               >
@@ -1505,13 +1582,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
           <View
             style={[
               styles.metricCard,
-              isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop,
+              isMobile ? styles.summaryCardMobile : styles.kpiCardDesktop,
             ]}
           >
             <View
               style={[
                 styles.metricIconBox,
-                isMobile && styles.extractedInline11,
+                isMobile && styles.summaryIconMobile,
                 styles.extractedInline13,
               ]}
             >
@@ -1526,7 +1603,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               <Text
                 style={[
                   styles.metricValue,
-                  isMobile && styles.extractedInline17,
+                  isMobile && styles.summaryValueMobile,
                 ]}
               >
                 {activeClinicsCount}
@@ -1534,7 +1611,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               <Text
                 style={[
                   styles.metricLabel,
-                  isMobile && styles.extractedInline8,
+                  isMobile && styles.summaryLabelMobile,
                 ]}
                 numberOfLines={1}
               >
@@ -1546,14 +1623,15 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
           <View
             style={[
               styles.metricCard,
-              isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop,
+              isMobile ? styles.summaryCardMobile : styles.kpiCardDesktop,
             ]}
           >
             <View
               style={[
                 styles.metricIconBox,
-                isMobile && styles.extractedInline11,
+                isMobile && styles.summaryIconMobile,
                 styles.extractedInline18,
+                isMobile && styles.adminSummaryIconMobile,
               ]}
             >
               <Users color="#C2410C" size={isMobile ? 16 : 20} />
@@ -1567,7 +1645,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               <Text
                 style={[
                   styles.metricValue,
-                  isMobile && styles.extractedInline17,
+                  isMobile && styles.summaryValueMobile,
                 ]}
               >
                 {totalAdminsCount}
@@ -1575,7 +1653,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               <Text
                 style={[
                   styles.metricLabel,
-                  isMobile && styles.extractedInline8,
+                  isMobile && styles.summaryLabelMobile,
                 ]}
                 numberOfLines={1}
               >
@@ -1587,14 +1665,15 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
           <View
             style={[
               styles.metricCard,
-              isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop,
+              isMobile ? styles.summaryCardMobile : styles.kpiCardDesktop,
             ]}
           >
             <View
               style={[
                 styles.metricIconBox,
-                isMobile && styles.extractedInline11,
+                isMobile && styles.summaryIconMobile,
                 styles.extractedInline14,
+                isMobile && styles.inactiveSummaryIconMobile,
               ]}
             >
               <Building color="#991B1B" size={isMobile ? 16 : 20} />
@@ -1608,7 +1687,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               <Text
                 style={[
                   styles.metricValue,
-                  isMobile && styles.extractedInline17,
+                  isMobile && styles.summaryValueMobile,
                 ]}
               >
                 {inactiveClinicsCount}
@@ -1616,7 +1695,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               <Text
                 style={[
                   styles.metricLabel,
-                  isMobile && styles.extractedInline8,
+                  isMobile && styles.summaryLabelMobile,
                 ]}
                 numberOfLines={1}
               >
@@ -1628,9 +1707,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
 
         {/* â”€â”€ SEARCH & STATUS FILTER BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <View
-          style={[styles.searchFilterRow, isMobile && styles.extractedInline20]}
+          style={[
+            styles.searchFilterRow,
+            isMobile && styles.extractedInline20,
+            isMobile && styles.clinicFiltersMobile,
+          ]}
         >
-          <View style={styles.searchBar}>
+          <View style={[styles.searchBar, searchFocused && styles.filterFieldFocused]}>
             <Search
               color="#94A3B8"
               size={16}
@@ -1642,13 +1725,25 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               placeholderTextColor="#94A3B8"
               value={searchQuery}
               onChangeText={setSearchQuery}
+              onFocus={() => {
+                setSearchFocused(true);
+                setShowStatusDropdown(false);
+              }}
+              onBlur={() => setSearchFocused(false)}
             />
           </View>
 
-          <View style={styles.extractedInline22}>
+          <View style={[styles.extractedInline22, isMobile && styles.statusFilterMobile]}>
             <TouchableOpacity
-              style={styles.statusTriggerBtn}
-              onPress={() => setShowStatusDropdown(!showStatusDropdown)}
+              style={[
+                styles.statusTriggerBtn,
+                isMobile && styles.statusTriggerBtnMobile,
+                showStatusDropdown && styles.filterFieldFocused,
+              ]}
+              onPress={() => {
+                setSearchFocused(false);
+                setShowStatusDropdown(!showStatusDropdown);
+              }}
             >
               <Text style={styles.statusTriggerBtnText}>
                 {selectedStatusFilter}
@@ -1679,42 +1774,30 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
         <View style={styles.tableCardContainer}>
           <View style={styles.tableHeaderBar}>
             <View style={styles.extractedInline23}>
-              <Building
+              <Building2
                 color="#0F172A"
-                size={18}
+                size={16}
                 style={styles.extractedInline21}
               />
-              <Text style={styles.tableTitleText}>
-                Clinic ({filteredClinics.length})
+              <Text style={[styles.tableTitleText, isMobile && styles.tableTitleMobile]}>
+                {clinics.length === 1
+                  ? 'Clinic (1)'
+                  : `All Clinics (${filteredClinics.length} of ${clinics.length})`}
               </Text>
             </View>
             <View style={styles.extractedInline24}>
               <TouchableOpacity
-                style={styles.columnsBtn}
+                style={[styles.columnsBtn, isMobile && styles.columnsBtnMobile]}
                 onPress={() => setShowColumnsModal(true)}
                 activeOpacity={0.7}
               >
-                <Columns
+                <Columns3
                   color="#334155"
-                  size={14}
-                  style={styles.extractedInline7}
+                  size={16}
+                  style={!isMobile ? styles.extractedInline7 : undefined}
                 />
-                <Text style={styles.columnsBtnText}>Columns</Text>
+                {!isMobile && <Text style={styles.columnsBtnText}>Columns</Text>}
               </TouchableOpacity>
-              {isMultiClinicPlan && (
-                <TouchableOpacity
-                  style={styles.addBtn}
-                  disabled={!canAdd}
-                  onPress={handleOpenAddClinicModal}
-                >
-                  <Plus
-                    color="#FFFFFF"
-                    size={14}
-                    style={styles.extractedInline25}
-                  />
-                  <Text style={styles.addBtnText}>Add Clinic</Text>
-                </TouchableOpacity>
-              )}
             </View>
           </View>
 
@@ -1723,7 +1806,10 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
             /* Mobile Card View */
             <View style={styles.extractedInline26}>
               {paginatedClinics.map(item => (
-                <View key={String(item.id)} style={styles.mobileClinicCard}>
+                <View
+                  key={String(item.id)}
+                  style={styles.mobileClinicCard}
+                >
                   {/* Card Header: Clinic Name, Status, Actions */}
                   <View style={styles.extractedInline27}>
                     {visibleClinicColumns.name && (
@@ -1769,26 +1855,18 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
 
                     {visibleClinicColumns.actions && (
                       <TouchableOpacity
+                        ref={actionMenuButtonRef}
                         style={styles.extractedInline31}
-                        onPress={() =>
-                          setActiveActionMenuClinicId(
-                            activeActionMenuClinicId === item.id
-                              ? null
-                              : item.id,
-                          )
-                        }
+                        onPress={() => toggleClinicActionMenu(item.id)}
                       >
                         <MoreVertical color="#64748B" size={16} />
                       </TouchableOpacity>
                     )}
                   </View>
 
-                  {activeActionMenuClinicId === item.id && (
+                  {activeActionMenuClinicId === item.id && !actionMenuAnchor && (
                     <View
-                      style={[
-                        styles.actionPopoverMenu,
-                        styles.extractedInline32,
-                      ]}
+                      style={styles.actionPopoverMenu}
                     >
                       <TouchableOpacity
                         style={styles.popoverItem}
@@ -2233,20 +2311,17 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                     {visibleClinicColumns.actions && (
                       <View style={styles.extractedInline54}>
                         <TouchableOpacity
+                          ref={actionMenuButtonRef}
                           style={styles.extractedInline55}
-                          onPress={() =>
-                            setActiveActionMenuClinicId(
-                              activeActionMenuClinicId === item.id
-                                ? null
-                                : item.id,
-                            )
-                          }
+                          onPress={() => toggleClinicActionMenu(item.id)}
                         >
                           <MoreVertical color="#64748B" size={16} />
                         </TouchableOpacity>
 
-                        {activeActionMenuClinicId === item.id && (
-                          <View style={styles.actionPopoverMenu}>
+                        {activeActionMenuClinicId === item.id && !actionMenuAnchor && (
+                          <View
+                            style={styles.actionPopoverMenu}
+                          >
                             {/* 1. View Clinic */}
                             <TouchableOpacity
                               style={styles.popoverItem}
@@ -2364,20 +2439,94 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
             </ScrollView>
           )}
 
+          {!resource.loading && filteredClinics.length === 0 && (
+            <View style={styles.emptyClinicsState}>
+              <Building2 color="#94A3B8" size={40} />
+              <Text style={styles.emptyClinicsText}>
+                No clinics found matching your criteria
+              </Text>
+              {!!searchQuery && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSearchQuery('');
+                    setSelectedStatusFilter('All Status');
+                  }}
+                >
+                  <Text style={styles.clearClinicFiltersText}>Clear filters</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
           {/* Pagination */}
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredClinics.length}
-            pageSize={pageSize}
-            onPageChange={page => setCurrentPage(page)}
-            onPageSizeChange={size => {
-              setPageSize(size);
-              setCurrentPage(1);
-            }}
-          />
+          {filteredClinics.length > 5 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredClinics.length}
+              itemLabel="clinics"
+              pageSize={pageSize}
+              onPageChange={page => setCurrentPage(page)}
+              onPageSizeChange={size => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+            />
+          )}
         </View>
       </ScrollView>
+
+      <AppModal
+        visible={!!actionMenuAnchor && !!actionMenuClinic}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={closeClinicActionMenu}
+      >
+        <View style={styles.actionMenuOverlay}>
+          <Pressable style={styles.actionMenuBackdrop} onPress={closeClinicActionMenu} />
+          {actionMenuClinic && actionMenuAnchor && (
+            <View
+              style={[
+                styles.actionPopoverMenu,
+                styles.actionPopoverPortal,
+                { top: actionMenuTop, left: actionMenuLeft, width: actionMenuWidth },
+              ]}
+            >
+              <TouchableOpacity style={styles.popoverItem} onPress={() => { closeClinicActionMenu(); handleOpenViewClinicModal(actionMenuClinic); }}>
+                <Eye size={15} color="#334155" style={styles.extractedInline21} />
+                <Text style={styles.popoverItemText}>View Clinic</Text>
+              </TouchableOpacity>
+              {canViewAdmins && (
+                <TouchableOpacity style={styles.popoverItem} onPress={() => { closeClinicActionMenu(); setViewAdminsModal(actionMenuClinic); }}>
+                  <Users size={15} color="#334155" style={styles.extractedInline21} />
+                  <Text style={styles.popoverItemText}>View Admins</Text>
+                </TouchableOpacity>
+              )}
+              {canEdit && (
+                <TouchableOpacity style={styles.popoverItem} onPress={() => { closeClinicActionMenu(); handleOpenEditClinicModal(actionMenuClinic); }}>
+                  <Edit2 size={15} color="#334155" style={styles.extractedInline21} />
+                  <Text style={styles.popoverItemText}>Edit Clinic</Text>
+                </TouchableOpacity>
+              )}
+              {canAddAdmin && (
+                <TouchableOpacity style={styles.popoverItem} onPress={() => { closeClinicActionMenu(); setAddAdminModalClinic(actionMenuClinic); }}>
+                  <UserPlus size={15} color="#334155" style={styles.extractedInline21} />
+                  <Text style={styles.popoverItemText}>Add Admin</Text>
+                </TouchableOpacity>
+              )}
+              {(actionMenuClinic.status === 'Active' ? canDelete : canEdit) && (
+                <TouchableOpacity style={[styles.popoverItem, styles.extractedInline33]} onPress={() => { closeClinicActionMenu(); handleToggleClinicStatus(actionMenuClinic.id); }}>
+                  <Trash2 size={15} color={actionMenuClinic.status === 'Active' ? '#DC2626' : '#16A34A'} style={styles.extractedInline21} />
+                  <Text style={[styles.popoverItemText, actionMenuClinic.status === 'Active' ? styles.activeActionText : styles.inactiveActionText]}>
+                    {actionMenuClinic.status === 'Active' ? 'Deactivate Clinic' : 'Activate Clinic'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
+      </AppModal>
 
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {/* ðŸ‘ï¸ SHOW / HIDE COLUMNS MODAL (REUSABLE COMPONENT)                          */}
@@ -2394,7 +2543,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {/* âœï¸ ADD & EDIT CLINIC MODAL (EXACT UPLOADED SCREENSHOTS MATCH)               */}
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <Modal visible={modalVisible} animationType="fade" transparent>
+      <AppModal visible={modalVisible} animationType="fade" transparent>
         <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
           <View style={styles.modalBg}>
             <TouchableWithoutFeedback>
@@ -2864,12 +3013,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
 
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {/* ðŸ‘ï¸ VIEW CLINIC DETAILS MODAL (EXACT SCREENSHOT 3 MATCH)                   */}
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <Modal visible={!!viewClinicModal} animationType="fade" transparent>
+      <AppModal visible={!!viewClinicModal} animationType="fade" transparent>
         <TouchableWithoutFeedback onPress={() => setViewClinicModal(null)}>
           <View style={styles.modalBg}>
             <TouchableWithoutFeedback>
@@ -3104,12 +3253,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
 
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {/* ðŸ‘¥ VIEW CLINIC ADMINS MODAL (EXACT SCREENSHOT 4 MATCH)                     */}
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <Modal visible={!!viewAdminsModal} animationType="fade" transparent>
+      <AppModal visible={!!viewAdminsModal} animationType="fade" transparent>
         <TouchableWithoutFeedback onPress={() => setViewAdminsModal(null)}>
           <View style={styles.modalBg}>
             <TouchableWithoutFeedback>
@@ -3385,19 +3534,23 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
 
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {/* ðŸ‘¤+ ADD CLINIC ADMIN MODAL (EXACT SCREENSHOT 5 MATCH)                      */}
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <Modal visible={!!addAdminModalClinic} animationType="fade" transparent>
+      <AppModal visible={!!addAdminModalClinic} animationType="fade" transparent>
         <TouchableWithoutFeedback onPress={() => setAddAdminModalClinic(null)}>
-          <View style={styles.modalBg}>
+          <KeyboardAvoidingView
+            style={styles.modalBg}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
             <TouchableWithoutFeedback>
               <View
                 style={[
                   styles.addAdminCard,
                   isMobile && styles.extractedInline57,
+                  isMobile && { height: '92%' },
                 ]}
               >
                 {/* Header */}
@@ -3423,7 +3576,8 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
 
                 {/* Form Body */}
                 <ScrollView
-                  style={styles.extractedInline58}
+                  style={[styles.extractedInline58, styles.addAdminFormScroll]}
+                  contentContainerStyle={styles.addAdminFormContent}
                   showsVerticalScrollIndicator={true}
                   nestedScrollEnabled={true}
                   scrollEventThrottle={16}
@@ -3575,14 +3729,14 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 </View>
               </View>
             </TouchableWithoutFeedback>
-          </View>
+          </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
 
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {/* âœï¸ EDIT CLINIC ADMIN MODAL                                                */}
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <Modal visible={!!editingClinicAdmin} animationType="fade" transparent>
+      <AppModal visible={!!editingClinicAdmin} animationType="fade" transparent>
         <TouchableWithoutFeedback
           onPress={() => {
             setShowEditAdminStatusDropdown(false);
@@ -3824,12 +3978,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
 
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {/* ðŸ”‘ RESET PASSWORD MODAL                                                    */}
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <Modal visible={isResetPasswordOpen} animationType="fade" transparent>
+      <AppModal visible={isResetPasswordOpen} animationType="fade" transparent>
         <TouchableWithoutFeedback onPress={() => setIsResetPasswordOpen(false)}>
           <View style={styles.modalBg}>
             <TouchableWithoutFeedback>
@@ -3985,7 +4139,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
-      </Modal>
+      </AppModal>
     </View>
   );
 };

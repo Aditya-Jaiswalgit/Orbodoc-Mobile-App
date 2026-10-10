@@ -1,17 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Linking,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { AppModal } from '../../../components/common/AppModal';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import {
   Activity,
   Calendar,
@@ -304,7 +293,7 @@ function FilterDropdown({
         </Text>
         <ChevronDown size={15} color="#64748B" />
       </TouchableOpacity>
-      <Modal
+      <AppModal
         visible={open}
         transparent
         animationType="none"
@@ -354,7 +343,7 @@ function FilterDropdown({
             </ScrollView>
           </View>
         </View>
-      </Modal>
+      </AppModal>
     </>
   );
 }
@@ -817,7 +806,7 @@ export function PatientFormModal({
     form.city;
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="slide"
       transparent
@@ -1137,7 +1126,7 @@ export function PatientFormModal({
           }
         }}
       />
-    </Modal>
+    </AppModal>
   );
 }
 
@@ -1167,7 +1156,7 @@ function PatientOptionsModal({
     option.label.toLowerCase().includes(query.trim().toLowerCase()),
   );
   return (
-    <Modal
+    <AppModal
       visible={visible}
       transparent
       animationType="fade"
@@ -1234,7 +1223,7 @@ function PatientOptionsModal({
           </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 
@@ -1316,13 +1305,14 @@ export function PatientDetailsModal({
     patient?.address ||
     [patient?.city, patient?.state].filter(Boolean).join(', ');
   const formatMoney = (value?: number | null) =>
-    value === null || value === undefined || !Number.isFinite(Number(value))
+    value === null || value === undefined || !Number.isFinite(Number(value)) || Number(value) === 0
       ? null
       : `₹${Number(value).toFixed(2)}`;
   const row = (
     label: string,
     value?: string | number | null,
     Icon?: React.ComponentType<{ size?: number; color?: string }>,
+    emphasize = false,
   ) =>
     hasPatientDetail(value) ? (
       <View key={label} style={styles.detailRow}>
@@ -1330,11 +1320,11 @@ export function PatientDetailsModal({
           {Icon ? <Icon size={14} color="#32B8AE" /> : null}
           <Text style={styles.detailLabel}>{label}</Text>
         </View>
-        <Text style={styles.detailValue}>{value}</Text>
+        <Text style={[styles.detailValue, emphasize && styles.detailValueEmphasis]}>{value}</Text>
       </View>
     ) : null;
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="slide"
       transparent
@@ -1469,10 +1459,10 @@ export function PatientDetailsModal({
                   'Medicine Bill',
                   formatMoney(summary?.medicine_total_amount),
                 )}
-                {row('Grand Total', formatMoney(summary?.grand_total_amount))}
+                {row('Grand Total', formatMoney(summary?.grand_total_amount), undefined, true)}
                 {row('Treatment Due', formatMoney(summary?.treatment_due))}
                 {row('Medicine Due', formatMoney(summary?.medicine_due))}
-                {row('Total Due', formatMoney(summary?.total_due))}
+                {row('Total Due', formatMoney(summary?.total_due), undefined, true)}
               </DetailSection>
               <View style={[styles.detailSection, { display: 'none' }]}>
                 <Text style={styles.sectionHeading}>CONSULTATION HISTORY</Text>
@@ -1599,7 +1589,7 @@ export function PatientDetailsModal({
           )}
         </View>
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 
@@ -2271,6 +2261,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#334155',
   },
+  detailValueEmphasis: { color: '#14B8A6' },
   consultationCard: {
     paddingHorizontal: 12,
     paddingVertical: 10,

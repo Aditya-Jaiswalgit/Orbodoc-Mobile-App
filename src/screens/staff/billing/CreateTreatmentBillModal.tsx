@@ -6,19 +6,8 @@ import React, {
   useRef,
   useCallback,
 } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { AppModal } from '../../../components/common/AppModal';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import {
   AlertCircle,
   ChevronDown,
@@ -70,6 +59,7 @@ export interface CreateTreatmentBillModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: (message?: string) => void;
+  onDismiss?: () => void;
   editingBill?: TreatmentBill | null;
   activeClinicId?: number | string | null;
   token?: string | null;
@@ -103,7 +93,7 @@ const roundCurrency = (value: number) =>
 
 export const CreateTreatmentBillModal: React.FC<
   CreateTreatmentBillModalProps
-> = ({ visible, onClose, onSuccess, editingBill, activeClinicId, token }) => {
+> = ({ visible, onClose, onSuccess, onDismiss, editingBill, activeClinicId, token }) => {
   // Form State
   const [patientSearchTerm, setPatientSearchTerm] = useState('');
   const [patientSuggestions, setPatientSuggestions] = useState<PatientOption[]>(
@@ -766,11 +756,12 @@ export const CreateTreatmentBillModal: React.FC<
     })}`;
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="slide"
       transparent
       onRequestClose={onClose}
+      onDismiss={onDismiss}
     >
       <KeyboardAvoidingView
         style={styles.modalBackdrop}
@@ -1711,7 +1702,7 @@ export const CreateTreatmentBillModal: React.FC<
           </View>
         </View>
       </KeyboardAvoidingView>
-    </Modal>
+    </AppModal>
   );
 };
 

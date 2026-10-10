@@ -1,37 +1,30 @@
+import { AppModal } from '../../components/common/AppModal';
 import { styles } from './styles/MedicineBilling.styles';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  NativeModules,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+  ActivityIndicator, Alert, KeyboardAvoidingView, NativeModules, Platform, ScrollView, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import {
   AlertCircle,
   Check,
   ChevronDown,
   Clock,
   Columns,
+  CreditCard,
   Download,
   Eye,
   FileText,
-  IndianRupee,
   MoreVertical,
+  Pill,
   Plus,
   Receipt,
   RefreshCw,
   Search,
   Trash2,
+  UserRound,
   X,
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { AppToastOverlay, AppToastNotice } from '../../components/common/AppToast';
 import { Pagination } from '../../components/common/Pagination';
 import { ColumnSelectorModal } from '../../components/common/ColumnSelectorModal';
 import { CustomCalendarPicker } from '../../components/common/CustomCalendarPicker';
@@ -39,7 +32,8 @@ import { useAuthContext } from '../../context/AuthContext';
 import { canUseStaffScreen } from '../../navigation/staffAccess';
 import { fetchPatientsApi } from '../../api/patientApi';
 import { searchMedicinesApi } from '../../api/medicineApi';
-import { getPrescriptionsApi } from '../../api/prescriptionApi';
+import { getPrescriptionByIdApi, getPrescriptionsApi } from '../../api/prescriptionApi';
+import { getAppointmentsApi } from '../../api/appointmentApi';
 import {
   cancelMedicineBillApi,
   getMedicineBillByIdApi,
@@ -67,21 +61,25 @@ import {
 import {
   BillMetric,
   Info,
-  MetricCard,
   ModalHeader,
 } from './billing/MedicineBillingComponents';
 
 interface Props {
   onOpenDrawer: () => void;
 }
+
+const PRESCRIPTION_PAGE_SIZE = 5;
 interface Props {
   onOpenDrawer: () => void;
 }
 
 export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const {
     token,
     activeClinicId,
+    activeClinicName,
     role,
     user,
     permissionsMap = {},
@@ -128,6 +126,9 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
   const [actionMenuBill, setActionMenuBill] = useState<Bill | null>(null);
   const [formVisible, setFormVisible] = useState(false);
+  const [formEditBill, setFormEditBill] = useState<Bill | null>(null);
+  const [pendingBillToast, setPendingBillToast] = useState<{ title: string; message: string } | null>(null);
+  const [visibleBillingToast, setVisibleBillingToast] = useState<AppToastNotice | null>(null);
   const [patientSearch, setPatientSearch] = useState('');
   const [patients, setPatients] = useState<PatientModel[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<PatientModel | null>(
@@ -136,12 +137,30 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   const [medicineSearch, setMedicineSearch] = useState('');
   const [medicineResults, setMedicineResults] = useState<Medicine[]>([]);
   const [items, setItems] = useState<BillLine[]>([]);
+  const [activeMedicineRow, setActiveMedicineRow] = useState<number | null>(null);
+  const createFormScrollRef = useRef<React.ElementRef<typeof ScrollView> | null>(null);
+  const medicineItemsSectionY = useRef(0);
   const [prescriptionId, setPrescriptionId] = useState('');
   const [prescriptionOptions, setPrescriptionOptions] = useState<any[]>([]);
-  const [prescriptionOpen, setPrescriptionOpen] = useState(false);
+  const [prescriptionLoading, setPrescriptionLoading] = useState(false);
+  const [prescriptionPage, setPrescriptionPage] = useState(1);
+  const [prescriptionTotal, setPrescriptionTotal] = useState(0);
+  const [appliedPrescriptionId, setAppliedPrescriptionId] = useState<number | null>(null);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [selectedAppointment, setSelectedAppointment] = useState<any | null>(null);
+  const [prescriptionAppointmentFilterId, setPrescriptionAppointmentFilterId] = useState('');
+  const [appointmentOpen, setAppointmentOpen] = useState(false);
+  const [appointmentSearch, setAppointmentSearch] = useState('');
+  const [medicineSearchOpen, setMedicineSearchOpen] = useState(false);
+  const [paymentMethodOpen, setPaymentMethodOpen] = useState(false);
+  const [statusOptionsOpen, setStatusOptionsOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [subtotalInput, setSubtotalInput] = useState('0');
   const [discount, setDiscount] = useState('0');
+  const [tax, setTax] = useState('0');
+  const [totalAmountInput, setTotalAmountInput] = useState('0');
   const [paid, setPaid] = useState('0');
+  const [billStatus, setBillStatus] = useState('pending');
   const [notes, setNotes] = useState('');
   const [viewedBill, setViewedBill] = useState<Bill | null>(null);
   const [viewVisible, setViewVisible] = useState(false);
@@ -152,6 +171,13 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   const [editTax, setEditTax] = useState('');
   const [editPaid, setEditPaid] = useState('');
   const [editMethod, setEditMethod] = useState('cash');
+
+  const showBillingToast = (notice: AppToastNotice) => {
+    setVisibleBillingToast(notice);
+    setTimeout(() => {
+      setVisibleBillingToast(current => current === notice ? null : current);
+    }, 3500);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 350);
@@ -214,27 +240,78 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   useEffect(() => {
     if (!token || !selectedPatient || !activeClinicId) {
       setPrescriptionOptions([]);
+      setPrescriptionTotal(0);
+      setPrescriptionLoading(false);
       return;
     }
     let alive = true;
+    setPrescriptionLoading(true);
     getPrescriptionsApi(token, {
       patient_id: selectedPatient.id,
       clinic_id: activeClinicId,
-      page: 1,
-      limit: 100,
+      appointment_id: prescriptionAppointmentFilterId || undefined,
+      page: prescriptionPage,
+      limit: PRESCRIPTION_PAGE_SIZE,
     })
-      .then(response => {
-        if (alive && response.success)
-          setPrescriptionOptions(
-            unwrapList(response.data?.prescriptions ?? response.data),
-          );
+      .then(async response => {
+        if (alive && response.success) {
+          const responseData: any = response.data;
+          const rows = unwrapList<any>(responseData?.prescriptions ?? responseData);
+          if (alive) setPrescriptionTotal(Number(responseData?.total ?? responseData?.data?.total ?? rows.length));
+          const detailed = await Promise.all(rows.map(async row => {
+            try {
+              const detail = await getPrescriptionByIdApi(token, Number(row.id));
+              const prescription: any = (detail.data as any)?.prescription ?? detail.data;
+              if (!detail.success || !prescription) return row;
+              const priceByMedicine = new Map<string, number>();
+              (row.medicines || []).forEach((medicine: any) => {
+                const key = medicine.medicine_id != null ? `id:${medicine.medicine_id}` : `name:${String(medicine.medicine_name || '').toLowerCase()}`;
+                priceByMedicine.set(key, Number(medicine.unit_price || 0));
+              });
+              return {
+                ...prescription,
+                appointment_id: prescription.appointment_id ?? row.appointment_id,
+                appointment_date: prescription.appointment_date ?? row.appointment_date,
+                appointment_time: prescription.appointment_time ?? row.appointment_time,
+                items: (prescription.items || []).map((item: any) => {
+                  const byId = item.medicine_id != null ? priceByMedicine.get(`id:${item.medicine_id}`) : undefined;
+                  const byName = priceByMedicine.get(`name:${String(item.medicine_name || '').toLowerCase()}`);
+                  return { ...item, unit_price: Number(byId ?? byName ?? item.unit_price ?? 0) };
+                }),
+              };
+            } catch { return row; }
+          }));
+          if (alive) setPrescriptionOptions(detailed);
+        }
       })
       .catch(() => {
-        if (alive) setPrescriptionOptions([]);
-      });
+        if (alive) {
+          setPrescriptionOptions([]);
+          setPrescriptionTotal(0);
+        }
+      })
+      .finally(() => { if (alive) setPrescriptionLoading(false); });
     return () => {
       alive = false;
     };
+  }, [activeClinicId, prescriptionAppointmentFilterId, prescriptionPage, selectedPatient, token]);
+
+  useEffect(() => {
+    if (!token || !selectedPatient || !activeClinicId) {
+      setAppointments([]);
+      return;
+    }
+    let alive = true;
+    const query = new URLSearchParams({
+      patient_id: String(selectedPatient.id), status: 'complete', limit: '100', page: '1',
+      clinic_id: String(activeClinicId),
+    });
+    getAppointmentsApi(token, query.toString())
+      .then(response => {
+        if (alive && response.success) setAppointments(unwrapList<any>(response.data));
+      })
+      .catch(() => { if (alive) setAppointments([]); });
+    return () => { alive = false; };
   }, [activeClinicId, selectedPatient, token]);
 
   useEffect(() => {
@@ -262,31 +339,35 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
     };
   }, [activeClinicId, medicineSearch, token]);
 
-  const totals = useMemo(() => {
-    let subtotal = 0,
-      discountAmount = 0,
-      taxAmount = 0;
-    items.forEach(item => {
-      const base = item.quantity * item.unit_price;
-      const disc = (base * Math.min(100, Math.max(0, item.discount_pct))) / 100;
-      subtotal += base;
-      discountAmount += disc;
-      taxAmount += ((base - disc) * item.tax_pct) / 100;
-    });
-    const overallDiscount = Math.max(0, Number(discount) || 0);
-    const totalAmount = Math.max(
-      0,
-      subtotal - discountAmount - overallDiscount + taxAmount,
+  const totals = useMemo(() => ({
+    subtotal: Math.max(0, Number(subtotalInput) || 0),
+    discountAmount: Math.max(0, Number(discount) || 0),
+    taxAmount: Math.max(0, Number(tax) || 0),
+    totalAmount: Math.max(0, Number(totalAmountInput) || 0),
+  }), [discount, subtotalInput, tax, totalAmountInput]);
+  const filteredAppointments = useMemo(() => {
+    if (selectedAppointment && String(selectedAppointment.id) &&
+      appointmentSearch.includes(`Appt ID: ${selectedAppointment.id}`)) {
+      return appointments.filter(appointment => String(appointment.id) === String(selectedAppointment.id));
+    }
+    const query = appointmentSearch.trim().toLowerCase().replace(/\s*\|\s*appt id:.*$/, '');
+    if (!query) return appointments;
+    return appointments.filter(appointment =>
+      `${appointment.id} ${appointment.appointment_date || ''} ${appointment.appointment_time || ''}`
+        .toLowerCase().includes(query),
     );
-    return {
-      subtotal,
-      discountAmount: discountAmount + overallDiscount,
-      taxAmount,
-      totalAmount,
-    };
-  }, [discount, items]);
+  }, [appointmentSearch, appointments, selectedAppointment]);
+  const prescriptionTotalPages = Math.max(1, Math.ceil(prescriptionTotal / PRESCRIPTION_PAGE_SIZE));
+
+  useEffect(() => {
+    const subtotal = items.reduce((sum, item) => sum + lineTotal(item), 0);
+    const total = Math.max(0, subtotal - (Number(discount) || 0) + (Number(tax) || 0));
+    setSubtotalInput(String(subtotal));
+    setTotalAmountInput(String(total));
+  }, [discount, items, tax]);
 
   const resetForm = () => {
+    setFormEditBill(null);
     setSelectedPatient(null);
     setPatientSearch('');
     setPatients([]);
@@ -294,76 +375,249 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
     setMedicineResults([]);
     setItems([]);
     setPrescriptionId('');
-    setPrescriptionOpen(false);
     setPrescriptionOptions([]);
+    setPrescriptionLoading(false);
+    setPrescriptionPage(1);
+    setPrescriptionTotal(0);
+    setAppliedPrescriptionId(null);
+    setAppointments([]);
+    setSelectedAppointment(null);
+    setPrescriptionAppointmentFilterId('');
+    setAppointmentOpen(false);
+    setAppointmentSearch('');
+    setPrescriptionPage(1);
+    setMedicineSearchOpen(false);
+    setActiveMedicineRow(null);
+    setPaymentMethodOpen(false);
+    setStatusOptionsOpen(false);
     setPaymentMethod('cash');
+    setSubtotalInput('0');
     setDiscount('0');
+    setTax('0');
+    setTotalAmountInput('0');
     setPaid('0');
+    setBillStatus('pending');
     setNotes('');
   };
+  const closeBillForm = () => {
+    setFormVisible(false);
+    resetForm();
+  };
+  const resetPatientDependencies = () => {
+    setSelectedPatient(null);
+    setPrescriptionId('');
+    setPrescriptionOptions([]);
+    setPrescriptionPage(1);
+    setPrescriptionTotal(0);
+    setItems([]);
+    setMedicineSearch('');
+    setMedicineResults([]);
+    setMedicineSearchOpen(false);
+    setActiveMedicineRow(null);
+    setAppliedPrescriptionId(null);
+    setAppointments([]);
+    setSelectedAppointment(null);
+    setPrescriptionAppointmentFilterId('');
+    setAppointmentOpen(false);
+    setAppointmentSearch('');
+  };
+  const formatAppointmentInput = (appointment: any) => {
+    const dateTime = [appointment?.appointment_date || '-', appointment?.appointment_time]
+      .filter(Boolean)
+      .join(' ');
+    return `${dateTime} | Appt ID: ${appointment?.id}`;
+  };
+  const applyPrescription = async (prescription: any) => {
+    const prescriptionItems = Array.isArray(prescription?.items) ? prescription.items : [];
+    const resolvedItems: BillLine[] = await Promise.all(prescriptionItems.map(async (item: any) => {
+      const quantity = Number(item.quantity || 0);
+      let unitPrice = Number(item.unit_price || 0);
+      if (!unitPrice && item.medicine_id) {
+        try {
+          const response = await fetch(`${BASE_URL}/medicines/${encodeURIComponent(String(item.medicine_id))}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (response.ok) {
+            const result = await response.json();
+            const medicine = result?.data?.medicine ?? result?.data;
+            unitPrice = Number(medicine?.unit_price || medicine?.selling_price || 0);
+          }
+        } catch { /* retain zero when the price lookup is unavailable */ }
+      }
+      return {
+        medicine_id: Number(item.medicine_id || 0),
+        medicine_name: String(item.medicine_name || ''),
+        quantity,
+        unit_price: unitPrice,
+        discount_pct: 0,
+        tax_pct: 0,
+        total_price: quantity * unitPrice,
+      };
+    }));
+    const mapped = resolvedItems.filter(
+      item => Boolean(item.medicine_name) && item.quantity > 0,
+    );
+    setPrescriptionId(String(prescription.id));
+    setItems(mapped);
+    setAppliedPrescriptionId(Number(prescription.id));
+    if (prescription.appointment_id) {
+      const linkedAppointment = appointments.find(
+        appointment => String(appointment.id) === String(prescription.appointment_id),
+      );
+      const prescriptionAppointment = linkedAppointment || {
+        id: prescription.appointment_id,
+        appointment_date: prescription.appointment_date,
+        appointment_time: prescription.appointment_time,
+        patient_id: selectedPatient?.id,
+        status: 'complete',
+      };
+      if (!linkedAppointment) setAppointments(previous => [prescriptionAppointment, ...previous]);
+      setSelectedAppointment(prescriptionAppointment);
+      setAppointmentSearch(formatAppointmentInput({
+        id: prescription.appointment_id,
+        appointment_date: prescription.appointment_date,
+        appointment_time: prescription.appointment_time,
+      }));
+    }
+    showSuccessToast('Prescription applied', `${mapped.length} medicine(s) added to the bill.`);
+  };
+
+  useEffect(() => {
+    if (prescriptionLoading || !selectedPatient || prescriptionOptions.length === 0 || items.length > 0 || appliedPrescriptionId !== null) return;
+    const first = prescriptionOptions[0];
+    if (first) {
+      void applyPrescription(first).catch(error => {
+        showErrorToast('Could not apply prescription', error?.message || 'Please select the medicines manually.');
+      });
+    }
+  }, [prescriptionLoading, selectedPatient, prescriptionOptions, items.length, appliedPrescriptionId]);
   const openCreate = () => {
     resetForm();
     setFormVisible(true);
   };
-  const addMedicine = (medicine: Medicine) => {
-    setItems(prev => {
-      const existing = prev.find(item => item.medicine_id === medicine.id);
-      if (existing)
-        return prev.map(item =>
-          item.medicine_id === medicine.id
-            ? {
-                ...item,
-                quantity: item.quantity + 1,
-                total_price: lineTotal({
-                  ...item,
-                  quantity: item.quantity + 1,
-                }),
-              }
-            : item,
-        );
-      const next: BillLine = {
+  const openEditForm = async (bill: Bill) => {
+    if (!token) return;
+    setActionMenuBill(null);
+    setSaving(true);
+    try {
+      const response = await getMedicineBillByIdApi(token, bill.id);
+      if (!response.success) {
+        showErrorToast('Could not open bill', response.message);
+        return;
+      }
+      const result: any = response.data;
+      const details: any = result?.bill || result || bill;
+      const patientDetails = details.patient || {};
+      const patientId = Number(details.patient_id || bill.patient_id);
+      const patient: PatientModel = {
+        ...patientDetails,
+        id: patientId,
+        clinic_id: Number(details.clinic_id || activeClinicId || 0),
+        full_name: String(patientDetails.full_name || details.patient_name || bill.patient_name || ''),
+        phone: String(patientDetails.phone || details.patient_phone || bill.patient_phone || ''),
+        gender: patientDetails.gender || 'other',
+      };
+      setFormEditBill(details as Bill);
+      setSelectedPatient(patient);
+      setPatientSearch(patient.full_name);
+      setPatients([]);
+      setPrescriptionId(String(details.prescription_id || ''));
+      setItems((Array.isArray(details.items) ? details.items : []).map((item: any) => ({
+        medicine_id: Number(item.medicine_id || 0),
+        medicine_name: String(item.medicine_name || item.name || ''),
+        batch_number: item.batch_number,
+        quantity: Number(item.quantity || 0),
+        unit_price: Number(item.unit_price || 0),
+        discount_pct: Number(item.discount_pct || 0),
+        tax_pct: Number(item.tax_pct || 0),
+        total_price: Number(item.total_price || 0),
+      })));
+      setSubtotalInput(String(Number(details.subtotal || 0)));
+      setDiscount(String(Number(details.discount_amount || 0)));
+      setTax(String(Number(details.tax_amount || 0)));
+      setTotalAmountInput(String(Number(details.total_amount || 0)));
+      setPaid(String(Number(details.paid_amount || 0)));
+      setPaymentMethod(String(details.payment_method || 'cash').toLowerCase());
+      setBillStatus(statusOf(details as Bill));
+      setNotes(String(details.notes || ''));
+      setMedicineSearch('');
+      setMedicineResults([]);
+      setMedicineSearchOpen(false);
+      setFormVisible(true);
+    } catch (error: any) {
+      showErrorToast('Could not open bill', error?.message || 'Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+  const addMedicineRow = () => {
+    const rowIndex = items.length;
+    setItems(prev => [...prev, {
+      medicine_id: 0,
+      medicine_name: '',
+      quantity: 1,
+      unit_price: 0,
+      discount_pct: 0,
+      tax_pct: 0,
+      total_price: 0,
+    }]);
+    setActiveMedicineRow(rowIndex);
+    setMedicineSearchOpen(true);
+    setMedicineSearch('');
+    setMedicineResults([]);
+    requestAnimationFrame(() => {
+      createFormScrollRef.current?.scrollTo({ y: medicineItemsSectionY.current, animated: true });
+    });
+  };
+  const selectMedicineForRow = (rowIndex: number, medicine: Medicine) => {
+    setItems(prev => prev.map((line, index) => {
+      if (index !== rowIndex) return line;
+      const next = {
+        ...line,
         medicine_id: medicine.id,
         medicine_name: medicine.name,
         batch_number: medicine.batch_number,
-        quantity: 1,
-        unit_price: Number(medicine.selling_price || medicine.unit_price || 0),
-        discount_pct: 0,
-        tax_pct: Number(medicine.gst_percent || 0),
-        total_price: 0,
+        unit_price: Number(medicine.unit_price || medicine.selling_price || 0),
       };
-      next.total_price = lineTotal(next);
-      return [...prev, next];
-    });
-    setMedicineSearch('');
+      return { ...next, total_price: lineTotal(next) };
+    }));
+    setMedicineSearch(medicine.name);
     setMedicineResults([]);
+    setMedicineSearchOpen(false);
+    setActiveMedicineRow(null);
   };
   const updateLine = (
-    id: number,
-    field: 'quantity' | 'discount_pct',
+    rowIndex: number,
+    field: 'medicine_name' | 'quantity' | 'unit_price',
     value: string,
   ) => {
     const number = Math.max(0, Number(value) || 0);
-    setItems(prev =>
-      prev
-        .map(line => {
-          if (line.medicine_id !== id) return line;
-          const next = {
-            ...line,
-            [field]:
-              field === 'quantity' ? Math.floor(number) : Math.min(100, number),
-          };
-          return { ...next, total_price: lineTotal(next) };
-        })
-        .filter(line => line.quantity > 0),
-    );
+    setItems(prev => prev.map((line, index) => {
+      if (index !== rowIndex) return line;
+      const fieldValue = field === 'medicine_name'
+        ? value
+        : field === 'quantity'
+          ? Math.floor(number)
+          : number;
+      const next = { ...line, [field]: fieldValue };
+      return { ...next, total_price: lineTotal(next) };
+    }));
   };
 
   const createBill = async () => {
-    if (!token || !selectedPatient || items.length === 0 || !activeClinicId) {
+    if (!token || !selectedPatient || !activeClinicId) {
       showErrorToast(
         'Bill details required',
-        'Choose a patient and add at least one medicine.',
+        'Choose a patient before creating the bill.',
       );
+      return;
+    }
+    if (!formEditBill && items.some(item => !item.medicine_name.trim() || item.quantity <= 0)) {
+      showErrorToast('Medicine details required', 'Choose a medicine and enter a quantity for every item.');
+      return;
+    }
+    if (totals.totalAmount <= 0) {
+      showErrorToast('Invalid bill total', 'Total amount must be greater than zero.');
       return;
     }
     const paidAmount = Number(paid) || 0;
@@ -376,7 +630,15 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
     }
     setSaving(true);
     try {
-      const response = await createMedicineBillApi(token, {
+      const response = formEditBill
+        ? await updateMedicineBillApi(token, formEditBill.id, {
+            discount_amount: totals.discountAmount,
+            tax_amount: totals.taxAmount,
+            paid_amount: paidAmount,
+            payment_method: paymentMethod,
+            status: billStatus,
+          })
+        : await createMedicineBillApi(token, {
         clinic_id: activeClinicId,
         patient_id: Number(selectedPatient.id),
         pharmacist_id: Number(user?.id) || undefined,
@@ -387,23 +649,45 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
         total_amount: totals.totalAmount,
         paid_amount: paidAmount,
         payment_method: paymentMethod,
-        status:
-          paidAmount >= totals.totalAmount
-            ? 'paid'
-            : paidAmount > 0
-            ? 'partial'
-            : 'pending',
+        status: billStatus,
         notes,
-        items: items.map(item => ({ ...item, total_price: lineTotal(item) })),
+        items: items.length > 0 ? items.map(item => ({
+          ...item,
+          medicine_id: item.medicine_id || null,
+          total_price: lineTotal(item),
+        })) : [{
+          medicine_id: null,
+          medicine_name: 'Consultation',
+          quantity: 1,
+          unit_price: totals.totalAmount,
+          discount_pct: 0,
+          tax_pct: 0,
+          total_price: totals.totalAmount,
+        }],
       });
       if (!response.success) {
         showErrorToast('Bill creation failed', response.message);
         return;
       }
+      const wasEditing = Boolean(formEditBill);
+      const toast = {
+        title: wasEditing ? 'Bill Updated! 🎉' : 'Bill Created! 🎉',
+        message: wasEditing
+          ? 'Medicine bill updated successfully.'
+          : response.message || 'Medicine bill created successfully.',
+      };
+      setPendingBillToast(toast);
+      // A toast rendered by the app root is hidden behind Android's native
+      // Modal window. Wait until the modal has completed its close animation.
+      if (Platform.OS === 'android') {
+        setTimeout(() => {
+          showBillingToast(toast);
+          setPendingBillToast(current => current === toast ? null : current);
+        }, 1400);
+      }
       setFormVisible(false);
       resetForm();
-      showSuccessToast('Bill created', response.message);
-      loadBills();
+      void loadBills();
     } catch (error: any) {
       showErrorToast('Bill creation failed', error?.message);
     } finally {
@@ -568,9 +852,16 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
         showErrorToast('Update failed', response.message);
         return;
       }
+      const toast = { title: 'Bill Updated! 🎉', message: 'Medicine bill updated successfully.' };
+      setPendingBillToast(toast);
+      if (Platform.OS === 'android') {
+        setTimeout(() => {
+          showBillingToast(toast);
+          setPendingBillToast(current => current === toast ? null : current);
+        }, 1400);
+      }
       setEditBill(null);
-      showSuccessToast('Bill updated', response.message);
-      loadBills();
+      void loadBills();
     } catch (error: any) {
       showErrorToast('Update failed', error?.message);
     } finally {
@@ -579,21 +870,6 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   };
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const billingStats = useMemo(
-    () =>
-      bills.reduce(
-        (stats, bill) => {
-          const amount = Number(bill.total_amount) || 0;
-          const paidAmount = Number(bill.paid_amount) || 0;
-          stats.collected += paidAmount;
-          stats.due += Math.max(0, amount - paidAmount);
-          if (statusOf(bill) === 'partial') stats.partial += 1;
-          return stats;
-        },
-        { collected: 0, due: 0, partial: 0 },
-      ),
-    [bills],
-  );
   const setFilterStatus = (value: string) => {
     setStatus(value);
     setStatusOpen(false);
@@ -634,19 +910,17 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.bannerRow}>
+          <View style={[styles.bannerRow, isMobile && styles.billingBannerMobile]}>
             <View style={styles.bannerTitleBlock}>
-              <View style={styles.iconBox}>
+              <View style={[styles.iconBox, isMobile && styles.pageIconMobile]}>
                 <Receipt color="#0D9488" size={24} />
               </View>
               <View style={styles.bannerCopy}>
-                <Text style={styles.bannerTitle}>Medicine Bills</Text>
-                <Text style={styles.bannerSubtitle}>
-                  Manage bills, payments, and billing items
-                </Text>
+                <Text style={[styles.bannerTitle, isMobile && styles.bannerTitleMobile]}>Medicine Bills</Text>
+                <Text style={styles.bannerSubtitle}>Manage medicine bills and payments</Text>
               </View>
             </View>
-            {canAdd ? (
+            {canAdd && !isMobile ? (
               <TouchableOpacity
                 style={styles.createBillButton}
                 onPress={openCreate}
@@ -656,51 +930,44 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
               </TouchableOpacity>
             ) : null}
           </View>
-          <View style={styles.metricGrid}>
-            <MetricCard
-              icon={<Receipt color="#0D9488" size={20} />}
-              iconColor="#CCFBF1"
-              value={String(total || bills.length)}
-              label="Total Bills"
-            />
-            <MetricCard
-              icon={<IndianRupee color="#166534" size={20} />}
-              iconColor="#DCFCE7"
-              value={money(billingStats.collected)}
-              label="Total Collected"
-            />
-            <MetricCard
-              icon={<Clock color="#1E40AF" size={20} />}
-              iconColor="#DBEAFE"
-              value={String(billingStats.partial)}
-              label="Partially Paid"
-            />
-            <MetricCard
-              icon={<AlertCircle color="#92400E" size={20} />}
-              iconColor="#FEF3C7"
-              value={money(billingStats.due)}
-              label="Outstanding Due"
-              danger={billingStats.due > 0}
-            />
-          </View>
+
+          {canAdd && isMobile ? (
+            <TouchableOpacity style={styles.createBillButtonMobile} onPress={openCreate}>
+              <Plus size={16} color="#fff" strokeWidth={2.5} />
+              <Text style={styles.createBillText}>Create Bill</Text>
+            </TouchableOpacity>
+          ) : null}
+
           <View style={styles.filters}>
             <View style={styles.searchBox}>
               <Search size={18} color="#64748B" />
               <TextInput
                 value={search}
                 onChangeText={setSearch}
-                placeholder="Search bill, patient, or phone..."
+                placeholder="Search by patient ID, name, or mobile..."
                 placeholderTextColor="#94A3B8"
                 style={styles.searchInput}
               />
-              <TouchableOpacity
-                accessibilityLabel="Clear search"
-                onPress={() => setSearch('')}
-              >
-                <X size={16} color="#94A3B8" />
-              </TouchableOpacity>
+              {search.length > 0 && (
+                <TouchableOpacity
+                  accessibilityLabel="Clear search"
+                  onPress={() => setSearch('')}
+                >
+                  <X size={16} color="#94A3B8" />
+                </TouchableOpacity>
+              )}
             </View>
-            <View style={styles.statusWrap}>
+            <TouchableOpacity
+              style={styles.searchSubmitButton}
+              onPress={() => {
+                setPage(1);
+                setDebouncedSearch(search.trim());
+              }}
+            >
+              <Search size={15} color="#334155" />
+              <Text style={styles.searchSubmitText}>Search</Text>
+            </TouchableOpacity>
+            {!isMobile && <View style={styles.statusWrap}>
               <TouchableOpacity
                 style={styles.statusButton}
                 onPress={() => setStatusOpen(v => !v)}
@@ -730,8 +997,8 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                   ))}
                 </View>
               ) : null}
-            </View>
-            <View style={styles.dateFilter}>
+            </View>}
+            {!isMobile && <View style={styles.dateFilter}>
               <View style={styles.datePickerFlex}>
                 <CustomCalendarPicker
                   selectedDate={
@@ -762,7 +1029,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                   <X size={16} color="#64748B" />
                 </TouchableOpacity>
               ) : null}
-            </View>
+            </View>}
           </View>
           {loading ? (
             <View style={styles.center}>
@@ -779,7 +1046,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
             </View>
           ) : (
             <View style={styles.listCard}>
-              <View style={styles.listHeader}>
+              <View style={[styles.listHeader, isMobile && styles.listHeaderMobile]}>
                 <View style={[styles.flex, styles.extractedInline1]}>
                   <View style={styles.listTitleRow}>
                     <Receipt size={18} color="#0F172A" />
@@ -787,21 +1054,19 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                       All Bills ({total || bills.length})
                     </Text>
                   </View>
-                  <Text style={styles.listSubtitle}>
-                    View and manage medicine bills
-                  </Text>
+                  {!isMobile && <Text style={styles.listSubtitle}>View and manage medicine bills</Text>}
                 </View>
-                <View style={styles.listHeaderActions}>
-                  <TouchableOpacity
+                <View style={[styles.listHeaderActions, isMobile && styles.listHeaderActionsMobile]}>
+                  {!isMobile && <TouchableOpacity
                     style={styles.headerButton}
                     onPress={() => loadBills()}
                     disabled={loading}
                   >
                     <RefreshCw size={14} color="#334155" />
                     <Text style={styles.headerButtonText}>Refresh</Text>
-                  </TouchableOpacity>
+                  </TouchableOpacity>}
                   <TouchableOpacity
-                    style={styles.headerButton}
+                    style={[styles.headerButton, isMobile && styles.headerButtonMobile]}
                     onPress={() => setColumnsVisible(true)}
                   >
                     <Columns size={14} color="#334155" />
@@ -809,7 +1074,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                   </TouchableOpacity>
                 </View>
               </View>
-              {lastRefreshed ? (
+              {lastRefreshed && !isMobile ? (
                 <View style={styles.lastRefreshed}>
                   <Text style={styles.lastRefreshedText}>
                     Last refreshed: {lastRefreshed}
@@ -878,10 +1143,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                                 { color: statusColor },
                               ]}
                             >
-                              {billStatus === 'partial'
-                                ? 'Partially Paid'
-                                : billStatus[0].toUpperCase() +
-                                  billStatus.slice(1)}
+                              {billStatus.toLowerCase()}
                             </Text>
                           </View>
                         ) : null}
@@ -978,16 +1240,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                           {canEdit && billStatus !== 'cancelled' ? (
                             <TouchableOpacity
                               style={styles.menuAction}
-                              onPress={() => {
-                                setActionMenuBill(null);
-                                setEditBill(bill);
-                                setEditDiscount(
-                                  String(bill.discount_amount || 0),
-                                );
-                                setEditTax(String(bill.tax_amount || 0));
-                                setEditPaid(String(bill.paid_amount || 0));
-                                setEditMethod(bill.payment_method || 'cash');
-                              }}
+                              onPress={() => void openEditForm(bill)}
                             >
                               <MoreVertical size={15} color="#334155" />
                               <Text style={styles.menuActionText}>
@@ -1058,64 +1311,87 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
         subtitle="Choose the details shown on bill cards"
       />
 
-      <Modal
+      <AppModal
         visible={formVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => setFormVisible(false)}
+        onRequestClose={closeBillForm}
+        onDismiss={() => {
+          if (pendingBillToast) {
+            showBillingToast(pendingBillToast);
+            setPendingBillToast(null);
+          }
+        }}
       >
-        <View style={styles.modalBackdrop}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.modalShell}
-          >
-            <View style={styles.modalCard}>
-              <ModalHeader
-                title="Create Medicine Bill"
-                onClose={() => setFormVisible(false)}
-              />
+        <KeyboardAvoidingView
+          style={styles.createModalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.createModalShell}>
+            <View style={styles.createModalCard}>
+              <View style={styles.createModalHeader}>
+                <View style={styles.createHeaderIcon}><Pill size={20} color="#FFFFFF" /></View>
+                <View style={styles.flex}>
+                  <Text style={styles.modalTitle}>{formEditBill ? 'Edit Medicine Bill' : 'Create Medicine Bill'}</Text>
+                  <Text numberOfLines={1} style={styles.muted}>{formEditBill ? 'Update bill details' : 'Enter bill details to create a new medicine bill'}</Text>
+                </View>
+                <TouchableOpacity onPress={closeBillForm} style={styles.close}>
+                  <X size={18} color="#64748B" />
+                </TouchableOpacity>
+              </View>
               <ScrollView
-                style={styles.modalScroll}
-                contentContainerStyle={styles.modalContent}
+                ref={createFormScrollRef}
+                style={styles.createModalScroll}
+                contentContainerStyle={styles.createModalContent}
                 keyboardShouldPersistTaps="handled"
               >
-                <View style={styles.field}>
-                  <Text style={styles.label}>Patient *</Text>
-                  {selectedPatient ? (
-                    <TouchableOpacity
-                      style={styles.selectedPatient}
-                      onPress={() => {
-                        setSelectedPatient(null);
-                        setPrescriptionId('');
-                        setPatientSearch('');
-                      }}
-                    >
-                      <View style={styles.flex}>
-                        <Text style={styles.patientName}>
-                          {selectedPatient.full_name}
-                        </Text>
-                        <Text style={styles.muted}>
-                          {selectedPatient.patient_code || ''}{' '}
-                          {selectedPatient.phone || ''}
-                        </Text>
-                      </View>
-                      <X size={16} color="#64748B" />
-                    </TouchableOpacity>
-                  ) : (
+                <View style={styles.createSection}>
+                  <View style={styles.createSectionHeader}>
+                    <View style={styles.createSectionIcon}><UserRound size={15} color="#0D9488" /></View>
+                    <View>
+                      <Text style={styles.createSectionTitle}>Bill Information</Text>
+                      <Text style={styles.createSectionSubtitle}>Select the patient and an optional completed appointment.</Text>
+                    </View>
+                  </View>
+                  <View style={styles.field}>
+                  <Text style={styles.createLabel}>Patient <Text style={styles.required}>*</Text></Text>
+                  <View style={styles.createInputWrap}>
+                    <UserRound size={15} color="#64748B" style={styles.inputLeadingIcon} />
                     <TextInput
                       value={patientSearch}
-                      onChangeText={setPatientSearch}
-                      placeholder="Search patient by name, code or phone"
-                      style={styles.input}
+                      onChangeText={value => {
+                        if (selectedPatient) resetPatientDependencies();
+                        setPatientSearch(value);
+                      }}
+                      placeholder="Search patient by ID, name, or mobile..."
+                      placeholderTextColor="#94A3B8"
+                      style={[styles.input, styles.createInputWithIcon, patientSearch.length > 0 && styles.inputWithClear]}
                     />
-                  )}
+                    {patientSearch.length > 0 ? <TouchableOpacity style={styles.inputClear} onPress={() => {
+                      resetPatientDependencies();
+                      setPatientSearch('');
+                    }}><X size={15} color="#64748B" /></TouchableOpacity> : null}
+                  </View>
+                  {selectedPatient ? (
+                    <Text style={styles.selectedPatientSummary}>
+                      Selected: {selectedPatient.full_name || (selectedPatient as any).name || 'Patient'} (ID: {selectedPatient.id}){selectedPatient.phone ? ` (${selectedPatient.phone})` : ''}
+                    </Text>
+                  ) : null}
                   {patients.map(patient => (
                     <TouchableOpacity
                       key={patient.id}
                       style={styles.suggestion}
                       onPress={() => {
                         setSelectedPatient(patient);
+                        setPatientSearch(`${patient.full_name || (patient as any).name || ''}${patient.phone ? ` (${patient.phone})` : ''}`);
                         setPrescriptionId('');
+                        setPrescriptionOptions([]);
+                        setItems([]);
+                        setAppliedPrescriptionId(null);
+                        setSelectedAppointment(null);
+                        setPrescriptionAppointmentFilterId('');
+                        setPrescriptionPage(1);
+                        setAppointmentSearch('');
                         setPatients([]);
                       }}
                     >
@@ -1126,147 +1402,228 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                       </Text>
                     </TouchableOpacity>
                   ))}
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.label}>Prescription (optional)</Text>
-                  <TouchableOpacity
-                    style={styles.filterButton}
-                    onPress={() => setPrescriptionOpen(value => !value)}
-                  >
-                    <Text numberOfLines={1} style={styles.filterText}>
-                      {prescriptionId
-                        ? `Prescription #${prescriptionId}`
-                        : selectedPatient
-                        ? 'Link a prescription'
-                        : 'Choose a patient first'}
-                    </Text>
-                    <ChevronDown size={15} color="#64748B" />
-                  </TouchableOpacity>
-                  {prescriptionOpen ? (
-                    <View style={styles.inlineOptions}>
-                      <TouchableOpacity
-                        style={styles.option}
-                        onPress={() => {
-                          setPrescriptionId('');
-                          setPrescriptionOpen(false);
-                        }}
-                      >
-                        <Text style={styles.optionText}>No prescription</Text>
-                      </TouchableOpacity>
-                      {prescriptionOptions.map(rx => (
-                        <TouchableOpacity
-                          key={rx.id}
-                          style={styles.option}
-                          onPress={() => {
-                            setPrescriptionId(String(rx.id));
-                            setPrescriptionOpen(false);
-                          }}
-                        >
-                          <Text style={styles.optionText}>
-                            #{rx.id} \u00B7{' '}
-                            {rx.diagnosis || rx.created_at || 'Prescription'}
-                          </Text>
+                  </View>
+                  <View style={styles.field}>
+                  <Text style={styles.createLabel}>Appointment <Text style={styles.createOptional}>(Optional)</Text></Text>
+                  <View style={styles.createInputWrap}>
+                    <TextInput
+                      value={appointmentSearch}
+                      onFocus={() => { if (selectedPatient) setAppointmentOpen(true); }}
+                      onChangeText={value => {
+                        setAppointmentSearch(value);
+                        setSelectedAppointment(null);
+                        if (!value.trim()) {
+                          setPrescriptionAppointmentFilterId('');
+                          setPrescriptionPage(1);
+                        }
+                        setAppointmentOpen(Boolean(selectedPatient));
+                      }}
+                      editable={Boolean(selectedPatient)}
+                      placeholder="Type date or appointment ID"
+                      placeholderTextColor="#94A3B8"
+                      style={styles.input}
+                    />
+                    {appointmentSearch ? <TouchableOpacity style={styles.inputClear} onPress={() => {
+                      setAppointmentSearch('');
+                      setSelectedAppointment(null);
+                      setPrescriptionAppointmentFilterId('');
+                      setPrescriptionPage(1);
+                      setAppointmentOpen(Boolean(selectedPatient));
+                    }}><X size={15} color="#64748B" /></TouchableOpacity> : null}
+                  </View>
+                  {appointmentOpen ? (
+                    <View style={styles.createSuggestions}>
+                      {filteredAppointments.length === 0 ? (
+                        <Text style={[styles.muted, { padding: 10 }]}>No completed appointment found.</Text>
+                      ) : filteredAppointments.map(appointment => (
+                        <TouchableOpacity key={appointment.id} style={styles.createSuggestion} onPress={() => {
+                          setSelectedAppointment(appointment);
+                          setAppointmentSearch(formatAppointmentInput(appointment));
+                          setAppointmentOpen(false);
+                          setPrescriptionAppointmentFilterId(String(appointment.id));
+                          setPrescriptionPage(1);
+                        }}>
+                          <Text style={styles.createSuggestionTitle}>Appointment #{appointment.id}</Text>
+                          <Text style={styles.createSectionSubtitle}>{appointment.appointment_date || ''} {appointment.appointment_time || ''}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
                   ) : null}
+                  <Text style={styles.createSectionSubtitle}>Only completed appointments are shown</Text>
+                  </View>
                 </View>
-                <View style={styles.field}>
-                  <Text style={styles.label}>Add medicine *</Text>
-                  <TextInput
-                    value={medicineSearch}
-                    onChangeText={setMedicineSearch}
-                    placeholder="Search medicine name"
-                    style={styles.input}
-                  />
-                  {medicineResults.map(medicine => (
-                    <TouchableOpacity
-                      key={medicine.id}
-                      style={styles.suggestion}
-                      onPress={() => addMedicine(medicine)}
-                    >
-                      <Text style={styles.optionText}>{medicine.name}</Text>
-                      <Text style={styles.muted}>
-                        Stock {medicine.stock_quantity} \u00B7{' '}
-                        {money(medicine.selling_price || medicine.unit_price)}
-                      </Text>
-                    </TouchableOpacity>
+                <View style={styles.createSectionTint}>
+                  <View style={styles.lineHeader}>
+                    <View style={styles.createSectionHeaderCompact}>
+                      <FileText size={15} color="#0D9488" />
+                      <Text style={styles.createSectionTitle}>Prescription History</Text>
+                    </View>
+                    {prescriptionTotal > 0 ? <Text style={styles.prescriptionCountBadge}>{prescriptionTotal} {prescriptionTotal === 1 ? 'record' : 'records'}</Text> : null}
+                  </View>
+                  {!selectedPatient ? <Text style={styles.createSectionSubtitleIndented}>Select patient to view prescription history.</Text> : null}
+                  {prescriptionLoading ? <ActivityIndicator color="#0D9488" /> : null}
+                  {selectedPatient && !prescriptionLoading && prescriptionOptions.length === 0 ? (
+                    <Text style={styles.muted}>No prescription history found.</Text>
+                  ) : null}
+                  {prescriptionOptions.map(rx => (
+                    <View key={rx.id} style={styles.lineCard}>
+                      <View style={styles.lineHeader}>
+                        <Text style={styles.optionText}>Prescription #{rx.id}</Text>
+                        <TouchableOpacity style={styles.methodButton} onPress={() => {
+                          void applyPrescription(rx).catch(error => {
+                            showErrorToast('Could not apply prescription', error?.message || 'Please try again.');
+                          });
+                        }}>
+                          <Text style={styles.optionText}>{String(prescriptionId) === String(rx.id) ? 'Applied' : 'Use Prescription'}</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <Text style={styles.prescriptionMeta}>Appointment Date: <Text style={styles.prescriptionMetaValue}>{rx.appointment_date ? dateLabel(rx.appointment_date) : '-'}{rx.appointment_time ? ` at ${rx.appointment_time}` : ''}</Text></Text>
+                      <Text style={styles.prescriptionMeta}>Prescribed On: <Text style={styles.prescriptionMetaValue}>{rx.created_at ? dateLabel(rx.created_at) : '-'}</Text></Text>
+                      <Text style={styles.prescriptionMeta}>Appointment ID: <Text style={styles.prescriptionMetaValue}>{rx.appointment_id ?? '-'}</Text></Text>
+                      <Text style={styles.prescriptionBodyText}>Diagnosis: {rx.diagnosis || '-'}</Text>
+                      <Text style={styles.prescriptionBodyText}>Advice: {rx.advice || '-'}</Text>
+                      <Text style={styles.prescriptionMeta}>Medicines:</Text>
+                      {Array.isArray(rx.items) && rx.items.length > 0 ? rx.items.map((item: any, index: number) => (
+                        <View key={`${rx.id}-${index}`} style={[styles.prescriptionMedicineItem, !item.medicine_id && styles.prescriptionCustomMedicine]}>
+                          <Text style={styles.prescriptionMedicineName}>{item.medicine_name || 'Medicine'}</Text>
+                          {!item.medicine_id ? <Text style={styles.prescriptionCustomText}>Custom medicine - Not available on our medical store</Text> : null}
+                          <Text style={styles.prescriptionMeta}>Dosage: {item.dosage || '-'} | Frequency: {item.frequency || '-'} | Duration: {item.duration || '-'}</Text>
+                          <Text style={styles.prescriptionMeta}>Quantity: {item.quantity ?? '-'} | Instruction: {item.instruction || item.instructions || '-'}</Text>
+                        </View>
+                      )) : <Text style={styles.prescriptionBodyText}>-</Text>}
+                    </View>
                   ))}
-                </View>
-                {items.map(item => (
-                  <View key={item.medicine_id} style={styles.lineCard}>
-                    <View style={styles.lineHeader}>
-                      <Text style={styles.optionText}>
-                        {item.medicine_name}
+                  {prescriptionTotal > PRESCRIPTION_PAGE_SIZE ? (
+                    <View style={styles.prescriptionPagination}>
+                      <Text style={styles.prescriptionMeta}>
+                        Showing {(prescriptionPage - 1) * PRESCRIPTION_PAGE_SIZE + 1}-{Math.min(prescriptionPage * PRESCRIPTION_PAGE_SIZE, prescriptionTotal)} of {prescriptionTotal} prescriptions
                       </Text>
-                      <TouchableOpacity
-                        onPress={() =>
-                          setItems(prev =>
-                            prev.filter(
-                              line => line.medicine_id !== item.medicine_id,
-                            ),
-                          )
-                        }
-                      >
-                        <X size={16} color="#DC2626" />
-                      </TouchableOpacity>
+                      <View style={styles.prescriptionPageControls}>
+                        <TouchableOpacity
+                          disabled={prescriptionPage <= 1 || prescriptionLoading}
+                          style={[styles.prescriptionPageButton, (prescriptionPage <= 1 || prescriptionLoading) && styles.prescriptionPageDisabled]}
+                          onPress={() => setPrescriptionPage(value => Math.max(1, value - 1))}
+                        ><Text style={styles.prescriptionPageText}>Previous</Text></TouchableOpacity>
+                        <Text style={styles.prescriptionMeta}>{prescriptionPage} / {prescriptionTotalPages}</Text>
+                        <TouchableOpacity
+                          disabled={prescriptionPage >= prescriptionTotalPages || prescriptionLoading}
+                          style={[styles.prescriptionPageButton, (prescriptionPage >= prescriptionTotalPages || prescriptionLoading) && styles.prescriptionPageDisabled]}
+                          onPress={() => setPrescriptionPage(value => Math.min(prescriptionTotalPages, value + 1))}
+                        ><Text style={styles.prescriptionPageText}>Next</Text></TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+                <View
+                  style={styles.createSection}
+                  onLayout={event => { medicineItemsSectionY.current = event.nativeEvent.layout.y; }}
+                >
+                  <View style={styles.createSectionHeader}>
+                    <View style={styles.createSectionIcon}><Pill size={15} color="#0D9488" /></View>
+                    <View style={styles.flex}>
+                      <Text style={styles.createSectionTitle}>Medicine Bill Items</Text>
+                      <Text style={styles.createSectionSubtitle}>Add medicines manually or apply a prescription.</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity style={styles.addMedicineButton} onPress={addMedicineRow}>
+                    <Plus size={16} color="#0F172A" />
+                    <Text style={styles.addMedicineText}>Add Medicine</Text>
+                  </TouchableOpacity>
+                  {items.length === 0 ? (
+                    <View style={styles.emptyMedicineBox}><Text style={styles.createSectionSubtitle}>No medicines added</Text></View>
+                  ) : null}
+                {items.map((item, index) => (
+                  <View key={`${item.medicine_id}-${item.medicine_name}-${index}`} style={styles.lineCard}>
+                    <View style={styles.lineField}>
+                      <Text style={styles.createLabel}>Medicine</Text>
+                      <TextInput
+                        value={item.medicine_name}
+                        onFocus={() => {
+                          setActiveMedicineRow(index);
+                          setMedicineSearch(item.medicine_name);
+                          setMedicineSearchOpen(true);
+                        }}
+                        onChangeText={value => {
+                          setActiveMedicineRow(index);
+                          setMedicineSearch(value);
+                          setMedicineSearchOpen(true);
+                          updateLine(index, 'medicine_name', value);
+                        }}
+                        placeholder="Search medicine by name or ID"
+                        style={styles.input}
+                      />
+                      {medicineSearchOpen && activeMedicineRow === index && medicineResults.length > 0 ? (
+                        <View style={styles.createSuggestions}>
+                          {medicineResults.map(medicine => (
+                            <TouchableOpacity
+                              key={medicine.id}
+                              style={styles.createSuggestion}
+                              onPress={() => selectMedicineForRow(index, medicine)}
+                            >
+                              <Text style={styles.createSuggestionTitle}>{medicine.name}</Text>
+                              <Text style={styles.createSectionSubtitle}>
+                                Stock {medicine.stock_quantity} · {money(medicine.selling_price || medicine.unit_price)}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      ) : null}
                     </View>
                     <View style={styles.lineInputs}>
-                      <TextInput
-                        value={String(item.quantity)}
-                        onChangeText={value =>
-                          updateLine(item.medicine_id, 'quantity', value)
-                        }
-                        keyboardType="numeric"
-                        style={[styles.input, styles.lineInput]}
-                        placeholder="Qty"
-                      />
-                      <TextInput
-                        value={String(item.discount_pct)}
-                        onChangeText={value =>
-                          updateLine(item.medicine_id, 'discount_pct', value)
-                        }
-                        keyboardType="decimal-pad"
-                        style={[styles.input, styles.lineInput]}
-                        placeholder="Discount %"
-                      />
-                      <Text style={styles.amount}>
-                        {money(lineTotal(item))}
-                      </Text>
+                      <View style={[styles.lineField, styles.lineInput]}>
+                        <Text style={styles.createLabel}>Qty</Text>
+                        <TextInput
+                          value={item.quantity > 0 ? String(item.quantity) : ''}
+                          onChangeText={value => updateLine(index, 'quantity', value)}
+                          keyboardType="numeric"
+                          style={styles.input}
+                        />
+                      </View>
+                      <View style={[styles.lineField, styles.lineInput]}>
+                        <Text style={styles.createLabel}>Price</Text>
+                        <TextInput
+                          value={String(item.unit_price)}
+                          onChangeText={value => updateLine(index, 'unit_price', value)}
+                          keyboardType="decimal-pad"
+                          style={styles.input}
+                        />
+                      </View>
+                    </View>
+                    <View style={styles.lineTotalField}>
+                      <Text style={styles.createLabel}>Total</Text>
+                      <Text style={styles.lineTotalValue}>{money(lineTotal(item))}</Text>
+                    </View>
+                    <View style={styles.lineRemoveRow}>
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${item.medicine_name}`}
+                        onPress={() => setItems(prev => prev.filter((_, lineIndex) => lineIndex !== index))}
+                        style={styles.lineRemoveButton}
+                      >
+                        <X size={15} color="#EF4444" />
+                      </TouchableOpacity>
                     </View>
                   </View>
                 ))}
+                </View>
+                <View style={styles.createSectionTint}>
+                  <View style={styles.createSectionHeader}>
+                    <View style={styles.createSectionIconBlue}><CreditCard size={15} color="#2563EB" /></View>
+                    <View>
+                      <Text style={styles.createSectionTitle}>Amount &amp; Payment</Text>
+                      <Text style={styles.createSectionSubtitle}>Review totals and record the payment details.</Text>
+                    </View>
+                  </View>
+                {renderField('Subtotal (\u20B9)', subtotalInput, setSubtotalInput, '0', 'decimal-pad')}
                 {renderField(
-                  'Bill discount (\u20B9)',
+                  'Discount Amount (\u20B9)',
                   discount,
                   setDiscount,
                   '0',
                   'decimal-pad',
                 )}
-                <View style={styles.field}>
-                  <Text style={styles.label}>Payment method</Text>
-                  <View style={styles.filterRow}>
-                    {['cash', 'upi', 'card', 'net_banking'].map(method => (
-                      <TouchableOpacity
-                        key={method}
-                        style={[
-                          styles.methodButton,
-                          paymentMethod === method && styles.methodActive,
-                        ]}
-                        onPress={() => setPaymentMethod(method)}
-                      >
-                        <Text
-                          style={[
-                            styles.optionText,
-                            paymentMethod === method && styles.methodActiveText,
-                          ]}
-                        >
-                          {method.replace('_', ' ')}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
+                {renderField('Tax Amount (\u20B9)', tax, setTax, '0', 'decimal-pad')}
+                {renderField('Total Amount * (\u20B9)', totalAmountInput, setTotalAmountInput, '0', 'decimal-pad')}
                 {renderField(
                   'Paid amount (\u20B9)',
                   paid,
@@ -1274,127 +1631,253 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                   '0',
                   'decimal-pad',
                 )}
+                <View style={styles.field}>
+                  <Text style={styles.createLabel}>Payment Method</Text>
+                  <TouchableOpacity style={styles.createSelect} onPress={() => setPaymentMethodOpen(value => !value)}>
+                    <Text style={styles.createSelectText}>{paymentMethod === 'net_banking' ? 'Net Banking' : paymentMethod[0].toUpperCase() + paymentMethod.slice(1)}</Text>
+                    <ChevronDown size={15} color="#94A3B8" />
+                  </TouchableOpacity>
+                  {paymentMethodOpen ? <View style={styles.createSelectOptions}>
+                    {['cash', 'card', 'upi', 'online'].map(method => (
+                      <TouchableOpacity key={method} style={styles.createSelectOption} onPress={() => {
+                        setPaymentMethod(method);
+                        setPaymentMethodOpen(false);
+                      }}><Text style={styles.createSelectText}>{method[0].toUpperCase() + method.slice(1)}</Text></TouchableOpacity>
+                    ))}
+                  </View> : null}
+                </View>
+                <View style={styles.field}>
+                  <Text style={styles.createLabel}>Status</Text>
+                  <TouchableOpacity style={styles.createSelect} onPress={() => setStatusOptionsOpen(value => !value)}>
+                    <Text style={styles.createSelectText}>{billStatus[0].toUpperCase() + billStatus.slice(1)}</Text>
+                    <ChevronDown size={15} color="#94A3B8" />
+                  </TouchableOpacity>
+                  {statusOptionsOpen ? <View style={styles.createSelectOptions}>
+                    {['pending', 'partial', 'paid'].map(value => (
+                      <TouchableOpacity key={value} style={styles.createSelectOption} onPress={() => {
+                        setBillStatus(value);
+                        setStatusOptionsOpen(false);
+                      }}><Text style={styles.createSelectText}>{value[0].toUpperCase() + value.slice(1)}</Text></TouchableOpacity>
+                    ))}
+                  </View> : null}
+                </View>
                 {renderField('Notes', notes, setNotes, 'Optional notes')}
-                <View style={styles.totalsBox}>
-                  <Info label="Subtotal" value={money(totals.subtotal)} />
-                  <Info
-                    label="Item discount"
-                    value={money(totals.discountAmount)}
-                  />
-                  <Info label="Tax" value={money(totals.taxAmount)} />
-                  <Info
-                    label="Bill total"
-                    value={money(totals.totalAmount)}
-                    bold
-                  />
                 </View>
               </ScrollView>
-              <View style={styles.modalFooter}>
+              <View style={styles.createModalFooter}>
+                <View style={styles.amountDueRow}>
+                  <Text style={styles.amountDueLabel}>AMOUNT DUE</Text>
+                  <Text style={styles.amountDueValue}>{money(Math.max(0, totals.totalAmount - (Number(paid) || 0)))}</Text>
+                </View>
+                <View style={styles.createFooterButtons}>
                 <TouchableOpacity
                   style={styles.secondaryButton}
-                  onPress={() => setFormVisible(false)}
+                  onPress={closeBillForm}
                 >
                   <Text style={styles.secondaryText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   disabled={saving}
-                  style={[styles.primaryButton, saving && styles.disabled]}
+                  style={[styles.primaryButton, styles.createFooterPrimary, saving && styles.disabled]}
                   onPress={() => createBill()}
                 >
                   {saving ? (
                     <ActivityIndicator color="#fff" size="small" />
                   ) : null}
-                  <Text style={styles.primaryText}>Create Bill</Text>
+                  <Text style={styles.primaryText}>{formEditBill ? 'Update Bill' : 'Create Bill'}</Text>
                 </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
+          </View>
+        </KeyboardAvoidingView>
+      </AppModal>
 
-      <Modal
+      <AppModal
         visible={viewVisible}
         transparent
         animationType="fade"
         onRequestClose={() => setViewVisible(false)}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <ModalHeader
-              title="Medicine Bill Details"
-              onClose={() => setViewVisible(false)}
-            />
-            <ScrollView contentContainerStyle={styles.modalContent}>
+        <View style={[styles.modalBackdrop, isMobile && styles.invoiceModalBackdrop]}>
+          <View style={[styles.modalCard, styles.invoiceModalCard, isMobile && styles.invoiceModalCardMobile]}>
+            <View style={styles.invoiceHeader}>
+              <View style={styles.invoiceHeaderIcon}>
+                <Receipt size={19} color="#FFFFFF" />
+              </View>
+              <View style={styles.invoiceHeaderCopy}>
+                <Text style={styles.invoiceHeaderTitle}>Medicine Invoice</Text>
+                <Text style={styles.invoiceHeaderSubtitle}>
+                  {viewedBill?.bill_number || `MB-${viewedBill?.id || ''}`}
+                </Text>
+              </View>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Close invoice"
+                onPress={() => setViewVisible(false)}
+                style={styles.invoiceCloseIcon}
+              >
+                <X size={19} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              style={styles.invoiceBodyScroll}
+              contentContainerStyle={styles.invoiceBodyScrollContent}
+            >
               {viewedBill ? (
-                <>
-                  <Text style={styles.billNo}>
-                    {viewedBill.bill_number || `#${viewedBill.id}`}
-                  </Text>
-                  <Text style={styles.patientName}>
-                    {viewedBill.patient_name || 'Patient'} \u00B7{' '}
-                    {viewedBill.patient_code || ''}
-                  </Text>
-                  <Text style={styles.muted}>
-                    {dateLabel(viewedBill.created_at)} \u00B7{' '}
-                    {statusOf(viewedBill).toUpperCase()}
-                  </Text>
-                  {(viewedBill.items || []).map((item, index) => (
-                    <View key={index} style={styles.detailRow}>
-                      <Text style={styles.optionText}>
-                        {item.medicine_name} \u00D7 {item.quantity}
-                      </Text>
-                      <Text style={styles.optionText}>
-                        {money(item.total_price)}
-                      </Text>
+                <View style={styles.invoiceDocument}>
+                  <View style={styles.invoiceDocumentContent}>
+                    <View style={styles.invoiceTopRow}>
+                      <View style={styles.invoiceClinicBlock}>
+                        <Text style={styles.invoiceClinicName}>
+                          {(viewedBill as any).clinic_name || activeClinicName || 'Clinic'}
+                        </Text>
+                        <Text style={styles.invoiceClinicTagline}>
+                          PATIENT CARE & MEDICINE SERVICES
+                        </Text>
+                        {(viewedBill as any).clinic_address ? (
+                          <Text style={styles.invoiceClinicContact}>
+                            {(viewedBill as any).clinic_address}
+                          </Text>
+                        ) : null}
+                        {[(viewedBill as any).clinic_phone, (viewedBill as any).clinic_email]
+                          .filter(Boolean).length > 0 ? (
+                          <Text style={styles.invoiceClinicContact}>
+                            {[(viewedBill as any).clinic_phone, (viewedBill as any).clinic_email]
+                              .filter(Boolean).join(' | ')}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <View style={styles.invoiceBillMeta}>
+                        <Text style={styles.invoiceType}>MEDICINE INVOICE</Text>
+                        <Text style={styles.invoiceBillNumber}>
+                          {viewedBill.bill_number || `MB-${viewedBill.id}`}
+                        </Text>
+                        <Text style={styles.invoiceMetaText}>
+                          Issued {dateLabel(viewedBill.created_at)}
+                        </Text>
+                      </View>
                     </View>
-                  ))}
-                  <View style={styles.totalsBox}>
-                    <Info label="Subtotal" value={money(viewedBill.subtotal)} />
-                    <Info
-                      label="Discount"
-                      value={money(viewedBill.discount_amount)}
-                    />
-                    <Info label="Tax" value={money(viewedBill.tax_amount)} />
-                    <Info
-                      label="Total"
-                      value={money(viewedBill.total_amount)}
-                      bold
-                    />
-                    <Info label="Paid" value={money(viewedBill.paid_amount)} />
-                    <Info
-                      label="Balance"
-                      value={money(
-                        Number(viewedBill.total_amount) -
-                          Number(viewedBill.paid_amount),
-                      )}
-                      bold
-                    />
+
+                    <View style={styles.invoicePatientSection}>
+                      <View style={styles.invoiceMetaColumn}>
+                        <Text style={styles.invoiceSectionLabel}>BILL TO</Text>
+                        <Text style={styles.invoicePatientName}>
+                          {viewedBill.patient_name || 'Patient'}
+                        </Text>
+                        {viewedBill.patient_phone ? (
+                          <Text style={styles.invoiceMetaText}>
+                            Phone: {viewedBill.patient_phone}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <View style={styles.invoiceMetaColumn}>
+                        <Text style={styles.invoiceSectionLabel}>DOCTOR & APPOINTMENT</Text>
+                        <Text style={styles.invoicePatientName}>
+                          {viewedBill.doctor_name ? `Dr. ${viewedBill.doctor_name}` : '—'}
+                        </Text>
+                        {viewedBill.appointment_id ? (
+                          <Text style={styles.invoiceMetaText}>
+                            Appointment ID: {viewedBill.appointment_id}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+
+                    <View style={styles.invoicePaymentBanner}>
+                      <Text style={styles.invoicePaymentText}>
+                        Payment Method: <Text style={styles.invoiceStrong}>
+                          {(viewedBill.payment_method || 'Cash').replace(/^./, value => value.toUpperCase())}
+                        </Text>
+                      </Text>
+                      <View style={[
+                        styles.invoiceStatusPill,
+                        statusOf(viewedBill) === 'paid' ? styles.invoicePaidPill : styles.invoiceDuePill,
+                      ]}>
+                        <Text style={styles.invoiceStatusText}>{statusOf(viewedBill).toUpperCase()}</Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.invoiceSectionTitle}>MEDICINE ITEMS</Text>
+                    {(viewedBill.items || []).map((item, index) => (
+                      <View key={index} style={styles.invoiceItemCard}>
+                        <View style={styles.invoiceItemTop}>
+                          <Text style={styles.invoiceItemName}>{item.medicine_name}</Text>
+                          <Text style={styles.invoiceItemTotal}>{money(item.total_price)}</Text>
+                        </View>
+                        {item.batch_number ? (
+                          <Text style={styles.invoiceItemCode}>Batch: {item.batch_number}</Text>
+                        ) : null}
+                        <View style={styles.invoiceItemMeta}>
+                          <View style={styles.invoiceMetaColumn}>
+                            <Text style={styles.invoiceItemCode}>Qty</Text>
+                            <Text style={styles.invoiceItemValue}>{item.quantity}</Text>
+                          </View>
+                          <View style={styles.invoiceMetaColumn}>
+                            <Text style={styles.invoiceItemCode}>Rate</Text>
+                            <Text style={styles.invoiceItemValue}>{money(item.unit_price)}</Text>
+                          </View>
+                          <View style={styles.invoiceMetaColumn}>
+                            <Text style={styles.invoiceItemCode}>Discount</Text>
+                            <Text style={styles.invoiceItemValue}>{Number(item.discount_pct || 0)}%</Text>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+
+                    <View style={styles.invoiceSummary}>
+                      <Text style={styles.invoiceSectionLabel}>NOTES</Text>
+                      <Text style={styles.invoiceMetaText}>
+                        {viewedBill.notes || 'Thank you for choosing us for your care.'}
+                      </Text>
+                      <Text style={styles.invoicePreparedBy}>
+                        Prepared by: <Text style={styles.invoiceStrong}>
+                          {viewedBill.pharmacist_name || 'Clinic billing team'}
+                        </Text>
+                      </Text>
+                      <View style={styles.invoiceTotals}>
+                        <View style={styles.invoiceTotalRow}><Text style={styles.invoiceTotalLabel}>Subtotal</Text><Text style={styles.invoiceTotalValue}>{money(viewedBill.subtotal)}</Text></View>
+                        <View style={styles.invoiceTotalRow}><Text style={styles.invoiceTotalLabel}>Discount</Text><Text style={styles.invoiceTotalValue}>-{money(viewedBill.discount_amount)}</Text></View>
+                        <View style={styles.invoiceTotalRow}><Text style={styles.invoiceTotalLabel}>Tax</Text><Text style={styles.invoiceTotalValue}>+{money(viewedBill.tax_amount)}</Text></View>
+                        <View style={[styles.invoiceTotalRow, styles.invoiceGrandTotal]}><Text style={styles.invoiceGrandLabel}>Total</Text><Text style={styles.invoiceGrandValue}>{money(viewedBill.total_amount)}</Text></View>
+                        <View style={styles.invoiceTotalRow}><Text style={styles.invoicePaidLabel}>Amount Paid</Text><Text style={styles.invoicePaidValue}>{money(viewedBill.paid_amount)}</Text></View>
+                        <View style={styles.invoiceTotalRow}><Text style={styles.invoiceBalanceLabel}>Balance Due</Text><Text style={styles.invoiceBalanceValue}>{money(Math.max(0, Number(viewedBill.total_amount) - Number(viewedBill.paid_amount)))}</Text></View>
+                      </View>
+                    </View>
                   </View>
-                </>
+                  <View style={styles.invoiceDocumentFooter}>
+                    <Text style={styles.invoiceFooterNote}>
+                      This is a system-generated medicine invoice. Thank you for your visit.
+                    </Text>
+                  </View>
+                </View>
               ) : null}
             </ScrollView>
-            <View style={styles.modalFooter}>
+            <View style={styles.invoiceActionFooter}>
+              <View style={styles.invoiceActionButtonsRow}>
               <TouchableOpacity
-                style={styles.secondaryButton}
+                style={[styles.invoiceCloseAction, styles.invoiceActionButton]}
                 onPress={() => setViewVisible(false)}
               >
-                <Text style={styles.secondaryText}>Close</Text>
+                <X size={16} color="#334155" />
+                <Text style={styles.invoiceCloseActionText}>Close</Text>
               </TouchableOpacity>
               {viewedBill ? (
                 <TouchableOpacity
-                  style={styles.primaryButton}
+                  style={[styles.invoiceDownloadButton, styles.invoiceActionButton]}
                   onPress={() => downloadPdf(viewedBill)}
                 >
-                  <Download size={15} color="#fff" />
-                  <Text style={styles.primaryText}>Download PDF</Text>
+                  <Download size={17} color="#FFFFFF" />
+                  <Text style={styles.invoiceDownloadButtonText}>Download PDF</Text>
                 </TouchableOpacity>
               ) : null}
+              </View>
             </View>
           </View>
         </View>
-      </Modal>
+      </AppModal>
 
-      <Modal
+      <AppModal
         visible={Boolean(paymentBill)}
         transparent
         animationType="fade"
@@ -1441,13 +1924,19 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
             </View>
           </View>
         </View>
-      </Modal>
+      </AppModal>
 
-      <Modal
+      <AppModal
         visible={Boolean(editBill)}
         transparent
         animationType="fade"
         onRequestClose={() => setEditBill(null)}
+        onDismiss={() => {
+          if (pendingBillToast) {
+            showBillingToast(pendingBillToast);
+            setPendingBillToast(null);
+          }
+        }}
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
@@ -1514,7 +2003,11 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
             </View>
           </View>
         </View>
-      </Modal>
+      </AppModal>
+      <AppToastOverlay
+        notice={visibleBillingToast}
+        onDismiss={() => setVisibleBillingToast(null)}
+      />
     </View>
   );
 };

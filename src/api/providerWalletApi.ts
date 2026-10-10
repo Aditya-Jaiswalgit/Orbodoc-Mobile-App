@@ -26,8 +26,9 @@ export const getProviderWalletTransactionsApi = (clinicId: number, page: number,
  * Provider Wallet Balance
  * Route: GET /api/provider-wallets/me?clinic_id={clinicId}
  */
-export async function getProviderWalletSummaryApi(clinicId: number | string, signal?: AbortSignal): Promise<ApiResponse<{ wallet: ProviderWalletSummary }>> {
-  return apiFetch<{ wallet: ProviderWalletSummary }>(`/provider-wallets/me?clinic_id=${encodeURIComponent(String(clinicId))}`, {
+export async function getProviderWalletSummaryApi(clinicId?: number | string | null, signal?: AbortSignal): Promise<ApiResponse<{ wallet: ProviderWalletSummary }>> {
+	const query = clinicId == null ? '' : `?clinic_id=${encodeURIComponent(String(clinicId))}`;
+	return apiFetch<{ wallet: ProviderWalletSummary }>(`/provider-wallets/me${query}`, {
     method: 'GET', signal,
   });
 }

@@ -1,18 +1,6 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  NativeModules,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AppModal } from '../../../components/common/AppModal';
+import { ActivityIndicator, Alert, NativeModules, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import {
   AlertCircle,
   CalendarDays,
@@ -76,12 +64,14 @@ function dateTime(date?: string | null, time?: string | null) {
   const parsed = new Date(date);
   const formatted = Number.isNaN(parsed.getTime())
     ? date
-    : new Intl.DateTimeFormat('en-IN', {
-        day: 'numeric',
-        month: 'numeric',
-        year: 'numeric',
-      }).format(parsed);
+    : parsed.toLocaleDateString();
   return [formatted, time].filter(Boolean).join(' ');
+}
+
+function formatDoctorName(value?: string | null) {
+  const name = String(value || '').trim();
+  if (!name) return 'Dr. Not assigned';
+  return /^dr\.?\s/i.test(name) ? name : `Dr. ${name}`;
 }
 
 function resultRows(
@@ -193,8 +183,8 @@ function createHistoryPdfHtml(
       )}</span></div>
     <div class="meta">${escapeHtml(
       dateTime(visit.appointment_date, visit.appointment_time),
-    )} &nbsp; Â· &nbsp; Dr. ${escapeHtml(
-        visit.doctor_name || 'Not assigned',
+    )} &nbsp; Â· &nbsp; ${escapeHtml(
+        formatDoctorName(visit.doctor_name),
       )}</div>
     ${
       visit.prescription_id
@@ -608,7 +598,7 @@ export function PatientMedicalHistoryModal({
     Boolean(query.trim()) || recordFilter !== 'all' || dateFilter !== 'all';
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       transparent
       animationType="fade"
@@ -640,7 +630,7 @@ export function PatientMedicalHistoryModal({
                     '-'}
                 </Text>
                 <Text style={styles.patientAge}>
-                  {history?.patient?.gender || 'Gender not recorded'} Â· {age}
+                  {history?.patient?.gender || 'Gender not recorded'}{' · '}{age}
                 </Text>
               </View>
             </View>
@@ -891,7 +881,7 @@ export function PatientMedicalHistoryModal({
                                 </Text>
                                 <Stethoscope size={12} color="#64748B" />
                                 <Text style={styles.recordMetaText}>
-                                  Dr. {visit.doctor_name || 'Not assigned'}
+                                  {formatDoctorName(visit.doctor_name)}
                                 </Text>
                               </View>
                               {visit.prescription_id ? (
@@ -909,12 +899,7 @@ export function PatientMedicalHistoryModal({
                                     {visit.notes}
                                   </Text>
                                 </View>
-                              ) : (
-                                <View style={styles.notes}>
-                                  <AlertCircle size={14} color="#D97706" />
-                                  <Text style={styles.notesText}>No notes</Text>
-                                </View>
-                              )}
+                              ) : null}
                               {[
                                 ['Symptoms', visit.symptoms],
                                 ['Diagnosis', visit.diagnosis],
@@ -1218,7 +1203,7 @@ export function PatientMedicalHistoryModal({
           </View>
         </View>
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 

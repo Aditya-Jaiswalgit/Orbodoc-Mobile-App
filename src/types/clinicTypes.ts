@@ -98,11 +98,12 @@ export interface Appointment {
   time_slot: string;
   consultation_mode?: 'in_person' | 'video';
   duration_minutes?: number;
+  prescription_id?: number | null;
   video_room_id?: string | null;
   call_started_at?: string | null;
   call_ended_at?: string | null;
   type: 'consultation' | 'follow_up' | 'emergency' | 'teleconsultation';
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+    status: 'pending' | 'approved' | 'scheduled' | 'in_progress' | 'complete' | 'completed' | 'cancel' | 'cancelled' | 'no_show';
   reason?: string;
   notes?: string;
   created_at?: string;

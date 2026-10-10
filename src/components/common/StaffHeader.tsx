@@ -1,16 +1,6 @@
-import React, { useState } from 'react';
-import {
-  Alert,
-  Modal,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { AppModal } from './AppModal';
+import { Alert, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import {
   ArrowRight,
   Bell,
@@ -42,12 +32,14 @@ interface StaffHeaderProps {
   onOpenNotifications?: () => void;
   title?: string;
   onNavigate?: (path: string) => void;
+  hideClinicBanner?: boolean;
 }
 
 export const StaffHeader: React.FC<StaffHeaderProps> = ({
   onOpenDrawer,
   onOpenNotifications,
   onNavigate = navigateStaffScreen,
+  hideClinicBanner = false,
 }) => {
   const {
     user,
@@ -75,6 +67,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
   const [switchingClinic, setSwitchingClinic] = useState(false);
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [videoToast, setVideoToast] = useState<{ title: string; message: string } | null>(null);
   const [notificationsModalOpen, setNotificationsModalOpen] = useState(false);
   const {
     notifications: inbox, unreadCount, notificationsLoading, notificationsError, notificationBusy,
@@ -105,6 +98,24 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
   const selectedClinicName =
     clinicsList.find(c => Number(c.id) === Number(currentClinicId))?.name ||
     activeClinicName || 'Clinic unavailable';
+
+  useEffect(() => {
+    if (!videoToast) return;
+    const timeout = setTimeout(() => setVideoToast(null), 3500);
+    return () => clearTimeout(timeout);
+  }, [videoToast]);
+
+  const handleVideoCallingToggle = async (enabled: boolean) => {
+    const succeeded = await handleToggleVideoCalling(enabled);
+    if (succeeded) {
+      setVideoToast({
+        title: enabled ? 'Video calling enabled' : 'Video calling disabled',
+        message: enabled
+          ? 'Patients can now book video consultations with you.'
+          : 'Patients can no longer book video consultations with you.',
+      });
+    }
+  };
 
   const handleSelectClinic = async (clinicId: number) => {
     if (switchingClinic) return;
@@ -182,8 +193,35 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
       </View>
 
       {/* ── 2. FLOATING PROFILE SETTINGS DROPDOWN MENU ── */}
-      {profileMenuOpen && (
-        <View style={styles.profileMenuCard}>
+      <AppModal
+        visible={profileMenuOpen}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setProfileMenuOpen(false)}>
+        <View style={styles.profileMenuOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setProfileMenuOpen(false)}
+            accessibilityLabel="Close profile menu"
+          />
+          {videoToast ? (
+            <View style={[styles.videoToastCard, { top: statusBarHeight + 8 }]}>
+              <View style={styles.videoToastAccent} />
+              <View style={styles.videoToastContent}>
+                <Text allowFontScaling={false} style={styles.videoToastTitle}>{videoToast.title}</Text>
+                <Text allowFontScaling={false} style={styles.videoToastMessage}>{videoToast.message}</Text>
+              </View>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss notification"
+                onPress={() => setVideoToast(null)}
+                style={styles.videoToastClose}>
+                <X size={18} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        <View style={[styles.profileMenuCard, { top: statusBarHeight + 52 }]}>
           <TouchableOpacity
             style={styles.profileMenuHeader}
             onPress={() => {
@@ -192,8 +230,8 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               onNavigate('profile');
             }}
             activeOpacity={0.7}>
-            <Text style={styles.profileMenuName}>{staffName}</Text>
-            <Text style={styles.profileMenuSub}>Profile settings</Text>
+            <Text allowFontScaling={false} numberOfLines={1} style={styles.profileMenuName}>{staffName}</Text>
+            <Text allowFontScaling={false} style={styles.profileMenuSub}>Profile settings</Text>
           </TouchableOpacity>
 
           <View style={styles.menuDivider} />
@@ -201,13 +239,18 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
           {canManageVideoCalling && (
             <View style={styles.profileMenuItemRow}>
               <View style={styles.menuItemLeft}>
-                <Video size={18} color="#0D9488" />
+                <Video size={16} color="#0D9488" />
                 <View>
-                  <Text style={styles.menuItemTitle}>Video Calling</Text>
-                  <Text style={styles.menuItemSub}>{videoCallingEnabled ? 'Enabled' : 'Disabled'}</Text>
+                  <Text allowFontScaling={false} style={styles.menuItemTitle}>Video Calling</Text>
+                  <Text allowFontScaling={false} style={styles.menuItemSub}>{videoCallingEnabled ? 'Enabled' : 'Disabled'}</Text>
                 </View>
               </View>
-              <Switch value={videoCallingEnabled} disabled={videoBusy} onValueChange={handleToggleVideoCalling} />
+              <Switch
+                value={videoCallingEnabled}
+                disabled={videoBusy}
+                onValueChange={handleVideoCallingToggle}
+                style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }}
+              />
             </View>
           )}
 
@@ -220,8 +263,8 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               onNavigate('profile');
             }}
             activeOpacity={0.7}>
-            <User size={18} color="#0D9488" />
-            <Text style={styles.menuItemTitle}>My Profile</Text>
+            <User size={16} color="#0D9488" />
+            <Text allowFontScaling={false} style={styles.menuItemTitle}>My Profile</Text>
           </TouchableOpacity>
 
           <View style={styles.menuDivider} />
@@ -235,8 +278,8 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               onNavigate('change_password');
             }}
             activeOpacity={0.7}>
-            <Key size={18} color="#D97706" />
-            <Text style={styles.menuItemTitle}>Change Password</Text>
+            <Key size={16} color="#D97706" />
+            <Text allowFontScaling={false} style={styles.menuItemTitle}>Change Password</Text>
           </TouchableOpacity>
 
           <View style={styles.menuDivider} />
@@ -251,8 +294,8 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                   setPlanModalOpen(true);
                 }}
                 activeOpacity={0.7}>
-                <Crown size={18} color="#D97706" />
-                <Text style={styles.menuItemTitle}>My Plan</Text>
+                <Crown size={16} color="#D97706" />
+                <Text allowFontScaling={false} style={styles.menuItemTitle}>My Plan</Text>
               </TouchableOpacity>
               <View style={styles.menuDivider} />
             </>
@@ -266,14 +309,15 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               logout();
             }}
             activeOpacity={0.7}>
-            <LogOut size={18} color="#EF4444" />
-            <Text style={[styles.menuItemTitle, { color: '#EF4444' }]}>Logout</Text>
+            <LogOut size={16} color="#EF4444" />
+            <Text allowFontScaling={false} style={[styles.menuItemTitle, { color: '#EF4444' }]}>Logout</Text>
           </TouchableOpacity>
         </View>
-      )}
+        </View>
+      </AppModal>
 
       {/* ── 3. NOTIFICATIONS MODAL / DROPDOWN CARD (MATCHING USER SCREENSHOT) ── */}
-      <Modal
+      <AppModal
         visible={notificationsModalOpen}
         animationType="fade"
         transparent={true}
@@ -383,10 +427,10 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </AppModal>
 
       {/* ── 4. CLINIC BANNER & DROPDOWN ── */}
-      <View style={styles.clinicBannerSection}>
+      {!hideClinicBanner && <View style={styles.clinicBannerSection}>
         <View style={styles.clinicTitleRow}>
           <View style={styles.stethoscopeBox}>
             <Stethoscope size={20} color="#FFFFFF" />
@@ -437,10 +481,10 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             })}
           </View>
         )}
-      </View>
+      </View>}
 
       {/* ── 5. EXACT SUBSCRIPTION PLAN MODAL ── */}
-      <Modal visible={planModalOpen} animationType="slide" transparent={true} onRequestClose={() => setPlanModalOpen(false)}>
+      <AppModal visible={planModalOpen} animationType="slide" transparent={true} onRequestClose={() => setPlanModalOpen(false)}>
         <View style={styles.planModalOverlay}>
           <View style={styles.planModalContent}>
             <View style={styles.planModalHeaderGlow} />
@@ -524,7 +568,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             </ScrollView>
           </View>
         </View>
-      </Modal>
+      </AppModal>
     </View>
   );
 };
@@ -631,14 +675,60 @@ const styles = StyleSheet.create({
   avatarInitials: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
 
   // Profile Dropdown Menu Card
+  profileMenuOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  videoToastCard: {
+    position: 'absolute',
+    left: '4%',
+    right: '4%',
+    zIndex: 200,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 72,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+    elevation: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+  },
+  videoToastAccent: {
+    width: 4,
+    alignSelf: 'stretch',
+    backgroundColor: '#059669',
+  },
+  videoToastContent: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  videoToastTitle: {
+    color: '#1E293B',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  videoToastMessage: {
+    marginTop: 3,
+    color: '#475569',
+    fontSize: 12,
+  },
+  videoToastClose: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
   profileMenuCard: {
     position: 'absolute',
-    top: 52,
     right: 16,
-    width: 260,
+    width: 256,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 12,
+    padding: 8,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     elevation: 12,
@@ -652,45 +742,47 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   profileMenuName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '800',
     color: '#0F172A',
   },
   profileMenuSub: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748B',
     marginTop: 2,
   },
   menuDivider: {
     height: 1,
     backgroundColor: '#F1F5F9',
-    marginVertical: 10,
+    marginVertical: 6,
   },
   profileMenuItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: 36,
   },
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   menuItemTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#1E293B',
   },
   menuItemSub: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#64748B',
     marginTop: 1,
   },
   profileMenuItemRowBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 2,
+    gap: 10,
+    minHeight: 34,
+    paddingVertical: 3,
   },
 
   // Notifications Modal / Dropdown Card (Matching User Screenshot)

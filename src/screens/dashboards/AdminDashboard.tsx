@@ -60,12 +60,19 @@ export function AdminDashboard({
   const now = new Date();
   const monthLabel = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
   const todayLabel = now.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' });
+  const localDateKey = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const monthRange = `date_from=${localDateKey(new Date(now.getFullYear(), now.getMonth(), 1))}&date_to=${localDateKey(now)}`;
   const formatChartDate = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   const chartMax = Math.max(4, ...barData.map(bar => bar.approved + bar.completed + bar.cancelled));
   const chartStep = Math.ceil(chartMax / 4);
   const chartScale = chartStep * 4;
 
   const formatCurrency = displayAmount;
+  const formatChartValue = (value: number | null | undefined) =>
+    Number(value ?? 0).toLocaleString();
+  const formatLegendValue = (value: number | null | undefined) =>
+    String(value ?? 0);
 
   if (loading && !monthlyAppointments && Object.keys(kpiData).length === 0) {
     return (
@@ -80,18 +87,22 @@ export function AdminDashboard({
   const chartWidth = Math.max(260, screenWidth - 72);
   const totalBars = barData.length;
   const barSpacing = chartWidth / Math.max(1, totalBars);
+  const barTooltipWidth = Math.min(184, chartWidth - 20);
   const tooltipLeftPos = activeBarIdx !== null
     ? Math.min(
-        Math.max(10, activeBarIdx * barSpacing + barSpacing / 2 - 68),
-        chartWidth - 140
+        Math.max(10, activeBarIdx * barSpacing + barSpacing / 2 - barTooltipWidth / 2),
+        chartWidth - barTooltipWidth - 10
       )
     : 15;
+  const donutTooltipWidth = Math.min(180, Math.max(148, screenWidth * 0.42));
 
   // Calculate SVG Donut parameters
   const totalRev = (currentKpi.treatmentRevenue ?? 0) + (currentKpi.medicineRevenue ?? 0);
   const treatRatio = totalRev > 0 ? (currentKpi.treatmentRevenue ?? 0) / totalRev : 0;
-  const size = 180;
-  const strokeWidth = 26;
+  const treatmentChartColor = '#27A59B';
+  const medicineChartColor = '#2EB77F';
+  const size = 190;
+  const strokeWidth = 30;
   const center = size / 2;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -150,7 +161,7 @@ export function AdminDashboard({
             </View>
             <Text style={styles.kpiCardValue}>{monthlyAppointments?.appointments ?? '—'}</Text>
             <Text style={styles.kpiCardLabel} numberOfLines={2}>Appointments This Month</Text>
-            <TouchableOpacity onPress={() => onNavigate('/appointments')} style={{ marginTop: 6 }}>
+            <TouchableOpacity onPress={() => onNavigate(`/appointments?${monthRange}`)} style={{ marginTop: 6 }}>
               <Text style={styles.kpiActionLink}>View details ↗</Text>
             </TouchableOpacity>
           </View>
@@ -162,7 +173,7 @@ export function AdminDashboard({
             </View>
             <Text style={styles.kpiCardValue}>{monthlyAppointments?.completed ?? '—'}</Text>
             <Text style={styles.kpiCardLabel} numberOfLines={2}>Completed This Month</Text>
-            <TouchableOpacity onPress={() => onNavigate('/appointments')} style={{ marginTop: 6 }}>
+            <TouchableOpacity onPress={() => onNavigate(`/appointments?${monthRange}&status=completed`)} style={{ marginTop: 6 }}>
               <Text style={styles.kpiActionLink}>View details ↗</Text>
             </TouchableOpacity>
           </View>
@@ -174,7 +185,7 @@ export function AdminDashboard({
             </View>
             <Text style={styles.kpiCardValue}>{monthlyAppointments?.cancelled ?? '—'}</Text>
             <Text style={styles.kpiCardLabel} numberOfLines={2}>Cancelled This Month</Text>
-            <TouchableOpacity onPress={() => onNavigate('/appointments')} style={{ marginTop: 6 }}>
+            <TouchableOpacity onPress={() => onNavigate(`/appointments?${monthRange}&status=cancelled`)} style={{ marginTop: 6 }}>
               <Text style={styles.kpiActionLink}>View details ↗</Text>
             </TouchableOpacity>
           </View>
@@ -186,7 +197,7 @@ export function AdminDashboard({
             </View>
             <Text style={styles.kpiCardValueSmall}>{formatCurrency(currentKpi.revenueThisMonth)}</Text>
             <Text style={styles.kpiCardLabel} numberOfLines={2}>Revenue This Month</Text>
-            <TouchableOpacity onPress={() => onNavigate('/billing/treatment')} style={{ marginTop: 6 }}>
+            <TouchableOpacity onPress={() => onNavigate(`/billing/treatment?${monthRange}`)} style={{ marginTop: 6 }}>
               <Text style={styles.kpiActionLink}>View details ↗</Text>
             </TouchableOpacity>
           </View>
@@ -203,7 +214,7 @@ export function AdminDashboard({
 
           <View style={styles.opGrid}>
             {/* Tile 1: Active Patients */}
-            <TouchableOpacity style={styles.opTileHalf} onPress={() => onNavigate('/patients')}>
+            <TouchableOpacity style={styles.opTileHalf} onPress={() => onNavigate('/patients?status=active')}>
               <View style={[styles.opSquareIcon, { backgroundColor: '#E6FFFA' }]}>
                 <Users size={22} color="#0D9488" />
               </View>
@@ -212,7 +223,7 @@ export function AdminDashboard({
             </TouchableOpacity>
 
             {/* Tile 2: Low Stock Medicines */}
-            <TouchableOpacity style={styles.opTileHalf} onPress={() => onNavigate('/medicines')}>
+            <TouchableOpacity style={styles.opTileHalf} onPress={() => onNavigate('/medicines?stock=low')}>
               <View style={[styles.opSquareIcon, { backgroundColor: '#DCFCE7' }]}>
                 <Pill size={22} color="#16A34A" />
               </View>
@@ -221,7 +232,7 @@ export function AdminDashboard({
             </TouchableOpacity>
 
             {/* Tile 3: Pending Lab Tests */}
-            <TouchableOpacity style={styles.opTileHalf} onPress={() => onNavigate('/lab/tests')}>
+            <TouchableOpacity style={styles.opTileHalf} onPress={() => onNavigate('/lab/tests?status=pending')}>
               <View style={[styles.opSquareIcon, { backgroundColor: '#FEF3C7' }]}>
                 <TestTube size={22} color="#D97706" />
               </View>
@@ -274,25 +285,25 @@ export function AdminDashboard({
 
             {/* Interactive Floating Tooltip Card */}
             {activeBarIdx !== null && barData[activeBarIdx] && (
-              <View style={[styles.barTooltipCard, { left: tooltipLeftPos }]}>
+              <View style={[styles.barTooltipCard, { left: tooltipLeftPos, width: barTooltipWidth }]}>
                 <Text style={styles.tooltipHeaderDate}>{formatChartDate(barData[activeBarIdx].date)}</Text>
 
                 <View style={styles.tooltipRow}>
                   <View style={[styles.tooltipSquareDot, { backgroundColor: '#0EA5E9' }]} />
-                  <Text style={styles.tooltipLabel}>Approved</Text>
-                  <Text style={styles.tooltipVal}>{barData[activeBarIdx].approved}</Text>
+                  <Text numberOfLines={1} style={styles.tooltipLabel}>Approved</Text>
+                  <Text numberOfLines={1} style={styles.tooltipVal}>{barData[activeBarIdx].approved}</Text>
                 </View>
 
                 <View style={styles.tooltipRow}>
                   <View style={[styles.tooltipSquareDot, { backgroundColor: '#10B981' }]} />
-                  <Text style={styles.tooltipLabel}>Completed</Text>
-                  <Text style={styles.tooltipVal}>{barData[activeBarIdx].completed}</Text>
+                  <Text numberOfLines={1} style={styles.tooltipLabel}>Completed</Text>
+                  <Text numberOfLines={1} style={styles.tooltipVal}>{barData[activeBarIdx].completed}</Text>
                 </View>
 
                 <View style={styles.tooltipRow}>
                   <View style={[styles.tooltipSquareDot, { backgroundColor: '#F43F5E' }]} />
-                  <Text style={styles.tooltipLabel}>Cancelled</Text>
-                  <Text style={styles.tooltipVal}>{barData[activeBarIdx].cancelled}</Text>
+                  <Text numberOfLines={1} style={styles.tooltipLabel}>Cancelled</Text>
+                  <Text numberOfLines={1} style={styles.tooltipVal}>{barData[activeBarIdx].cancelled}</Text>
                 </View>
 
                 {/* Downward Pointer Arrow */}
@@ -327,8 +338,8 @@ export function AdminDashboard({
         </View>
 
         {/* ── 6. MONTHLY REVENUE MIX DONUT CHART (RESPONSIVE & MODERN HOVER TOOLTIP) ── */}
-        <View style={styles.chartCard}>
-          <Text style={styles.chartCardTitle}>Monthly Revenue Mix</Text>
+        <View style={[styles.chartCard, styles.revenueChartCard]}>
+          <Text style={[styles.chartCardTitle, styles.revenueChartTitle]}>Monthly Revenue Mix</Text>
           {totalRev === 0 && (
             <Text style={styles.sectionSubtitle}>
               {currentKpi.revenueThisMonth === null ? 'Revenue data unavailable.' : 'No revenue this month.'}
@@ -338,36 +349,51 @@ export function AdminDashboard({
           <View style={styles.donutAreaWrapper}>
             {/* Interactive Floating Donut Tooltip Card */}
             {activeDonutSegment && (
-              <View style={styles.donutTooltipCard}>
-                <Text style={styles.donutTooltipTitle}>Value</Text>
+              <View
+                style={[
+                  styles.donutTooltipCard,
+                  {
+                    width: donutTooltipWidth,
+                    left: '50%',
+                    top: size / 2 + 22,
+                    transform: [{ translateX: -donutTooltipWidth / 2 }],
+                  },
+                ]}>
+                <Text allowFontScaling={false} style={styles.donutTooltipTitle}>Value</Text>
                 <View style={styles.tooltipRow}>
                   <View
                     style={[
                       styles.tooltipSquareDot,
-                      { backgroundColor: activeDonutSegment === 'treatment' ? '#0D9488' : '#10B981' },
+                      { backgroundColor: activeDonutSegment === 'treatment' ? treatmentChartColor : medicineChartColor },
                     ]}
                   />
-                  <Text style={styles.tooltipLabel}>
+                  <Text allowFontScaling={false} numberOfLines={1} style={styles.tooltipLabel}>
                     {activeDonutSegment === 'treatment' ? 'Treatment' : 'Medicine'}
                   </Text>
-                  <Text style={styles.tooltipVal}>
+                  <Text allowFontScaling={false} numberOfLines={1} style={styles.tooltipVal}>
                     {activeDonutSegment === 'treatment'
-                      ? displayAmount(currentKpi.treatmentRevenue)
-                      : displayAmount(currentKpi.medicineRevenue)}
+                      ? formatChartValue(currentKpi.treatmentRevenue)
+                      : formatChartValue(currentKpi.medicineRevenue)}
                   </Text>
                 </View>
-                <View style={styles.tooltipPointerArrowLeft} />
               </View>
             )}
 
             <TouchableOpacity
               activeOpacity={0.9}
               style={styles.donutContainer}
-              onPress={() =>
-                setActiveDonutSegment((prev) =>
-                  prev === null ? 'treatment' : prev === 'treatment' ? 'medicine' : null
-                )
-              }>
+              onPress={event => {
+                const { locationX, locationY } = event.nativeEvent;
+                const offsetX = locationX - center;
+                const offsetY = locationY - center;
+                const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+                const innerRadius = radius - strokeWidth / 2;
+                const outerRadius = radius + strokeWidth / 2;
+                if (distance < innerRadius || distance > outerRadius) return;
+                const angle = (Math.atan2(offsetY, offsetX) * 180 / Math.PI + 90 + 360) % 360;
+                const segment = angle < treatRatio * 360 ? 'treatment' : 'medicine';
+                setActiveDonutSegment(prev => prev === segment ? null : segment);
+              }}>
               <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
                 <G rotation="-90" origin={`${center}, ${center}`}>
                   {/* Base Ring (Medicine Segment - Green) */}
@@ -375,8 +401,8 @@ export function AdminDashboard({
                     cx={center}
                     cy={center}
                     r={radius}
-                    stroke={totalRev > 0 ? '#10B981' : '#E2E8F0'}
-                    strokeWidth={activeDonutSegment === 'medicine' ? strokeWidth + 4 : strokeWidth}
+                    stroke={totalRev > 0 ? medicineChartColor : '#E2E8F0'}
+                    strokeWidth={strokeWidth}
                     fill="transparent"
                   />
                   {/* Treatment Segment - Teal */}
@@ -384,46 +410,41 @@ export function AdminDashboard({
                     cx={center}
                     cy={center}
                     r={radius}
-                    stroke="#0D9488"
-                    strokeWidth={activeDonutSegment === 'treatment' ? strokeWidth + 4 : strokeWidth}
+                    stroke={treatmentChartColor}
+                    strokeWidth={strokeWidth}
                     fill="transparent"
                     strokeDasharray={`${circumference * treatRatio} ${circumference}`}
                     strokeLinecap="round"
                   />}
                 </G>
+                {/* Keep the donut hole white even if the card background changes. */}
+                <Circle
+                  cx={center}
+                  cy={center}
+                  r={radius - strokeWidth / 2}
+                  fill="#FFFFFF"
+                />
               </Svg>
             </TouchableOpacity>
           </View>
 
           {/* Breakdown Rows */}
           <View style={styles.revenueBreakdownBox}>
-            <TouchableOpacity
-              style={[
-                styles.revenueRow,
-                activeDonutSegment === 'treatment' && styles.revenueRowActive,
-              ]}
-              activeOpacity={0.8}
-              onPress={() => setActiveDonutSegment((prev) => (prev === 'treatment' ? null : 'treatment'))}>
+            <View style={styles.revenueRow}>
               <View style={styles.revenueLabelGroup}>
-                <View style={[styles.legendDot, { backgroundColor: '#0D9488' }]} />
+                <View style={[styles.legendDot, { backgroundColor: treatmentChartColor }]} />
                 <Text style={styles.revenueRowLabel}>Treatment</Text>
               </View>
-              <Text style={styles.revenueRowVal}>{displayAmount(currentKpi.treatmentRevenue)}</Text>
-            </TouchableOpacity>
+              <Text style={styles.revenueRowVal}>{formatLegendValue(currentKpi.treatmentRevenue)}</Text>
+            </View>
 
-            <TouchableOpacity
-              style={[
-                styles.revenueRow,
-                activeDonutSegment === 'medicine' && styles.revenueRowActive,
-              ]}
-              activeOpacity={0.8}
-              onPress={() => setActiveDonutSegment((prev) => (prev === 'medicine' ? null : 'medicine'))}>
+            <View style={styles.revenueRow}>
               <View style={styles.revenueLabelGroup}>
-                <View style={[styles.legendDot, { backgroundColor: '#10B981' }]} />
+                <View style={[styles.legendDot, { backgroundColor: medicineChartColor }]} />
                 <Text style={styles.revenueRowLabel}>Medicine</Text>
               </View>
-              <Text style={styles.revenueRowVal}>{displayAmount(currentKpi.medicineRevenue)}</Text>
-            </TouchableOpacity>
+              <Text style={styles.revenueRowVal}>{formatLegendValue(currentKpi.medicineRevenue)}</Text>
+            </View>
           </View>
         </View>
 
@@ -548,6 +569,16 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     position: 'relative',
   },
+  revenueChartCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderColor: '#2DD4BF',
+  },
+  revenueChartTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
   chartCardTitle: { fontSize: 18, fontWeight: '800', color: '#0F172A', marginBottom: 16 },
   legendRow: { flexDirection: 'row', gap: 16, marginBottom: 20 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -583,13 +614,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.14,
     shadowRadius: 10,
-    minWidth: 135,
+    minWidth: 0,
   },
   tooltipHeaderDate: { fontSize: 13, fontWeight: '700', color: '#0F172A', marginBottom: 6 },
   tooltipRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 2 },
   tooltipSquareDot: { width: 10, height: 10, borderRadius: 3 },
-  tooltipLabel: { fontSize: 12, color: '#64748B', flex: 1 },
-  tooltipVal: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
+  tooltipLabel: { fontSize: 12, color: '#64748B', flex: 1, flexShrink: 1 },
+  tooltipVal: { fontSize: 13, fontWeight: '700', color: '#0F172A', flexShrink: 0 },
   tooltipPointerArrow: {
     position: 'absolute',
     bottom: -6,
@@ -611,13 +642,11 @@ const styles = StyleSheet.create({
   donutContainer: { alignItems: 'center', justifyContent: 'center', marginVertical: 14 },
   donutTooltipCard: {
     position: 'absolute',
-    top: 20,
-    left: 10,
     zIndex: 40,
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: '#CCFBF1',
     elevation: 8,
@@ -625,45 +654,26 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.14,
     shadowRadius: 10,
-    minWidth: 145,
+    minWidth: 150,
   },
-  donutTooltipTitle: { fontSize: 12, fontWeight: '600', color: '#64748B', marginBottom: 4 },
-  tooltipPointerArrowLeft: {
-    position: 'absolute',
-    right: -6,
-    top: '40%',
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderTopWidth: 6,
-    borderBottomWidth: 6,
-    borderLeftWidth: 6,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: '#FFFFFF',
-  },
+  donutTooltipTitle: { fontSize: 11, fontWeight: '500', color: '#64748B', marginBottom: 4 },
 
   // Breakdown Rows
-  revenueBreakdownBox: { gap: 10, marginTop: 10 },
+  revenueBreakdownBox: { gap: 8, marginTop: 10 },
   revenueRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderRadius: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: '#F1F5F9',
   },
-  revenueRowActive: {
-    backgroundColor: '#F0FDFA',
-    borderColor: '#CCFBF1',
-  },
-  revenueLabelGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  revenueRowLabel: { fontSize: 14, color: '#475569', fontWeight: '600' },
-  revenueRowVal: { fontSize: 14, color: '#0F172A', fontWeight: '700' },
+  revenueLabelGroup: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 },
+  revenueRowLabel: { fontSize: 12, color: '#64748B', fontWeight: '500' },
+  revenueRowVal: { fontSize: 12, color: '#0F172A', fontWeight: '500' },
 });
 
 export default AdminDashboard;

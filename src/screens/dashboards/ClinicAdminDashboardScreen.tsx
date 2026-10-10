@@ -1,6 +1,5 @@
 import React from 'react';
 import { AdminDashboard } from './AdminDashboard';
-import { resolveStaffScreen } from '../../utils/navigationEvents';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -17,7 +16,7 @@ export const ClinicAdminDashboardScreen: React.FC<Props> = ({
     <AdminDashboard
       onOpenDrawer={onOpenDrawer}
       onOpenNotifications={onOpenNotifications}
-      onNavigate={path => onNavigateScreen(resolveStaffScreen(path))}
+      onNavigate={path => onNavigateScreen(path)}
     />
   );
 };

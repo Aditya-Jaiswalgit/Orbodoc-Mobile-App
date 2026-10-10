@@ -1,15 +1,8 @@
+import { AppModal } from '../../components/common/AppModal';
 import { styles } from './styles/AppointmentsManager.styles';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Modal,
-  ScrollView,
-  Share,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+  ActivityIndicator, ScrollView, Share, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import {
   CalendarDays,
   Check,
@@ -54,12 +47,14 @@ import {
 interface Props {
   onOpenDrawer: () => void;
   onNavigateScreen?: (screen: string) => void;
+  initialFilters?: Record<string, string>;
 }
 type Picker = 'status' | 'doctor' | 'date' | null;
 
 export const AppointmentsManagerScreen: React.FC<Props> = ({
   onOpenDrawer,
   onNavigateScreen,
+  initialFilters = {},
 }) => {
   const {
     token,
@@ -131,12 +126,20 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
     canViewPrescription;
   const canStartAppointmentCall =
     canExecuteVideo || canManageAppointmentActions;
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = useState<Filter>(() => {
+    const status = String(initialFilters.status || '').toLowerCase();
+    if (status === 'pending') return 'pending';
+    if (status === 'complete' || status === 'completed') return 'completed';
+    if (status === 'cancel' || status === 'cancelled' || status === 'canceled') return 'cancelled';
+    return 'all';
+  });
   const [doctorFilter, setDoctorFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState(
+    initialFilters.date || initialFilters.date_from || initialFilters.date_to ? 'custom' : 'all',
+  );
   const [search, setSearch] = useState('');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  const [fromDate, setFromDate] = useState(initialFilters.date_from || initialFilters.date || '');
+  const [toDate, setToDate] = useState(initialFilters.date_to || initialFilters.date || '');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [picker, setPicker] = useState<Picker>(null);
@@ -159,7 +162,12 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
     error: appointmentsError,
     lastRefreshed,
     refresh: loadAppointments,
-  } = useAppointmentsData(token, activeClinicId, canView);
+  } = useAppointmentsData(
+    token,
+    activeClinicId,
+    canView,
+    initialFilters,
+  );
   useEffect(() => {
     if (appointmentsError) showErrorToast('Appointments', appointmentsError);
   }, [appointmentsError]);
@@ -211,7 +219,14 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
           .toLowerCase()
           .includes(query),
       );
-      const statusMatch = filter === 'all' || item.status === filter;
+      const itemStatus = String(item.status || '').toLowerCase();
+      const statusMatch =
+        filter === 'all' ||
+        itemStatus === filter ||
+        (filter === 'pending' && itemStatus === 'pending') ||
+        (filter === 'completed' && ['completed', 'complete'].includes(itemStatus)) ||
+        (filter === 'cancelled' && ['cancelled', 'cancel'].includes(itemStatus)) ||
+        (filter === 'scheduled' && ['scheduled', 'approved'].includes(itemStatus));
       const doctorMatch =
         doctorFilter === 'all' || item.doctor_name === doctorFilter;
       const date = dateOnly(item.appointment_date);
@@ -578,7 +593,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                           isCompleted ? 'Update Prescription' : 'Add Prescription',
                           () => {
                             setActiveMenu(null);
-                            onNavigateScreen?.('prescriptions');
+                            onNavigateScreen?.(`/prescriptions?appointment_id=${item.id}`);
                           },
                           <Receipt size={15} color="#334155" />,
                         )
@@ -704,7 +719,7 @@ ${item.doctor_name || 'Doctor'} | ${statusLabel(item.status)}`,
         subtitle="Choose the details shown on appointment cards"
       />
 
-      <Modal
+      <AppModal
         visible={Boolean(viewTarget)}
         transparent
         animationType="fade"
@@ -742,8 +757,8 @@ ${item.doctor_name || 'Doctor'} | ${statusLabel(item.status)}`,
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
-      <Modal
+      </AppModal>
+      <AppModal
         visible={Boolean(rescheduleTarget)}
         transparent
         animationType="fade"
@@ -785,8 +800,8 @@ ${item.doctor_name || 'Doctor'} | ${statusLabel(item.status)}`,
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
-      <Modal
+      </AppModal>
+      <AppModal
         visible={patientPickerVisible}
         transparent
         animationType="fade"
@@ -822,7 +837,7 @@ ${item.doctor_name || 'Doctor'} | ${statusLabel(item.status)}`,
             </ScrollView>
           </View>
         </View>
-      </Modal>
+      </AppModal>
       <PatientAppointmentModal
         visible={Boolean(bookingPatient)}
         patient={bookingPatient}

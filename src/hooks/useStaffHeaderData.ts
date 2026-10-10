@@ -8,6 +8,7 @@ import {
   type ClinicPlan,
 } from '../api/staffHeaderApi';
 import { useNotificationInbox } from './useNotificationInbox';
+import { showSuccessToast } from '../utils/toast';
 import {
   notifyProfileUpdated,
   subscribeProfileUpdated,
@@ -105,18 +106,23 @@ export function useStaffHeaderData(
     const success = await (clear ? inbox.clearAll() : inbox.markAllRead());
     if (!success && scopeRef.current === scope)
       Alert.alert('Unable to update notifications', 'Please try again.');
+    else if (success && scopeRef.current === scope)
+      showSuccessToast(
+        clear ? 'Notifications cleared' : 'Notifications updated',
+        clear ? 'All notifications have been cleared.' : 'All notifications are marked as read.',
+      );
   };
 
   const canManageVideoCalling =
     String(profile?.role_name || profile?.roleName || '').toLowerCase() ===
       'doctor' || Number(profile?.is_doctor) === 1;
   const videoCallingEnabled = Number(profile?.is_video_enabled) === 1;
-  const toggleVideo = async (enabled: boolean) => {
-    if (videoBusy || !canManageVideoCalling) return;
+  const toggleVideo = async (enabled: boolean): Promise<boolean> => {
+    if (videoBusy || !canManageVideoCalling) return false;
     setVideoBusy(true);
     try {
       const result = await updateVideoAvailability(enabled);
-      if (scopeRef.current !== scope) return;
+      if (scopeRef.current !== scope) return false;
       if (!result.success) throw new Error(result.message);
       setProfile(previous => ({
         ...previous,
@@ -124,9 +130,15 @@ export function useStaffHeaderData(
       }));
       updateUserProfile?.({ is_video_enabled: enabled ? 1 : 0 });
       notifyProfileUpdated();
+      showSuccessToast(
+        'Video calling updated',
+        `Video calling is now ${enabled ? 'available' : 'unavailable'}.`,
+      );
+      return true;
     } catch {
       if (scopeRef.current === scope)
         Alert.alert('Unable to update video calling', 'Please try again.');
+      return false;
     } finally {
       if (scopeRef.current === scope) setVideoBusy(false);
     }

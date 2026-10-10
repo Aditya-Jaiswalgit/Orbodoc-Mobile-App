@@ -1,26 +1,9 @@
+import { AppModal } from '../../components/common/AppModal';
 import { styles } from './styles/PatientsManagement.styles';
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+  useCallback, useEffect, useMemo, useRef, useState, } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  Pressable,
-  RefreshControl,
-  Share,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+  ActivityIndicator, FlatList, Pressable, RefreshControl, Share, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import {
   CalendarPlus,
   ClipboardList,
@@ -73,6 +56,7 @@ import {
 interface Props {
   onOpenDrawer: () => void;
   onNavigateScreen?: (screen: string) => void;
+  initialStatus?: string;
 }
 
 type PatientStatusFilter = 'all' | 'active' | 'inactive';
@@ -80,6 +64,7 @@ type PatientStatusFilter = 'all' | 'active' | 'inactive';
 const PatientsManagementContent: React.FC<Props> = ({
   onOpenDrawer,
   onNavigateScreen,
+  initialStatus,
 }) => {
   const { focusedCard, focusCard } = usePatientCardFocus();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -125,7 +110,9 @@ const PatientsManagementContent: React.FC<Props> = ({
   const [exporting, setExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<PatientStatusFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<PatientStatusFilter>(() =>
+    initialStatus === 'active' || initialStatus === 'inactive' ? initialStatus : 'all',
+  );
   const [genderFilter, setGenderFilter] = useState('All');
   const [bloodGroupFilter, setBloodGroupFilter] = useState('All');
   const [dateFrom, setDateFrom] = useState('');
@@ -747,7 +734,7 @@ const PatientsManagementContent: React.FC<Props> = ({
         title="Show/Hide Columns"
         subtitle="Choose which patient details appear in the list"
       />
-      <Modal
+      <AppModal
         visible={Boolean(actionMenu)}
         transparent
         animationType="fade"
@@ -846,7 +833,7 @@ const PatientsManagementContent: React.FC<Props> = ({
             </View>
           ) : null}
         </View>
-      </Modal>
+      </AppModal>
     </View>
   );
 };

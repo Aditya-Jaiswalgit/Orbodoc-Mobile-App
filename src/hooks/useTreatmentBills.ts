@@ -10,6 +10,8 @@ type Params = {
   search: string;
   page: number;
   pageSize: number;
+  dateFrom?: string;
+  dateTo?: string;
 };
 function normalizeBills(value: unknown) {
   if (Array.isArray(value))
@@ -34,6 +36,8 @@ export function useTreatmentBills({
   search,
   page,
   pageSize,
+  dateFrom,
+  dateTo,
 }: Params) {
   const [bills, setBills] = useState<TreatmentBill[]>([]);
   const [total, setTotal] = useState(0);
@@ -63,6 +67,8 @@ export function useTreatmentBills({
           search,
           page,
           limit: pageSize,
+          date_from: dateFrom,
+          date_to: dateTo,
         });
         if (requestId !== sequence.current) return;
         if (!response.success)
@@ -73,13 +79,20 @@ export function useTreatmentBills({
         const result = normalizeBills(response.data);
         setBills(result.bills);
         setTotal(result.total);
-        setLastRefreshed(
-          new Date().toLocaleTimeString('en-US', {
-            hour: '2-digit',
+        const refreshedAt = new Date();
+        const refreshedDate = new Intl.DateTimeFormat('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        }).format(refreshedAt);
+        const refreshedTime = refreshedAt
+          .toLocaleTimeString('en-US', {
+            hour: 'numeric',
             minute: '2-digit',
             second: '2-digit',
-          }),
-        );
+          })
+          .toLowerCase();
+        setLastRefreshed(`${refreshedDate}, ${refreshedTime}`);
       } catch (cause) {
         if (requestId !== sequence.current) return;
         setBills([]);
@@ -96,7 +109,7 @@ export function useTreatmentBills({
         }
       }
     },
-    [canView, clinicId, page, pageSize, search, status, token],
+    [canView, clinicId, dateFrom, dateTo, page, pageSize, search, status, token],
   );
 
   useEffect(() => {

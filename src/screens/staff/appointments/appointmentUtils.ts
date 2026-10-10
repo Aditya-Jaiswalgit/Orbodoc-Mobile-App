@@ -91,9 +91,13 @@ export const STATUS_OPTIONS: Array<{
   label: string;
 }> = [
   { value: 'all', label: 'All Status' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
   { value: 'scheduled', label: 'Scheduled' },
   { value: 'in_progress', label: 'In Progress' },
+  { value: 'complete', label: 'Complete' },
   { value: 'completed', label: 'Completed' },
+  { value: 'cancel', label: 'Cancel' },
   { value: 'cancelled', label: 'Cancelled' },
   { value: 'no_show', label: 'No Show' },
 ];
