@@ -15,7 +15,6 @@ import {
   LogOut,
   Menu,
   Stethoscope,
-  Trash2,
   User,
   UserCheck,
   Video,
@@ -26,6 +25,8 @@ import { useStaffHeaderData } from '../../hooks/useStaffHeaderData';
 import { dashboardNumber, displayAmount, displayDate } from '../../utils/dashboardValues';
 import { navigateStaffScreen } from '../../utils/navigationEvents';
 import { normalizeRoleName } from '../../utils/rolePermissions';
+import { getMobileNotificationDestination } from '../../utils/notificationNavigation';
+import { markNotificationAsRead } from '../../api/notificationApi';
 
 interface StaffHeaderProps {
   onOpenDrawer: () => void;
@@ -237,21 +238,24 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
           <View style={styles.menuDivider} />
 
           {canManageVideoCalling && (
-            <View style={styles.profileMenuItemRow}>
-              <View style={styles.menuItemLeft}>
-                <Video size={16} color="#0D9488" />
-                <View>
-                  <Text allowFontScaling={false} style={styles.menuItemTitle}>Video Calling</Text>
-                  <Text allowFontScaling={false} style={styles.menuItemSub}>{videoCallingEnabled ? 'Enabled' : 'Disabled'}</Text>
+            <>
+              <View style={styles.profileMenuItemRow}>
+                <View style={styles.menuItemLeft}>
+                  <Video size={16} color="#0D9488" />
+                  <View>
+                    <Text allowFontScaling={false} style={styles.menuItemTitle}>Video Calling</Text>
+                    <Text allowFontScaling={false} style={styles.menuItemSub}>{videoCallingEnabled ? 'Enabled' : 'Disabled'}</Text>
+                  </View>
                 </View>
+                <Switch
+                  value={videoCallingEnabled}
+                  disabled={videoBusy}
+                  onValueChange={handleVideoCallingToggle}
+                  style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }}
+                />
               </View>
-              <Switch
-                value={videoCallingEnabled}
-                disabled={videoBusy}
-                onValueChange={handleVideoCallingToggle}
-                style={{ transform: [{ scaleX: 0.85 }, { scaleY: 0.85 }] }}
-              />
-            </View>
+              <View style={styles.menuDivider} />
+            </>
           )}
 
           {/* My Profile */}
@@ -354,14 +358,6 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={handleClearAllNotifications}
-                  disabled={notificationBusy || notificationsLoading}
-                  activeOpacity={0.7}
-                  style={styles.notifActionBtn}>
-                  <Trash2 size={18} color="#475569" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
                   onPress={() => setNotificationsModalOpen(false)}
                   activeOpacity={0.7}
                   style={styles.notifActionBtn}>
@@ -389,7 +385,33 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                 </View>
               ) : (
                 notifications.map((item) => (
-                  <View key={item.id} style={styles.notifItemCard}>
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.notifItemCard}
+                    activeOpacity={0.7}
+                    onPress={async () => {
+                      if (item.unread) {
+                        try {
+                          await markNotificationAsRead(item.id);
+                          refreshNotifications();
+                        } catch {
+                          // quiet
+                        }
+                      }
+                      setNotificationsModalOpen(false);
+                      const orig = inbox.find(n => n.not_rec_id === item.id);
+                      const dest = getMobileNotificationDestination(
+                        {
+                          entity_type: orig?.entity_type,
+                          entity_id: orig?.entity_id,
+                          not_cat_name: orig?.not_cat_name,
+                          title: orig?.title,
+                          message: orig?.message,
+                        },
+                        { role, currentUserId: user?.id },
+                      );
+                      onNavigate(dest);
+                    }}>
                     {/* Left Icon Square Box */}
                     <View style={styles.notifIconBox}>
                       {item.type === 'appointment' ? (
@@ -408,7 +430,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
 
                     {/* Unread Indicator Dot Right */}
                     {item.unread && <View style={styles.unreadDot} />}
-                  </View>
+                  </TouchableOpacity>
                 ))
               )}
             </ScrollView>

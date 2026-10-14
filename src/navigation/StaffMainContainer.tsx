@@ -38,6 +38,7 @@ import SuperAdminDashboardScreen from '../screens/dashboards/SuperAdminDashboard
 import AppointmentsManagerScreen from '../screens/staff/AppointmentsManagerScreen';
 import ClinicsManagementScreen from '../screens/staff/ClinicsManagementScreen';
 import LabManagementScreen from '../screens/staff/LabManagementScreen';
+import LabProfileManagementScreen from '../screens/staff/LabProfileManagementScreen';
 import LabInventoryScreen from '../screens/staff/LabInventoryScreen';
 import MedicineBillingScreen from '../screens/staff/MedicineBillingScreen';
 import NotificationsCenterScreen from '../screens/staff/NotificationsCenterScreen';
@@ -131,8 +132,12 @@ export const StaffMainContainer = () => {
   const isLabEntity = activeEntityType === 'lab';
 
   const canOpen = (screen: string) => {
-    if (screen === 'lab_management' && staffRole === 'lab_technician' && !isLabEntity) {
-      return false;
+    if (screen === 'lab_management') {
+      const normalizedRole = normalizeRoleName(staffRole);
+      // Lab management is strictly for standalone lab entities (or super_admin)
+      if (normalizedRole !== 'super_admin' && !isLabEntity) {
+        return false;
+      }
     }
     return canUseStaffScreen(staffRole, permissionsMap, screen);
   };
@@ -162,6 +167,13 @@ export const StaffMainContainer = () => {
   const [isSwitchingClinic, setIsSwitchingClinic] = useState(false);
   const [userRoleMgmtOpen, setUserRoleMgmtOpen] = useState(true);
 
+  const navigateFromMenu = (screen: StaffTabType) => {
+    setDashboardRouteFilters({});
+    setDashboardFilterScreen(null);
+    setActiveTab(screen);
+    setDrawerOpen(false);
+  };
+
   const navigateFromClinicDashboard = (path: string) => {
     const destination = new URL(path, 'https://staff.local');
     const target = resolveStaffScreen(destination.pathname) as StaffTabType;
@@ -179,6 +191,12 @@ export const StaffMainContainer = () => {
     });
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'lab_management' && !canOpen('lab_management')) {
+      setActiveTab('dashboard');
+    }
+  }, [activeTab, isLabEntity, staffRole, permissionsMap]);
 
   // Android hardware back button handler
   const lastBackPressRef = useRef<number>(0);
@@ -265,7 +283,7 @@ export const StaffMainContainer = () => {
     { id: 'treatment_billing', label: 'Treatment Billing' },
     { id: 'medicine_billing', label: 'Medicine Billing' },
     { id: 'pharmacy_inventory', label: 'Medicines' },
-    ...(isLabEntity ? [{ id: 'lab_management' as StaffTabType, label: 'Lab Management' }] : []),
+          { id: 'lab_management', label: 'Lab Management' },
     { id: 'lab_tests', label: 'Lab Tests' },
     { id: 'lab_inventory', label: 'Lab Inventory' },
     { id: 'lab_reports', label: 'Lab Reports' },
@@ -317,7 +335,7 @@ export const StaffMainContainer = () => {
       case 'lab_technician':
         return [
           { id: 'dashboard', label: 'Lab Dashboard' },
-          ...(isLabEntity ? [{ id: 'lab_management' as StaffTabType, label: 'Lab Management' }] : []),
+          { id: 'lab_management', label: 'Lab Management' },
           { id: 'lab_tests', label: 'Lab Tests' },
           { id: 'lab_inventory', label: 'Lab Inventory' },
           { id: 'lab_reports', label: 'Lab Reports' },
@@ -397,13 +415,13 @@ export const StaffMainContainer = () => {
           case 'doctor':
             return <DoctorDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={navigateFromClinicDashboard} />;
           case 'receptionist':
-            return <ReceptionistDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+            return <ReceptionistDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={navigateFromClinicDashboard} />;
           case 'pharmacist':
-            return <PharmacistDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+            return <PharmacistDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={navigateFromClinicDashboard} />;
           case 'lab_technician':
-            return <LabTechnicianDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+            return <LabTechnicianDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={navigateFromClinicDashboard} />;
           case 'accountant':
-            return <AccountantDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
+            return <AccountantDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={navigateFromClinicDashboard} />;
           case 'nurse':
           default:
             return <NurseDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
@@ -423,23 +441,41 @@ export const StaffMainContainer = () => {
       case 'video_services':
         return <StaffVideoServicesScreen onOpenDrawer={openDrawer} onNavigateScreen={(screen) => setActiveTab(screen as StaffTabType)} />;
       case 'prescriptions':
-        return <PrescriptionsScreen onOpenDrawer={openDrawer} appointmentId={dashboardFilterScreen === 'prescriptions' ? dashboardRouteFilters.appointment_id : undefined} />;
+        return <PrescriptionsScreen onOpenDrawer={openDrawer} appointmentId={dashboardFilterScreen === 'prescriptions' ? dashboardRouteFilters.appointment_id : undefined} initialPatientId={dashboardFilterScreen === 'prescriptions' ? dashboardRouteFilters.patient_id : undefined} createForAppointment={dashboardFilterScreen === 'prescriptions' && dashboardRouteFilters.create === '1'} />;
       case 'pharmacy_inventory':
         return <PharmacyInventoryScreen onOpenDrawer={openDrawer} initialStock={dashboardFilterScreen === 'pharmacy_inventory' ? dashboardRouteFilters.stock : undefined} />;
       case 'medicine_billing':
-        return <MedicineBillingScreen onOpenDrawer={openDrawer} />;
+        return <MedicineBillingScreen
+          onOpenDrawer={openDrawer}
+          initialDate={dashboardFilterScreen === 'medicine_billing' ? dashboardRouteFilters.date : undefined}
+          initialDateFrom={dashboardFilterScreen === 'medicine_billing' ? dashboardRouteFilters.date_from : undefined}
+          initialDateTo={dashboardFilterScreen === 'medicine_billing' ? dashboardRouteFilters.date_to : undefined}
+        />;
       case 'treatment_billing':
-        return <TreatmentBillingScreen onOpenDrawer={openDrawer} initialDateFrom={dashboardFilterScreen === 'treatment_billing' ? dashboardRouteFilters.date_from : undefined} initialDateTo={dashboardFilterScreen === 'treatment_billing' ? dashboardRouteFilters.date_to : undefined} />;
+        return <TreatmentBillingScreen
+          onOpenDrawer={openDrawer}
+          initialDate={dashboardFilterScreen === 'treatment_billing' ? dashboardRouteFilters.date : undefined}
+          initialDateFrom={dashboardFilterScreen === 'treatment_billing' ? dashboardRouteFilters.date_from : undefined}
+          initialDateTo={dashboardFilterScreen === 'treatment_billing' ? dashboardRouteFilters.date_to : undefined}
+          initialStatus={dashboardFilterScreen === 'treatment_billing' ? dashboardRouteFilters.status : undefined}
+        />;
       case 'lab_management':
-        return <ClinicsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} />;
+        return <LabProfileManagementScreen onOpenDrawer={openDrawer} />;
       case 'lab_tests':
-        return <LabManagementScreen onOpenDrawer={openDrawer} initialTab="orders" initialStatus={dashboardFilterScreen === 'lab_tests' ? dashboardRouteFilters.status : undefined} />;
+        return <LabManagementScreen
+          onOpenDrawer={openDrawer}
+          initialTab="orders"
+          initialStatus={dashboardFilterScreen === 'lab_tests' ? dashboardRouteFilters.status : undefined}
+          initialDate={dashboardFilterScreen === 'lab_tests' ? dashboardRouteFilters.date : undefined}
+          initialDateFrom={dashboardFilterScreen === 'lab_tests' ? dashboardRouteFilters.date_from : undefined}
+          initialDateTo={dashboardFilterScreen === 'lab_tests' ? dashboardRouteFilters.date_to : undefined}
+        />;
       case 'lab_inventory':
         return <LabInventoryScreen onOpenDrawer={openDrawer} />;
       case 'lab_reports':
         return <LabManagementScreen onOpenDrawer={openDrawer} initialTab="reports" />;
       case 'notifications':
-        return <NotificationsCenterScreen onOpenDrawer={openDrawer} />;
+        return <NotificationsCenterScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr: string) => setActiveTab(scr as StaffTabType)} />;
       case 'wallet':
         return <ProviderWalletScreen onOpenDrawer={openDrawer} />;
       case 'subscription_plans':
@@ -590,8 +626,7 @@ export const StaffMainContainer = () => {
                                       activeOpacity={0.7}
                                       style={[styles.subMenuItemRow, isChildActive && styles.activeSubMenuItemRow]}
                                       onPress={() => {
-                                        setActiveTab(child.id);
-                                        setDrawerOpen(false);
+                                        navigateFromMenu(child.id);
                                       }}>
                                       <View style={[styles.subIconBadge, isChildActive && styles.subIconBadgeActive]}>
                                         {child.iconType === 'role_permissions' ? (
@@ -620,8 +655,7 @@ export const StaffMainContainer = () => {
                         activeOpacity={0.8}
                         style={[styles.menuItemRow, isActive && styles.activeMenuItemRow]}
                         onPress={() => {
-                          setActiveTab(item.id as StaffTabType);
-                          setDrawerOpen(false);
+                          navigateFromMenu(item.id as StaffTabType);
                         }}>
                         <View style={styles.itemLeft}>
                           <View style={[styles.menuIconContainer, isActive && styles.menuIconContainerActive]}>

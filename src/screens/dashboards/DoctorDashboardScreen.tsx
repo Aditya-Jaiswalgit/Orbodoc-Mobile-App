@@ -45,18 +45,25 @@ const MetricTile = ({
   color: string;
   background: string;
   onPress: () => void;
-}) => (
-  <TouchableOpacity accessibilityRole="button" onPress={onPress} style={styles.metricCard}>
-    <View style={styles.metricInfo}>
-      <Text style={styles.metricTitle}>{title}</Text>
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricAction}>View details</Text>
-    </View>
-    <View style={[styles.metricIcon, { backgroundColor: background }]}>
-      <Icon size={22} color={color} />
-    </View>
-  </TouchableOpacity>
-);
+}) => {
+  const isSmallValue = value.length > 5;
+  return (
+    <TouchableOpacity accessibilityRole="button" onPress={onPress} style={styles.metricCard}>
+      <View style={[styles.metricIcon, { backgroundColor: background }]}>
+        <Icon size={22} color={color} />
+      </View>
+      <Text style={[styles.metricValue, isSmallValue && styles.metricValueSmall]} numberOfLines={1}>
+        {value}
+      </Text>
+      <Text style={styles.metricTitle} numberOfLines={2}>
+        {title}
+      </Text>
+      <View style={{ marginTop: 6 }}>
+        <Text style={styles.metricAction}>View details ↗</Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const SnapshotChart = ({ values, width }: { values: Array<{ name: string; value: number }>; width: number }) => {
   const chartWidth = Math.max(260, width - 64);
@@ -184,7 +191,7 @@ export const DoctorDashboardScreen: React.FC<Props> = ({
         ) : data ? (
           <>
             {error ? <TouchableOpacity style={styles.warningBanner} onPress={refresh}><Text style={styles.warningText}>Some dashboard data could not be loaded. Tap to retry.</Text></TouchableOpacity> : null}
-            <View style={styles.metricStack}>
+            <View style={styles.metricGrid}>
               <MetricTile title="Today's Appointments" value={String(data.todayAppointments)} icon={Calendar} color="#0d9488" background="#ccfbf1" onPress={() => onNavigateScreen(`/appointments?date=${today}`)} />
               <MetricTile title="Upcoming Appointments" value={String(data.upcomingAppointments)} icon={Clock3} color="#16a34a" background="#dcfce7" onPress={() => onNavigateScreen(`/appointments?date_from=${tomorrow}`)} />
               <MetricTile title="Pending Requests" value={String(data.pendingRequests)} icon={AlertCircle} color="#d97706" background="#fef3c7" onPress={() => onNavigateScreen('/appointments?status=pending')} />
@@ -242,13 +249,58 @@ const styles = StyleSheet.create({
   todayDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#14b8a6' },
   todayLabel: { color: '#0f766e', fontSize: 10, fontWeight: '800', letterSpacing: 1.6 },
   todayDate: { color: '#1e293b', fontSize: 13, fontWeight: '600' },
-  metricStack: { gap: 12 },
-  metricCard: { minHeight: 116, padding: 16, borderRadius: 14, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, overflow: 'hidden' },
-  metricInfo: { flex: 1, gap: 5 },
-  metricIcon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  metricTitle: { color: '#64748b', fontSize: 13 },
-  metricValue: { color: '#0f172a', fontSize: 25, fontWeight: '800' },
-  metricAction: { color: '#0d9488', fontSize: 12, fontWeight: '700', marginTop: 2 },
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  metricCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    elevation: 1,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+  },
+  metricIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  metricValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  metricValueSmall: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  metricTitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#64748B',
+    minHeight: 32,
+    lineHeight: 16,
+  },
+  metricAction: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0D9488',
+  },
   chartCard: { backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0', padding: 16, overflow: 'hidden' },
   sectionTitle: { color: '#0f172a', fontSize: 17, fontWeight: '700', marginBottom: 14 },
   workloadWrap: { alignItems: 'center', gap: 14 },

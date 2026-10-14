@@ -13,6 +13,7 @@ export function resolveStaffScreen(path: string) {
   const aliases: Record<string, string> = {
     'change-password': 'change_password', medicines: 'pharmacy_inventory',
     'lab/tests': 'lab_tests', 'billing/treatment': 'treatment_billing',
+    'billing/medicine': 'medicine_billing',
   };
   return aliases[target] || target;
 }

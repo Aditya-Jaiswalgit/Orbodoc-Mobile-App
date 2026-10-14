@@ -56,15 +56,19 @@ import {
 interface Props {
   onOpenDrawer: () => void;
   onNavigateScreen?: (screen: string) => void;
+  initialDate?: string;
   initialDateFrom?: string;
   initialDateTo?: string;
+  initialStatus?: string;
 }
 
 export const TreatmentBillingScreen: React.FC<Props> = ({
   onOpenDrawer,
   onNavigateScreen,
+  initialDate,
   initialDateFrom,
   initialDateTo,
+  initialStatus,
 }) => {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -112,7 +116,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
   // List State
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(initialStatus || 'all');
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
   // Column Selector State
@@ -151,6 +155,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
     pageSize,
     dateFrom: initialDateFrom,
     dateTo: initialDateTo,
+    date: initialDate,
   });
   useEffect(() => {
     if (billsError)

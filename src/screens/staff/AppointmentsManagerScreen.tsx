@@ -2,16 +2,21 @@ import { AppModal } from '../../components/common/AppModal';
 import { styles } from './styles/AppointmentsManager.styles';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator, ScrollView, Share, Text, TextInput, TouchableOpacity, View } from 'react-native';
+  ActivityIndicator, Linking, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 import {
   CalendarDays,
   Check,
   ChevronDown,
   Clock3,
   Columns3,
+  Download,
+  Mail,
+  MessageCircle,
   MoreVertical,
   Phone,
   Plus,
+  Printer,
   Receipt,
   RefreshCw,
   Search,
@@ -23,12 +28,15 @@ import {
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { Pagination } from '../../components/common/Pagination';
 import { ColumnSelectorModal } from '../../components/common/ColumnSelectorModal';
+import { RefreshButton } from '../../components/common/RefreshButton';
 import { CustomCalendarPicker } from '../../components/common/CustomCalendarPicker';
 import { PatientAppointmentModal } from './patients/PatientAppointmentModal';
 import { useAuthContext } from '../../context/AuthContext';
 import { Appointment, PatientModel } from '../../types/clinicTypes';
+import { fetchPatientsApi } from '../../api/patientApi';
+import { downloadPrescriptionPdfApi } from '../../api/prescriptionApi';
 import { canUseStaffScreen } from '../../navigation/staffAccess';
-import { showErrorToast } from '../../utils/toast';
+import { showErrorToast, showSuccessToast } from '../../utils/toast';
 import { useAppointmentActions } from '../../hooks/useAppointmentActions';
 import { VideoCallRoomScreen } from '../common/VideoCallRoomScreen';
 import { useAppointmentsData } from '../../hooks/useAppointmentsData';
@@ -36,6 +44,7 @@ import {
   AppointmentFilter as Filter,
   dateOnly,
   DEFAULT_COLUMNS,
+  extractRows,
   localDateOnly,
   PAGE_SIZE_OPTIONS,
   prettyDate,
@@ -155,6 +164,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
   const [bookingPatient, setBookingPatient] = useState<PatientModel | null>(
     null,
   );
+  const [prescriptionActionId, setPrescriptionActionId] = useState<number | null>(null);
 
   const {
     appointments,
@@ -203,6 +213,70 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
     rescheduleTime,
     clearRescheduleTarget: () => setRescheduleTarget(null),
   });
+
+  const getPatientContact = async (appointment: Appointment) => {
+    const cached = patients.find(patient => Number(patient.id) === Number(appointment.patient_id));
+    if (cached?.phone || cached?.email) return cached;
+    if (!token) return cached;
+    const response = await fetchPatientsApi({
+      clinic_id: activeClinicId || undefined,
+      search: appointment.patient_phone || appointment.patient_name,
+      page: 1,
+      limit: 50,
+    }, token);
+    if (!response.success) throw new Error(response.message || 'Could not load patient contact details.');
+    return extractRows<PatientModel>(response.data, 'patients')
+      .find(patient => Number(patient.id) === Number(appointment.patient_id)) || cached;
+  };
+
+  const sharePrescriptionWhatsApp = async (appointment: Appointment) => {
+    if (!appointment.prescription_id) return;
+    try {
+      const patient = await getPatientContact(appointment);
+      const phone = String(patient?.phone || appointment.patient_phone || '').replace(/\D/g, '');
+      if (!phone) throw new Error('Patient phone number not found.');
+      const name = String(appointment.patient_name || 'Patient').trim();
+      const message = `Hello ${name}, your prescription (#${appointment.prescription_id}) is ready at our clinic.`;
+      await Linking.openURL(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`);
+    } catch (error) {
+      showErrorToast('WhatsApp', error instanceof Error ? error.message : 'Could not open WhatsApp.');
+    }
+  };
+
+  const sharePrescriptionEmail = async (appointment: Appointment) => {
+    if (!appointment.prescription_id) return;
+    try {
+      const patient = await getPatientContact(appointment);
+      const email = String(patient?.email || '').trim();
+      if (!email) throw new Error('Patient email not found.');
+      const subject = `Prescription #${appointment.prescription_id}`;
+      const body = `Hello ${appointment.patient_name || 'Patient'},\n\nYour prescription (ID: ${appointment.prescription_id}) has been prepared.\nPlease contact the clinic for details.\n\nRegards`;
+      await Linking.openURL(`mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    } catch (error) {
+      showErrorToast('Email', error instanceof Error ? error.message : 'Could not open email.');
+    }
+  };
+
+  const handlePrescriptionPdf = async (appointment: Appointment, openForPrint = false) => {
+    if (!token || !appointment.prescription_id) return;
+    setPrescriptionActionId(appointment.id);
+    try {
+      const filePath = await downloadPrescriptionPdfApi(token, Number(appointment.prescription_id));
+      if (openForPrint) {
+        if (Platform.OS === 'android') {
+          await ReactNativeBlobUtil.android.actionViewIntent(filePath, 'application/pdf', 'Open or print prescription');
+        } else {
+          await ReactNativeBlobUtil.ios.openDocument(filePath);
+        }
+      } else {
+        showSuccessToast('Prescription PDF downloaded', `Prescription #${appointment.prescription_id} is ready.`);
+      }
+    } catch (error) {
+      showErrorToast(openForPrint ? 'Prescription' : 'PDF download failed', error instanceof Error ? error.message : 'Could not open prescription PDF.');
+    } finally {
+      setPrescriptionActionId(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -320,34 +394,25 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
         ) : null}
         <View style={styles.listPanel}>
           <View style={styles.panelHeading}>
-            <View style={styles.flex}>
-              <Text style={styles.panelTitle}>
-                All Appointments ({filtered.length})
-              </Text>
-              <Text style={styles.subtitle}>
-                Book and track appointments in one page
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.iconAction}
-              onPress={() => loadAppointments()}
-              disabled={loading}
-            >
-              <RefreshCw size={16} color="#334155" />
-              <Text style={styles.actionText}>Refresh</Text>
-            </TouchableOpacity>
-          </View>
-          {lastRefreshed ? (
-            <Text style={styles.refreshed}>
-              Last refreshed: {lastRefreshed}
+            <Text style={styles.panelTitle}>All Appointments</Text>
+            <Text style={styles.subtitle}>
+              Book and track appointments in one page
             </Text>
-          ) : null}
+          </View>
+
+          <RefreshButton
+            onRefresh={() => loadAppointments()}
+            loading={loading}
+            label="Refresh"
+            refreshingLabel="Refreshing..."
+          />
+
           <TouchableOpacity
             style={styles.columnsButton}
             onPress={() => setColumnsVisible(true)}
           >
-            <Columns3 size={15} color="#334155" />
-            <Text style={styles.actionText}>Columns</Text>
+            <Columns3 size={15} color="#0F172A" />
+            <Text style={styles.columnsButtonText}>Columns</Text>
           </TouchableOpacity>
           <View style={styles.searchBox}>
             <Search size={17} color="#64748B" />
@@ -527,6 +592,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
             const isCompleted = ['completed', 'complete'].includes(
               String(item.status).toLowerCase(),
             );
+            const hasPrescription = Boolean(item.prescription_id);
             const canShowActions =
               (canManageAppointmentActions && !isCancelled) ||
               (canStartAppointmentCall && !isCancelled && isVideoAppointment);
@@ -588,16 +654,30 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                           <Video size={15} color="#334155" />,
                         )
                       : null}
-                    {canAddPrescription && !isCancelled
+                    {!hasPrescription && canAddPrescription && !isCancelled && !isCompleted
                       ? menuAction(
-                          isCompleted ? 'Update Prescription' : 'Add Prescription',
+                          'Add Prescription',
                           () => {
                             setActiveMenu(null);
-                            onNavigateScreen?.(`/prescriptions?appointment_id=${item.id}`);
+                            onNavigateScreen?.(`/prescriptions?appointment_id=${item.id}&patient_id=${item.patient_id}&create=1`);
                           },
                           <Receipt size={15} color="#334155" />,
                         )
                       : null}
+                    {(hasPrescription || isCompleted) && (canEditPrescription || canAddPrescription) && !isCancelled
+                      ? menuAction(
+                          'Update Prescription',
+                          () => {
+                            setActiveMenu(null);
+                            onNavigateScreen?.(`/prescriptions?appointment_id=${item.id}&patient_id=${item.patient_id}${hasPrescription ? '' : '&create=1'}`);
+                          },
+                          <Receipt size={15} color="#334155" />,
+                        )
+                      : null}
+                    {hasPrescription && canViewPrescription ? <>
+                      {menuAction(prescriptionActionId === item.id ? 'Preparing PDF...' : 'Print Prescription', () => void handlePrescriptionPdf(item, true), prescriptionActionId === item.id ? <ActivityIndicator size="small" color="#334155" /> : <Printer size={15} color="#334155" />)}
+                      {menuAction('Download PDF', () => void handlePrescriptionPdf(item), <Download size={15} color="#334155" />)}
+                    </> : null}
                   </View>
                 ) : null}
                 <View style={styles.cardDetails}>
@@ -647,21 +727,16 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                         : 'In Person'}
                     </Text>
                   ) : null}
-                  {columns.share ? (
-                    <TouchableOpacity
-                      style={styles.shareButton}
-                      onPress={() => {
-                        void Share.share({
-                          title: 'Appointment details',
-                          message: `${item.patient_name || 'Patient'} | ${item.patient_code || ''}
-${prettyDate(item.appointment_date)} ${item.appointment_time || item.time_slot || ''}
-${item.doctor_name || 'Doctor'} | ${statusLabel(item.status)}`,
-                        });
-                      }}
-                    >
-                      <Text style={styles.shareButtonText}>Share appointment</Text>
-                    </TouchableOpacity>
-                  ) : null}
+                  {columns.share && canViewPrescription ? <View style={styles.prescriptionShareRow}>
+                    {hasPrescription ? <>
+                      <TouchableOpacity style={styles.prescriptionShareButton} onPress={() => void sharePrescriptionWhatsApp(item)}>
+                        <MessageCircle size={15} color="#15803d" /><Text style={styles.prescriptionShareText}>WhatsApp</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.prescriptionShareButton} onPress={() => void sharePrescriptionEmail(item)}>
+                        <Mail size={15} color="#2563eb" /><Text style={styles.prescriptionShareText}>Email</Text>
+                      </TouchableOpacity>
+                    </> : <Text style={styles.metaText}>No prescription to share</Text>}
+                  </View> : null}
                 </View>
                 {isVideoAppointment &&
                 canStartAppointmentCall &&

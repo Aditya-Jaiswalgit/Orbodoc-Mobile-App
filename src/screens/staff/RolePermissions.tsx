@@ -4,6 +4,7 @@ import { AppModal } from '../../components/common/AppModal';
 import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet, ActivityIndicator, BackHandler, useWindowDimensions, TextInput, TouchableWithoutFeedback } from 'react-native';
 import { ShieldCheck, Check, RefreshCw, Plus, Pencil, ChevronDown, X, Shield } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { RefreshButton } from '../../components/common/RefreshButton';
 import { showSuccessToast, showErrorToast } from '../../utils/toast';
 import {
   fetchSystemObjectsApi,
@@ -46,24 +47,12 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
   const { width, height } = useWindowDimensions();
   const isMobile = width < 768;
 
-  const { token, user, role: currentRole, activeClinicId, assignedClinics = [], isMultiPlan, refreshPermissions, permissionsMap = {} } = useAuthContext();
+  const { token, user, role: currentRole, activeClinicId, refreshPermissions, permissionsMap = {} } = useAuthContext();
   const canView = canUseStaffScreen(currentRole, permissionsMap, 'role_permissions');
   const canAddRole = canView && canUseStaffScreen(currentRole, permissionsMap, 'role_permissions', 'add');
   const canEditRole = canView && canUseStaffScreen(currentRole, permissionsMap, 'role_permissions', 'edit');
   const normalizedRole = normalizeRoleName(currentRole);
-  const canChooseClinic = normalizedRole === 'super_admin' || (normalizedRole === 'clinic_admin' && isMultiPlan);
-  const [managedClinicId, setManagedClinicId] = useState<number | null>(activeClinicId);
-  const [showClinicDropdown, setShowClinicDropdown] = useState(false);
-  useEffect(() => { setManagedClinicId(activeClinicId); }, [activeClinicId]);
-  const clinics = useRemoteData([token, user?.id, 'role-clinics'].join(':'), async () => {
-    const response = await apiFetch<any>('/clinics/my-clinics');
-    if (!response.success) throw new Error(response.message);
-    return extractArrayData(response).map(c => ({ id: Number(c.id ?? c.clinic_id), name: c.name ?? c.clinic_name }));
-  }, Boolean(token && canView && canChooseClinic));
-  const clinicOptions = canChooseClinic ? clinics.data ?? assignedClinics : assignedClinics;
-  useEffect(() => {
-    if (canChooseClinic && !managedClinicId && clinicOptions.length) setManagedClinicId(clinicOptions[0].id);
-  }, [managedClinicId, clinicOptions, canChooseClinic]);
+  const managedClinicId = activeClinicId;
 
   const [activeTab, setActiveTab] = useState<'roles' | 'permissions'>('roles');
   const [selectedRole, setSelectedRole] = useState<string | number>('');
@@ -151,7 +140,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
   ).map(row => ({ ...row, role_name: formatRoleTitle(row.role_name) })), [resource.data, currentRole, customRoleSetupId]);
   const loading = resource.loading;
   const lastRefreshed = resource.error ? 'Unable to load. Please refresh.' : resource.data?.refreshed || 'Loading...';
-  const loadRoleDataFromApi = async () => { await Promise.allSettled([clinics.refresh(), resource.refresh(), counts.refresh(), refreshPermissions?.()]); };
+  const loadRoleDataFromApi = async () => { await Promise.allSettled([resource.refresh(), counts.refresh(), refreshPermissions?.()]); };
   useEffect(() => {
     scopeRef.current = scope;
     roleMenuRequest.current += 1;
@@ -351,38 +340,36 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
         decelerationRate="normal">
         {/* ── TOP HEADER SECTION ────────────────────────────────────────────── */}
         <View style={[styles.topBannerHeader, isMobile && styles.topBannerHeaderMobile]}>
-          <View style={{ flex: 1 }}>
+          <View style={!isMobile ? { flex: 1 } : { width: '100%' }}>
             <Text style={styles.headerTitle}>Roles & Permissions</Text>
             <Text style={styles.headerSubtitle}>
               Manage roles, permissions, and access control configuration.
             </Text>
           </View>
-          <View style={[styles.refreshContainer, isMobile && { marginTop: 10 }]}>
-            <TouchableOpacity style={styles.refreshDataButton} onPress={loadRoleDataFromApi} disabled={saving || roleFormSaving || loading}>
-              <RefreshCw color="#334155" size={14} style={{ marginRight: 6 }} />
-              <Text style={styles.refreshButtonText}>Refresh Data</Text>
-            </TouchableOpacity>
-            <Text style={styles.lastRefreshedText}>Last refreshed: {lastRefreshed}</Text>
+          <View style={[styles.refreshContainer, isMobile && styles.refreshContainerMobile]}>
+            <RefreshButton
+              onRefresh={loadRoleDataFromApi}
+              loading={saving || roleFormSaving || loading}
+              label="Refresh"
+              refreshingLabel="Refreshing..."
+            />
           </View>
         </View>
 
-        <View style={{ marginBottom: 12 }}>
-          <TouchableOpacity accessibilityLabel="Select permission clinic" style={styles.roleDropdownSelector}
-            disabled={!canChooseClinic || clinics.loading || saving || roleFormSaving || !clinicOptions.length}
-            onPress={() => { if (canChooseClinic && !busyRef.current) setShowClinicDropdown(value => !value); }}>
-            <Text>{clinicOptions.find(c => Number(c.id) === managedClinicId)?.name || (managedClinicId ? `Clinic ${managedClinicId}` : 'Select clinic')}</Text>
-            <ChevronDown size={18} color="#64748B" />
-          </TouchableOpacity>
-          {canChooseClinic && showClinicDropdown && clinicOptions.map(clinic => (
-            <TouchableOpacity key={clinic.id} accessibilityLabel={`Manage clinic ${clinic.name}`}
-              style={styles.dropdownMenuItem} onPress={() => { setManagedClinicId(Number(clinic.id)); setShowClinicDropdown(false); }}>
-              <Text>{clinic.name}</Text>
-            </TouchableOpacity>
-          ))}
-          {!!clinics.error && <TouchableOpacity onPress={clinics.refresh}><Text>Unable to load clinics. Tap to retry.</Text></TouchableOpacity>}
-          {!managedClinicId && <Text>Select a clinic to manage roles and permissions.</Text>}
-          {!!resource.error && <Text accessibilityRole="alert">Unable to load roles and permissions. Use Refresh Data to retry.</Text>}
-        </View>
+        {(!managedClinicId || !!resource.error) && (
+          <View style={{ marginBottom: 12 }}>
+            {!managedClinicId && (
+              <Text style={{ color: '#64748B', textAlign: 'center', marginVertical: 4 }}>
+                Select a clinic from the header to manage roles and permissions.
+              </Text>
+            )}
+            {!!resource.error && (
+              <Text accessibilityRole="alert" style={{ color: '#EF4444', textAlign: 'center', marginVertical: 4 }}>
+                Unable to load roles and permissions. Use Refresh to retry.
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* ── MAIN CARD CONTAINER WITH TEAL BORDER ────────────────────────── */}
         <View style={styles.tealBorderCard}>
@@ -762,12 +749,18 @@ const styles = StyleSheet.create({
   },
   topBannerHeaderMobile: {
     flexDirection: 'column',
-    alignItems: 'flex-start',
+    alignItems: 'stretch',
+    gap: 12,
   },
   headerTitle: { color: '#0F172A', fontSize: 22, fontWeight: '700' },
   headerSubtitle: { color: '#64748B', fontSize: 13, marginTop: 4 },
 
   refreshContainer: { alignItems: 'flex-end' },
+  refreshContainerMobile: {
+    width: '100%',
+    alignItems: 'stretch',
+    marginTop: 0,
+  },
   refreshDataButton: {
     flexDirection: 'row',
     alignItems: 'center',

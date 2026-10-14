@@ -8,6 +8,8 @@ type Params = {
   search: string;
   status: string;
   date?: string;
+  dateFrom?: string;
+  dateTo?: string;
   page: number;
   pageSize: number;
 };
@@ -38,8 +40,7 @@ export function useMedicineBills<T>(params: Params) {
   const [error, setError] = useState('');
   const [lastRefreshed, setLastRefreshed] = useState('');
   const sequence = useRef(0);
-  const { token, clinicId, canView, search, status, date, page, pageSize } =
-    params;
+  const { token, clinicId, canView, search, status, date, dateFrom, dateTo, page, pageSize } = params;
 
   const refresh = useCallback(async () => {
     const requestId = ++sequence.current;
@@ -57,6 +58,8 @@ export function useMedicineBills<T>(params: Params) {
         search,
         status,
         date,
+        date_from: dateFrom,
+        date_to: dateTo,
         page,
         limit: pageSize,
       });
@@ -86,7 +89,7 @@ export function useMedicineBills<T>(params: Params) {
     } finally {
       if (requestId === sequence.current) setLoading(false);
     }
-  }, [canView, clinicId, date, page, pageSize, search, status, token]);
+  }, [canView, clinicId, date, dateFrom, dateTo, page, pageSize, search, status, token]);
 
   useEffect(() => {
     refresh();

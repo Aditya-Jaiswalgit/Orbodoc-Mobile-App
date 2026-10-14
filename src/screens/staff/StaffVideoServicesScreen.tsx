@@ -11,6 +11,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ViewStyle,
 } from 'react-native';
 import { styles } from './styles/StaffVideoServices.styles';
 import {
@@ -27,6 +28,7 @@ import {
   Stethoscope,
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { RefreshButton } from '../../components/common/RefreshButton';
 import { useAuthContext } from '../../context/AuthContext';
 import { useVideoServices } from '../../hooks/useVideoServices';
 import { BASE_URL } from '../../api/apiConfig';
@@ -744,46 +746,59 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
             One professional workspace for video calls, consultation history,
             and video billing.
           </Text>
-          <TouchableOpacity
-            style={[styles.refreshButton, refreshing && styles.disabled]}
-            disabled={refreshing}
-            onPress={refresh}
-          >
-            {refreshing ? (
-              <ActivityIndicator size="small" color="#334155" />
-            ) : (
-              <RefreshCw size={15} color="#334155" />
-            )}
-            <Text style={styles.refreshButtonText}>
-              {refreshing ? 'Refreshingâ€¦' : 'Refresh'}
-            </Text>
-          </TouchableOpacity>
-          <Text style={styles.refreshedText}>
-            {refreshedLabel(lastRefreshed)}
-          </Text>
-          <TouchableOpacity
-            style={styles.openAppointments}
-            onPress={() => onNavigateScreen?.('appointments')}
-          >
-            <CalendarClock size={16} color="#fff" />
-            <Text style={styles.openAppointmentsText}>Open Appointments</Text>
-          </TouchableOpacity>
+          {/* Action Buttons Row: Refresh (Left), Open Appointments (Right) */}
+          <View style={styles.heroActionsRow}>
+            <View style={styles.heroActionCol}>
+              <RefreshButton
+                onRefresh={refresh}
+                loading={refreshing}
+                label="Refresh"
+                refreshingLabel="Refreshing..."
+                size="sm"
+              />
+            </View>
+
+            <View style={styles.heroActionCol}>
+              <TouchableOpacity
+                style={styles.openAppointments}
+                onPress={() => onNavigateScreen?.('appointments')}
+              >
+                <CalendarClock size={16} color="#fff" />
+                <Text style={styles.openAppointmentsText} numberOfLines={1}>
+                  Open Appointments
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-        <Stat
-          label="Today's Video Appointments"
-          value={todayCount}
-          description="All video consultations scheduled for today."
-        />
-        <Stat
-          label="Waiting to Call"
-          value={waitingCount}
-          description="Appointments still ready for staff or doctor action."
-        />
-        <Stat
-          label="Video Revenue Collected"
-          value={money(totalCollected)}
-          description={`${pendingCount} bill(s) still have pending payment.`}
-        />
+        <View style={styles.statsContainer}>
+          <View style={styles.statsRow}>
+            <View style={styles.statCol}>
+              <Stat
+                label="Today's Video Appointments"
+                value={todayCount}
+                description="All video consultations scheduled for today."
+                style={styles.statHalf}
+                isHalf
+              />
+            </View>
+            <View style={styles.statCol}>
+              <Stat
+                label="Waiting to Call"
+                value={waitingCount}
+                description="Appointments still ready for staff or doctor action."
+                style={styles.statHalf}
+                isHalf
+              />
+            </View>
+          </View>
+          <Stat
+            label="Video Revenue Collected"
+            value={money(totalCollected)}
+            description={`${pendingCount} bill(s) still have pending payment.`}
+            style={styles.statBottom}
+          />
+        </View>
         <View style={styles.tabs}>
           {(['calls', 'consultancy', 'billing'] as Tab[]).map(item => {
             const label =
@@ -1229,17 +1244,29 @@ const Stat = ({
   label,
   value,
   description,
+  style,
+  isHalf = false,
 }: {
   label: string;
   value: string | number;
   description: string;
+  style?: ViewStyle;
+  isHalf?: boolean;
 }) => (
-  <View style={styles.stat}>
-    <Text style={styles.statLabel}>{label}</Text>
+  <View style={[styles.stat, style]}>
+    <View style={isHalf ? styles.statHeader : undefined}>
+      <Text style={styles.statLabel} numberOfLines={2}>
+        {label}
+      </Text>
+    </View>
     <Text style={styles.statValue} numberOfLines={1}>
       {value}
     </Text>
-    <Text style={styles.statDescription}>{description}</Text>
+    <View style={isHalf ? styles.statDescHalf : undefined}>
+      <Text style={styles.statDescription} numberOfLines={2}>
+        {description}
+      </Text>
+    </View>
   </View>
 );
 const BillLine = ({

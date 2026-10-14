@@ -46,12 +46,14 @@ export async function getLabTestOrdersApi(
   clinicId?: number | string | null,
   page = 1,
   limit = 100,
+  status?: string,
 ): Promise<ApiResponse<unknown>> {
   const query = new URLSearchParams({
     page: String(page),
     limit: String(limit),
   });
   if (clinicId) query.set('clinic_id', String(clinicId));
+  if (status) query.set('status', status);
   return apiFetch<unknown>(`/labs/tests?${query.toString()}`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },

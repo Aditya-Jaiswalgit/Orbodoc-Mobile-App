@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  NativeModules,
-  Platform,
   RefreshControl,
   ScrollView,
   Text,
@@ -15,7 +13,6 @@ import {
   Columns3,
   CircleCheck,
   Edit,
-  FileSpreadsheet,
   FlaskConical,
   IndianRupee,
   Plus,
@@ -24,7 +21,6 @@ import {
   ShieldCheck,
   TestTube,
   TestTube2,
-  Upload,
   X,
 } from 'lucide-react-native';
 import { AppModal } from '../../components/common/AppModal';
@@ -33,11 +29,9 @@ import { Pagination } from '../../components/common/Pagination';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import {
   createLabCatalogItemApi,
-  LabCatalogImportFile,
   mapMasterLabTestApi,
   MobileMasterLabTest,
   updateLabCatalogItemApi,
-  uploadLabCatalogExcelApi,
 } from '../../api/labApi';
 import { useAuthContext } from '../../context/AuthContext';
 import { useLabInventory } from '../../hooks/useLabInventory';
@@ -65,10 +59,6 @@ const DEFAULT_FORM: CatalogForm = {
   home_collection_available: false, is_available: true, status: true,
 };
 const PAGE_SIZES = [5, 10, 20, 50];
-const IMPORT_COLUMNS = [
-  'test_name', 'test_code', 'description', 'price', 'discount_price',
-  'home_collection_available', 'is_available', 'status',
-];
 const COLUMNS: ColumnOption<InventoryColumn>[] = [
   { key: 'test_name', label: 'Test Name', defaultVisible: true },
   { key: 'test_code', label: 'Code', defaultVisible: true },
@@ -156,10 +146,7 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
   const [mappingForm, setMappingForm] = useState({
     price: '', discount_price: '', home_collection_available: false, is_available: true,
   });
-  const [importModalOpen, setImportModalOpen] = useState(false);
-  const [importFile, setImportFile] = useState<LabCatalogImportFile | null>(null);
   const [saving, setSaving] = useState(false);
-  const [importing, setImporting] = useState(false);
 
   const {
     catalogItems, catalogTotal, catalogLoading, masterTests, masterTotal,
@@ -355,70 +342,6 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
     }
   };
 
-  const selectImportFile = async () => {
-    if (!canAdd) return;
-    const picker = Platform.OS === 'ios'
-      ? NativeModules.LabInventoryFilePicker
-      : NativeModules.MedicineFilePicker;
-    if (!picker?.pickExcel) {
-      showErrorToast('Import unavailable', 'The system file picker is not available in this app build.');
-      return;
-    }
-    try {
-      const picked = await picker.pickExcel() as LabCatalogImportFile | null;
-      if (!picked) return;
-      const extension = picked.name.split('.').pop()?.toLowerCase();
-      if (!['xlsx', 'xls'].includes(extension || '')) {
-        showErrorToast('Unsupported file', 'Choose an .xlsx or .xls workbook.');
-        return;
-      }
-      if (typeof picked.size === 'number' && picked.size > 5 * 1024 * 1024) {
-        showErrorToast('File too large', 'Lab inventory Excel files must be 5 MB or smaller.');
-        return;
-      }
-      setImportFile({
-        ...picked,
-        type: picked.type === 'application/octet-stream'
-          ? extension === 'xls'
-            ? 'application/vnd.ms-excel'
-            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-          : picked.type,
-      });
-    } catch (cause) {
-      showErrorToast('File selection failed', cause instanceof Error ? cause.message : 'Could not select the Excel file.');
-    }
-  };
-
-  const uploadImport = async () => {
-    if (!token || !activeClinicId || !importFile) {
-      showErrorToast('Choose a file', 'Select an Excel workbook to import.');
-      return;
-    }
-    setImporting(true);
-    try {
-      const response = await uploadLabCatalogExcelApi(token, activeClinicId, importFile);
-      if (!response.success) throw new Error(response.message || 'Failed to import lab inventory');
-      const inserted = Number(response.data?.inserted || 0);
-      const skipped = Number(response.data?.skipped || 0);
-      setImportModalOpen(false);
-      setImportFile(null);
-      setCatalogPage(1);
-      await loadCatalog({ page: 1, limit: catalogPageSize, search: catalogSearch, forceRefresh: true });
-      showSuccessToast(
-        'Lab inventory imported',
-        `${inserted} test(s) imported${skipped ? `; ${skipped} row(s) skipped` : ''}.`,
-      );
-      if (skipped > 0) {
-        const firstReason = response.data?.skippedData?.[0]?.reason;
-        if (firstReason) showErrorToast('Some rows were skipped', firstReason);
-      }
-    } catch (cause) {
-      showErrorToast('Import failed', cause instanceof Error ? cause.message : 'Please try again.');
-    } finally {
-      setImporting(false);
-    }
-  };
-
   const toggleColumn = (key: InventoryColumn) => setVisibleColumns(current => ({ ...current, [key]: !current[key] }));
 
   if (!canView) {
@@ -470,9 +393,6 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
             <View style={styles.toolbar}>
               <TouchableOpacity style={styles.primaryButtonFull} onPress={openMasterTests}>
                 <Search size={15} color="#fff" /><Text style={styles.primaryButtonText}>Add From Master</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.secondaryButtonFull} onPress={() => { setImportFile(null); setImportModalOpen(true); }}>
-                <Upload size={15} color="#0F766E" /><Text style={styles.secondaryButtonText}>Import Excel</Text>
               </TouchableOpacity>
             </View>
           ) : null}
@@ -662,23 +582,6 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
         </View></View>
       </AppModal>
 
-      <AppModal visible={importModalOpen} transparent animationType="slide" onRequestClose={() => setImportModalOpen(false)}>
-        <View style={styles.modalBackdrop}><View style={styles.modalCard}>
-          <View style={styles.modalHeader}><Text style={styles.modalTitle}>Import Clinic Lab Inventory</Text><Text style={styles.modalSubtitle}>Upload an Excel workbook with one header row. Invalid rows are skipped and reported.</Text></View>
-          <View style={styles.modalBody}>
-            <View style={styles.fileBox}>
-              <Text style={styles.inputLabel}>Upload file · one worksheet, header row required</Text>
-              <Text style={styles.fileName}>{importFile?.name || 'No file selected'}</Text>
-            </View>
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => { selectImportFile(); }}><FileSpreadsheet size={16} color="#0F766E" /><Text style={styles.secondaryButtonText}>{importFile ? 'Change Excel file' : 'Choose Excel file'}</Text></TouchableOpacity>
-            <Text style={styles.description}>Accepted: .xlsx and .xls · up to 5 MB</Text>
-            <Text style={styles.inputLabel}>Required format · keep these exact headers in row 1</Text>
-            <View style={styles.filterRow}>{IMPORT_COLUMNS.map(column => <View key={column} style={[styles.badge, styles.badgeMuted]}><Text style={styles.badgeMutedText}>{column}</Text></View>)}</View>
-            <Text style={styles.description}>Invalid rows are skipped; import success reports the skipped count and first reason.</Text>
-          </View>
-          <View style={styles.modalActions}><TouchableOpacity style={styles.modalAction} disabled={importing} onPress={() => { setImportModalOpen(false); setImportFile(null); }}><Text style={styles.modalActionText}>Cancel</Text></TouchableOpacity><TouchableOpacity style={[styles.modalAction, styles.modalActionPrimary]} disabled={importing || !importFile} onPress={() => { uploadImport(); }}>{importing ? <ActivityIndicator color="#fff" /> : <Text style={styles.modalActionPrimaryText}>Import File</Text>}</TouchableOpacity></View>
-        </View></View>
-      </AppModal>
     </View>
   );
 }

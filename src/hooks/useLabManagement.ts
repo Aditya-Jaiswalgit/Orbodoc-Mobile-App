@@ -23,6 +23,7 @@ export interface LabTestRecord {
   expected_at?: string | null;
   price?: number | string | null;
   created_at?: string;
+  updated_at?: string;
   report_ready?: number;
   report_uploaded_at?: string | null;
 }

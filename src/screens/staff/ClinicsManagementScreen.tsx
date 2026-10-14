@@ -38,6 +38,7 @@ import { StaffHeader } from '../../components/common/StaffHeader';
 import { Pagination } from '../../components/common/Pagination';
 import { CustomCalendarPicker } from '../../components/common/CustomCalendarPicker';
 import { ColumnSelectorModal } from '../../components/common/ColumnSelectorModal';
+import { RefreshButton } from '../../components/common/RefreshButton';
 import { showSuccessToast, showErrorToast } from '../../utils/toast';
 import { useAuthContext } from '../../context/AuthContext';
 import { useRemoteData } from '../../hooks/useRemoteData';
@@ -1128,7 +1129,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
             style={[styles.controlsRow, isMobile && styles.controlsRowMobile]}
           >
             {/* Clinic Dropdown */}
-            <View style={styles.extractedInline4}>
+            <View style={[styles.extractedInline4, isMobile && styles.controlItemMobile]}>
               <Text style={styles.controlLabel}>CLINIC</Text>
               <TouchableOpacity
                 style={styles.controlSelectBtn}
@@ -1166,8 +1167,8 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
             </View>
 
             {/* Performance Date with Integrated CustomCalendarPicker */}
-            <View style={styles.extractedInline5}>
-              <Text style={styles.controlLabel}>Performance Date</Text>
+            <View style={[styles.extractedInline5, isMobile && styles.controlItemMobile]}>
+              <Text style={styles.performanceDateLabel}>Performance Date</Text>
               <CustomCalendarPicker
                 selectedDate={selectedPerformanceDate}
                 onDateChange={d => setSelectedPerformanceDate(d)}
@@ -1183,25 +1184,17 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
 
             {/* Refresh Dashboard Button & Timestamp */}
             <View
-              style={[styles.refreshCol, isMobile && styles.extractedInline6]}
+              style={[styles.refreshCol, isMobile && styles.refreshColMobile]}
             >
-              <TouchableOpacity
-                style={styles.refreshDashBtn}
-                onPress={handleRefresh}
-                disabled={
+              <RefreshButton
+                onRefresh={handleRefresh}
+                loading={
                   isRefreshing || resource.loading || performance.loading
                 }
-              >
-                <RefreshCw
-                  color="#334155"
-                  size={14}
-                  style={styles.extractedInline7}
-                />
-                <Text style={styles.refreshDashBtnText}>Refresh dashboard</Text>
-              </TouchableOpacity>
-              <Text style={styles.lastRefreshedText}>
-                Last refreshed: {lastRefreshed}
-              </Text>
+                disabled={!selectedClinicFilterId}
+                label="Refresh dashboard"
+                refreshingLabel="Refreshing dashboard..."
+              />
             </View>
           </View>
 

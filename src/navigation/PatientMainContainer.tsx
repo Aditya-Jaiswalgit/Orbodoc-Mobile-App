@@ -29,6 +29,7 @@ import { canUseStaffScreen } from './staffAccess';
 import { io } from 'socket.io-client';
 import { BASE_URL } from '../api/apiConfig';
 import { getAppointmentsApi } from '../api/appointmentApi';
+import { fetchUnreadCount } from '../api/notificationApi';
 import { Appointment } from '../types/clinicTypes';
 import { VideoCallRoomScreen } from '../screens/common/VideoCallRoomScreen';
 
@@ -88,6 +89,7 @@ const renderTabVectorIcon = (tab: PatientTabType, color: string, size: number = 
 export const PatientMainContainer = () => {
   const [activeTab, setActiveTab] = useState<PatientTabType>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   const { user, token, userType, logout, permissionsMap = {} } = useAuthContext();
   const [activeVideoCall, setActiveVideoCall] = useState<{ appointment: Appointment; roomId: string } | null>(null);
   const handledIncomingCallRef = useRef('');
@@ -98,9 +100,32 @@ export const PatientMainContainer = () => {
     return canUseStaffScreen('patient', permissionsMap, tabId);
   }, [permissionsMap]);
 
+  useEffect(() => {
+    let mounted = true;
+    const loadUnread = async () => {
+      try {
+        const res = await fetchUnreadCount();
+        if (mounted && res.success && res.data?.count != null) {
+          setUnreadCount(Number(res.data.count));
+        }
+      } catch {
+        // quiet
+      }
+    };
+    void loadUnread();
+    return () => {
+      mounted = false;
+    };
+  }, [activeTab, drawerOpen]);
+
   const visibleMenuItems = useMemo(() => {
-    return MENU_ITEMS.filter(item => canPatientOpen(item.id));
-  }, [canPatientOpen]);
+    return MENU_ITEMS.filter(item => canPatientOpen(item.id)).map(item => {
+      if (item.id === 'notifications') {
+        return { ...item, badge: unreadCount > 0 ? unreadCount : undefined };
+      }
+      return item;
+    });
+  }, [canPatientOpen, unreadCount]);
 
   const patientName = user?.fullName || user?.full_name || 'bulbul';
   const initial = patientName.charAt(0).toUpperCase();
@@ -206,7 +231,12 @@ export const PatientMainContainer = () => {
       case 'lab_tests':
         return <LabTestsScreen onOpenDrawer={openDrawer} />;
       case 'notifications':
-        return <NotificationsScreen onOpenDrawer={openDrawer} />;
+        return (
+          <NotificationsScreen
+            onOpenDrawer={openDrawer}
+            onNavigateScreen={scr => setActiveTab(scr as PatientTabType)}
+          />
+        );
       default:
         return (
           <PatientDashboardScreen
@@ -288,8 +318,8 @@ export const PatientMainContainer = () => {
           onPress={() => setActiveTab('notifications')}>
           <View style={styles.tabIconWrapper}>
             {renderTabVectorIcon('notifications', activeTab === 'notifications' ? '#0d9488' : '#94a3b8', 21)}
-            <View style={styles.smallBadge}>
-              <Text style={styles.smallBadgeText}>4</Text>
+            <View style={[styles.smallBadge, unreadCount <= 0 && { display: 'none' }]}>
+              <Text style={styles.smallBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
             </View>
           </View>
           <Text

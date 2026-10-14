@@ -30,7 +30,6 @@ export const inventoryStyles = StyleSheet.create({
   primaryButton: { minHeight: 42, flexGrow: 1, flexBasis: '45%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 9, borderRadius: 10, backgroundColor: '#22A699' },
   primaryButtonText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   primaryButtonFull: { alignSelf: 'stretch', minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 10, backgroundColor: '#22A699' },
-  secondaryButtonFull: { alignSelf: 'stretch', minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderColor: '#DCE5E9', borderRadius: 10, backgroundColor: '#fff' },
   columnsButton: { minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 9, borderWidth: 1, borderColor: '#DCE5E9', borderRadius: 10, backgroundColor: '#F8FAFC' },
   panelControl: { marginHorizontal: 14, marginTop: 8 },
   secondaryButton: { minHeight: 42, flexGrow: 1, flexBasis: '45%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 9, borderWidth: 1, borderColor: '#DCE5E9', borderRadius: 10, backgroundColor: '#fff' },
@@ -171,6 +170,4 @@ export const inventoryStyles = StyleSheet.create({
   masterCard: { padding: 12, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, backgroundColor: '#fff' },
   masterAction: { minHeight: 38, alignItems: 'center', justifyContent: 'center', marginTop: 10, borderWidth: 1, borderColor: '#BFE3DB', borderRadius: 9, backgroundColor: '#F0FDFA' },
   masterActionText: { color: '#0F766E', fontSize: 11, fontWeight: '700' },
-  fileBox: { padding: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: '#99DCD0', borderRadius: 11, backgroundColor: '#F8FFFD' },
-  fileName: { color: '#334155', fontSize: 12, fontWeight: '600', marginTop: 7 },
 });

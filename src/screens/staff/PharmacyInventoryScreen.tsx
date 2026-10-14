@@ -151,6 +151,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
     page: currentPage,
     pageSize,
     search: debouncedSearch,
+    lowStock: selectedStatus === 'Low Stock',
     refreshKey,
   });
 

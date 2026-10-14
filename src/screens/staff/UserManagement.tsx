@@ -7,6 +7,7 @@ import {
   UserPlus,
   RefreshCw,
   Columns,
+  Columns3,
   Search,
   Eye,
   EyeOff,
@@ -28,6 +29,7 @@ import {
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { Pagination } from '../../components/common/Pagination';
 import { ColumnSelectorModal, ColumnOption } from '../../components/common/ColumnSelectorModal';
+import { RefreshButton } from '../../components/common/RefreshButton';
 import { showSuccessToast, showErrorToast } from '../../utils/toast';
 import {
   fetchAllUsersApi,
@@ -673,38 +675,46 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
               <Text style={styles.cardSubtitle}>
                 Search, filter, and manage user access with role-based controls.
               </Text>
-              <Text style={styles.timestampText}>
-                Last refreshed: {lastRefreshed || 'Just now'}
-              </Text>
             </View>
           </View>
 
           {/* Action Buttons Row */}
-          <View style={[styles.topButtonsRow, isMobile && { flexWrap: 'wrap' }]}>
-            <TouchableOpacity
-              style={styles.outlineBtn}
-              onPress={handleRefresh}
-              disabled={isRefreshing}>
-              {isRefreshing ? (
-                <ActivityIndicator size="small" color="#0D9488" style={{ marginRight: 6 }} />
-              ) : (
-                <RefreshCw size={14} color="#0D9488" style={{ marginRight: 6 }} />
-              )}
-              <Text style={styles.outlineBtnText}>Refresh Users</Text>
-            </TouchableOpacity>
+          <View style={styles.topButtonsRow}>
+            <View style={styles.topButtonCol}>
+              <RefreshButton
+                onRefresh={handleRefresh}
+                loading={isRefreshing}
+                label="Refresh"
+                refreshingLabel="Refreshing..."
+                size="sm"
+              />
+            </View>
 
-            <TouchableOpacity style={styles.outlineBtn} onPress={() => setShowColumns(true)} accessibilityLabel="Choose user columns">
-              <Columns size={14} color="#334155" style={{ marginRight: 6 }} />
-              <Text style={[styles.outlineBtnText, { color: '#334155' }]}>Columns</Text>
-            </TouchableOpacity>
+            <View style={styles.topButtonCol}>
+              <TouchableOpacity
+                style={styles.outlineBtn}
+                onPress={() => setShowColumns(true)}
+                accessibilityLabel="Choose user columns"
+              >
+                <Columns3 size={14} color="#0F172A" style={{ marginRight: 6 }} />
+                <Text style={styles.outlineBtnText}>Columns</Text>
+              </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity
-              style={styles.tealCreateBtn}
-              disabled={!canCreate}
-              onPress={() => { if (!canCreate) return; resetCreateForm(); setCreateUserModalOpen(true); }}>
-              <UserPlus size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
-              <Text style={styles.tealCreateBtnText}>Create User</Text>
-            </TouchableOpacity>
+            <View style={styles.topButtonCol}>
+              <TouchableOpacity
+                style={styles.tealCreateBtn}
+                disabled={!canCreate}
+                onPress={() => {
+                  if (!canCreate) return;
+                  resetCreateForm();
+                  setCreateUserModalOpen(true);
+                }}
+              >
+                <UserPlus size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.tealCreateBtnText}>Create</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/*   SEARCH AND FILTERS ROW  */}
@@ -1907,29 +1917,36 @@ const styles = StyleSheet.create({
 
   topButtonsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginTop: 12,
+    alignItems: 'flex-start',
+    marginTop: 14,
     gap: 8,
+    width: '100%',
+  },
+  topButtonCol: {
+    flex: 1,
   },
   outlineBtn: {
+    height: 40,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 6,
     borderRadius: 8,
+    width: '100%',
   },
-  outlineBtnText: { fontSize: 13, fontWeight: '600', color: '#0D9488' },
+  outlineBtnText: { fontSize: 13, fontWeight: '600', color: '#0F172A' },
   tealCreateBtn: {
+    height: 40,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#0D9488',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 6,
     borderRadius: 8,
+    width: '100%',
   },
   tealCreateBtnText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
 

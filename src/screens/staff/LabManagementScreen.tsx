@@ -22,6 +22,7 @@ import {
   RefreshCw,
   Search,
   Stethoscope,
+  TestTube,
   TestTube2,
   Trash2,
   X,
@@ -109,7 +110,8 @@ const displayDate = (value?: string | null) => {
       });
 };
 const money = (value?: string | number | null) =>
-  `₹${Number(value || 0).toLocaleString('en-IN', {
+  `Rs ${Number(value || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
 const reportRowsFrom = (value: unknown): ReportRow[] => {
@@ -176,12 +178,18 @@ interface Props {
   onOpenDrawer: () => void;
   initialTab?: 'orders' | 'reports';
   initialStatus?: string;
+  initialDate?: string;
+  initialDateFrom?: string;
+  initialDateTo?: string;
 }
 
 export const LabManagementScreen: React.FC<Props> = ({
   onOpenDrawer,
   initialTab = 'orders',
   initialStatus,
+  initialDate,
+  initialDateFrom,
+  initialDateTo,
 }) => {
   const {
     token,
@@ -242,8 +250,10 @@ export const LabManagementScreen: React.FC<Props> = ({
   const [savingCatalog, setSavingCatalog] = useState(false);
   const [loadingMasterTests, setLoadingMasterTests] = useState(false);
   const [busyStatusId, setBusyStatusId] = useState<number | null>(null);
-  const canView = canUseStaffScreen(role, permissionsMap, 'lab_tests', 'view');
-  const canUpdate = canUseStaffScreen(
+  const canView = initialTab === 'reports'
+    ? canUseStaffScreen(role, permissionsMap, 'lab_reports', 'view') || canUseStaffScreen(role, permissionsMap, 'lab_tests', 'view')
+    : canUseStaffScreen(role, permissionsMap, 'lab_tests', 'view');
+  const canUpdate = initialTab === 'orders' && canUseStaffScreen(
     role,
     permissionsMap,
     'lab_tests',
@@ -279,7 +289,10 @@ export const LabManagementScreen: React.FC<Props> = ({
     const needle = query.trim().toLowerCase();
     return tests.filter(
       test =>
-        (initialStatus !== 'pending' || normalizeStatus(test.status) === 'pending') &&
+        (!initialStatus || normalizeStatus(test.status) === normalizeStatus(initialStatus)) &&
+        (!initialDate || String(test.report_uploaded_at || test.updated_at || test.created_at || '').slice(0, 10) === initialDate) &&
+        (!initialDateFrom || String(test.report_uploaded_at || test.updated_at || test.created_at || '').slice(0, 10) >= initialDateFrom) &&
+        (!initialDateTo || String(test.report_uploaded_at || test.updated_at || test.created_at || '').slice(0, 10) <= initialDateTo) &&
         (!needle ||
         [
           test.id,
@@ -295,7 +308,7 @@ export const LabManagementScreen: React.FC<Props> = ({
             .includes(needle),
         )),
     );
-  }, [initialStatus, query, tests]);
+  }, [initialDate, initialDateFrom, initialDateTo, initialStatus, query, tests]);
   const groupedTests = useMemo(() => {
     const groups = new Map<
       string,
@@ -713,7 +726,7 @@ export const LabManagementScreen: React.FC<Props> = ({
       >
         <View style={styles.pageHeading}>
           <View style={styles.headingIcon}>
-            <TestTube2 size={23} color="#0D9488" />
+            <TestTube size={24} color="#0D9488" strokeWidth={2.4} />
           </View>
           <View style={styles.flex}>
             <Text style={styles.pageTitle}>Lab Tests</Text>
@@ -760,7 +773,7 @@ export const LabManagementScreen: React.FC<Props> = ({
         <View style={styles.labResultsPanel}>
         <View style={styles.labSummary}>
           <View style={styles.summaryHeading}>
-            <View style={styles.summaryIcon}><TestTube2 size={21} color="#fff" /></View>
+            <View style={styles.summaryIcon}><TestTube size={22} color="#fff" strokeWidth={2.4} /></View>
             <View style={styles.flex}>
               <View style={styles.summaryTitleRow}>
                 <Text style={styles.summaryTitle}>Lab Tests</Text>
@@ -877,11 +890,15 @@ export const LabManagementScreen: React.FC<Props> = ({
                         </View>
                       </View>
                       <View style={styles.testSummaryBox}>
-                        <Text style={styles.cardTitle} numberOfLines={2}>#{test.id} · {test.test_name}</Text>
+                        <Text style={[styles.cardTitle, { textDecorationLine: 'underline' }]} numberOfLines={2}>
+                          #{test.id} - {test.test_name}
+                        </Text>
                         <View style={styles.testSummaryActions}>
-                          <Text style={styles.pricePill}>{money(test.price)}</Text>
+                          <Text style={styles.pricePill}>₹{Number(test.price || 0).toFixed(2)}</Text>
                           <View style={report ? styles.readyBadge : styles.pendingBadge}>
-                            <Text style={report ? styles.readyText : styles.pendingText}>{report ? 'Report Ready' : 'Report Pending'}</Text>
+                            <Text style={report ? styles.readyText : styles.pendingText}>
+                              {report ? 'Report Ready' : 'Report Pending'}
+                            </Text>
                           </View>
                           {report && canEditReport ? <TouchableOpacity style={styles.editReportAction} accessibilityLabel="Edit report" onPress={() => openReportEditor(test, report)}><View style={styles.reportCheckCircle} /><Pencil size={15} color="#0f172a" /><Text style={styles.editReportText}>Edit</Text></TouchableOpacity> : !report && canCreateReport ? <TouchableOpacity style={styles.editReportAction} accessibilityLabel="Add report" onPress={() => openReportEditor(test)}><Pencil size={15} color="#0f172a" /><Text style={styles.editReportText}>Edit</Text></TouchableOpacity> : null}
                         </View>

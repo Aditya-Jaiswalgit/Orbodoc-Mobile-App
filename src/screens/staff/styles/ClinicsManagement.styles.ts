@@ -60,6 +60,7 @@ export const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     elevation: 1,
+    overflow: 'hidden',
   },
 
   controlsRow: {
@@ -73,7 +74,7 @@ export const styles = StyleSheet.create({
   controlsRowMobile: {
     flexDirection: 'column',
     alignItems: 'stretch',
-    gap: 10,
+    gap: 12,
     marginHorizontal: -16,
     marginTop: -16,
     paddingHorizontal: 16,
@@ -82,16 +83,34 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F0FDFA',
     borderBottomColor: '#CCFBF1',
   },
-  webDateTrigger: {
-    minHeight: 44, borderRadius: 8, borderColor: '#99F6E4',
-    backgroundColor: '#E6F4F1', paddingHorizontal: 12,
+  controlItemMobile: {
+    width: '100%',
+    flex: undefined,
+    minWidth: undefined,
   },
-  webDateTriggerText: { color: '#0D9488', fontSize: 14, fontWeight: '700' },
+  webDateTrigger: {
+    minHeight: 44,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  webDateTriggerText: { color: '#0F172A', fontSize: 14, fontWeight: '500' },
+  performanceDateLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
+    marginBottom: 6,
+  },
   controlLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
-    marginBottom: 4,
+    color: '#64748B',
+    marginBottom: 6,
     textTransform: 'uppercase',
   },
 
@@ -103,10 +122,11 @@ export const styles = StyleSheet.create({
     borderColor: '#CBD5E1',
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    minHeight: 44,
+    height: 44,
     backgroundColor: '#FFFFFF',
   },
-  controlSelectBtnText: { color: '#0F172A', fontSize: 14, fontWeight: '600' },
+  controlSelectBtnText: { color: '#0F172A', fontSize: 14, fontWeight: '500' },
 
   controlDropdownMenu: {
     position: 'absolute',
@@ -134,6 +154,11 @@ export const styles = StyleSheet.create({
   controlDropdownItemText: { fontSize: 13, color: '#334155' },
 
   refreshCol: { flex: 1, alignItems: 'flex-end', justifyContent: 'center' },
+  refreshColMobile: {
+    width: '100%',
+    alignItems: 'stretch',
+    marginTop: 4,
+  },
   refreshDashBtn: {
     flexDirection: 'row',
     alignItems: 'center',

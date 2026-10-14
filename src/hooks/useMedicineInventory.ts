@@ -9,6 +9,7 @@ type Params = {
   page: number;
   pageSize: number;
   search: string;
+  lowStock?: boolean;
   refreshKey?: number;
 };
 type InventoryResult = { medicines: Medicine[]; total: number };
@@ -45,6 +46,7 @@ export function useMedicineInventory({
   page,
   pageSize,
   search,
+  lowStock = false,
   refreshKey = 0,
 }: Params) {
   const [data, setData] = useState<InventoryResult>({
@@ -71,7 +73,7 @@ export function useMedicineInventory({
         page,
         limit: pageSize,
         search,
-        low_stock: false,
+        low_stock: lowStock,
         is_active: 1,
       });
       if (requestId !== requestSequence.current) return;
@@ -91,7 +93,7 @@ export function useMedicineInventory({
     } finally {
       if (requestId === requestSequence.current) setLoading(false);
     }
-  }, [canView, clinicId, page, pageSize, search, token]);
+  }, [canView, clinicId, lowStock, page, pageSize, search, token]);
 
   useEffect(() => {
     refresh();

@@ -12,6 +12,7 @@ type Params = {
   pageSize: number;
   dateFrom?: string;
   dateTo?: string;
+  date?: string;
 };
 function normalizeBills(value: unknown) {
   if (Array.isArray(value))
@@ -38,6 +39,7 @@ export function useTreatmentBills({
   pageSize,
   dateFrom,
   dateTo,
+  date,
 }: Params) {
   const [bills, setBills] = useState<TreatmentBill[]>([]);
   const [total, setTotal] = useState(0);
@@ -69,6 +71,7 @@ export function useTreatmentBills({
           limit: pageSize,
           date_from: dateFrom,
           date_to: dateTo,
+          date,
         });
         if (requestId !== sequence.current) return;
         if (!response.success)
@@ -109,7 +112,7 @@ export function useTreatmentBills({
         }
       }
     },
-    [canView, clinicId, dateFrom, dateTo, page, pageSize, search, status, token],
+    [canView, clinicId, date, dateFrom, dateTo, page, pageSize, search, status, token],
   );
 
   useEffect(() => {

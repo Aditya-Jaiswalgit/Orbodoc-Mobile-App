@@ -1,6 +1,6 @@
 import { AppModal } from '../../components/common/AppModal';
 import { styles } from './styles/MedicineBilling.styles';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, KeyboardAvoidingView, NativeModules, Platform, ScrollView, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import {
@@ -16,6 +16,7 @@ import {
   MoreVertical,
   Pill,
   Plus,
+
   Receipt,
   RefreshCw,
   Search,
@@ -37,7 +38,6 @@ import { getAppointmentsApi } from '../../api/appointmentApi';
 import {
   cancelMedicineBillApi,
   getMedicineBillByIdApi,
-  recordMedicineBillPaymentApi,
   createMedicineBillApi,
   updateMedicineBillApi,
 } from '../../api/billingApi';
@@ -60,20 +60,19 @@ import {
 } from './billing/medicineBillingUtils';
 import {
   BillMetric,
-  Info,
   ModalHeader,
 } from './billing/MedicineBillingComponents';
 
 interface Props {
   onOpenDrawer: () => void;
+  initialDate?: string;
+  initialDateFrom?: string;
+  initialDateTo?: string;
 }
 
 const PRESCRIPTION_PAGE_SIZE = 5;
-interface Props {
-  onOpenDrawer: () => void;
-}
 
-export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
+export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDate, initialDateFrom, initialDateTo }) => {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const {
@@ -108,19 +107,15 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
     'medicine_billing',
     'delete',
   );
-  const canExecute = canUseStaffScreen(
-    role,
-    permissionsMap,
-    'medicine_billing',
-    'execute',
-  );
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [statusOpen, setStatusOpen] = useState(false);
-  const [dateFilter, setDateFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState(initialDate || '');
+  const [dateFromFilter, setDateFromFilter] = useState(initialDateFrom || '');
+  const [dateToFilter, setDateToFilter] = useState(initialDateTo || '');
   const [saving, setSaving] = useState(false);
   const [columnsVisible, setColumnsVisible] = useState(false);
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
@@ -164,8 +159,6 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   const [notes, setNotes] = useState('');
   const [viewedBill, setViewedBill] = useState<Bill | null>(null);
   const [viewVisible, setViewVisible] = useState(false);
-  const [paymentBill, setPaymentBill] = useState<Bill | null>(null);
-  const [paymentInput, setPaymentInput] = useState('');
   const [editBill, setEditBill] = useState<Bill | null>(null);
   const [editDiscount, setEditDiscount] = useState('');
   const [editTax, setEditTax] = useState('');
@@ -197,6 +190,8 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
     search: debouncedSearch,
     status,
     date: dateFilter || undefined,
+    dateFrom: dateFilter ? undefined : dateFromFilter || undefined,
+    dateTo: dateFilter ? undefined : dateToFilter || undefined,
     page,
     pageSize,
   });
@@ -205,7 +200,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
   }, [billsError]);
   useEffect(() => {
     setPage(1);
-  }, [activeClinicId, debouncedSearch, status, dateFilter]);
+  }, [activeClinicId, debouncedSearch, status, dateFilter, dateFromFilter, dateToFilter]);
 
   useEffect(() => {
     if (!token || !activeClinicId || !patientSearch.trim() || selectedPatient) {
@@ -421,13 +416,13 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
     setAppointmentOpen(false);
     setAppointmentSearch('');
   };
-  const formatAppointmentInput = (appointment: any) => {
+  const formatAppointmentInput = useCallback((appointment: any) => {
     const dateTime = [appointment?.appointment_date || '-', appointment?.appointment_time]
       .filter(Boolean)
       .join(' ');
     return `${dateTime} | Appt ID: ${appointment?.id}`;
-  };
-  const applyPrescription = async (prescription: any) => {
+  }, []);
+  const applyPrescription = useCallback(async (prescription: any) => {
     const prescriptionItems = Array.isArray(prescription?.items) ? prescription.items : [];
     const resolvedItems: BillLine[] = await Promise.all(prescriptionItems.map(async (item: any) => {
       const quantity = Number(item.quantity || 0);
@@ -480,7 +475,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
       }));
     }
     showSuccessToast('Prescription applied', `${mapped.length} medicine(s) added to the bill.`);
-  };
+  }, [appointments, formatAppointmentInput, selectedPatient, token]);
 
   useEffect(() => {
     if (prescriptionLoading || !selectedPatient || prescriptionOptions.length === 0 || items.length > 0 || appliedPrescriptionId !== null) return;
@@ -490,7 +485,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
         showErrorToast('Could not apply prescription', error?.message || 'Please select the medicines manually.');
       });
     }
-  }, [prescriptionLoading, selectedPatient, prescriptionOptions, items.length, appliedPrescriptionId]);
+  }, [applyPrescription, prescriptionLoading, selectedPatient, prescriptionOptions, items.length, appliedPrescriptionId]);
   const openCreate = () => {
     resetForm();
     setFormVisible(true);
@@ -743,6 +738,35 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
       showErrorToast('Download failed', error?.message);
     }
   };
+  const printBill = async (bill: Bill) => {
+    if (Platform.OS !== 'android' || !NativeModules.BillPdfDownload?.printHtml) {
+      showErrorToast('Print unavailable', 'Invoice printing is available on Android.');
+      return;
+    }
+    const escapeHtml = (value: unknown) => String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+    const lineRows = (bill.items || []).map(item => `
+      <tr><td>${escapeHtml(item.medicine_name)}</td><td>${escapeHtml(item.quantity)}</td>
+      <td>${escapeHtml(money(item.unit_price))}</td><td>${escapeHtml(item.discount_pct)}%</td>
+      <td>${escapeHtml(money(item.total_price))}</td></tr>`).join('');
+    const clinicName = activeClinicName || (bill as any).clinic_name || 'Clinic';
+    const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1" /><style>
+      *{box-sizing:border-box}body{font:14px Arial,sans-serif;color:#0f172a;margin:0;padding:34px}h1{font-size:22px;margin:0 0 5px}h2{font-size:17px;margin:0 0 5px}p{margin:4px 0;color:#475569}.top{display:flex;justify-content:space-between;border-bottom:2px solid #0d9488;padding-bottom:18px}.meta{margin:22px 0;display:flex;justify-content:space-between}.label{font-size:11px;color:#64748b;text-transform:uppercase;margin-bottom:5px}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{text-align:left;padding:10px 7px;border-bottom:1px solid #e2e8f0}th{font-size:11px;color:#64748b;text-transform:uppercase;background:#f8fafc}.totals{width:270px;margin-left:auto}.total{display:flex;justify-content:space-between;padding:6px 0}.grand{border-top:1px solid #cbd5e1;font-size:17px;font-weight:bold;padding-top:11px}.notes{margin-top:24px;padding:12px;background:#f8fafc;border-radius:8px}.foot{margin-top:30px;text-align:center;color:#64748b;font-size:11px}
+      </style></head><body><div class="top"><div><h1>${escapeHtml(clinicName)}</h1><p>Medicine Invoice</p></div><div style="text-align:right"><h2>${escapeHtml(bill.bill_number || `Bill #${bill.id}`)}</h2><p>${escapeHtml(dateLabel(bill.created_at))}</p></div></div>
+      <div class="meta"><div><div class="label">Billed to</div><strong>${escapeHtml(bill.patient_name || 'Patient')}</strong><p>${escapeHtml((bill as any).patient_code || '')}</p><p>${escapeHtml((bill as any).patient_phone || '')}</p></div><div style="text-align:right"><div class="label">Status</div><strong>${escapeHtml(statusOf(bill))}</strong><p>Payment: ${escapeHtml(bill.payment_method || 'Not recorded')}</p></div></div>
+      <table><thead><tr><th>Medicine</th><th>Qty</th><th>Rate</th><th>Discount</th><th>Amount</th></tr></thead><tbody>${lineRows}</tbody></table>
+      <div class="totals"><div class="total"><span>Subtotal</span><strong>${escapeHtml(money(bill.subtotal))}</strong></div><div class="total"><span>Discount</span><strong>-${escapeHtml(money(bill.discount_amount))}</strong></div><div class="total"><span>Tax</span><strong>+${escapeHtml(money(bill.tax_amount))}</strong></div><div class="total grand"><span>Total</span><strong>${escapeHtml(money(bill.total_amount))}</strong></div><div class="total"><span>Paid</span><strong>${escapeHtml(money(bill.paid_amount))}</strong></div><div class="total"><span>Balance due</span><strong>${escapeHtml(money(Math.max(0, Number(bill.total_amount) - Number(bill.paid_amount))))}</strong></div></div>
+      ${bill.notes ? `<div class="notes"><div class="label">Notes</div>${escapeHtml(bill.notes)}</div>` : ''}<div class="foot">This is a system-generated medicine invoice.</div></body></html>`;
+    try {
+      await NativeModules.BillPdfDownload.printHtml(html, `Medicine invoice ${bill.bill_number || bill.id}`);
+    } catch (error: any) {
+      showErrorToast('Print failed', error?.message || 'Could not open the system print dialog.');
+    }
+  };
   const cancelBill = (bill: Bill) => {
     Alert.alert(
       'Cancel medicine bill?',
@@ -772,48 +796,6 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
         },
       ],
     );
-  };
-  const recordPayment = async () => {
-    if (!token || !paymentBill) return;
-    const amount = Number(paymentInput);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      showErrorToast(
-        'Invalid amount',
-        'Enter a payment amount greater than zero.',
-      );
-      return;
-    }
-    const newPaid = Number(paymentBill.paid_amount || 0) + amount;
-    if (newPaid > Number(paymentBill.total_amount)) {
-      showErrorToast(
-        'Invalid amount',
-        'Payment cannot exceed the balance due.',
-      );
-      return;
-    }
-    setSaving(true);
-    try {
-      const response = await recordMedicineBillPaymentApi(
-        token,
-        paymentBill.id,
-        {
-          paid_amount: newPaid,
-          status: newPaid >= paymentBill.total_amount ? 'paid' : 'partial',
-        },
-      );
-      if (!response.success) {
-        showErrorToast('Payment failed', response.message);
-        return;
-      }
-      setPaymentBill(null);
-      setPaymentInput('');
-      showSuccessToast('Payment recorded', response.message);
-      loadBills();
-    } catch (error: any) {
-      showErrorToast('Payment failed', error?.message);
-    } finally {
-      setSaving(false);
-    }
   };
   const saveEdit = async () => {
     if (!token || !editBill) return;
@@ -967,70 +949,47 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
               <Search size={15} color="#334155" />
               <Text style={styles.searchSubmitText}>Search</Text>
             </TouchableOpacity>
-            {!isMobile && <View style={styles.statusWrap}>
-              <TouchableOpacity
-                style={styles.statusButton}
-                onPress={() => setStatusOpen(v => !v)}
-              >
-                <Text style={styles.statusButtonText}>
-                  {status === 'all' ? 'All Status' : status.replace('_', ' ')}
-                </Text>
-                <ChevronDown size={18} color="#64748B" />
-              </TouchableOpacity>
-              {statusOpen ? (
-                <View style={styles.statusMenu}>
-                  {STATUS_OPTIONS.map(option => (
-                    <TouchableOpacity
-                      key={option}
-                      style={styles.option}
-                      onPress={() => setFilterStatus(option)}
-                    >
-                      <Text style={styles.optionText}>
-                        {option === 'all'
-                          ? 'All Status'
-                          : option.replace('_', ' ')}
-                      </Text>
-                      {status === option ? (
-                        <Check size={15} color="#0D9488" />
-                      ) : null}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : null}
-            </View>}
-            {!isMobile && <View style={styles.dateFilter}>
-              <View style={styles.datePickerFlex}>
-                <CustomCalendarPicker
-                  selectedDate={
-                    dateFilter ? new Date(`${dateFilter}T00:00:00`) : undefined
-                  }
-                  placeholder="All dates"
-                  triggerStyle={styles.dateTrigger}
-                  triggerTextStyle={styles.dateTriggerText}
-                  iconColor="#64748B"
-                  onDateChange={date => {
-                    setDateFilter(
-                      `${date.getFullYear()}-${String(
-                        date.getMonth() + 1,
-                      ).padStart(2, '0')}-${String(date.getDate()).padStart(
-                        2,
-                        '0',
-                      )}`,
-                    );
-                    setPage(1);
-                  }}
-                />
-              </View>
-              {dateFilter ? (
-                <TouchableOpacity
-                  accessibilityLabel="Clear date filter"
-                  onPress={() => setDateFilter('')}
-                >
-                  <X size={16} color="#64748B" />
-                </TouchableOpacity>
-              ) : null}
-            </View>}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           </View>
+
+
+
+
+
+
           {loading ? (
             <View style={styles.center}>
               <ActivityIndicator color="#0D9488" />
@@ -1091,12 +1050,12 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                   );
                   const statusColor =
                     billStatus === 'paid'
-                      ? '#047857'
+                      ? '#15803D'
                       : billStatus === 'partial'
-                      ? '#1D4ED8'
+                      ? '#B45309'
                       : billStatus === 'cancelled'
                       ? '#B91C1C'
-                      : '#92400E';
+                      : '#DC2626';
                   return (
                     <View key={bill.id} style={styles.billCard}>
                       <View style={styles.cardHeader}>
@@ -1206,37 +1165,14 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                           >
                             <Eye size={17} color="#0D9488" />
                           </TouchableOpacity>
-                          <TouchableOpacity
+                          {canEdit || canDelete ? <TouchableOpacity
                             style={styles.moreAction}
-                            onPress={() =>
-                              setActionMenuBill(current =>
-                                current?.id === bill.id ? null : bill,
-                              )
-                            }
-                          >
-                            <MoreVertical size={17} color="#475569" />
-                          </TouchableOpacity>
+                            onPress={() => setActionMenuBill(current => current?.id === bill.id ? null : bill)}
+                          ><MoreVertical size={17} color="#475569" /></TouchableOpacity> : null}
                         </View>
                       </View>
                       {actionMenuBill?.id === bill.id ? (
                         <View style={styles.actionMenu}>
-                          {canExecute &&
-                          billStatus !== 'paid' &&
-                          billStatus !== 'cancelled' ? (
-                            <TouchableOpacity
-                              style={styles.menuAction}
-                              onPress={() => {
-                                setActionMenuBill(null);
-                                setPaymentBill(bill);
-                                setPaymentInput(balance.toFixed(2));
-                              }}
-                            >
-                              <Check size={15} color="#0F766E" />
-                              <Text style={styles.menuActionText}>
-                                Record payment
-                              </Text>
-                            </TouchableOpacity>
-                          ) : null}
                           {canEdit && billStatus !== 'cancelled' ? (
                             <TouchableOpacity
                               style={styles.menuAction}
@@ -1264,18 +1200,6 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                               </Text>
                             </TouchableOpacity>
                           ) : null}
-                          <TouchableOpacity
-                            style={styles.menuAction}
-                            onPress={() => {
-                              setActionMenuBill(null);
-                              downloadPdf(bill);
-                            }}
-                          >
-                            <Download size={15} color="#334155" />
-                            <Text style={styles.menuActionText}>
-                              Download PDF
-                            </Text>
-                          </TouchableOpacity>
                         </View>
                       ) : null}
                     </View>
@@ -1790,12 +1714,26 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                           {(viewedBill.payment_method || 'Cash').replace(/^./, value => value.toUpperCase())}
                         </Text>
                       </Text>
-                      <View style={[
-                        styles.invoiceStatusPill,
-                        statusOf(viewedBill) === 'paid' ? styles.invoicePaidPill : styles.invoiceDuePill,
-                      ]}>
-                        <Text style={styles.invoiceStatusText}>{statusOf(viewedBill).toUpperCase()}</Text>
-                      </View>
+                      {(() => {
+                        const modalStatus = statusOf(viewedBill);
+                        const pillBg = modalStatus === 'paid'
+                          ? styles.invoicePaidPill
+                          : modalStatus === 'partial'
+                          ? styles.invoicePartialPill
+                          : styles.invoiceDuePill;
+                        const pillTextColor = modalStatus === 'paid'
+                          ? '#15803D'
+                          : modalStatus === 'partial'
+                          ? '#B45309'
+                          : '#DC2626';
+                        return (
+                          <View style={[styles.invoiceStatusPill, pillBg]}>
+                            <Text style={[styles.invoiceStatusText, { color: pillTextColor }]}>
+                              {modalStatus.toUpperCase()}
+                            </Text>
+                          </View>
+                        );
+                      })()}
                     </View>
 
                     <Text style={styles.invoiceSectionTitle}>MEDICINE ITEMS</Text>
@@ -1862,6 +1800,14 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                 <X size={16} color="#334155" />
                 <Text style={styles.invoiceCloseActionText}>Close</Text>
               </TouchableOpacity>
+
+
+
+
+
+
+
+
               {viewedBill ? (
                 <TouchableOpacity
                   style={[styles.invoiceDownloadButton, styles.invoiceActionButton]}
@@ -1872,55 +1818,6 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer }) => {
                 </TouchableOpacity>
               ) : null}
               </View>
-            </View>
-          </View>
-        </View>
-      </AppModal>
-
-      <AppModal
-        visible={Boolean(paymentBill)}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPaymentBill(null)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <ModalHeader
-              title="Record Payment"
-              onClose={() => setPaymentBill(null)}
-            />
-            <View style={styles.modalContent}>
-              {paymentBill ? (
-                <Text style={styles.muted}>
-                  Balance due:{' '}
-                  {money(
-                    Number(paymentBill.total_amount) -
-                      Number(paymentBill.paid_amount),
-                  )}
-                </Text>
-              ) : null}
-              {renderField(
-                'Payment amount (\u20B9)',
-                paymentInput,
-                setPaymentInput,
-                'Enter amount',
-                'decimal-pad',
-              )}
-            </View>
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() => setPaymentBill(null)}
-              >
-                <Text style={styles.secondaryText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                disabled={saving}
-                style={styles.primaryButton}
-                onPress={() => recordPayment()}
-              >
-                <Text style={styles.primaryText}>Save Payment</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </View>

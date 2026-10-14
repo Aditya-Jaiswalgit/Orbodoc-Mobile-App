@@ -154,9 +154,8 @@ export async function fetchPlanObjectIds(clinicId: string | number): Promise<Set
 
 /**
  * 7. Get Permissions by Role ID
- * Comprehensive resolver: Queries /role_per/permission/{roleId} AND merges with
- * the live clinic matrix from /role_per/list?clinic_id={clinicId} so that permissions
- * updated by Admin in the web portal are immediately reflected.
+ * Uses the same authoritative role permission endpoint as the web client.
+ * The clinic matrix is only a fallback when the direct endpoint is unavailable.
  */
 export async function fetchPermissionMapByRoleApi(
   roleId: string | number,
@@ -170,7 +169,6 @@ export async function fetchPermissionMapByRoleApi(
   try {
     const direct = await apiFetch<Record<string, any>>(`/role_per/permission/${encodeURIComponent(String(roleId))}`);
     if (direct.success && direct.data && typeof direct.data === 'object' && !Array.isArray(direct.data)) {
-      anySuccess = true;
       for (const [key, val] of Object.entries(direct.data)) {
         if (val && typeof val === 'object') {
           mergedMap[key] = {
@@ -182,6 +180,10 @@ export async function fetchPermissionMapByRoleApi(
           };
         }
       }
+      // Match the web client: the role permission endpoint is authoritative.
+      // Do not OR-merge older clinic-list rows, because that can keep a revoked
+      // permission enabled in the app after it has been turned off on the web.
+      return { success: true, data: mergedMap };
     }
   } catch {
     // continue to clinic list

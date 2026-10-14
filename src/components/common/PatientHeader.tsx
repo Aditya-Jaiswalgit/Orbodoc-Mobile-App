@@ -14,11 +14,13 @@ import { Bell, Menu } from 'lucide-react-native';
 interface PatientHeaderProps {
   onOpenDrawer: () => void;
   onOpenNotifications?: () => void;
+  unreadCount?: number;
 }
 
 export const PatientHeader: React.FC<PatientHeaderProps> = ({
   onOpenDrawer,
   onOpenNotifications,
+  unreadCount = 0,
 }) => {
   const { user, logout } = useAuthContext();
   const statusBarHeight = StatusBar.currentHeight || 36;
@@ -68,9 +70,11 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({
             activeOpacity={0.8}
             onPress={onOpenNotifications}>
             <Bell color="#0f766e" size={17} />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>4</Text>
-            </View>
+            {unreadCount > 0 ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              </View>
+            ) : null}
           </TouchableOpacity>
 
           {/* Profile Avatar (Logout) */}

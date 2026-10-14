@@ -41,6 +41,8 @@ import { showErrorToast, showSuccessToast } from '../../utils/toast';
 interface Props {
   onOpenDrawer: () => void;
   appointmentId?: string;
+  initialPatientId?: string;
+  createForAppointment?: boolean;
 }
 
 interface PrescriptionTest {
@@ -69,8 +71,8 @@ const emptyMedicine = (): PrescriptionItem => ({
 const emptyTest = (): PrescriptionTest => ({
   test_name: '', test_type: 'General', priority: 'routine', instructions: '', price: 0,
 });
-const emptyForm = (appointmentId = ''): PrescriptionFormState => ({
-  patient_id: '', appointment_id: appointmentId, symptoms: '', diagnosis: '', advice: '',
+const emptyForm = (appointmentId = '', patientId = ''): PrescriptionFormState => ({
+  patient_id: patientId, appointment_id: appointmentId, symptoms: '', diagnosis: '', advice: '',
   follow_up_days: '', items: [emptyMedicine()], tests: [],
 });
 
@@ -96,7 +98,7 @@ const displayDate = (value?: string) => {
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, appointmentId }) => {
+export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, appointmentId, initialPatientId, createForAppointment = false }) => {
   const { token, user, activeClinicId } = useAuthContext();
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [patients, setPatients] = useState<PatientModel[]>([]);
@@ -112,7 +114,7 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, appointment
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selected, setSelected] = useState<Prescription | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState<PrescriptionFormState>(() => emptyForm(appointmentId));
+  const [form, setForm] = useState<PrescriptionFormState>(() => emptyForm(appointmentId, initialPatientId));
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -155,7 +157,7 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, appointment
   const openCreate = () => {
     setEditingId(null);
     setSelected(null);
-    setForm(emptyForm(appointmentId));
+    setForm(emptyForm(appointmentId, initialPatientId));
     setPatientQuery('');
     setMedicineQuery('');
     setFormOpen(true);
@@ -187,6 +189,14 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, appointment
 
   useEffect(() => {
     if (!appointmentId || !token) return;
+    if (createForAppointment) {
+      setEditingId(null);
+      setSelected(null);
+      setForm(emptyForm(appointmentId, initialPatientId));
+      setPatientQuery('');
+      setFormOpen(true);
+      return;
+    }
     let active = true;
     void getPrescriptionsApi(token, { appointment_id: appointmentId, limit: 50, page: 1 })
       .then(response => {
@@ -199,7 +209,7 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, appointment
         if (active) showErrorToast('Prescription', error instanceof Error ? error.message : 'Could not load appointment prescription.');
       });
     return () => { active = false; };
-  }, [appointmentId, openEdit, token]);
+  }, [appointmentId, createForAppointment, initialPatientId, openEdit, token]);
 
   const savePrescription = async () => {
     if (!token) return;

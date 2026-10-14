@@ -8,15 +8,17 @@ import {
 } from 'react-native';
 import {
   ArrowRight,
+  Bell,
   Building2,
-  Calendar,
+  CalendarDays,
   CheckCircle2,
   CreditCard,
   Lock,
   Pill,
+  Shield,
   ShieldCheck,
   TestTube,
-  UserCog,
+  UserPlus,
   Users,
   Video,
 } from 'lucide-react-native';
@@ -46,9 +48,21 @@ export const NurseDashboardScreen: React.FC<Props> = ({
   const currentRole = role || 'nurse';
   const roleDisplayTitle = currentRole.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-  // Define candidate modules that can appear on custom/nurse workspace
+  const now = new Date();
+  const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
+  const staffName = String(user?.fullName || user?.full_name || '').trim();
+  const todayLabel = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  // Keep this list in sync with the web customRoleNav order. The dashboard
+  // shows only entries allowed by the role's permissions.
   const allModules: QuickModuleItem[] = useMemo(
     () => [
+      {
+        id: 'clinics',
+        label: 'Clinic Management',
+        description: 'Open clinic management module',
+        icon: Building2,
+      },
       {
         id: 'patients',
         label: 'Patients',
@@ -59,13 +73,7 @@ export const NurseDashboardScreen: React.FC<Props> = ({
         id: 'appointments',
         label: 'Appointments',
         description: 'Open appointments module',
-        icon: Calendar,
-      },
-      {
-        id: 'book_appointment',
-        label: 'Book Appointment',
-        description: 'Schedule in-person or online consultation',
-        icon: Calendar,
+        icon: CalendarDays,
       },
       {
         id: 'video_services',
@@ -92,15 +100,15 @@ export const NurseDashboardScreen: React.FC<Props> = ({
         icon: Pill,
       },
       {
-        id: 'lab_management',
-        label: 'Lab Management',
-        description: 'Open lab profile management',
-        icon: Building2,
-      },
-      {
         id: 'lab_tests',
         label: 'Lab Tests',
         description: 'Open lab tests module',
+        icon: TestTube,
+      },
+      {
+        id: 'lab_inventory',
+        label: 'Lab Inventory',
+        description: 'Open lab inventory module',
         icon: TestTube,
       },
       {
@@ -110,16 +118,34 @@ export const NurseDashboardScreen: React.FC<Props> = ({
         icon: TestTube,
       },
       {
-        id: 'clinics',
-        label: 'Clinic Management',
-        description: 'Open clinic management module',
-        icon: Building2,
+        id: 'notifications',
+        label: 'Notifications',
+        description: 'Open notifications',
+        icon: Bell,
       },
       {
         id: 'staff',
-        label: 'User Management',
-        description: 'Open user & role management',
-        icon: UserCog,
+        label: 'Create User',
+        description: 'Open create user module',
+        icon: UserPlus,
+      },
+      {
+        id: 'role_permissions',
+        label: 'Role Permissions',
+        description: 'Open role permissions',
+        icon: Shield,
+      },
+      {
+        id: 'lab_management',
+        label: 'Lab Management',
+        description: 'Open lab profile management',
+        icon: Building2,
+      },
+      {
+        id: 'book_appointment',
+        label: 'Book Appointment',
+        description: 'Schedule in-person or online consultation',
+        icon: CalendarDays,
       },
     ],
     []
@@ -139,11 +165,35 @@ export const NurseDashboardScreen: React.FC<Props> = ({
       />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* ── 1. CUSTOM WORKSPACE HERO BANNER (Exact Web Parity) ── */}
+        {/* ── 1. GREETING & TODAY CARD ── */}
+        <View style={styles.welcomeBlock}>
+          <Text style={styles.greetingTitle}>
+            {greeting}{staffName ? `, ${staffName}` : ''}!
+          </Text>
+          <Text style={styles.greetingSubtitle}>
+            Here's what's happening at your clinic today.
+          </Text>
+        </View>
+
+        {/* Today Date Card */}
+        <View style={styles.todayCard}>
+          <View style={styles.todayIcon}>
+            <CalendarDays size={22} color="#0D9488" strokeWidth={2.2} />
+          </View>
+          <View style={styles.todayCopy}>
+            <View style={styles.todayEyebrow}>
+              <View style={styles.todayDot} />
+              <Text style={styles.todayLabel}>TODAY</Text>
+            </View>
+            <Text style={styles.todayDate}>{todayLabel}</Text>
+          </View>
+        </View>
+
+        {/* ── 2. CUSTOM WORKSPACE HERO BANNER ── */}
         <View style={styles.heroCard}>
           <View style={styles.heroRow}>
             <View style={styles.heroIconBox}>
-              <ShieldCheck size={28} color="#FFFFFF" />
+              <ShieldCheck size={28} color="#FFFFFF" strokeWidth={2.2} />
             </View>
             <View style={styles.heroTextCol}>
               <View style={styles.badgeWrap}>
@@ -151,23 +201,15 @@ export const NurseDashboardScreen: React.FC<Props> = ({
               </View>
               <Text style={styles.heroTitle}>{roleDisplayTitle} Dashboard</Text>
               <Text style={styles.heroSubtitle}>
-                Your workspace displays only the modules enabled for this role by your clinic
-                administrator.
+                Your workspace displays only the modules enabled for this role by your clinic administrator.
               </Text>
             </View>
           </View>
         </View>
 
-        {/* ── 2. QUICK ACCESS MODULES GRID ── */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Available Modules</Text>
-          <Text style={styles.sectionCount}>
-            {quickLinks.length} {quickLinks.length === 1 ? 'module' : 'modules'} active
-          </Text>
-        </View>
-
+        {/* ── 3. AVAILABLE MODULES ── */}
         {quickLinks.length > 0 ? (
-          <View style={styles.moduleGrid}>
+          <View style={styles.moduleList}>
             {quickLinks.map((item) => {
               const IconComp = item.icon;
               return (
@@ -181,9 +223,7 @@ export const NurseDashboardScreen: React.FC<Props> = ({
                     <View style={styles.moduleIconCircle}>
                       <IconComp size={22} color="#0D9488" />
                     </View>
-                    <View style={styles.arrowCircle}>
-                      <ArrowRight size={16} color="#94A3B8" />
-                    </View>
+                    <ArrowRight size={18} color="#64748B" />
                   </View>
                   <Text style={styles.cardTitle}>{item.label}</Text>
                   <Text style={styles.cardSubtitle}>{item.description}</Text>
@@ -192,7 +232,7 @@ export const NurseDashboardScreen: React.FC<Props> = ({
             })}
           </View>
         ) : (
-          /* Empty Access State (Exact Web Parity) */
+          /* Empty Access State */
           <View style={styles.emptyCard}>
             <View style={styles.lockCircle}>
               <Lock size={32} color="#0D9488" />
@@ -225,19 +265,88 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 40,
+    gap: 14,
   },
-  heroCard: {
+  welcomeBlock: {
+    gap: 4,
+    marginBottom: 2,
+  },
+  greetingTitle: {
+    color: '#0F172A',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  greetingSubtitle: {
+    color: '#64748B',
+    fontSize: 13,
+  },
+  todayCard: {
+    minHeight: 68,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#99F6E4',
     backgroundColor: '#FFFFFF',
+    shadowColor: '#0D9488',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
+    marginBottom: 2,
+  },
+  todayIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E6FFFA',
+  },
+  todayCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  todayEyebrow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  todayDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#0D9488',
+  },
+  todayLabel: {
+    color: '#0D9488',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  todayDate: {
+    color: '#0F172A',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  // Custom Workspace Hero Banner
+  heroCard: {
+    backgroundColor: '#F0FDFA',
     borderRadius: 20,
     padding: 18,
-    marginBottom: 20,
     borderWidth: 1,
     borderColor: '#CCFBF1',
     shadowColor: '#0D9488',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.06,
     shadowRadius: 10,
-    elevation: 3,
+    elevation: 2,
+    marginBottom: 2,
   },
   heroRow: {
     flexDirection: 'row',
@@ -257,16 +366,16 @@ const styles = StyleSheet.create({
   },
   badgeWrap: {
     alignSelf: 'flex-start',
-    backgroundColor: '#F0FDFA',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    backgroundColor: '#E6FFFA',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
-    marginBottom: 6,
+    borderColor: '#99F6E4',
+    marginBottom: 8,
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '800',
     color: '#0F766E',
     letterSpacing: 0.8,
@@ -275,80 +384,57 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   heroSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#64748B',
-    lineHeight: 17,
+    lineHeight: 19,
   },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    paddingHorizontal: 2,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  sectionCount: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  moduleGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+
+  // Module List & Cards
+  moduleList: {
     gap: 12,
   },
   moduleCard: {
-    width: '48%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 18,
+    padding: 18,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 1,
   },
   cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
   },
   moduleIconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: '#F0FDFA',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  arrowCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#F8FAFC',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#E6FFFA',
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: '#0F172A',
-    marginBottom: 3,
+    marginTop: 12,
+    marginBottom: 4,
   },
   cardSubtitle: {
-    fontSize: 11,
+    fontSize: 13,
     color: '#64748B',
+    lineHeight: 18,
   },
+
+  // Empty Access State
   emptyCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
