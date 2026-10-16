@@ -9,7 +9,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { Activity, AlertCircle, CalendarDays, Clock3, RefreshCw, Users } from 'lucide-react-native';
+import { AlertCircle, CalendarDays, Clock3, RefreshCw, Users } from 'lucide-react-native';
 import Svg, { Circle, Line, Rect, Text as SvgText } from 'react-native-svg';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { useReceptionistDashboard } from '../../hooks/useReceptionistDashboard';

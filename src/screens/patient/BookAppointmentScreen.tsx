@@ -1,131 +1,330 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { CalendarClock, CheckCircle2, ChevronRight, Search, Video } from 'lucide-react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AlertCircle, Building2, FilterX, Globe2, Sparkles, Stethoscope } from 'lucide-react-native';
 import { PatientHeader } from '../../components/common/PatientHeader';
+import { getAvailableSlotsApi, bookAppointmentApi } from '../../api/appointmentApi';
+import { BASE_URL } from '../../api/apiConfig';
 import { useAuthContext } from '../../context/AuthContext';
-import { bookMarketplaceVideoAppointmentApi, getMarketplaceVideoDoctorsApi, getMarketplaceVideoSlotsApi, getVideoPricingPreviewApi, MarketplaceVideoDoctor } from '../../api/videoServicesApi';
+import { fetchCitiesApi, fetchStatesApi } from '../../api/labProfileApi';
+import { createWalletRechargeOrderApi, getPatientWalletBalanceApi, getVideoPricingPreviewApi, verifyWalletRechargeApi } from '../../api/videoServicesApi';
+import RazorpayCheckout from 'react-native-razorpay';
+import { Appointment } from '../../types/clinicTypes';
 import { showErrorToast, showSuccessToast } from '../../utils/toast';
+import { publishPatientWalletBalance, subscribePatientWalletBalance } from '../../utils/patientWalletEvents';
+import { AppointmentScheduleModal } from '../../features/patient/booking/AppointmentScheduleModal';
+import { BookingProgress, ClinicCard, DoctorCard, LocationPicker, SearchField } from '../../features/patient/booking/BookingComponents';
+import type { BookingClinic, BookingDoctor, BookingLocation } from '../../features/patient/booking/BookingComponents';
 
-interface Props { onOpenDrawer?: () => void; onViewVideoServices?: () => void }
-const localDate = () => { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; };
-const asRows = <T,>(value: unknown): T[] => Array.isArray(value) ? value as T[] : Array.isArray((value as any)?.data) ? (value as any).data as T[] : [];
-const money = (value: unknown) => `₹${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+interface Props { onOpenDrawer?: () => void; onViewAppointments?: () => void }
+type ApiProvider = Record<string, any>;
+const localDate = () => { const date = new Date(); date.setHours(0, 0, 0, 0); return date; };
+const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+const rowsFrom = (value: any): any[] => Array.isArray(value) ? value : Array.isArray(value?.data) ? value.data : [];
+const enabled = (value: unknown, fallback = false) => {
+  if (value == null) return fallback;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value === 1;
+  return ['1', 'true', 'yes', 'enabled'].includes(String(value).trim().toLowerCase());
+};
 
-export const BookAppointmentScreen: React.FC<Props> = ({ onOpenDrawer = () => {}, onViewVideoServices }) => {
+export const BookAppointmentScreen: React.FC<Props> = ({ onOpenDrawer = () => {}, onViewAppointments }) => {
   const { token, user } = useAuthContext();
-  const [doctors, setDoctors] = useState<MarketplaceVideoDoctor[]>([]);
-  const [selectedDoctor, setSelectedDoctor] = useState<MarketplaceVideoDoctor | null>(null);
+  const [clinics, setClinics] = useState<BookingClinic[]>([]);
+  const [states, setStates] = useState<BookingLocation[]>([]);
+  const [cities, setCities] = useState<BookingLocation[]>([]);
+  const [selectedState, setSelectedState] = useState('');
+  const [selectedCity, setSelectedCity] = useState('');
+  const [clinicSearch, setClinicSearch] = useState('');
+  const [doctorSearch, setDoctorSearch] = useState('');
+  const [selectedClinicId, setSelectedClinicId] = useState('');
+  const [selectedDoctor, setSelectedDoctor] = useState<BookingDoctor | null>(null);
+  const [loadingProviders, setLoadingProviders] = useState(true);
+  const [providerReload, setProviderReload] = useState(0);
+  const [loadingStates, setLoadingStates] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [providerError, setProviderError] = useState('');
+  const [mode, setMode] = useState<'in_person' | 'video'>('video');
+  const [date, setDate] = useState(localDate());
+  const [time, setTime] = useState('');
   const [slots, setSlots] = useState<string[]>([]);
-  const [selectedTime, setSelectedTime] = useState('');
-  const [appointmentDate, setAppointmentDate] = useState(localDate());
-  const [reason, setReason] = useState('');
-  const [search, setSearch] = useState('');
-  const [loadingDoctors, setLoadingDoctors] = useState(true);
-  const [loadingSlots, setLoadingSlots] = useState(false);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [consultationFee, setConsultationFee] = useState<number | null>(null);
-  const [booking, setBooking] = useState(false);
-  const [booked, setBooked] = useState<{ id?: number; doctor: string; date: string; time: string } | null>(null);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState('');
+  const [slotRetry, setSlotRetry] = useState(0);
+  const slotCache = useRef(new Map<string, { slots: string[]; expiresAt: number }>());
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [symptoms, setSymptoms] = useState('');
+  const [notes, setNotes] = useState('');
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [walletBalanceLoading, setWalletBalanceLoading] = useState(false);
+  const [videoRequiredAmount, setVideoRequiredAmount] = useState<number | null>(null);
+  const [videoPricingLoading, setVideoPricingLoading] = useState(false);
+  const [videoPricingError, setVideoPricingError] = useState('');
+  const [videoPricingRetry, setVideoPricingRetry] = useState(0);
+  const [rechargingWallet, setRechargingWallet] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     let active = true;
-    getMarketplaceVideoDoctorsApi().then(result => {
-      if (!active) return;
-      if (!result.success) throw new Error(result.message || 'Unable to load doctors.');
-      setDoctors(asRows<MarketplaceVideoDoctor>(result.data).filter(doctor => doctor.is_video_enabled !== false && Number(doctor.is_video_enabled ?? 1) !== 0));
-    }).catch(error => { if (active) showErrorToast('Doctor list unavailable', error instanceof Error ? error.message : 'Please try again.'); })
-      .finally(() => { if (active) setLoadingDoctors(false); });
+    setLoadingProviders(true); setProviderError('');
+    const load = async () => {
+      try {
+        const allProviders: ApiProvider[] = [];
+        let offset = 0;
+        while (true) {
+          const response = await fetch(`${BASE_URL}/public/providers?category=clinic&limit=100&offset=${offset}`);
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || !result?.success) throw new Error(result?.message || 'Unable to load clinics and doctors.');
+          const page = rowsFrom(result.data);
+          allProviders.push(...page);
+          const pagination = result.pagination;
+          if (!pagination?.has_more || page.length === 0) break;
+          offset += page.length;
+        }
+        const normalized: BookingClinic[] = allProviders.map(provider => {
+          const id = String(provider.id ?? provider.source_id ?? '');
+          const clinicName = String(provider.name || 'Clinic');
+          const doctors: BookingDoctor[] = (Array.isArray(provider.doctors) ? provider.doctors : []).map((doctor: ApiProvider) => ({
+            id: String(doctor.id ?? ''), name: String(doctor.name || 'Doctor'), specialty: String(doctor.specialty || 'General Physician'),
+            doctorType: String(doctor.doctor_type || 'clinic_doctor'), fee: Number(doctor.consultation_fee || 0),
+            videoRatePerMinute: Number(doctor.video_rate_per_minute || 0), availableDays: String(doctor.available_days || ''),
+            isDoctor: enabled(doctor.is_doctor, true), videoEnabled: enabled(doctor.is_doctor, true) && enabled(doctor.is_video_enabled), imageUrl: doctor.image_url ? String(doctor.image_url) : undefined,
+            verified: enabled(doctor.is_verified),
+          })).filter((doctor: BookingDoctor) => Boolean(doctor.id));
+          return { id, name: clinicName, city: String(provider.city || ''), state: String(provider.state || ''), imageUrl: provider.image_url ? String(provider.image_url) : undefined, verified: enabled(provider.is_verified), doctors };
+        }).filter(clinic => clinic.id && clinic.doctors.length > 0);
+        if (active) setClinics(normalized);
+      } catch (error) {
+        if (active) setProviderError(error instanceof Error ? error.message : 'Unable to load clinics and doctors.');
+      } finally { if (active) setLoadingProviders(false); }
+    };
+    void load();
+    return () => { active = false; };
+  }, [providerReload]);
+
+  useEffect(() => {
+    let active = true; setLoadingStates(true);
+    fetchStatesApi().then(result => { if (active) setStates(result.map(item => ({ id: String(item.id), name: item.name }))); })
+      .catch(() => { if (active) setStates([]); }).finally(() => { if (active) setLoadingStates(false); });
     return () => { active = false; };
   }, []);
 
   useEffect(() => {
-    if (!selectedDoctor || !appointmentDate) { setSlots([]); return; }
-    let active = true;
-    setLoadingSlots(true);
-    getMarketplaceVideoSlotsApi(selectedDoctor.id, appointmentDate).then(result => {
-      if (!active) return;
-      if (!result.success) throw new Error(result.message || 'Unable to load appointment slots.');
-      const raw = result.data?.slots || [];
-      const available = raw.filter(slot => typeof slot === 'string' || (slot.available !== false && slot.is_available !== false)).map(slot => typeof slot === 'string' ? slot : String(slot.time || '')).filter(Boolean);
-      setSlots(available);
-      setSelectedTime(current => available.includes(current) ? current : '');
-    }).catch(error => { if (active) { setSlots([]); showErrorToast('Slots unavailable', error instanceof Error ? error.message : 'Please choose another date.'); } })
-      .finally(() => { if (active) setLoadingSlots(false); });
+    let active = true; setCities([]); setSelectedCity('');
+    if (!selectedState) { setLoadingCities(false); return () => { active = false; }; }
+    setLoadingCities(true);
+    fetchCitiesApi(selectedState).then(result => { if (active) setCities(result.map(item => ({ id: String(item.id), name: item.name }))); })
+      .catch(() => { if (active) setCities([]); }).finally(() => { if (active) setLoadingCities(false); });
     return () => { active = false; };
-  }, [selectedDoctor, appointmentDate]);
+  }, [selectedState]);
 
   useEffect(() => {
-    if (!token || !user?.id || !selectedDoctor) { setWalletBalance(null); setConsultationFee(Number(selectedDoctor?.consultation_fee || 0)); return; }
     let active = true;
-    getVideoPricingPreviewApi(token, selectedDoctor.id, Number(user.id), selectedDoctor.clinic_id).then(result => {
-      if (!active || !result.success) return;
-      setWalletBalance(Number(result.data?.pricing?.wallet_balance || 0));
-      setConsultationFee(Number(result.data?.pricing?.consultation_fee ?? selectedDoctor.consultation_fee ?? 0));
-    }).catch(() => undefined);
+    if (!token) return () => { active = false; };
+    setWalletBalanceLoading(true);
+    getPatientWalletBalanceApi(token).then(result => { if (active && result.success) setWalletBalance(Number(result.data?.balance || 0)); }).catch(() => undefined).finally(() => { if (active) setWalletBalanceLoading(false); });
     return () => { active = false; };
-  }, [selectedDoctor, token, user?.id]);
+  }, [token]);
 
-  const filteredDoctors = useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    if (!needle) return doctors;
-    return doctors.filter(doctor => [doctor.full_name, doctor.name, doctor.specialization, doctor.department, doctor.clinic_name].some(value => String(value || '').toLowerCase().includes(needle)));
-  }, [doctors, search]);
+  useEffect(() => subscribePatientWalletBalance(setWalletBalance), []);
 
-  const submit = async () => {
-    const fullName = String(user?.full_name || user?.fullName || '').trim();
-    const phone = String(user?.phone || '').replace(/\D/g, '').slice(-10);
-    if (!token || !selectedDoctor) { showErrorToast('Doctor required', 'Choose a video consultation doctor.'); return; }
-    if (!fullName || phone.length !== 10) { showErrorToast('Profile details required', 'Add your name and valid 10-digit phone number to your profile before booking.'); return; }
-    if (!appointmentDate || appointmentDate < localDate()) { showErrorToast('Invalid date', 'Choose today or a future date.'); return; }
-    if (!selectedTime) { showErrorToast('Time required', 'Choose an available appointment time.'); return; }
-    setBooking(true);
-    const result = await bookMarketplaceVideoAppointmentApi({
-      doctor_id: selectedDoctor.id,
-      full_name: fullName,
-      phone,
-      appointment_date: appointmentDate,
-      appointment_time: selectedTime,
-      consultation_mode: 'video',
-      reason: reason.trim() || 'Video consultation',
+  useEffect(() => {
+    if (mode !== 'video' || !scheduleOpen || !selectedDoctor || !selectedClinicId || !token || !user?.id) {
+      setVideoRequiredAmount(null);
+      setVideoPricingError('');
+      setVideoPricingLoading(false);
+      return;
+    }
+    let active = true;
+    setVideoPricingLoading(true);
+    setVideoPricingError('');
+    getVideoPricingPreviewApi(token, Number(selectedDoctor.id), Number(user.id), selectedClinicId)
+      .then(result => {
+        if (!result.success || !result.data?.pricing) throw new Error(result.message || 'Unable to check video consultation billing.');
+        if (!active) return;
+        const pricing = result.data.pricing;
+        setVideoRequiredAmount(Number(pricing.required_amount ?? pricing.consultation_fee ?? selectedDoctor.fee ?? 0));
+        if (pricing.wallet_balance != null) setWalletBalance(Number(pricing.wallet_balance));
+      })
+      .catch(error => {
+        if (active) {
+          setVideoRequiredAmount(null);
+          setVideoPricingError(error instanceof Error ? error.message : 'Unable to check video consultation billing.');
+        }
+      })
+      .finally(() => { if (active) setVideoPricingLoading(false); });
+    return () => { active = false; };
+  }, [mode, scheduleOpen, selectedDoctor, selectedClinicId, token, user?.id, videoPricingRetry]);
+
+  const selectedClinic = clinics.find(clinic => clinic.id === selectedClinicId) || null;
+  const visibleClinics = useMemo(() => {
+    const query = clinicSearch.trim().toLowerCase();
+    const stateName = states.find(item => item.id === selectedState)?.name.toLowerCase();
+    const cityName = cities.find(item => item.id === selectedCity)?.name.toLowerCase();
+    return clinics.filter(clinic => {
+      if (stateName && clinic.state.trim().toLowerCase() !== stateName) return false;
+      if (cityName && clinic.city.trim().toLowerCase() !== cityName) return false;
+      return !query || [clinic.name, clinic.city, clinic.state].some(value => value.toLowerCase().includes(query));
     });
-    setBooking(false);
-    if (!result.success) { showErrorToast('Booking failed', result.message); return; }
-    const appointment = result.data?.appointment;
-    setBooked({ id: appointment?.id, doctor: selectedDoctor.full_name || selectedDoctor.name || 'Doctor', date: appointment?.appointment_date || appointmentDate, time: appointment?.appointment_time || selectedTime });
-    setSelectedDoctor(null);
-    setSlots([]);
-    setSelectedTime('');
-    setReason('');
-    showSuccessToast('Video appointment booked', 'Your appointment is scheduled. The consultation fee is charged when your doctor starts the call.');
+  }, [cities, clinicSearch, clinics, selectedCity, selectedState, states]);
+  const visibleDoctors = useMemo(() => {
+    const query = doctorSearch.trim().toLowerCase();
+    return (selectedClinic?.doctors || []).filter(doctor => !query || `${doctor.name} ${doctor.specialty}`.toLowerCase().includes(query));
+  }, [doctorSearch, selectedClinic]);
+  const step = (selectedDoctor ? 3 : selectedClinic ? 2 : 1) as 1 | 2 | 3;
+
+  useEffect(() => {
+    if (!selectedDoctor || !token || !scheduleOpen) { setSlots([]); setSlotsError(''); return; }
+    let active = true;
+    const key = `${selectedDoctor.id}|${selectedClinicId}|${dateKey(date)}`;
+    const cached = slotCache.current.get(key);
+    if (cached && cached.expiresAt > Date.now()) { setSlots(cached.slots); setTime(current => cached.slots.includes(current) ? current : ''); setSlotsLoading(false); setSlotsError(''); return; }
+    setSlotsLoading(true); setSlotsError('');
+    const fetchSlots = async () => {
+      try {
+        let result = await getAvailableSlotsApi(token, Number(selectedDoctor.id), dateKey(date), selectedClinicId);
+        if (!result.success && result.error?.startsWith('HTTP_5')) {
+          await new Promise<void>(resolve => setTimeout(resolve, 450));
+          result = await getAvailableSlotsApi(token, Number(selectedDoctor.id), dateKey(date), selectedClinicId);
+        }
+        if (!result.success) throw new Error(result.message || 'Time slots are temporarily unavailable.');
+        const payload: any = result.data;
+        const raw = Array.isArray(payload?.slots) ? payload.slots : Array.isArray(payload?.data?.slots) ? payload.data.slots : [];
+        const available = raw.filter((item: any) => typeof item === 'string' || (item?.available !== false && item?.is_available !== false))
+          .map((item: any) => typeof item === 'string' ? item : String(item.time || '')).filter(Boolean);
+        if (!active) return;
+        slotCache.current.set(key, { slots: available, expiresAt: Date.now() + 30_000 });
+        setSlots(available); setTime(current => available.includes(current) ? current : '');
+      } catch (error) { if (active) { setSlots([]); setSlotsError(error instanceof Error ? error.message : 'Time slots are temporarily unavailable.'); } }
+      finally { if (active) setSlotsLoading(false); }
+    };
+    void fetchSlots();
+    return () => { active = false; };
+  }, [date, scheduleOpen, selectedClinicId, selectedDoctor, slotRetry, token]);
+
+  const clearSelection = useCallback(() => { setScheduleOpen(false); setSelectedClinicId(''); setSelectedDoctor(null); setTime(''); setDoctorSearch(''); }, []);
+  const handleSelectState = (value: string) => { setSelectedState(value); setSelectedCity(''); clearSelection(); };
+  const handleSelectCity = (value: string) => { setSelectedCity(value); clearSelection(); };
+  const clearLocationFilters = () => { setSelectedState(''); setSelectedCity(''); setClinicSearch(''); clearSelection(); };
+  const rechargeWallet = async (amount: number) => {
+    if (!token || !Number.isFinite(amount) || amount <= 0) {
+      showErrorToast('Recharge unavailable', 'Please sign in again and retry your wallet recharge.');
+      return;
+    }
+    setRechargingWallet(true);
+    try {
+      const orderResult = await createWalletRechargeOrderApi(token, amount);
+      const order = orderResult.data;
+      if (!orderResult.success || !order?.order_id || !order.key_id) throw new Error(orderResult.message || 'Unable to create Razorpay order.');
+      const payment = await RazorpayCheckout.open({
+        key: order.key_id,
+        amount: String(order.amount),
+        currency: order.currency || 'INR',
+        order_id: order.order_id,
+        name: 'OrboDoc',
+        description: 'Patient wallet recharge',
+        prefill: { name: user?.full_name || user?.fullName, email: user?.email, contact: user?.phone },
+        theme: { color: '#0f766e' },
+      });
+      const verifyResult = await verifyWalletRechargeApi(token, payment);
+      if (!verifyResult.success) throw new Error(verifyResult.message || 'Razorpay payment verification failed.');
+      const balance = Number(verifyResult.data?.balance || 0);
+      setWalletBalance(balance);
+      publishPatientWalletBalance(balance);
+      setVideoPricingRetry(value => value + 1);
+      showSuccessToast('Wallet recharged', `${balance.toFixed(2)} is now available. Confirm the appointment to continue.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Payment was cancelled or could not be verified.';
+      const cancelled = /cancel/i.test(message);
+      showErrorToast(cancelled ? 'Payment cancelled' : 'Recharge failed', message);
+    } finally {
+      setRechargingWallet(false);
+    }
+  };
+  const handleConfirmBooking = async () => {
+    if (!token || !user || !selectedDoctor || !selectedClinic) { showErrorToast('Booking details missing', 'Please choose a clinic and doctor again.'); return; }
+    if (!time) { showErrorToast('Time required', 'Choose an available appointment time.'); return; }
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      if (mode === 'video') {
+        if (videoPricingLoading || videoPricingError) {
+          throw new Error(videoPricingError || 'Please wait while we check your wallet balance.');
+        }
+        const patientData = user as typeof user & { patient_id?: number | string; user_id?: number | string };
+        const patientId = Number(patientData.patient_id ?? patientData.user_id ?? user.id);
+        const preview = await getVideoPricingPreviewApi(token, Number(selectedDoctor.id), patientId, selectedClinic.id);
+        if (!preview.success || !preview.data?.pricing) throw new Error(preview.message || 'Unable to verify your video consultation balance.');
+        const pricing = preview.data.pricing;
+        const requiredAmount = Number(pricing.required_amount ?? pricing.consultation_fee ?? selectedDoctor.fee ?? 0);
+        const currentBalance = Number(pricing.wallet_balance ?? walletBalance ?? 0);
+        setWalletBalance(currentBalance);
+        setVideoRequiredAmount(requiredAmount);
+        if (requiredAmount > 0 && (pricing.sufficient_balance === false || pricing.has_sufficient_balance === false || currentBalance < requiredAmount)) {
+          showErrorToast('Recharge required', 'Opening secure Razorpay checkout for the required amount.');
+          await rechargeWallet(Math.max(1, Math.ceil(requiredAmount - currentBalance)));
+          return;
+        }
+      }
+      const patientData = user as typeof user & { patient_id?: number | string; user_id?: number | string };
+      const patientId = Number(patientData.patient_id ?? patientData.user_id ?? user.id);
+      const result = await bookAppointmentApi(token, {
+        clinic_id: Number(selectedClinic.id), patient_id: patientId, doctor_id: Number(selectedDoctor.id),
+        appointment_date: dateKey(date), appointment_time: time, consultation_mode: mode,
+        duration_minutes: 30, booking_source: 'patient_app', reason: symptoms.trim() || null,
+        symptoms: symptoms.trim(), notes: notes.trim(),
+      } as Partial<Appointment>);
+      if (!result.success) throw new Error(result.message || 'Unable to book your appointment.');
+      showSuccessToast('Appointment booked', `Your appointment is scheduled for ${dateKey(date)} at ${time}.`);
+      setScheduleOpen(false); setSelectedDoctor(null); setSelectedClinicId(''); setTime(''); setSymptoms(''); setNotes('');
+      onViewAppointments?.();
+    } catch (error) {
+      showErrorToast(mode === 'video' ? 'Wallet check or booking failed' : 'Booking failed', error instanceof Error ? error.message : 'Unable to book your appointment.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return <View style={styles.container}>
     <PatientHeader onOpenDrawer={onOpenDrawer} />
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <View style={styles.hero}><View style={styles.heroIcon}><Video size={23} color="#0f766e" /></View><Text style={styles.title}>Book a video consultation</Text><Text style={styles.subtitle}>Choose a video-enabled doctor and an available time.</Text></View>
-      {booked && <View style={styles.successCard}><CheckCircle2 size={22} color="#047857" /><View style={styles.flex}><Text style={styles.successTitle}>Appointment confirmed</Text><Text style={styles.detail}>Dr. {booked.doctor} · {booked.date} at {booked.time}</Text>{booked.id ? <Text style={styles.detail}>Appointment #{booked.id}</Text> : null}</View><TouchableOpacity onPress={() => { setBooked(null); onViewVideoServices?.(); }}><ChevronRight size={22} color="#047857" /></TouchableOpacity></View>}
-      {!selectedDoctor ? <>
-        <Text style={styles.sectionTitle}>Select a doctor</Text>
-        <View style={styles.search}><Search size={17} color="#94a3b8" /><TextInput value={search} onChangeText={setSearch} placeholder="Search name or specialization" placeholderTextColor="#94a3b8" style={styles.searchInput} /></View>
-        {loadingDoctors ? <ActivityIndicator style={styles.loading} color="#0f766e" /> : filteredDoctors.map(doctor => <TouchableOpacity key={doctor.id} style={styles.doctorCard} onPress={() => setSelectedDoctor(doctor)}>
-          <View style={styles.avatar}><Video size={18} color="#0f766e" /></View><View style={styles.flex}><Text style={styles.doctorName}>Dr. {doctor.full_name || doctor.name || 'Doctor'}</Text><Text style={styles.detail}>{doctor.specialization || doctor.department || 'General'} · {doctor.clinic_name || 'Online'}</Text><Text style={styles.fee}>{money(doctor.consultation_fee)} consultation fee</Text></View><ChevronRight size={20} color="#94a3b8" />
-        </TouchableOpacity>)}
-        {!loadingDoctors && !filteredDoctors.length && <View style={styles.empty}><Text style={styles.detail}>No video-enabled doctors found.</Text></View>}
-      </> : <>
-        <TouchableOpacity onPress={() => { setSelectedDoctor(null); setSlots([]); }} style={styles.backLink}><Text style={styles.backText}>‹  Change doctor</Text></TouchableOpacity>
-        <View style={styles.selectedCard}><View style={styles.avatar}><Video size={18} color="#0f766e" /></View><View style={styles.flex}><Text style={styles.doctorName}>Dr. {selectedDoctor.full_name || selectedDoctor.name || 'Doctor'}</Text><Text style={styles.detail}>{selectedDoctor.specialization || selectedDoctor.department || 'Video consultation'}</Text></View><Text style={styles.fee}>{money(consultationFee)}</Text></View>
-        {walletBalance !== null && <View style={styles.walletNotice}><Text style={styles.detail}>Wallet balance: <Text style={styles.fee}>{money(walletBalance)}</Text></Text><Text style={styles.walletHelp}>Fee is charged when the doctor starts the call.</Text></View>}
-        <Text style={styles.label}>Appointment date (YYYY-MM-DD)</Text><TextInput value={appointmentDate} onChangeText={value => { setAppointmentDate(value); setSelectedTime(''); }} placeholder="2026-12-31" style={styles.input} />
-        <Text style={styles.label}>Available time</Text>
-        {loadingSlots ? <ActivityIndicator color="#0f766e" style={styles.slotLoading} /> : <View style={styles.slotWrap}>{slots.map(slot => <TouchableOpacity key={slot} style={[styles.slot, selectedTime === slot && styles.selectedSlot]} onPress={() => setSelectedTime(slot)}><Text style={[styles.slotText, selectedTime === slot && styles.selectedSlotText]}>{slot.slice(0, 5)}</Text></TouchableOpacity>)}</View>}
-        {!loadingSlots && !slots.length && <Text style={styles.walletHelp}>No slots available on this date. Select another day.</Text>}
-        <Text style={styles.label}>Reason for consultation</Text><TextInput value={reason} onChangeText={setReason} placeholder="Describe your concern (optional)" multiline style={[styles.input, styles.reasonInput]} />
-        <TouchableOpacity disabled={booking || loadingSlots || !slots.length} style={[styles.bookButton, (booking || loadingSlots || !slots.length) && styles.disabled]} onPress={submit}>{booking ? <ActivityIndicator color="#fff" /> : <CalendarClock size={17} color="#fff" />}<Text style={styles.bookText}>{booking ? 'Booking…' : 'Confirm video appointment'}</Text></TouchableOpacity>
-      </>}
+    <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+      <View style={styles.hero}>
+        <View style={styles.heroText}>
+          <View style={styles.kicker}><Sparkles size={13} color="#CCFBF1" /><Text style={styles.kickerText}>SIMPLE & SECURE BOOKING</Text></View>
+          <View style={styles.heroTitleRow}><View style={styles.heroIcon}><Stethoscope size={20} color="#FFFFFF" /></View><Text style={styles.heroTitle}>Book an Appointment</Text></View>
+          <Text style={styles.heroDescription}>Find the right clinic and doctor, then reserve a convenient appointment slot.</Text>
+        </View>
+        <BookingProgress step={step} />
+      </View>
+
+      <View style={styles.contentCard}>
+        {!selectedClinic ? <>
+          <View style={styles.sectionIntro}><View style={styles.sectionIcon}><Globe2 size={17} color="#FFFFFF" /></View><View style={styles.grow}><Text style={styles.sectionTitle}>Find care near you</Text><Text style={styles.sectionHint}>Choose a location or search by clinic name</Text></View><View style={styles.foundBadge}><Text style={styles.foundText}>{visibleClinics.length} clinics</Text></View><TouchableOpacity onPress={clearLocationFilters} disabled={!selectedState && !selectedCity && !clinicSearch.trim()} style={[styles.clearFilterIcon, !selectedState && !selectedCity && !clinicSearch.trim() && styles.clearDisabled]} accessibilityLabel="Clear location filters"><FilterX size={16} color="#64748B" /></TouchableOpacity></View>
+          <View style={styles.filters}>
+            <View style={styles.filter}><LocationPicker label="State" placeholder="Select state" value={selectedState} options={states} loading={loadingStates} onSelect={handleSelectState} /></View>
+            <View style={styles.filter}><LocationPicker label="City" placeholder={selectedState ? 'Select city' : 'Select state first'} value={selectedCity} options={cities} loading={loadingCities} disabled={!selectedState} onSelect={handleSelectCity} /></View>
+            <View style={styles.filterWide}><Text style={styles.filterLabel}>CLINIC SEARCH</Text><SearchField value={clinicSearch} onChangeText={setClinicSearch} placeholder="Search clinic or city" /></View>
+          </View>
+          <View style={styles.clinicSectionHead}><View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View><Text style={styles.listTitle}>Find a clinic</Text><View style={styles.countBadge}><Text style={styles.countText}>{visibleClinics.length}</Text></View></View>
+          {loadingProviders ? <View style={styles.loadingBox}><ActivityIndicator color="#0F766E" size="large" /><Text style={styles.loadingText}>Loading clinics...</Text></View> : providerError ? <View style={styles.messageBox}><AlertCircle size={19} color="#DC2626" /><Text style={styles.errorText}>{providerError}</Text><TouchableOpacity onPress={() => { setProviderError(''); setProviderReload(value => value + 1); }}><Text style={styles.retryText}>Retry</Text></TouchableOpacity></View> : visibleClinics.length ? visibleClinics.map(clinic => <ClinicCard key={clinic.id} clinic={clinic} selected={false} onPress={() => { setSelectedClinicId(clinic.id); setDoctorSearch(''); }} />) : <View style={styles.emptyBox}><Building2 size={28} color="#94A3B8" /><Text style={styles.emptyTitle}>No clinic found</Text><Text style={styles.emptyText}>Try clearing a location filter or changing your search.</Text>{selectedState || selectedCity || clinicSearch ? <TouchableOpacity style={styles.clearButton} onPress={clearLocationFilters}><FilterX size={15} color="#0F766E" /><Text style={styles.clearButtonText}>Clear filters</Text></TouchableOpacity> : null}</View>}
+        </> : <>
+          <View style={styles.doctorHeader}><View style={styles.stepBadgeDoctor}><Text style={styles.stepBadgeText}>2</Text></View><View style={styles.grow}><Text style={styles.listTitle}>Choose a doctor</Text><Text numberOfLines={1} style={styles.sectionHint}>Available at {selectedClinic.name}</Text></View><TouchableOpacity onPress={clearSelection} style={styles.backButton}><Text style={styles.backButtonText}>Change clinic</Text></TouchableOpacity></View>
+          <SearchField value={doctorSearch} onChangeText={setDoctorSearch} placeholder="Search doctor or specialty" />
+          {visibleDoctors.length ? visibleDoctors.map(doctor => <DoctorCard key={doctor.id} doctor={doctor} clinicName={selectedClinic.name} selected={selectedDoctor?.id === doctor.id} onPress={() => { setSelectedDoctor(doctor); setMode(doctor.videoEnabled ? 'video' : 'in_person'); setDate(localDate()); setTime(''); setSymptoms(''); setNotes(''); setScheduleOpen(true); }} />) : <View style={styles.emptyBox}><Stethoscope size={28} color="#94A3B8" /><Text style={styles.emptyTitle}>No matching doctor found</Text><Text style={styles.emptyText}>Try another search.</Text></View>}
+        </>}
+      </View>
     </ScrollView>
+    <AppointmentScheduleModal visible={scheduleOpen} doctor={selectedDoctor} clinicName={selectedClinic?.name || ''} patientName={user?.full_name || user?.fullName} patientCode={(user as any)?.patient_code || `PT-${user?.id ?? ''}`} patientPhone={user?.phone} bloodGroup={(user as any)?.blood_group} date={date} time={time} mode={mode} slots={slots} slotsLoading={slotsLoading} slotsError={slotsError} retrying={slotsLoading && slotRetry > 0} symptoms={symptoms} notes={notes} walletBalance={walletBalance} walletBalanceLoading={walletBalanceLoading || (mode === 'video' && videoPricingLoading)} walletRequiredAmount={videoRequiredAmount ?? Number(selectedDoctor?.fee || 0)} walletPricingError={videoPricingError} walletRecharging={rechargingWallet} submitting={submitting}
+      onClose={() => setScheduleOpen(false)} onDateChange={value => { setDate(value); setTime(''); }} onTimeChange={setTime} onModeChange={value => { setMode(value); setTime(''); }} onSymptomsChange={setSymptoms} onNotesChange={setNotes} onRetrySlots={() => setSlotRetry(value => value + 1)} onRetryWallet={() => setVideoPricingRetry(value => value + 1)} onRecharge={() => { const required = videoRequiredAmount ?? Number(selectedDoctor?.fee || 0); void rechargeWallet(walletBalance < required ? Math.max(1, Math.ceil(required - walletBalance)) : 500); }} onConfirm={() => void handleConfirmBooking()} />
   </View>;
 };
 
-export default BookAppointmentScreen;
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F1F5F9' }, page: { padding: 14, paddingBottom: 32, gap: 13 },
+  hero: { overflow: 'hidden', padding: 17, gap: 15, borderRadius: 20, backgroundColor: '#0F766E', borderWidth: 1, borderColor: '#0D9488' }, heroText: { gap: 8 }, kicker: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }, kickerText: { color: '#CCFBF1', fontSize: 9, fontWeight: '800', letterSpacing: 0.6 }, heroTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 }, heroIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.16)' }, heroTitle: { flex: 1, color: '#FFFFFF', fontSize: 21, fontWeight: '900' }, heroDescription: { color: '#D9F7F2', fontSize: 12, lineHeight: 18 },
+  contentCard: { padding: 14, backgroundColor: '#FFFFFF', borderRadius: 20, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#0F172A', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2 }, sectionIntro: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }, sectionIcon: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0F766E' }, grow: { flex: 1, minWidth: 0 }, sectionTitle: { color: '#0F172A', fontSize: 14, fontWeight: '800' }, sectionHint: { color: '#64748B', fontSize: 10, marginTop: 3 }, foundBadge: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 15, backgroundColor: '#F0FDFA', borderWidth: 1, borderColor: '#CCFBF1' }, foundText: { color: '#115E59', fontSize: 10, fontWeight: '800' }, clearFilterIcon: { width: 31, height: 31, alignItems: 'center', justifyContent: 'center', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' }, clearDisabled: { opacity: 0.38 }, filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginBottom: 17 }, filter: { flexGrow: 1, flexBasis: '47%' }, filterWide: { width: '100%' }, filterLabel: { color: '#0F766E', fontSize: 10, fontWeight: '800', letterSpacing: 0.7, marginLeft: 3, marginBottom: 5 },
+  clinicSectionHead: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingTop: 13, borderTopWidth: 1, borderTopColor: '#E2E8F0', marginBottom: 12 }, stepBadge: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: '#CCFBF1' }, stepBadgeDoctor: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: '#CFFAFE' }, stepBadgeText: { color: '#0F766E', fontSize: 14, fontWeight: '900' }, listTitle: { color: '#0F172A', fontSize: 15, fontWeight: '800' }, countBadge: { minWidth: 26, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1F5F9' }, countText: { color: '#475569', fontSize: 11, fontWeight: '800' },
+  loadingBox: { minHeight: 180, alignItems: 'center', justifyContent: 'center', gap: 10 }, loadingText: { color: '#64748B', fontSize: 12 }, messageBox: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderWidth: 1, borderColor: '#FECACA', borderRadius: 12, backgroundColor: '#FEF2F2' }, errorText: { flex: 1, color: '#B91C1C', fontSize: 11 }, retryText: { color: '#991B1B', fontSize: 11, fontWeight: '800' }, emptyBox: { alignItems: 'center', padding: 25, borderWidth: 1, borderStyle: 'dashed', borderColor: '#CBD5E1', borderRadius: 14, backgroundColor: '#F8FAFC', gap: 6 }, emptyTitle: { color: '#334155', fontWeight: '800', fontSize: 13 }, emptyText: { color: '#64748B', textAlign: 'center', fontSize: 11, lineHeight: 16 }, clearButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#99F6E4', borderRadius: 9, marginTop: 5 }, clearButtonText: { color: '#0F766E', fontSize: 11, fontWeight: '800' },
+  doctorHeader: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 13 }, backButton: { paddingHorizontal: 10, paddingVertical: 8, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 9 }, backButtonText: { color: '#0F766E', fontSize: 10, fontWeight: '800' },
+});
 
-const styles = StyleSheet.create({ container: { flex: 1, backgroundColor: '#f1f5f9' }, content: { padding: 16, paddingBottom: 40 }, flex: { flex: 1 }, loading: { marginTop: 30 }, slotLoading: { marginVertical: 14 }, hero: { backgroundColor: '#fff', borderRadius: 18, padding: 20, alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 18 }, heroIcon: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#ccfbf1', alignItems: 'center', justifyContent: 'center', marginBottom: 9 }, title: { color: '#0f172a', fontSize: 20, fontWeight: '800', textAlign: 'center' }, subtitle: { color: '#64748b', fontSize: 13, marginTop: 5, textAlign: 'center' }, sectionTitle: { color: '#0f172a', fontSize: 16, fontWeight: '800', marginBottom: 10 }, search: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, height: 46, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }, searchInput: { flex: 1, color: '#0f172a', fontSize: 14 }, doctorCard: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 15, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 10 }, avatar: { width: 40, height: 40, backgroundColor: '#ccfbf1', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }, doctorName: { color: '#0f172a', fontSize: 14, fontWeight: '700' }, detail: { color: '#64748b', fontSize: 12, marginTop: 4 }, fee: { color: '#0f766e', fontWeight: '800', fontSize: 13, marginTop: 5 }, empty: { padding: 22, backgroundColor: '#fff', borderRadius: 14, alignItems: 'center' }, backLink: { alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 2 }, backText: { color: '#0f766e', fontWeight: '700', fontSize: 13 }, selectedCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0', padding: 13, marginBottom: 13 }, walletNotice: { borderWidth: 1, borderColor: '#99f6e4', backgroundColor: '#f0fdfa', padding: 13, borderRadius: 12, marginBottom: 14 }, walletHelp: { color: '#64748b', fontSize: 12, lineHeight: 17, marginTop: 4 }, label: { color: '#334155', fontWeight: '700', fontSize: 13, marginTop: 13, marginBottom: 7 }, input: { minHeight: 44, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, backgroundColor: '#fff', paddingHorizontal: 12, color: '#0f172a', fontSize: 14 }, reasonInput: { paddingTop: 10, minHeight: 74, textAlignVertical: 'top' }, slotWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, slot: { borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#fff', paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10 }, selectedSlot: { backgroundColor: '#0f766e', borderColor: '#0f766e' }, slotText: { color: '#334155', fontWeight: '600', fontSize: 12 }, selectedSlotText: { color: '#fff' }, bookButton: { marginTop: 20, minHeight: 46, borderRadius: 11, backgroundColor: '#0f766e', flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' }, bookText: { color: '#fff', fontWeight: '700', fontSize: 13 }, disabled: { opacity: 0.5 }, successCard: { flexDirection: 'row', gap: 10, alignItems: 'center', padding: 14, borderRadius: 14, backgroundColor: '#ecfdf5', borderWidth: 1, borderColor: '#a7f3d0', marginBottom: 15 }, successTitle: { color: '#047857', fontWeight: '800', fontSize: 14 } });
+export default BookAppointmentScreen;

@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { PatientHeader } from '../../components/common/PatientHeader';
 import {
   PatientCardFocusProvider,
   focusedCardOutline,
@@ -57,6 +58,8 @@ interface Props {
   onOpenDrawer: () => void;
   onNavigateScreen?: (screen: string) => void;
   initialStatus?: string;
+  initialPatientId?: string;
+  patientMode?: boolean;
 }
 
 type PatientStatusFilter = 'all' | 'active' | 'inactive';
@@ -65,48 +68,50 @@ const PatientsManagementContent: React.FC<Props> = ({
   onOpenDrawer,
   onNavigateScreen,
   initialStatus,
+  initialPatientId,
+  patientMode = false,
 }) => {
   const { focusedCard, focusCard } = usePatientCardFocus();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { token, activeClinicId, role, permissionsMap = {} } = useAuthContext();
-  const canViewPatients = canUseStaffScreen(
+  const canViewPatients = (patientMode && Object.keys(permissionsMap || {}).length === 0) || canUseStaffScreen(
     role,
     permissionsMap,
     'patients',
     'view',
   );
-  const canAddPatient = canUseStaffScreen(
+  const canAddPatient = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'patients',
     'add',
   );
-  const canEditPatient = canUseStaffScreen(
+  const canEditPatient = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'patients',
     'edit',
   );
   const canExportPatients =
-    canViewPatients &&
+    !patientMode && canViewPatients &&
     canUseStaffScreen(role, permissionsMap, 'patients', 'execute');
-  const canBookAppointment = canUseStaffScreen(
+  const canBookAppointment = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'appointments',
     'add',
   );
-  const canViewPrescriptions = canUseStaffScreen(
+  const canViewPrescriptions = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'prescriptions',
     'view',
   );
-  const canManagePatientActions =
+  const canManagePatientActions = !patientMode && (
     canViewPatients ||
     canEditPatient ||
     canBookAppointment ||
-    canViewPrescriptions;
+    canViewPrescriptions);
   const [exporting, setExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -194,6 +199,15 @@ const PatientsManagementContent: React.FC<Props> = ({
     loadPatients,
     loadStats,
   });
+  useEffect(() => {
+    if (!initialPatientId) return;
+    setSearchQuery(initialPatientId);
+  }, [initialPatientId]);
+  useEffect(() => {
+    if (!initialPatientId || loading) return;
+    const target = patients.find(patient => String(patient.id) === String(initialPatientId));
+    if (target && String(selectedPatient?.id) !== String(target.id)) void openPatientDetails(target);
+  }, [initialPatientId, loading, openPatientDetails, patients, selectedPatient?.id]);
 
   const handleExportPatients = useCallback(async () => {
     if (!canExportPatients) {
@@ -411,9 +425,9 @@ const PatientsManagementContent: React.FC<Props> = ({
             <Users size={24} color="#0D9488" />
           </View>
           <View style={styles.bannerTitleCopy}>
-            <Text style={styles.bannerTitle}>Patient Management</Text>
+            <Text style={styles.bannerTitle}>{patientMode ? 'Patients' : 'Patient Management'}</Text>
             <Text style={styles.bannerSubtitle}>
-              Manage patient records and medical history
+              {patientMode ? 'View your patient details and medical history' : 'Manage patient records and medical history'}
             </Text>
           </View>
         </View>
@@ -548,7 +562,7 @@ const PatientsManagementContent: React.FC<Props> = ({
 
   return (
     <View style={styles.container}>
-      <StaffHeader onOpenDrawer={onOpenDrawer} title="Patient Management" />
+      {patientMode ? <PatientHeader onOpenDrawer={onOpenDrawer} /> : <StaffHeader onOpenDrawer={onOpenDrawer} title="Patient Management" />}
       {!canViewPatients ? (
         <View style={styles.noViewContent}>
           {listHeader}

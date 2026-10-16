@@ -106,10 +106,10 @@ test('doctor video availability changes only after backend success', async () =>
   expect(state.canManageVideoCalling).toBe(true);
   expect(state.videoCallingEnabled).toBe(false);
   jest.mocked(updateVideoAvailability).mockResolvedValueOnce(failure);
-  await act(async () => state.toggleVideo(true));
+  await act(async () => { await state.toggleVideo(true); });
   expect(state.videoCallingEnabled).toBe(false);
   jest.mocked(fetchProfileApi).mockResolvedValue({ ...success, data: { user: { role_name: 'doctor', is_video_enabled: 1 } } });
-  await act(async () => state.toggleVideo(true));
+  await act(async () => { await state.toggleVideo(true); });
   expect(updateVideoAvailability).toHaveBeenCalledWith(true);
   expect(state.videoCallingEnabled).toBe(true);
 });

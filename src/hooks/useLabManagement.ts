@@ -100,7 +100,9 @@ async function fetchAllPages<T>(
 
 export function useLabManagement(
   token: string | null,
-  clinicId: number | null,
+  clinicId: number | string | null,
+  allowPatientScope = false,
+  canViewReports = true,
 ) {
   const [tests, setTests] = useState<LabTestRecord[]>([]);
   const [reports, setReports] = useState<LabReportRecord[]>([]);
@@ -111,7 +113,7 @@ export function useLabManagement(
   const [lastRefreshed, setLastRefreshed] = useState('');
 
   const refresh = useCallback(async () => {
-    if (!token || !clinicId) {
+    if (!token || (!clinicId && !allowPatientScope)) {
       setTests([]);
       setReports([]);
       setCatalog([]);
@@ -126,8 +128,12 @@ export function useLabManagement(
       const [testResponse, reportResponse, catalogResponse] = await Promise.all(
         [
           getLabTestOrdersApi(token, clinicId, 1),
-          getLabReportsApi(token, clinicId, 1),
-          getLabCatalogApi(token, clinicId, { page: 1, limit: 100 }),
+          canViewReports
+            ? getLabReportsApi(token, clinicId, 1)
+            : Promise.resolve({ success: true, data: [] } as const),
+          clinicId
+            ? getLabCatalogApi(token, clinicId, { page: 1, limit: 100 })
+            : Promise.resolve({ success: true, data: [] } as const),
         ],
       );
       if (!testResponse.success)
@@ -143,14 +149,18 @@ export function useLabManagement(
           page => getLabTestOrdersApi(token, clinicId, page),
           testResponse.data,
         ),
-        fetchAllPages<LabReportRecord>(
-          page => getLabReportsApi(token, clinicId, page),
-          reportResponse.data,
-        ),
-        fetchAllPages<LabCatalogRecord>(
-          page => getLabCatalogApi(token, clinicId, { page, limit: 100 }),
-          catalogResponse.data,
-        ),
+        canViewReports
+          ? fetchAllPages<LabReportRecord>(
+              page => getLabReportsApi(token, clinicId, page),
+              reportResponse.data,
+            )
+          : Promise.resolve([] as LabReportRecord[]),
+        clinicId
+          ? fetchAllPages<LabCatalogRecord>(
+              page => getLabCatalogApi(token, clinicId, { page, limit: 100 }),
+              catalogResponse.data,
+            )
+          : Promise.resolve([] as LabCatalogRecord[]),
       ]);
       setTests(allTests);
       setReports(allReports);
@@ -171,7 +181,7 @@ export function useLabManagement(
       setLoading(false);
       setRefreshing(false);
     }
-  }, [clinicId, token]);
+  }, [allowPatientScope, canViewReports, clinicId, token]);
 
   useEffect(() => {
     setLoading(true);

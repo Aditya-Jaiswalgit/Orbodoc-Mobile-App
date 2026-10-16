@@ -19,11 +19,12 @@ export interface InboxNotification {
   sent_at?: string;
   created_at?: string;
   entity_type?: string;
+  entity_id?: string | number | null;
   not_cat_name?: string;
   is_read: number | boolean | string;
 }
 
-export const fetchHeaderInbox = (page = 1, limit = 20) => apiFetch<{ data: InboxNotification[]; total: number }>(`/notifications?page=${page}&limit=${limit}`);
+export const fetchHeaderInbox = (page = 1, limit = 20) => apiFetch<{ data: InboxNotification[]; total: number }>(`/notifications?is_read=0&page=${page}&limit=${limit}`);
 export const fetchHeaderUnreadCount = () => apiFetch<{ count: number | string }>('/notifications/unread-count');
 export const fetchClinicPlans = () => apiFetch<{ clinics: ClinicPlan[] }>('/clinics/my-clinics');
 export const clearHeaderNotifications = () => apiFetch('/notifications/clear', { method: 'DELETE' });

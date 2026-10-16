@@ -15,6 +15,7 @@ import {
   Download,
   FileText,
   Plus,
+  Printer,
   Search,
   Stethoscope,
   Trash2,
@@ -37,6 +38,8 @@ import {
 } from '../../api/prescriptionApi';
 import { Prescription, PrescriptionItem, PatientModel, Medicine } from '../../types/clinicTypes';
 import { showErrorToast, showSuccessToast } from '../../utils/toast';
+import { BASE_URL } from '../../api/apiConfig';
+import { openPdfForPrinting } from '../../utils/pdfActions';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -290,6 +293,22 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, appointment
     }
   };
 
+  const printPdf = async (prescription: Prescription) => {
+    if (!token) return;
+    setDownloadingId(Number(prescription.id));
+    try {
+      await openPdfForPrinting(
+        `${BASE_URL}/prescriptions/${prescription.id}/pdf`,
+        token,
+        `prescription-${prescription.id}.pdf`,
+      );
+    } catch (error) {
+      showErrorToast('Print failed', error instanceof Error ? error.message : 'Could not open the prescription for printing.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   const deleteMedicineItem = (prescription: Prescription, item: PrescriptionItem) => {
     if (!token || !item.id) return;
     Alert.alert('Remove medicine', 'Remove this medicine from the prescription?', [
@@ -332,7 +351,7 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, appointment
               <TouchableOpacity key={rx.id} style={[styles.historyCard, selected?.id === rx.id && styles.historyCardSelected]} onPress={() => void openDetails(rx)}>
                 <View style={styles.historyTop}><View style={styles.patientAvatar}><Text style={styles.avatarText}>{(rx.patient_name || 'P').slice(0, 1).toUpperCase()}</Text></View><View style={styles.patientDetails}><Text style={styles.patientName}>{rx.patient_name || `Patient #${rx.patient_id}`}</Text><Text style={styles.muted}>Prescription #{rx.id} · {displayDate(rx.created_at)}</Text></View><Text style={styles.statusPill}>{String((rx as any).status || 'Final')}</Text></View>
                 <Text style={styles.diagnosis} numberOfLines={2}>{rx.diagnosis || 'Diagnosis not entered'}</Text>
-                <View style={styles.cardFooter}><Text style={styles.muted}>{(rx.items || []).length} medicine(s) · {Array.isArray((rx as any).tests) ? (rx as any).tests.length : 0} test(s)</Text><View style={styles.inlineActions}><TouchableOpacity onPress={() => void openEdit(rx)}><Text style={styles.actionLink}>Edit</Text></TouchableOpacity><TouchableOpacity onPress={() => void downloadPdf(rx)} disabled={downloadingId === rx.id}><Download size={16} color="#0d9488" /></TouchableOpacity></View></View>
+                <View style={styles.cardFooter}><Text style={styles.muted}>{(rx.items || []).length} medicine(s) · {Array.isArray((rx as any).tests) ? (rx as any).tests.length : 0} test(s)</Text><View style={styles.inlineActions}><TouchableOpacity onPress={() => void openEdit(rx)}><Text style={styles.actionLink}>Edit</Text></TouchableOpacity><TouchableOpacity accessibilityRole="button" accessibilityLabel="Print prescription" onPress={() => void printPdf(rx)} disabled={downloadingId === rx.id}><Printer size={16} color="#0d9488" /></TouchableOpacity><TouchableOpacity accessibilityRole="button" accessibilityLabel="Download prescription PDF" onPress={() => void downloadPdf(rx)} disabled={downloadingId === rx.id}><Download size={16} color="#0d9488" /></TouchableOpacity></View></View>
               </TouchableOpacity>
             ))}
           </View>
@@ -391,7 +410,7 @@ export const PrescriptionsScreen: React.FC<Props> = ({ onOpenDrawer, appointment
             <Text style={styles.sectionTitle}>Lab Tests</Text>
             {(selected as any).tests?.length ? (selected as any).tests.map((test: any, index: number) => <View style={styles.detailLine} key={test.id || index}><Text style={styles.lineTitle}>{test.test_name}</Text><Text style={styles.muted}>{test.test_type || 'General'} · {test.urgency || test.priority || 'routine'}</Text></View>) : <Text style={styles.muted}>No lab tests attached.</Text>}
           </ScrollView> : null}
-          <View style={styles.modalFooter}><TouchableOpacity style={styles.cancelButton} onPress={() => selected && void openEdit(selected)}><Text style={styles.cancelText}>Edit</Text></TouchableOpacity><TouchableOpacity style={styles.primaryButton} disabled={!selected || downloadingId === selected?.id} onPress={() => selected && void downloadPdf(selected)}>{downloadingId === selected?.id ? <ActivityIndicator size="small" color="#fff" /> : <><Download size={16} color="#fff" /><Text style={styles.primaryButtonText}>Download PDF</Text></>}</TouchableOpacity></View>
+          <View style={styles.modalFooter}><TouchableOpacity style={styles.cancelButton} onPress={() => selected && void openEdit(selected)}><Text style={styles.cancelText}>Edit</Text></TouchableOpacity><TouchableOpacity style={styles.cancelButton} disabled={!selected || downloadingId === selected?.id} onPress={() => selected && void printPdf(selected)}><Printer size={15} color="#0f766e" /><Text style={styles.cancelText}>Print</Text></TouchableOpacity><TouchableOpacity style={styles.primaryButton} disabled={!selected || downloadingId === selected?.id} onPress={() => selected && void downloadPdf(selected)}>{downloadingId === selected?.id ? <ActivityIndicator size="small" color="#fff" /> : <><Download size={16} color="#fff" /><Text style={styles.primaryButtonText}>Download PDF</Text></>}</TouchableOpacity></View>
         </View></View>
       </AppModal>
     </View>

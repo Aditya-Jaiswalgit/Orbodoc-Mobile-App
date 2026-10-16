@@ -15,6 +15,7 @@ import {
   FileText,
   MoreVertical,
   Pill,
+  Printer,
   Plus,
 
   Receipt,
@@ -25,10 +26,10 @@ import {
   X,
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { PatientHeader } from '../../components/common/PatientHeader';
 import { AppToastOverlay, AppToastNotice } from '../../components/common/AppToast';
 import { Pagination } from '../../components/common/Pagination';
 import { ColumnSelectorModal } from '../../components/common/ColumnSelectorModal';
-import { CustomCalendarPicker } from '../../components/common/CustomCalendarPicker';
 import { useAuthContext } from '../../context/AuthContext';
 import { canUseStaffScreen } from '../../navigation/staffAccess';
 import { fetchPatientsApi } from '../../api/patientApi';
@@ -46,7 +47,6 @@ import { showErrorToast, showSuccessToast } from '../../utils/toast';
 import { PatientModel, Medicine } from '../../types/clinicTypes';
 import { useMedicineBills } from '../../hooks/useMedicineBills';
 import {
-  BILL_STATUS_OPTIONS as STATUS_OPTIONS,
   DEFAULT_MEDICINE_BILL_COLUMNS as DEFAULT_COLUMNS,
   formatMedicineBillDate as dateLabel,
   formatMedicineBillMoney as money,
@@ -68,11 +68,13 @@ interface Props {
   initialDate?: string;
   initialDateFrom?: string;
   initialDateTo?: string;
+  initialBillId?: string;
+  patientMode?: boolean;
 }
 
 const PRESCRIPTION_PAGE_SIZE = 5;
 
-export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDate, initialDateFrom, initialDateTo }) => {
+export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDate, initialDateFrom, initialDateTo, initialBillId, patientMode = false }) => {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const {
@@ -83,25 +85,25 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
     user,
     permissionsMap = {},
   } = useAuthContext();
-  const canView = canUseStaffScreen(
+  const canView = (patientMode && Object.keys(permissionsMap || {}).length === 0) || canUseStaffScreen(
     role,
     permissionsMap,
     'medicine_billing',
     'view',
   );
-  const canAdd = canUseStaffScreen(
+  const canAdd = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'medicine_billing',
     'add',
   );
-  const canEdit = canUseStaffScreen(
+  const canEdit = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'medicine_billing',
     'edit',
   );
-  const canDelete = canUseStaffScreen(
+  const canDelete = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'medicine_billing',
@@ -111,11 +113,10 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [status, setStatus] = useState('all');
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [dateFilter, setDateFilter] = useState(initialDate || '');
-  const [dateFromFilter, setDateFromFilter] = useState(initialDateFrom || '');
-  const [dateToFilter, setDateToFilter] = useState(initialDateTo || '');
+  const status = 'all';
+  const [dateFilter] = useState(initialDate || '');
+  const [dateFromFilter] = useState(initialDateFrom || '');
+  const [dateToFilter] = useState(initialDateTo || '');
   const [saving, setSaving] = useState(false);
   const [columnsVisible, setColumnsVisible] = useState(false);
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
@@ -185,7 +186,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
     refresh: loadBills,
   } = useMedicineBills<Bill>({
     token,
-    clinicId: activeClinicId,
+    clinicId: patientMode ? null : activeClinicId,
     canView,
     search: debouncedSearch,
     status,
@@ -690,7 +691,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
     }
   };
 
-  const openView = async (bill: Bill) => {
+  const openView = useCallback(async (bill: Bill) => {
     if (!token) return;
     setSaving(true);
     try {
@@ -707,7 +708,15 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
     } finally {
       setSaving(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (!initialBillId || loading || viewVisible) return;
+    const target = bills.find(bill => String(bill.id) === String(initialBillId));
+    if (target) void openView(target);
+  }, [bills, initialBillId, loading, openView, viewVisible]);
+
+
   const downloadPdf = async (bill: Bill) => {
     if (
       Platform.OS !== 'android' ||
@@ -852,10 +861,6 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
   };
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const setFilterStatus = (value: string) => {
-    setStatus(value);
-    setStatusOpen(false);
-  };
   const renderField = (
     label: string,
     value: string,
@@ -878,7 +883,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
 
   return (
     <View style={styles.container}>
-      <StaffHeader onOpenDrawer={onOpenDrawer} title="Medicine Billing" />
+      {patientMode ? <PatientHeader onOpenDrawer={onOpenDrawer} /> : <StaffHeader onOpenDrawer={onOpenDrawer} title="Medicine Billing" />}
       {!canView ? (
         <View style={styles.center}>
           <FileText size={30} color="#0D9488" />
@@ -899,7 +904,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
               </View>
               <View style={styles.bannerCopy}>
                 <Text style={[styles.bannerTitle, isMobile && styles.bannerTitleMobile]}>Medicine Bills</Text>
-                <Text style={styles.bannerSubtitle}>Manage medicine bills and payments</Text>
+                <Text style={styles.bannerSubtitle}>{patientMode ? 'View your medicine invoices and payment history' : 'Manage medicine bills and payments'}</Text>
               </View>
             </View>
             {canAdd && !isMobile ? (
@@ -1657,20 +1662,22 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                           {(viewedBill as any).clinic_name || activeClinicName || 'Clinic'}
                         </Text>
                         <Text style={styles.invoiceClinicTagline}>
-                          PATIENT CARE & MEDICINE SERVICES
+                          PHARMACY & MEDICINE SERVICES
                         </Text>
-                        {(viewedBill as any).clinic_address ? (
-                          <Text style={styles.invoiceClinicContact}>
-                            {(viewedBill as any).clinic_address}
-                          </Text>
-                        ) : null}
-                        {[(viewedBill as any).clinic_phone, (viewedBill as any).clinic_email]
-                          .filter(Boolean).length > 0 ? (
-                          <Text style={styles.invoiceClinicContact}>
-                            {[(viewedBill as any).clinic_phone, (viewedBill as any).clinic_email]
-                              .filter(Boolean).join(' | ')}
-                          </Text>
-                        ) : null}
+                        <Text style={styles.invoiceClinicContact}>
+                          {[
+                          viewedBill.clinic_address,
+                          viewedBill.clinic_city,
+                          viewedBill.clinic_state,
+                          viewedBill.clinic_postal_code,
+                          ].filter(Boolean).join(', ') || 'Clinic address'}
+                        </Text>
+                        <Text style={styles.invoiceClinicContact}>
+                          {[
+                            viewedBill.clinic_phone,
+                            viewedBill.clinic_email,
+                          ].filter(Boolean).join(' | ') || 'Clinic contact information'}
+                        </Text>
                       </View>
                       <View style={styles.invoiceBillMeta}>
                         <Text style={styles.invoiceType}>MEDICINE INVOICE</Text>
@@ -1696,13 +1703,13 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                         ) : null}
                       </View>
                       <View style={styles.invoiceMetaColumn}>
-                        <Text style={styles.invoiceSectionLabel}>DOCTOR & APPOINTMENT</Text>
+                        <Text style={styles.invoiceSectionLabel}>PREPARED BY</Text>
                         <Text style={styles.invoicePatientName}>
-                          {viewedBill.doctor_name ? `Dr. ${viewedBill.doctor_name}` : '—'}
+                          {viewedBill.pharmacist_name || 'Pharmacy team'}
                         </Text>
-                        {viewedBill.appointment_id ? (
+                        {viewedBill.prescription_id ? (
                           <Text style={styles.invoiceMetaText}>
-                            Appointment ID: {viewedBill.appointment_id}
+                            Prescription: #{viewedBill.prescription_id}
                           </Text>
                         ) : null}
                       </View>
@@ -1759,6 +1766,10 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                             <Text style={styles.invoiceItemCode}>Discount</Text>
                             <Text style={styles.invoiceItemValue}>{Number(item.discount_pct || 0)}%</Text>
                           </View>
+                          <View style={styles.invoiceMetaColumn}>
+                            <Text style={styles.invoiceItemCode}>Tax</Text>
+                            <Text style={styles.invoiceItemValue}>{Number(item.tax_pct || 0)}%</Text>
+                          </View>
                         </View>
                       </View>
                     ))}
@@ -1794,27 +1805,37 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
             <View style={styles.invoiceActionFooter}>
               <View style={styles.invoiceActionButtonsRow}>
               <TouchableOpacity
-                style={[styles.invoiceCloseAction, styles.invoiceActionButton]}
+                style={[styles.invoiceCloseAction, styles.invoiceCloseActionButton]}
                 onPress={() => setViewVisible(false)}
               >
                 <X size={16} color="#334155" />
-                <Text style={styles.invoiceCloseActionText}>Close</Text>
+                <Text maxFontSizeMultiplier={1.15} style={styles.invoiceCloseActionText}>Close</Text>
               </TouchableOpacity>
 
 
 
 
 
-
+
 
 
               {viewedBill ? (
                 <TouchableOpacity
-                  style={[styles.invoiceDownloadButton, styles.invoiceActionButton]}
+                  style={[styles.invoiceDownloadButton, styles.invoicePrimaryActionButton]}
                   onPress={() => downloadPdf(viewedBill)}
                 >
                   <Download size={17} color="#FFFFFF" />
-                  <Text style={styles.invoiceDownloadButtonText}>Download PDF</Text>
+                  <Text maxFontSizeMultiplier={1.15} numberOfLines={1} adjustsFontSizeToFit style={styles.invoiceDownloadButtonText}>Download PDF</Text>
+                </TouchableOpacity>
+              ) : null}
+              {viewedBill ? (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  style={[styles.invoiceDownloadButton, styles.invoicePrintActionButton]}
+                  onPress={() => void printBill(viewedBill)}
+                >
+                  <Printer size={17} color="#FFFFFF" />
+                  <Text maxFontSizeMultiplier={1.15} numberOfLines={1} adjustsFontSizeToFit style={styles.invoiceDownloadButtonText}>Print Bill</Text>
                 </TouchableOpacity>
               ) : null}
               </View>

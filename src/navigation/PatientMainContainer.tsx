@@ -4,6 +4,7 @@ import { Alert, BackHandler, Platform, ScrollView, StatusBar, StyleSheet, Text, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   LayoutDashboard,
+  Building2,
   Calendar,
   Users,
   CreditCard,
@@ -11,38 +12,41 @@ import {
   Video,
   TestTube,
   Bell,
-  Menu,
   X,
   LogOut,
 } from 'lucide-react-native';
 import { useAuthContext } from '../context/AuthContext';
 import { PatientDashboardScreen } from '../screens/dashboards/PatientDashboardScreen';
-import AppointmentsScreen from '../screens/patient/AppointmentsScreen';
 import BookAppointmentScreen from '../screens/patient/BookAppointmentScreen';
-import LabTestsScreen from '../screens/patient/PatientLabTestsScreen';
+import LabTestsScreen from '../screens/staff/LabManagementScreen';
 import MedicineBillingScreen from '../screens/patient/MedicineBillingScreen';
-import NotificationsScreen from '../screens/patient/NotificationsScreen';
+import NotificationsCenterScreen from '../screens/staff/NotificationsCenterScreen';
 import PatientsProfileScreen from '../screens/patient/PatientsProfileScreen';
+import PatientsManagementScreen from '../screens/staff/PatientsManagementScreen';
 import TreatmentBillingScreen from '../screens/patient/TreatmentBillingScreen';
 import VideoServicesScreen from '../screens/patient/VideoServicesScreen';
 import { canUseStaffScreen } from './staffAccess';
-import { io } from 'socket.io-client';
-import { BASE_URL } from '../api/apiConfig';
+import { getNotificationSocket } from '../api/notificationSocket';
 import { getAppointmentsApi } from '../api/appointmentApi';
 import { fetchUnreadCount } from '../api/notificationApi';
 import { Appointment } from '../types/clinicTypes';
 import { VideoCallRoomScreen } from '../screens/common/VideoCallRoomScreen';
+import { subscribePatientNavigation } from '../utils/patientNavigationEvents';
+import ChangePasswordScreen from '../screens/staff/ChangePasswordScreen';
+import AppointmentsManagerScreen from '../screens/staff/AppointmentsManagerScreen';
 
 export type PatientTabType =
   | 'dashboard'
   | 'book_appointment'
   | 'patients'
+  | 'profile'
   | 'appointments'
   | 'treatment_billing'
   | 'medicine_billing'
   | 'video_services'
   | 'lab_tests'
-  | 'notifications';
+  | 'notifications'
+  | 'change_password';
 
 interface MenuItem {
   id: PatientTabType;
@@ -88,17 +92,24 @@ const renderTabVectorIcon = (tab: PatientTabType, color: string, size: number = 
 
 export const PatientMainContainer = () => {
   const [activeTab, setActiveTab] = useState<PatientTabType>('dashboard');
+  const [notificationRouteFilters, setNotificationRouteFilters] = useState<Record<string, string>>({});
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
-  const { user, token, userType, logout, permissionsMap = {} } = useAuthContext();
+  const { user, token, userType, logout, role, permissionsMap = {} } = useAuthContext();
   const [activeVideoCall, setActiveVideoCall] = useState<{ appointment: Appointment; roomId: string } | null>(null);
   const handledIncomingCallRef = useRef('');
 
   const canPatientOpen = useCallback((tabId: PatientTabType) => {
-    if (tabId === 'dashboard' || tabId === 'notifications') return true;
-    if (!permissionsMap || Object.keys(permissionsMap).length === 0) return true;
-    return canUseStaffScreen('patient', permissionsMap, tabId);
-  }, [permissionsMap]);
+    if (tabId === 'dashboard' || tabId === 'profile' || tabId === 'change_password') return true;
+    // Match the web sidebar: show a tab only when its role has view access.
+    return canUseStaffScreen(role || 'patient', permissionsMap, tabId, 'view');
+  }, [permissionsMap, role]);
+
+  useEffect(() => {
+    if (activeTab !== 'dashboard' && activeTab !== 'profile' && activeTab !== 'change_password' && !canPatientOpen(activeTab)) {
+      setActiveTab('dashboard');
+    }
+  }, [activeTab, canPatientOpen]);
 
   useEffect(() => {
     let mounted = true;
@@ -118,6 +129,19 @@ export const PatientMainContainer = () => {
     };
   }, [activeTab, drawerOpen]);
 
+  useEffect(() => subscribePatientNavigation(route => {
+    const destination = new URL(route, 'https://patient.local');
+    const screen = destination.pathname.replace(/^\//, '');
+    setNotificationRouteFilters(Object.fromEntries(destination.searchParams.entries()));
+    if (screen === 'wallet') setActiveTab('video_services');
+    else if (screen === 'profile' || screen === 'change_password' || screen === 'dashboard') {
+      setActiveTab(screen);
+    } else if (canPatientOpen(screen as PatientTabType)) {
+      setActiveTab(screen as PatientTabType);
+    }
+    setDrawerOpen(false);
+  }), [canPatientOpen]);
+
   const visibleMenuItems = useMemo(() => {
     return MENU_ITEMS.filter(item => canPatientOpen(item.id)).map(item => {
       if (item.id === 'notifications') {
@@ -128,14 +152,26 @@ export const PatientMainContainer = () => {
   }, [canPatientOpen, unreadCount]);
 
   const patientName = user?.fullName || user?.full_name || 'bulbul';
-  const initial = patientName.charAt(0).toUpperCase();
 
   useEffect(() => {
     if (!token || !user?.id || userType !== 'patient') return;
-    const socketUrl = BASE_URL.replace(/\/api\/?$/, '').replace(/\/$/, '');
-    const socket = io(socketUrl, { transports: ['websocket', 'polling'], reconnection: true });
-    socket.on('connect', () => socket.emit('register-user', { userType: 'patient', userId: String(user.id) }));
-    socket.on('incoming-call', (call: { appointment_id?: number | string; video_room_id?: string; doctor_id?: number; patient_id?: number; caller_name?: string; caller_role?: string }) => {
+    let mounted = true;
+    const socket = getNotificationSocket();
+    const joinNotifications = () => {
+      socket.emit('register-user', { userType: 'patient', userId: String(user.id) });
+      socket.emit('join_room', { userType: 'patient', userId: String(user.id) });
+    };
+    const refreshUnread = () => {
+      fetchUnreadCount().then(response => {
+        if (mounted && response.success && response.data?.count != null) {
+          setUnreadCount(Number(response.data.count));
+        }
+      }).catch(() => undefined);
+    };
+    socket.on('connect', joinNotifications);
+    socket.on('notification', refreshUnread);
+    if (socket.connected) joinNotifications();
+    const onIncomingCall = (call: { appointment_id?: number | string; video_room_id?: string; doctor_id?: number; patient_id?: number; caller_name?: string; caller_role?: string }) => {
       if (call.caller_role !== 'doctor' || !call.appointment_id || !call.video_room_id) return;
       const appointmentKey = String(call.appointment_id);
       if (handledIncomingCallRef.current === appointmentKey) return;
@@ -156,12 +192,20 @@ export const PatientMainContainer = () => {
           }).catch(() => Alert.alert('Unable to join', 'Please try again from Appointments.'));
         } },
       ]);
-    });
-    return () => { socket.disconnect(); };
+    };
+    socket.on('incoming-call', onIncomingCall);
+    return () => {
+      mounted = false;
+      socket.off('connect', joinNotifications);
+      socket.off('notification', refreshUnread);
+      socket.off('incoming-call', onIncomingCall);
+    };
   }, [token, user?.id, userType]);
 
   const openDrawer = () => setDrawerOpen(true);
-  const openNotifications = () => setActiveTab('notifications');
+  const openNotifications = () => {
+    if (canPatientOpen('notifications')) setActiveTab('notifications');
+  };
 
   // Android hardware back button handler
   const lastBackPressRef = useRef<number>(0);
@@ -201,23 +245,31 @@ export const PatientMainContainer = () => {
           <PatientDashboardScreen
             onOpenDrawer={openDrawer}
             onOpenNotifications={openNotifications}
+            onBookAppointment={() => { if (canPatientOpen('book_appointment')) setActiveTab('book_appointment'); }}
+            onOpenAppointments={() => { if (canPatientOpen('appointments')) setActiveTab('appointments'); }}
+            onOpenLabReports={() => { if (canPatientOpen('lab_tests')) setActiveTab('lab_tests'); }}
+            onOpenBilling={() => {
+              if (canPatientOpen('treatment_billing')) setActiveTab('treatment_billing');
+              else if (canPatientOpen('medicine_billing')) setActiveTab('medicine_billing');
+            }}
           />
         );
       case 'book_appointment':
-        return <BookAppointmentScreen onOpenDrawer={openDrawer} onViewVideoServices={() => setActiveTab('video_services')} />;
+        return <BookAppointmentScreen onOpenDrawer={openDrawer} onViewAppointments={() => setActiveTab('appointments')} />;
       case 'patients':
-        return <PatientsProfileScreen onOpenDrawer={openDrawer} />;
+        return <PatientsManagementScreen patientMode onOpenDrawer={openDrawer} initialPatientId={notificationRouteFilters.patientId} />;
+      case 'profile':
+        return <PatientsProfileScreen patientMode onOpenDrawer={openDrawer} onNavigateScreen={screen => setActiveTab(screen as PatientTabType)} />;
       case 'appointments':
-        return <AppointmentsScreen onOpenDrawer={openDrawer} />;
+        return <AppointmentsManagerScreen patientMode onOpenDrawer={openDrawer} initialFilters={notificationRouteFilters} />;
       case 'treatment_billing':
-        return <TreatmentBillingScreen onOpenDrawer={openDrawer} />;
+        return <TreatmentBillingScreen initialBillId={notificationRouteFilters.billId} onOpenDrawer={openDrawer} />;
       case 'medicine_billing':
-        return <MedicineBillingScreen onOpenDrawer={openDrawer} />;
+        return <MedicineBillingScreen initialBillId={notificationRouteFilters.billId} onOpenDrawer={openDrawer} />;
       case 'video_services':
         return (
           <VideoServicesScreen
             onOpenDrawer={openDrawer}
-            onBookAppointment={() => setActiveTab('book_appointment')}
             onJoinCall={appointment => {
               const roomId = String(appointment.video_room_id || '').trim();
               if (!roomId) {
@@ -229,19 +281,33 @@ export const PatientMainContainer = () => {
           />
         );
       case 'lab_tests':
-        return <LabTestsScreen onOpenDrawer={openDrawer} />;
+        return <LabTestsScreen patientMode initialTab="orders" initialReportId={notificationRouteFilters.reportId} onOpenDrawer={openDrawer} />;
       case 'notifications':
         return (
-          <NotificationsScreen
+          <NotificationsCenterScreen
+            patientMode
             onOpenDrawer={openDrawer}
-            onNavigateScreen={scr => setActiveTab(scr as PatientTabType)}
+            onNavigateScreen={route => {
+              const destination = new URL(route, 'https://patient.local');
+              setNotificationRouteFilters(Object.fromEntries(destination.searchParams.entries()));
+              setActiveTab(destination.pathname.replace(/^\//, '') as PatientTabType);
+            }}
           />
         );
+      case 'change_password':
+        return <ChangePasswordScreen patientMode onOpenDrawer={openDrawer} onNavigateScreen={screen => setActiveTab(screen as PatientTabType)} />;
       default:
         return (
           <PatientDashboardScreen
             onOpenDrawer={openDrawer}
             onOpenNotifications={openNotifications}
+            onBookAppointment={() => { if (canPatientOpen('book_appointment')) setActiveTab('book_appointment'); }}
+            onOpenAppointments={() => { if (canPatientOpen('appointments')) setActiveTab('appointments'); }}
+            onOpenLabReports={() => { if (canPatientOpen('lab_tests')) setActiveTab('lab_tests'); }}
+            onOpenBilling={() => {
+              if (canPatientOpen('treatment_billing')) setActiveTab('treatment_billing');
+              else if (canPatientOpen('medicine_billing')) setActiveTab('medicine_billing');
+            }}
           />
         );
     }
@@ -252,85 +318,6 @@ export const PatientMainContainer = () => {
       {activeVideoCall && token && user ? <VideoCallRoomScreen appointment={activeVideoCall.appointment} roomId={activeVideoCall.roomId} callerRole="patient" userId={user.id} token={token} onClose={() => setActiveVideoCall(null)} /> : null}
       {/* Dynamic Screen Content */}
       <View style={styles.screenContainer}>{renderActiveScreen()}</View>
-
-      {/* ─── BOTTOM TAB BAR ─── */}
-      <View style={styles.bottomTabBar}>
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => setActiveTab('dashboard')}>
-          <View style={styles.tabIconWrapper}>
-            {renderTabVectorIcon('dashboard', activeTab === 'dashboard' ? '#0d9488' : '#94a3b8', 21)}
-          </View>
-          <Text
-            style={[
-              styles.tabLabel,
-              activeTab === 'dashboard' && styles.tabLabelActive,
-            ]}>
-            Dashboard
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => setActiveTab('book_appointment')}>
-          <View style={styles.tabIconWrapper}>
-            {renderTabVectorIcon('book_appointment', activeTab === 'book_appointment' ? '#0d9488' : '#94a3b8', 21)}
-          </View>
-          <Text
-            style={[
-              styles.tabLabel,
-              activeTab === 'book_appointment' && styles.tabLabelActive,
-            ]}>
-            Book
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.tabItemCenter}
-          onPress={() => setDrawerOpen(true)}>
-          <View style={styles.centerFab}>
-            <Menu size={22} color="#ffffff" />
-          </View>
-          <Text style={styles.fabLabel}>Menu</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => setActiveTab('treatment_billing')}>
-          <View style={styles.tabIconWrapper}>
-            {renderTabVectorIcon(
-              'treatment_billing',
-              activeTab === 'treatment_billing' || activeTab === 'medicine_billing' ? '#0d9488' : '#94a3b8',
-              21
-            )}
-          </View>
-          <Text
-            style={[
-              styles.tabLabel,
-              (activeTab === 'treatment_billing' || activeTab === 'medicine_billing') && styles.tabLabelActive,
-            ]}>
-            Billing
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => setActiveTab('notifications')}>
-          <View style={styles.tabIconWrapper}>
-            {renderTabVectorIcon('notifications', activeTab === 'notifications' ? '#0d9488' : '#94a3b8', 21)}
-            <View style={[styles.smallBadge, unreadCount <= 0 && { display: 'none' }]}>
-              <Text style={styles.smallBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-            </View>
-          </View>
-          <Text
-            style={[
-              styles.tabLabel,
-              activeTab === 'notifications' && styles.tabLabelActive,
-            ]}>
-            Alerts
-          </Text>
-        </TouchableOpacity>
-      </View>
 
       {/* ─── SIDE DRAWER MENU MODAL (DARK NAVY THEME) ─── */}
       <AppModal
@@ -345,30 +332,23 @@ export const PatientMainContainer = () => {
 
           <View style={styles.drawerSheet}>
             <SafeAreaView style={styles.drawerSafeArea}>
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Header Category Tag */}
                 <View style={styles.drawerHeader}>
-                  <Text style={styles.categoryTitle}>PATIENT</Text>
+                  <View style={styles.brandingContainer}>
+                    <View style={styles.logoBadge}><Building2 color="#0D9488" size={22} /></View>
+                    <View style={styles.patientNameCol}>
+                      <Text style={styles.patientNameText} numberOfLines={1}>{patientName}</Text>
+                      <Text style={styles.patientSubText}>Patient Account</Text>
+                    </View>
+                  </View>
                   <TouchableOpacity
                     onPress={() => setDrawerOpen(false)}
-                    style={styles.closeBtn}>
-                    <X size={20} color="#94a3b8" />
+                    style={styles.closeBtn} accessibilityLabel="Close navigation">
+                    <X size={20} color="#14B8A6" />
                   </TouchableOpacity>
                 </View>
-
-                {/* Patient Info Box */}
-                <View style={styles.patientInfoCard}>
-                  <View style={styles.avatarCircle}>
-                    <Text style={styles.avatarLetter}>{initial}</Text>
-                  </View>
-                  <View style={styles.patientNameCol}>
-                    <Text style={styles.patientNameText}>{patientName}</Text>
-                    <Text style={styles.patientSubText}>Patient Account</Text>
-                  </View>
-                </View>
-
-                {/* Navigation Menu Links */}
-                <View style={styles.menuList}>
+                <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>PATIENT PORTAL</Text></View>
+                <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
+                  <View style={styles.menuList}>
                   {visibleMenuItems.map((item) => {
                     const isActive = activeTab === item.id;
                     return (
@@ -411,20 +391,21 @@ export const PatientMainContainer = () => {
                       </TouchableOpacity>
                     );
                   })}
-                </View>
+                  </View>
+                </ScrollView>
 
-                {/* Logout Button */}
-                <TouchableOpacity
-                  style={styles.logoutBtn}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setDrawerOpen(false);
-                    logout();
-                  }}>
-                  <LogOut size={18} color="#ef4444" />
-                  <Text style={styles.logoutBtnText}>Logout Account</Text>
-                </TouchableOpacity>
-              </ScrollView>
+                <View style={styles.footerSection}>
+                  <TouchableOpacity
+                    style={styles.logoutBtn}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setDrawerOpen(false);
+                      logout();
+                    }}>
+                    <LogOut size={19} color="#14B8A6" />
+                    <Text style={styles.logoutBtnText}>Logout</Text>
+                  </TouchableOpacity>
+                </View>
             </SafeAreaView>
           </View>
         </View>
@@ -463,97 +444,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  bottomTabBar: {
-    flexDirection: 'row',
-    height: 65,
-    backgroundColor: '#ffffff',
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    elevation: 10,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabItemCenter: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  centerFab: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#0d9488',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -20,
-    shadowColor: '#0d9488',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  fabIcon: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  fabLabel: {
-    fontSize: 10,
-    color: '#0d9488',
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  tabIconWrapper: {
-    position: 'relative',
-  },
-  tabIcon: {
-    fontSize: 20,
-    opacity: 0.5,
-  },
-  tabIconActive: {
-    opacity: 1,
-  },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#64748b',
-    marginTop: 2,
-  },
-  tabLabelActive: {
-    color: '#0d9488',
-    fontWeight: '800',
-  },
-  smallBadge: {
-    position: 'absolute',
-    top: -3,
-    right: -6,
-    backgroundColor: '#ef4444',
-    borderRadius: 8,
-    minWidth: 14,
-    height: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  smallBadgeText: {
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: 'bold',
-  },
   modalOverlay: {
     position: 'absolute',
-    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 36) + 56 : 90,
+    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 36) + 10 : 20,
     left: 0,
     right: 0,
     bottom: 0,
@@ -571,7 +464,7 @@ const styles = StyleSheet.create({
     width: '82%',
     maxWidth: 320,
     height: '100%',
-    backgroundColor: '#071624',
+    backgroundColor: '#0A0F1D',
     borderTopRightRadius: 16,
     borderBottomRightRadius: 16,
     paddingHorizontal: 16,
@@ -585,18 +478,44 @@ const styles = StyleSheet.create({
   drawerSafeArea: {
     flex: 1,
   },
+  scrollArea: {
+    flex: 1,
+  },
   drawerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 18,
+    marginBottom: 22,
     paddingHorizontal: 4,
   },
-  categoryTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#14b8a6',
-    letterSpacing: 1.5,
+  brandingContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logoBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#102A35',
+    borderWidth: 1,
+    borderColor: '#164E52',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionHeader: {
+    paddingHorizontal: 8,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1E293B',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 1.15,
   },
   closeBtn: {
     padding: 6,
@@ -606,69 +525,45 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  patientInfoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0f2942',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#1e3a5f',
-  },
-  avatarCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#0d9488',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  avatarLetter: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
   patientNameCol: {
     flex: 1,
   },
   patientNameText: {
-    color: '#ffffff',
+    color: '#F8FAFC',
     fontSize: 15,
     fontWeight: '700',
   },
   patientSubText: {
-    color: '#94a3b8',
+    color: '#94A3B8',
     fontSize: 11,
   },
   menuList: {
-    gap: 6,
-    marginBottom: 24,
+    gap: 5,
+    marginBottom: 12,
   },
   menuItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 11,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 10,
   },
   menuItemRowActive: {
-    backgroundColor: '#0f2f4a',
+    backgroundColor: '#122B36',
     borderWidth: 1,
-    borderColor: '#0d9488',
+    borderColor: '#164E52',
   },
   menuIconContainer: {
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: '#0f2338',
+    backgroundColor: '#111827',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   menuIconContainerActive: {
-    backgroundColor: '#0d9488',
+    backgroundColor: '#0D9488',
   },
   menuItemEmoji: {
     fontSize: 16,
@@ -677,7 +572,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: '#94a3b8',
+    color: '#CBD5E1',
   },
   menuItemLabelActive: {
     color: '#ffffff',
@@ -694,24 +589,29 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
   },
+  footerSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#1E293B',
+    marginBottom: 20,
+  },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    paddingVertical: 13,
-    marginTop: 10,
-    marginBottom: 30,
+    backgroundColor: '#111827',
+    borderRadius: 10,
+    paddingVertical: 12,
     gap: 8,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#1E293B',
   },
   logoutBtnIcon: {
     fontSize: 16,
   },
   logoutBtnText: {
-    color: '#ef4444',
+    color: '#E2E8F0',
     fontWeight: '700',
     fontSize: 14,
   },

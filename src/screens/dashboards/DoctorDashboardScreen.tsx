@@ -3,6 +3,7 @@ import {
   Activity,
   AlertCircle,
   Calendar,
+  CalendarDays,
   Clock3,
   RefreshCw,
   WalletCards,
@@ -178,7 +179,7 @@ export const DoctorDashboardScreen: React.FC<Props> = ({
           <Text style={styles.greetingSubtitle}>Here's what's happening at your clinic today.</Text>
         </View>
         <View style={styles.todayCard}>
-          <View style={styles.todayIcon}><Calendar size={20} color="#0d9488" /></View>
+          <View style={styles.todayIcon}><CalendarDays size={22} color="#0d9488" strokeWidth={2.2} /></View>
           <View style={styles.todayCopy}>
             <View style={styles.todayEyebrow}><View style={styles.todayDot} /><Text style={styles.todayLabel}>TODAY</Text></View>
             <Text style={styles.todayDate}>{todayLabel}</Text>

@@ -7,11 +7,12 @@ import {
   Platform,
   RefreshControl,
   ScrollView,
-  Text,
+  Text as NativeText,
   TextInput,
   TouchableOpacity,
   View,
   ViewStyle,
+  useWindowDimensions,
 } from 'react-native';
 import { styles } from './styles/StaffVideoServices.styles';
 import {
@@ -19,6 +20,7 @@ import {
   DollarSign,
   Download,
   PhoneCall,
+  Printer,
   Receipt,
   RefreshCw,
   RotateCcw,
@@ -42,6 +44,11 @@ import { Appointment } from '../../types/clinicTypes';
 import { canUseStaffScreen } from '../../navigation/staffAccess';
 import { VideoCallRoomScreen } from '../common/VideoCallRoomScreen';
 import { showErrorToast, showSuccessToast } from '../../utils/toast';
+import { openPdfForPrinting } from '../../utils/pdfActions';
+
+const Text = (props: React.ComponentProps<typeof NativeText>) => (
+  <NativeText maxFontSizeMultiplier={1.2} {...props} />
+);
 
 type Tab = 'calls' | 'consultancy' | 'billing';
 const money = (value: unknown) =>
@@ -138,19 +145,6 @@ const localDate = () => {
     '0',
   )}-${String(now.getDate()).padStart(2, '0')}`;
 };
-const refreshedLabel = (date: Date | null) =>
-  date
-    ? `Last refreshed: ${date.toLocaleString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true,
-      })}`
-    : 'Refresh to load the latest video service records.';
-
 export const StaffVideoServicesScreen: React.FC<Props> = ({
   onOpenDrawer,
   onNavigateScreen,
@@ -162,13 +156,14 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
     activeClinicId,
     permissionsMap = {},
   } = useAuthContext();
+  const { width: windowWidth } = useWindowDimensions();
+  const compactActions = windowWidth < 400;
   const {
     appointments,
     bills,
     loading,
     refreshing,
     error,
-    lastRefreshed,
     refresh,
   } = useVideoServices(token, activeClinicId, false);
   const [tab, setTab] = useState<Tab>('calls');
@@ -414,6 +409,26 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
     }
   };
 
+  const handlePrintBill = async (bill: VideoCallBill) => {
+    if (!token || pdfBusyIds.has(bill.id)) return;
+    setPdfBusyIds(current => new Set(current).add(bill.id));
+    try {
+      await openPdfForPrinting(
+        `${BASE_URL}/video-call-billing/${bill.id}/pdf`,
+        token,
+        `video-consultation-bill-${bill.id}.pdf`,
+      );
+    } catch (error) {
+      showErrorToast('Print failed', error instanceof Error ? error.message : 'Could not open the bill for printing.');
+    } finally {
+      setPdfBusyIds(current => {
+        const next = new Set(current);
+        next.delete(bill.id);
+        return next;
+      });
+    }
+  };
+
   const renderAppointment = (item: Appointment, showCall: boolean) => {
     const status = String(item.status || 'approved').replace(/_/g, ' ');
     const doctorName = item.doctor_name || '-';
@@ -540,6 +555,13 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
         <View style={styles.historyActions}>
           {bill?.id && canExecuteBillActions ? (
             <>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Print bill"
+                style={styles.iconAction}
+                onPress={() => void handlePrintBill(bill)}>
+                <Printer size={17} color="#334155" />
+              </TouchableOpacity>
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel="Download bill PDF"
@@ -747,8 +769,8 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
             and video billing.
           </Text>
           {/* Action Buttons Row: Refresh (Left), Open Appointments (Right) */}
-          <View style={styles.heroActionsRow}>
-            <View style={styles.heroActionCol}>
+          <View style={[styles.heroActionsRow, compactActions && styles.heroActionsStacked]}>
+            <View style={[styles.heroActionCol, compactActions && styles.heroActionColStacked]}>
               <RefreshButton
                 onRefresh={refresh}
                 loading={refreshing}
@@ -758,7 +780,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
               />
             </View>
 
-            <View style={styles.heroActionCol}>
+            <View style={[styles.heroActionCol, compactActions && styles.heroActionColStacked]}>
               <TouchableOpacity
                 style={styles.openAppointments}
                 onPress={() => onNavigateScreen?.('appointments')}
@@ -1200,6 +1222,15 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
               >
                 <Text style={styles.invoiceCloseText}>Close</Text>
               </TouchableOpacity>
+              {canExecuteBillActions && (
+                <TouchableOpacity
+                  style={styles.invoiceDownloadAction}
+                  disabled={!selectedBill || pdfBusyIds.has(selectedBill.id)}
+                  onPress={() => selectedBill && void handlePrintBill(selectedBill)}>
+                  <Printer size={16} color="#fff" />
+                  <Text style={styles.invoiceDownloadText}>Print Bill</Text>
+                </TouchableOpacity>
+              )}
               {canExecuteBillActions && (
                 <TouchableOpacity
                   style={[

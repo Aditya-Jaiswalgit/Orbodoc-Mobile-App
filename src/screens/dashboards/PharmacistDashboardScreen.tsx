@@ -191,7 +191,6 @@ export const PharmacistDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
     { label: 'Week', value: data.weekRevenue, color: '#16A34A' },
     { label: 'Month', value: data.monthRevenue, color: '#D97706' },
   ];
-  const maxRevenue = Math.max(...revenueBars.map(item => item.value), 1);
   const totalStockMix = Math.max(data.totalMedicines, data.lowStockCount, 1);
   const circumference = 2 * Math.PI * 38;
   const lowStockArc = Math.min(data.lowStockCount / totalStockMix, 1) * circumference;

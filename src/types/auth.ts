@@ -15,6 +15,8 @@ export interface PatientLoginPayload {
 export interface UserClinic {
   id: number;
   name: string;
+  logo_url?: string;
+  clinic_logo_url?: string;
   is_primary?: number;
   entity_type?: string;
   clinic_entity_type?: string;
@@ -24,6 +26,7 @@ export interface AuthUser {
   id: number;
   fullName: string;
   full_name?: string;
+  name?: string;
   email?: string;
   phone?: string;
   role_id?: number | string;

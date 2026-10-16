@@ -11,12 +11,10 @@ import {
   View,
 } from 'react-native';
 import {
-  AlertCircle,
   Bell,
   Calendar,
   CheckCircle2,
   CreditCard,
-  FileText,
   Search,
   TestTube,
   Trash2,
@@ -24,6 +22,7 @@ import {
   X,
 } from 'lucide-react-native';
 import { PatientHeader } from '../../components/common/PatientHeader';
+import { PatientPageHeading } from '../../components/common/PatientPageHeading';
 import { RefreshButton } from '../../components/common/RefreshButton';
 import {
   clearMyNotifications,
@@ -35,6 +34,8 @@ import {
 } from '../../api/notificationApi';
 import { getMobileNotificationDestination } from '../../utils/notificationNavigation';
 import { showSuccessToast } from '../../utils/toast';
+import { useAuthContext } from '../../context/AuthContext';
+import { canUseStaffScreen } from '../../navigation/staffAccess';
 
 interface NotificationsScreenProps {
   onOpenDrawer?: () => void;
@@ -54,6 +55,8 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
   onOpenDrawer = () => {},
   onNavigateScreen = () => {},
 }) => {
+  const { role, permissionsMap = {} } = useAuthContext();
+  const canClearNotifications = canUseStaffScreen(role || 'patient', permissionsMap, 'notifications', 'delete');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -184,13 +187,13 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0d9488']} />}>
         {/* Header Title with RefreshButton */}
-        <View style={styles.headerBoxRow}>
-          <View style={{ flex: 1, marginRight: 8 }}>
-            <Text style={styles.title}>Notifications</Text>
-            <Text style={styles.subtitle}>View all updates, appointment reminders & billing alerts</Text>
-          </View>
-          <RefreshButton onRefresh={loadData} loading={refreshing} />
-        </View>
+        <PatientPageHeading
+          title="Notifications"
+          subtitle="Appointment reminders, billing alerts and other updates"
+          icon={<Bell size={20} color="#0d9488" />}
+          action={<RefreshButton onRefresh={loadData} loading={refreshing} />}
+          compact
+        />
 
         {/* Top Action Bar */}
         <View style={styles.cardHeader}>
@@ -206,13 +209,13 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
               <Text style={styles.actionBtnText}>Mark All Read</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
+            {canClearNotifications ? <TouchableOpacity
               style={[styles.actionBtn, styles.clearBtn, history.length === 0 && styles.disabledBtn]}
               disabled={saving || history.length === 0}
               onPress={handleClearHistory}>
               <Trash2 size={15} color="#dc2626" style={{ marginRight: 5 }} />
               <Text style={styles.clearBtnText}>Clear</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> : null}
           </View>
         </View>
 
@@ -300,7 +303,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
-  scrollContent: { padding: 16, paddingBottom: 100 },
+  scrollContent: { padding: 16, paddingBottom: 28 },
 
   headerBox: { marginBottom: 14 },
   headerBoxRow: {
@@ -397,6 +400,7 @@ const styles = StyleSheet.create({
   categoryName: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
   timeText: { fontSize: 11, color: '#64748b', marginTop: 1 },
   badgePill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  badgePillText: { fontSize: 10, fontWeight: '700', color: '#475569' },
   badgeRead: { backgroundColor: '#f1f5f9' },
   badgeReadText: { fontSize: 10, fontWeight: '700', color: '#64748b' },
   badgeUnread: { backgroundColor: '#cffafe', borderWidth: 1, borderColor: '#67e8f9' },

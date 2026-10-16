@@ -157,6 +157,30 @@ export const verifyWalletRechargeApi = (
   body: JSON.stringify(payment),
 });
 
+export interface WalletPayoutRequest {
+  id: number;
+  requested_amount: number;
+  payout_method: 'bank_transfer' | 'upi';
+  request_status: string;
+  bank_account_number?: string | null;
+  upi_id?: string | null;
+  requested_at?: string;
+}
+
+export const getWalletPayoutRequestsApi = (token: string) =>
+  apiFetch<{ data?: WalletPayoutRequest[] }>('/wallet/payout-requests?page=1&limit=5', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const createWalletPayoutRequestApi = (
+  token: string,
+  payload: { amount: number; payout_method: 'bank_transfer' | 'upi'; account_holder_name?: string; bank_account_number?: string; ifsc_code?: string; upi_id?: string },
+) => apiFetch<{ balance: number; payoutRequest: WalletPayoutRequest }>('/wallet/payout-requests', {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${token}` },
+  body: JSON.stringify(payload),
+});
+
 export const getVideoPaymentSessionsApi = (token: string, appointmentIds: number[]) => {
   if (!appointmentIds.length) {
     return Promise.resolve({ success: true, message: 'No video appointments', data: { data: [] } } as ApiResponse<{ data: VideoPaymentSession[] }>);
@@ -228,7 +252,7 @@ export const getVideoPricingPreviewApi = (
   doctorId: number,
   patientId: number,
   clinicId?: number | string | null,
-) => apiFetch<{ pricing?: { consultation_fee?: number; wallet_balance?: number; required_amount?: number; has_sufficient_balance?: boolean } }>(
+) => apiFetch<{ pricing?: { consultation_fee?: number; wallet_balance?: number; required_amount?: number; sufficient_balance?: boolean; has_sufficient_balance?: boolean } }>(
   `/appointments/video-pricing-preview${queryString({ doctor_id: doctorId, patient_id: patientId, clinic_id: clinicId, consultation_mode: 'video' })}`,
   { headers: { Authorization: `Bearer ${token}` } },
 );

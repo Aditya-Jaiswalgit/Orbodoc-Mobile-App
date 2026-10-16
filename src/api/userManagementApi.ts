@@ -1,6 +1,8 @@
 import { apiFetch } from './apiConfig';
 import { ApiResponse } from '../types/auth';
+import type { ApiRecord } from '../utils/apiData';
 
+export { extractArrayData } from '../utils/apiData';
 export interface StaffPayload {
   full_name?: string; email?: string; phone?: string; clinic_id?: number;
   role_id?: number; is_active?: number; department?: string | null; specialization?: string | null;
@@ -9,61 +11,26 @@ export interface StaffPayload {
   is_doctor?: number;
   password?: string;
 }
-export interface StaffPage { data: any[]; total: number; page: number; limit: number }
+export type StaffRecord = ApiRecord & { id?: string | number; user_id?: string | number };
+export type StaffListRecord = StaffRecord & { id: string };
+export interface StaffPage { data: StaffListRecord[]; total: number; page: number; limit: number }
 export interface StaffQuery {
   page: number; limit: number; clinic_id?: number; role_id?: number;
   is_active?: 0 | 1 | 'all'; search?: string;
 }
-
-export function extractArrayData(res: any): any[] {
-  if (!res) return [];
-  if (Array.isArray(res)) return res;
-  if (Array.isArray(res.data)) return res.data;
-  if (Array.isArray(res.rows)) return res.rows;
-  if (Array.isArray(res.data?.rows)) return res.data.rows;
-  if (Array.isArray(res.clinics)) return res.clinics;
-  if (Array.isArray(res.data?.clinics)) return res.data.clinics;
-  if (res.data && Array.isArray(res.data.users)) return res.data.users;
-  if (res.data && Array.isArray(res.data.roles)) return res.data.roles;
-  if (res.data && Array.isArray(res.data.permissions)) return res.data.permissions;
-  if (res.data && Array.isArray(res.data.objects)) return res.data.objects;
-  if (res.data && Array.isArray(res.data.system_objects)) return res.data.system_objects;
-  if (res.data && Array.isArray(res.data.staff)) return res.data.staff;
-  if (res.data && Array.isArray(res.data.data)) return res.data.data;
-  if (res.data && Array.isArray(res.data.result)) return res.data.result;
-  if (Array.isArray(res.users)) return res.users;
-  if (Array.isArray(res.roles)) return res.roles;
-  if (Array.isArray(res.permissions)) return res.permissions;
-  if (Array.isArray(res.objects)) return res.objects;
-  if (Array.isArray(res.system_objects)) return res.system_objects;
-  if (Array.isArray(res.staff)) return res.staff;
-  if (Array.isArray(res.result)) return res.result;
-  if (res.data && typeof res.data === 'object') {
-    for (const key of Object.keys(res.data)) {
-      if (Array.isArray(res.data[key])) return res.data[key];
-    }
-  }
-  if (typeof res === 'object') {
-    for (const key of Object.keys(res)) {
-      if (key !== 'headers' && key !== 'config' && Array.isArray(res[key])) return res[key];
-    }
-  }
-  return [];
-}
-
 
 function fetchStaffPage(query: StaffQuery): Promise<ApiResponse<StaffPage>> {
   const params = Object.entries(query).filter(([, value]) => value !== undefined && value !== '')
     .map(([key, value]) => key + '=' + encodeURIComponent(String(value))).join('&');
   return apiFetch<StaffPage>('/staff?' + params);
 }
-export function createClinicUserApi(payload: StaffPayload): Promise<ApiResponse<{ staff: any }>> {
+export function createClinicUserApi(payload: StaffPayload): Promise<ApiResponse<{ staff: StaffRecord }>> {
   return apiFetch('/staff', { method: 'POST', body: JSON.stringify(payload) });
 }
-export function fetchStaffByIdApi(id: string | number): Promise<ApiResponse<{ staff: any }>> {
+export function fetchStaffByIdApi(id: string | number): Promise<ApiResponse<{ staff: StaffRecord }>> {
   return apiFetch('/staff/' + encodeURIComponent(String(id)));
 }
-export function updateClinicUserApi(id: string | number, payload: StaffPayload): Promise<ApiResponse<{ staff: any }>> {
+export function updateClinicUserApi(id: string | number, payload: StaffPayload): Promise<ApiResponse<{ staff: StaffRecord }>> {
   return apiFetch('/staff/' + encodeURIComponent(String(id)), { method: 'PUT', body: JSON.stringify(payload) });
 }
 export function resetStaffPasswordApi(id: string | number, newPassword: string): Promise<ApiResponse<unknown>> {

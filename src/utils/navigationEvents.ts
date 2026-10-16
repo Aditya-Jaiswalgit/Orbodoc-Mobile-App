@@ -4,10 +4,18 @@ const listeners = new Set<NavListener>();
 
 export function resolveStaffScreen(path: string) {
   let target = path.trim();
+  let search = '';
   try {
-    target = new URL(target, 'https://staff.local').pathname;
+    const url = new URL(target, 'https://staff.local');
+    target = url.pathname;
+    search = url.search;
   } catch {
-    target = target.split(/[?#]/, 1)[0];
+    const queryIndex = target.indexOf('?');
+    if (queryIndex >= 0) {
+      search = target.slice(queryIndex);
+      target = target.slice(0, queryIndex);
+    }
+    target = target.split('#', 1)[0];
   }
   target = target.replace(/^\//, '').replace(/\/$/, '');
   const aliases: Record<string, string> = {
@@ -15,7 +23,7 @@ export function resolveStaffScreen(path: string) {
     'lab/tests': 'lab_tests', 'billing/treatment': 'treatment_billing',
     'billing/medicine': 'medicine_billing',
   };
-  return aliases[target] || target;
+  return `${aliases[target] || target}${search}`;
 }
 
 export function navigateStaffScreen(screen: string) {

@@ -97,6 +97,11 @@ export const styles = StyleSheet.create({
     fontSize: 12,
   },
   filterRow: { flexDirection: 'row', gap: 8 },
+  dateFilterRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  calendarPickerFlex: { flex: 1 },
+  calendarFilterTrigger: { width: '100%', minHeight: 40, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#F8FAFC' },
+  calendarFilterText: { flex: 1, color: '#334155', fontSize: 12, fontWeight: '400' },
+  clearDateFilter: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' },
   inlineOptions: { maxHeight: 230, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#FFF', borderRadius: 10, paddingHorizontal: 10, elevation: 2 },
   inlineOptionRow: { minHeight: 42, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
   filterSelect: {

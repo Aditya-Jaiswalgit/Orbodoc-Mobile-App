@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AppModal } from '../components/common/AppModal';
-import { Alert, BackHandler, Platform, ScrollView, StatusBar, StyleSheet, Text, ToastAndroid, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Alert, BackHandler, Image, Platform, ScrollView, StatusBar, StyleSheet, Text, ToastAndroid, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   LayoutDashboard,
@@ -23,6 +23,7 @@ import {
   Video,
 } from 'lucide-react-native';
 import { useAuthContext } from '../context/AuthContext';
+import { profilePhotoUrl } from '../api/profilePhotoApi';
 
 // Role Dashboards
 import AccountantDashboardScreen from '../screens/dashboards/AccountantDashboardScreen';
@@ -117,9 +118,20 @@ export const StaffMainContainer = () => {
   } = useAuthContext();
 
   const staffRole = role || 'staff';
+  const normalizedStaffRole = normalizeRoleName(staffRole);
+  const sidebarDisplayTitle = normalizedStaffRole === 'super_admin'
+    ? 'Clinic Management'
+    : normalizedStaffRole === 'doctor'
+      ? String((user as any)?.full_name || (user as any)?.fullName || (user as any)?.name || 'Doctor').trim()
+      : activeClinicName || 'Clinic';
 
   const currentClinic = assignedClinics.find(c => Number(c.id) === Number(activeClinicId))
     ?? (assignedClinics.length === 1 ? assignedClinics[0] : null);
+  const currentClinicLogoUrl = currentClinic?.logo_url || currentClinic?.clinic_logo_url || '';
+
+  useEffect(() => {
+    setDrawerClinicLogoFailed(false);
+  }, [currentClinicLogoUrl]);
 
   const activeEntityType = String(
     (currentClinic as any)?.entity_type ||
@@ -131,7 +143,7 @@ export const StaffMainContainer = () => {
 
   const isLabEntity = activeEntityType === 'lab';
 
-  const canOpen = (screen: string) => {
+  const canOpen = useCallback((screen: string) => {
     if (screen === 'lab_management') {
       const normalizedRole = normalizeRoleName(staffRole);
       // Lab management is strictly for standalone lab entities (or super_admin)
@@ -140,7 +152,7 @@ export const StaffMainContainer = () => {
       }
     }
     return canUseStaffScreen(staffRole, permissionsMap, screen);
-  };
+  }, [isLabEntity, permissionsMap, staffRole]);
 
   if (__DEV__) {
     console.debug('[PERMISSIONS DEBUG]', {
@@ -158,6 +170,7 @@ export const StaffMainContainer = () => {
   const [dashboardRouteFilters, setDashboardRouteFilters] = useState<Record<string, string>>({});
   const [dashboardFilterScreen, setDashboardFilterScreen] = useState<StaffTabType | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerClinicLogoFailed, setDrawerClinicLogoFailed] = useState(false);
   const unread = useRemoteData([user?.id, token, activeClinicId, 'drawer-unread'].join(':'), async () => {
     const result = await fetchHeaderUnreadCount();
     if (!result.success || result.data?.count == null || !Number.isFinite(Number(result.data.count))) throw new Error('Unable to load count');
@@ -174,6 +187,15 @@ export const StaffMainContainer = () => {
     setDrawerOpen(false);
   };
 
+  const navigateFromNotification = (path: string) => {
+    const destination = new URL(path, 'https://staff.local');
+    const target = resolveStaffScreen(destination.pathname) as StaffTabType;
+    setDashboardRouteFilters(Object.fromEntries(destination.searchParams.entries()));
+    setDashboardFilterScreen(target);
+    setActiveTab(target);
+    setDrawerOpen(false);
+  };
+
   const navigateFromClinicDashboard = (path: string) => {
     const destination = new URL(path, 'https://staff.local');
     const target = resolveStaffScreen(destination.pathname) as StaffTabType;
@@ -184,9 +206,12 @@ export const StaffMainContainer = () => {
 
   useEffect(() => {
     const unsubscribe = subscribeStaffNavigation((screen) => {
-      let clean = screen.trim();
+      const destination = new URL(screen, 'https://staff.local');
+      let clean = destination.pathname.trim();
       if (clean.startsWith('/')) clean = clean.slice(1);
       if (clean === 'change-password') clean = 'change_password';
+      setDashboardRouteFilters(Object.fromEntries(destination.searchParams.entries()));
+      setDashboardFilterScreen(clean as StaffTabType);
       setActiveTab(clean as StaffTabType);
     });
     return unsubscribe;
@@ -196,7 +221,7 @@ export const StaffMainContainer = () => {
     if (activeTab === 'lab_management' && !canOpen('lab_management')) {
       setActiveTab('dashboard');
     }
-  }, [activeTab, isLabEntity, staffRole, permissionsMap]);
+  }, [activeTab, canOpen]);
 
   // Android hardware back button handler
   const lastBackPressRef = useRef<number>(0);
@@ -427,13 +452,13 @@ export const StaffMainContainer = () => {
             return <NurseDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
         }
       case 'clinics':
-        return <ClinicsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} />;
+        return <ClinicsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} initialClinicId={dashboardFilterScreen === 'clinics' ? dashboardRouteFilters.clinicId : undefined} />;
       case 'staff':
-        return <StaffManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} />;
+        return <StaffManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} initialUserId={dashboardFilterScreen === 'staff' ? dashboardRouteFilters.userId : undefined} />;
       case 'role_permissions':
         return <RolePermissionsScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} />;
       case 'patients':
-        return <PatientsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(screen) => setActiveTab(screen as StaffTabType)} initialStatus={dashboardFilterScreen === 'patients' ? dashboardRouteFilters.status : undefined} />;
+        return <PatientsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(screen) => setActiveTab(screen as StaffTabType)} initialStatus={dashboardFilterScreen === 'patients' ? dashboardRouteFilters.status : undefined} initialPatientId={dashboardFilterScreen === 'patients' ? dashboardRouteFilters.patientId : undefined} />;
       case 'appointments':
         return <AppointmentsManagerScreen onOpenDrawer={openDrawer} onNavigateScreen={navigateFromClinicDashboard} initialFilters={dashboardFilterScreen === 'appointments' ? dashboardRouteFilters : {}} />;
       case 'book_appointment':
@@ -447,6 +472,7 @@ export const StaffMainContainer = () => {
       case 'medicine_billing':
         return <MedicineBillingScreen
           onOpenDrawer={openDrawer}
+          initialBillId={dashboardFilterScreen === 'medicine_billing' ? dashboardRouteFilters.billId : undefined}
           initialDate={dashboardFilterScreen === 'medicine_billing' ? dashboardRouteFilters.date : undefined}
           initialDateFrom={dashboardFilterScreen === 'medicine_billing' ? dashboardRouteFilters.date_from : undefined}
           initialDateTo={dashboardFilterScreen === 'medicine_billing' ? dashboardRouteFilters.date_to : undefined}
@@ -458,6 +484,7 @@ export const StaffMainContainer = () => {
           initialDateFrom={dashboardFilterScreen === 'treatment_billing' ? dashboardRouteFilters.date_from : undefined}
           initialDateTo={dashboardFilterScreen === 'treatment_billing' ? dashboardRouteFilters.date_to : undefined}
           initialStatus={dashboardFilterScreen === 'treatment_billing' ? dashboardRouteFilters.status : undefined}
+          initialBillId={dashboardFilterScreen === 'treatment_billing' ? dashboardRouteFilters.billId : undefined}
         />;
       case 'lab_management':
         return <LabProfileManagementScreen onOpenDrawer={openDrawer} />;
@@ -469,17 +496,18 @@ export const StaffMainContainer = () => {
           initialDate={dashboardFilterScreen === 'lab_tests' ? dashboardRouteFilters.date : undefined}
           initialDateFrom={dashboardFilterScreen === 'lab_tests' ? dashboardRouteFilters.date_from : undefined}
           initialDateTo={dashboardFilterScreen === 'lab_tests' ? dashboardRouteFilters.date_to : undefined}
+          initialReportId={dashboardFilterScreen === 'lab_tests' ? dashboardRouteFilters.reportId : undefined}
         />;
       case 'lab_inventory':
         return <LabInventoryScreen onOpenDrawer={openDrawer} />;
       case 'lab_reports':
-        return <LabManagementScreen onOpenDrawer={openDrawer} initialTab="reports" />;
+        return <LabManagementScreen onOpenDrawer={openDrawer} initialTab="reports" initialReportId={dashboardFilterScreen === 'lab_reports' ? dashboardRouteFilters.reportId : undefined} />;
       case 'notifications':
-        return <NotificationsCenterScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr: string) => setActiveTab(scr as StaffTabType)} />;
+        return <NotificationsCenterScreen onOpenDrawer={openDrawer} onNavigateScreen={navigateFromNotification} />;
       case 'wallet':
         return <ProviderWalletScreen onOpenDrawer={openDrawer} />;
       case 'subscription_plans':
-        return <SubscriptionPlansScreen onOpenDrawer={openDrawer} />;
+        return <SubscriptionPlansScreen onOpenDrawer={openDrawer} initialPlanId={dashboardFilterScreen === 'subscription_plans' ? dashboardRouteFilters.planId : undefined} />;
       case 'pending_doctor_approvals':
         return <PendingDoctorApprovalsScreen onOpenDrawer={openDrawer} />;
       case 'profile':
@@ -554,11 +582,19 @@ export const StaffMainContainer = () => {
                     }
                   }}>
                   <View style={styles.logoBadge}>
-                    <Building2 color="#0D9488" size={22} />
+                    <Image
+                      source={currentClinicLogoUrl && !drawerClinicLogoFailed
+                        ? { uri: profilePhotoUrl(currentClinicLogoUrl) }
+                        : require('../assets/images/logo.png')}
+                      style={styles.clinicLogoImage}
+                      resizeMode="contain"
+                      onError={() => setDrawerClinicLogoFailed(true)}
+                      accessibilityLabel={`${activeClinicName || 'Clinic'} logo`}
+                    />
                   </View>
                   <View style={styles.headerTextContainer}>
                     <Text style={styles.clinicTitle} numberOfLines={1}>
-                      {activeClinicName}
+                      {sidebarDisplayTitle}
                     </Text>
                     <Text style={styles.roleSubtitle}>
                       {getRoleDisplayName(staffRole)} {isMultiClinic ? '▼' : ''}
@@ -792,7 +828,8 @@ const styles = StyleSheet.create({
   // Header (Exact Match)
   drawerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   brandingContainer: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  logoBadge: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  logoBadge: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 12, overflow: 'hidden' },
+  clinicLogoImage: { width: 40, height: 40 },
   headerTextContainer: { flex: 1 },
   clinicTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   roleSubtitle: { color: '#94A3B8', fontSize: 12, marginTop: 2, textTransform: 'capitalize' },
@@ -829,9 +866,9 @@ const styles = StyleSheet.create({
   activeSubItemText: { color: '#2DD4BF', fontWeight: '700' },
 
   // Footer Section (Exact Match)
-  footerSection: { borderTopWidth: 1, borderTopColor: '#1E293B', paddingTop: 14, marginTop: 6, marginBottom: 16 },
-  logoutButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12 },
-  logoutText: { color: '#E2E8F0', fontSize: 14, fontWeight: '600', marginLeft: 14 },
+  footerSection: { borderTopWidth: 1, borderTopColor: '#1E293B', paddingTop: 14, marginTop: 6, marginBottom: 20 },
+  logoutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#111827', borderRadius: 10, paddingVertical: 12, gap: 8, borderWidth: 1, borderColor: '#1E293B' },
+  logoutText: { color: '#E2E8F0', fontSize: 14, fontWeight: '700' },
 
   modalOverlayCenter: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   clinicSelectBox: { width: '100%', maxWidth: 360, backgroundColor: '#ffffff', borderRadius: 16, padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 10 },

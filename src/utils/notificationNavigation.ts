@@ -23,6 +23,9 @@ export function getMobileNotificationDestination(
     .toLowerCase()
     .replace(/[\s-]+/g, '_');
   const entityId = notification.entity_id;
+  const withId = (screen: string, key: string) => entityId == null || String(entityId).trim() === ''
+    ? screen
+    : `${screen}?${key}=${encodeURIComponent(String(entityId))}`;
   const isPatient = context.userType === 'patient' || context.role === 'patient';
   const isOwnEntity =
     entityId != null &&
@@ -30,58 +33,52 @@ export function getMobileNotificationDestination(
     String(entityId) === String(context.currentUserId);
 
   if (['appointment', 'appointments'].includes(entityType)) {
-    return 'appointments';
+    return withId('appointments', 'appointmentId');
   }
 
   if (['patient', 'patients'].includes(entityType)) {
-    return isPatient || isOwnEntity ? 'profile' : 'patients';
+    return isPatient || isOwnEntity ? 'profile' : withId('patients', 'patientId');
   }
 
   if (['staff', 'user', 'staff_user'].includes(entityType)) {
-    return isOwnEntity ? 'profile' : 'staff';
+    return isOwnEntity ? 'profile' : withId('staff', 'userId');
   }
 
   if (['treatment_bill', 'treatment_billing'].includes(entityType)) {
-    return 'treatment_billing';
+    return withId('treatment_billing', 'billId');
   }
 
   if (['medicine_bill', 'pharmacy_bill'].includes(entityType)) {
-    return 'medicine_billing';
+    return withId('medicine_billing', 'billId');
   }
 
   if (['lab_report', 'lab_test', 'lab_order'].includes(entityType)) {
-    return isPatient ? 'lab_tests' : 'lab_reports';
+    return withId(isPatient ? 'lab_tests' : 'lab_reports', 'reportId');
   }
 
   if (['clinic', 'clinics'].includes(entityType)) {
-    return 'clinics';
+    return withId('clinics', 'clinicId');
   }
 
   if (['subscription', 'subscription_plan', 'plan'].includes(entityType)) {
-    return 'subscription_plans';
+    return withId('subscription_plans', 'planId');
   }
 
-  if (['wallet', 'recharge'].includes(entityType)) {
-    return 'wallet';
-  }
-
-  if (['video', 'video_call'].includes(entityType)) {
-    return 'video_services';
-  }
+  if (['wallet', 'recharge', 'payout'].includes(entityType)) return 'wallet';
+  if (['video', 'video_call', 'consultation'].includes(entityType)) return 'video_services';
 
   // Fallback keyword scanning
   const text = `${notification.not_cat_name || ''} ${notification.title || ''} ${notification.message || ''}`.toLowerCase();
   if (text.includes('appointment')) return 'appointments';
-  if (text.includes('prescription')) return isPatient ? 'appointments' : 'prescriptions';
   if (text.includes('patient')) return isPatient ? 'profile' : 'patients';
   if (text.includes('profile') || text.includes('password')) return 'profile';
-  if (text.includes('lab') || text.includes('report') || text.includes('test')) return isPatient ? 'lab_tests' : 'lab_reports';
+  if (text.includes('lab') || text.includes('report')) return isPatient ? 'lab_tests' : 'lab_reports';
   if (text.includes('medicine') || text.includes('pharmacy')) return 'medicine_billing';
-  if (text.includes('treatment') || text.includes('bill') || text.includes('payment')) return 'treatment_billing';
-  if (text.includes('wallet') || text.includes('payout')) return 'wallet';
+  if (text.includes('bill') || text.includes('payment')) return 'treatment_billing';
+  if (text.includes('wallet') || text.includes('recharge')) return 'wallet';
   if (text.includes('video') || text.includes('consult')) return 'video_services';
   if (text.includes('clinic')) return 'clinics';
-  if (text.includes('user') || text.includes('staff')) return 'staff';
+  if (text.includes('user') || text.includes('role') || text.includes('staff')) return 'staff';
 
   return 'dashboard';
 }

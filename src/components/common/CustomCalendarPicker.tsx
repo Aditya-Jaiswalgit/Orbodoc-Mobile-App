@@ -114,7 +114,7 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
       dropdownListRef.current?.scrollTo({ y: Math.max(0, selectedIndex * 38 - 38), animated: false });
     }, 60);
     return () => clearTimeout(timer);
-  }, [dropdownType, filteredYears, viewMonth, viewYear]);
+  }, [dropdownType, filteredMonths, filteredYears, viewMonth, viewYear]);
 
   // Format header trigger button string e.g. "Sunday, September 20, 2026"
   const formattedTriggerText = useMemo(() => {

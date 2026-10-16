@@ -15,6 +15,17 @@ export function getGlobalAuthToken(): string | null {
   return globalAuthToken;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function firstMessage(...values: unknown[]): string | undefined {
+  const value = values.find(candidate => typeof candidate === 'string' && candidate.trim());
+  return typeof value === 'string' ? value : undefined;
+}
+
 export async function apiFetch<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -47,25 +58,26 @@ export async function apiFetch<T>(
     // Only metadata is logged in development. Bodies can contain credentials
     // and patient information, so they are never written to the console.
     if (__DEV__) console.debug('[API]', method, response.status);
-    let json: any;
+    let json: unknown;
     try {
       json = text ? JSON.parse(text) : {};
     } catch {
       return { success: false, message: 'Invalid server response', error: 'InvalidResponse' };
     }
+    const payload = asRecord(json) ?? {};
     if (!response.ok) {
       return {
         success: false,
-        message: json?.message || json?.error || 'Request failed (' + response.status + ')',
+        message: firstMessage(payload.message, payload.error) || 'Request failed (' + response.status + ')',
         error: 'HTTP_' + response.status,
-        code: json?.code,
-        data: json?.data,
+        code: typeof payload.code === 'string' ? payload.code : undefined,
+        data: payload.data as T | undefined,
       };
     }
     return {
-      success: json?.success === undefined ? json?.status !== false : Boolean(json.success),
-      message: json?.message || json?.msg || json?.error || 'Success',
-      data: json?.data !== undefined ? json.data : json,
+      success: payload.success === undefined ? payload.status !== false : Boolean(payload.success),
+      message: firstMessage(payload.message, payload.msg, payload.error) || 'Success',
+      data: payload.data !== undefined ? payload.data as T : json as T,
     };
   } catch {
     return {

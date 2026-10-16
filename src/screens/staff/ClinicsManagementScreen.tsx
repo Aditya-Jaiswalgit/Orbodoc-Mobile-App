@@ -1,20 +1,21 @@
 // src/screens/staff/ClinicsManagementScreen.tsx
 import { AppModal } from '../../components/common/AppModal';
+import { ClinicDetailsModal } from './clinics/ClinicDetailsModal';
+import { ClinicFormModal } from './clinics/ClinicFormModal';
 import { styles } from './styles/ClinicsManagement.styles';
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
-  Alert, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions, Switch, ActivityIndicator } from 'react-native';
+  Alert, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions, Switch, ActivityIndicator } from 'react-native';
 import {
-  Building,
   Building2,
-  RefreshCw,
   Search,
   ChevronDown,
   Columns3,
   MoreVertical,
-  Calendar as CalendarIcon,
+  Calendar,
+  CalendarDays,
   Check,
-  CheckCircle,
+  CheckCircle2,
   XCircle,
   IndianRupee,
   Users,
@@ -27,12 +28,9 @@ import {
   Eye,
   EyeOff,
   KeyRound,
-  Edit2,
-  UserPlus,
+  Edit,
+  UserCog,
   Trash2,
-  Clock,
-  Camera,
-  ChevronsUpDown,
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { Pagination } from '../../components/common/Pagination';
@@ -46,7 +44,6 @@ import { fetchUserRolesApi } from '../../api/roleManagementApi';
 import { dashboardNumber, displayAmount } from '../../utils/dashboardValues';
 import {
   chooseAndUploadClinicLogo,
-  profilePhotoUrl,
 } from '../../api/profilePhotoApi';
 import {
   createClinicUserApi,
@@ -85,11 +82,13 @@ export type {
 interface Props {
   onOpenDrawer: () => void;
   onNavigateScreen?: (screen: string) => void;
+  initialClinicId?: string;
 }
 
 export const ClinicsManagementScreen: React.FC<Props> = ({
   onOpenDrawer,
   onNavigateScreen,
+  initialClinicId,
 }) => {
   const { width, height } = useWindowDimensions();
   const isMobile = width < 768;
@@ -98,7 +97,6 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
     token,
     user,
     activeClinicId,
-    activeClinicName,
     isMultiPlan,
     switchClinic,
     role,
@@ -199,12 +197,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
     Boolean(token && canView && canViewAdmins && clinics.length),
   );
   const isMultiClinicPlan = role === 'super_admin' || Boolean(isMultiPlan);
-  const lastRefreshed = resource.error
-    ? 'Unable to load. Please refresh.'
-    : resource.data?.refreshed || 'Loading...';
   const [selectedClinicFilterId, setSelectedClinicFilterId] = useState<string>(
-    String(activeClinicId || ''),
+    String(initialClinicId || activeClinicId || ''),
   );
+  useEffect(() => {
+    if (initialClinicId) setSelectedClinicFilterId(initialClinicId);
+  }, [initialClinicId]);
   const [selectedPerformanceDate, setSelectedPerformanceDate] = useState<Date>(
     new Date(),
   );
@@ -417,7 +415,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
   const [actionMenuAnchor, setActionMenuAnchor] = useState<{
     x: number; y: number; width: number; height: number;
   } | null>(null);
-  const actionMenuButtonRef = useRef<View | null>(null);
+  const actionMenuButtonRef = useRef<any>(null);
 
   const closeClinicActionMenu = () => {
     setActiveActionMenuClinicId(null);
@@ -429,7 +427,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
       closeClinicActionMenu();
       return;
     }
-    actionMenuButtonRef.current?.measureInWindow((x, y, anchorWidth, anchorHeight) => {
+    actionMenuButtonRef.current?.measureInWindow((x: number, y: number, anchorWidth: number, anchorHeight: number) => {
       setActionMenuAnchor({ x, y, width: anchorWidth, height: anchorHeight });
       setActiveActionMenuClinicId(clinicId);
     });
@@ -824,30 +822,6 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
     clinicForm.city ||
     'Select city';
 
-  const formatClinicDate = (dateString?: string) => {
-    if (!dateString) return '—';
-    try {
-      const d = new Date(dateString);
-      if (isNaN(d.getTime())) return dateString;
-      return d.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    } catch {
-      return dateString;
-    }
-  };
-
-  const formatClinicTime = (val?: string) => {
-    if (!val) return '—';
-    const clean = String(val).trim();
-    if (clean.length >= 5 && /^\d{2}:\d{2}/.test(clean)) {
-      return clean.slice(0, 5);
-    }
-    return clean;
-  };
-
   const resolvedViewClinicState = useMemo(() => {
     if (!viewClinicModal?.state) return '';
     const st = String(viewClinicModal.state);
@@ -868,7 +842,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
     return ct;
   }, [viewClinicModal?.city, cityOptions]);
 
-  const handleOpenViewClinicModal = async (clinic: ClinicItem) => {
+  const handleOpenViewClinicModal = useCallback(async (clinic: ClinicItem) => {
     setActiveActionMenuClinicId(null);
     const immediateState = stateOptions.find(
       s => String(s.id) === String(clinic.state),
@@ -904,7 +878,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
     } catch {
       // Keep initial clinic modal on network error
     }
-  };
+  }, [stateOptions]);
+
+  useEffect(() => {
+    if (!initialClinicId || resource.loading || String(viewClinicModal?.id || '') === initialClinicId) return;
+    const clinic = clinics.find(item => String(item.id) === initialClinicId);
+    if (clinic) void handleOpenViewClinicModal(clinic);
+  }, [clinics, handleOpenViewClinicModal, initialClinicId, resource.loading, viewClinicModal?.id]);
 
   useEffect(() => {
     setViewClinicModal(null);
@@ -1083,7 +1063,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               <Building2 color="#0D9488" size={24} style={styles.bannerMobileIcon} />
             ) : (
               <View style={styles.buildingIconBox}>
-                <Building color="#0D9488" size={24} />
+                <Building2 color="#0D9488" size={24} />
               </View>
             )}
             <View style={styles.extractedInline2}>
@@ -1253,7 +1233,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                   isMobile && styles.appointmentsIconMobile,
                 ]}
               >
-                <CalendarIcon color={isMobile ? '#0891B2' : '#0D9488'} size={isMobile ? 20 : 18} />
+                <CalendarDays color={isMobile ? '#0891B2' : '#0D9488'} size={isMobile ? 20 : 18} />
               </View>
             </TouchableOpacity>
 
@@ -1298,7 +1278,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                   isMobile && styles.completedIconMobile,
                 ]}
               >
-                <CheckCircle color={isMobile ? '#059669' : '#166534'} size={isMobile ? 20 : 18} />
+              <CheckCircle2 color={isMobile ? '#059669' : '#166534'} size={isMobile ? 20 : 18} />
               </View>
             </TouchableOpacity>
 
@@ -1457,7 +1437,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                   isMobile && styles.labIconMobile,
                 ]}
               >
-                <CalendarIcon color="#D97706" size={isMobile ? 20 : 18} />
+              <CalendarDays color="#D97706" size={isMobile ? 20 : 18} />
               </View>
               <View
                 style={[
@@ -1544,7 +1524,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 styles.extractedInline19,
               ]}
             >
-              <Building color="#0D9488" size={isMobile ? 16 : 20} />
+              <Building2 color="#0D9488" size={isMobile ? 16 : 20} />
             </View>
             <View
               style={[
@@ -1585,7 +1565,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 styles.extractedInline13,
               ]}
             >
-              <Building color="#166534" size={isMobile ? 16 : 20} />
+              <Building2 color="#166534" size={isMobile ? 16 : 20} />
             </View>
             <View
               style={[
@@ -1669,7 +1649,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 isMobile && styles.inactiveSummaryIconMobile,
               ]}
             >
-              <Building color="#991B1B" size={isMobile ? 16 : 20} />
+              <Building2 color="#991B1B" size={isMobile ? 16 : 20} />
             </View>
             <View
               style={[
@@ -1808,7 +1788,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                     {visibleClinicColumns.name && (
                       <View style={styles.extractedInline28}>
                         <View style={styles.clinicLogoSquare}>
-                          <Building color="#0D9488" size={20} />
+                          <Building2 color="#0D9488" size={20} />
                         </View>
                         <View style={styles.extractedInline29}>
                           <Text style={styles.clinicTitleText}>
@@ -1899,7 +1879,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                           handleOpenEditClinicModal(item);
                         }}
                       >
-                        <Edit2
+                        <Edit
                           size={15}
                           color="#334155"
                           style={styles.extractedInline21}
@@ -1915,7 +1895,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                           if (canAddAdmin) setAddAdminModalClinic(item);
                         }}
                       >
-                        <UserPlus
+                        <UserCog
                           size={15}
                           color="#334155"
                           style={styles.extractedInline21}
@@ -1981,7 +1961,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                     )}
                     {visibleClinicColumns.created && (
                       <View style={styles.mobileMetaItem}>
-                        <CalendarIcon size={14} color="#64748B" />
+                        <Calendar size={14} color="#64748B" />
                         <Text style={styles.metaText}>
                           Created:{' '}
                           {item.created_at
@@ -2125,7 +2105,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                     {visibleClinicColumns.name && (
                       <View style={styles.extractedInline44}>
                         <View style={styles.clinicLogoSquare}>
-                          <Building color="#0D9488" size={18} />
+                          <Building2 color="#0D9488" size={18} />
                         </View>
                         <View style={styles.extractedInline30}>
                           <Text
@@ -2360,7 +2340,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                                 handleOpenEditClinicModal(item);
                               }}
                             >
-                              <Edit2
+                              <Edit
                                 size={15}
                                 color="#334155"
                                 style={styles.extractedInline21}
@@ -2379,7 +2359,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                                 if (canAddAdmin) setAddAdminModalClinic(item);
                               }}
                             >
-                              <UserPlus
+                              <UserCog
                                 size={15}
                                 color="#334155"
                                 style={styles.extractedInline21}
@@ -2498,13 +2478,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
               )}
               {canEdit && (
                 <TouchableOpacity style={styles.popoverItem} onPress={() => { closeClinicActionMenu(); handleOpenEditClinicModal(actionMenuClinic); }}>
-                  <Edit2 size={15} color="#334155" style={styles.extractedInline21} />
+                  <Edit size={15} color="#334155" style={styles.extractedInline21} />
                   <Text style={styles.popoverItemText}>Edit Clinic</Text>
                 </TouchableOpacity>
               )}
               {canAddAdmin && (
                 <TouchableOpacity style={styles.popoverItem} onPress={() => { closeClinicActionMenu(); setAddAdminModalClinic(actionMenuClinic); }}>
-                  <UserPlus size={15} color="#334155" style={styles.extractedInline21} />
+                  <UserCog size={15} color="#334155" style={styles.extractedInline21} />
                   <Text style={styles.popoverItemText}>Add Admin</Text>
                 </TouchableOpacity>
               )}
@@ -2536,717 +2516,44 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {/* âœï¸ ADD & EDIT CLINIC MODAL (EXACT UPLOADED SCREENSHOTS MATCH)               */}
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <AppModal visible={modalVisible} animationType="fade" transparent>
-        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-          <View style={styles.modalBg}>
-            <TouchableWithoutFeedback>
-              <View
-                style={[
-                  styles.editClinicModalCard,
-                  isMobile && styles.extractedInline57,
-                ]}
-              >
-                {/* Header */}
-                <View style={styles.editClinicModalHeader}>
-                  <View style={styles.editHeaderIconBox}>
-                    {editingClinicId ? (
-                      <Edit2 color="#0F172A" size={18} />
-                    ) : (
-                      <Plus color="#0F172A" size={18} />
-                    )}
-                  </View>
-                  <View style={styles.extractedInline29}>
-                    <Text style={styles.editClinicModalTitle}>
-                      {editingClinicId
-                        ? `Edit Clinic: ${clinicForm.name}`
-                        : 'Register New Clinic'}
-                    </Text>
-                    <Text style={styles.editClinicModalSubtitle}>
-                      {editingClinicId
-                        ? 'Update clinic information.'
-                        : 'Register a new clinic into the system.'}
-                    </Text>
-                  </View>
-                  <TouchableOpacity onPress={() => setModalVisible(false)}>
-                    <X size={18} color="#64748B" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Form Body */}
-                <ScrollView
-                  style={styles.extractedInline58}
-                  showsVerticalScrollIndicator={true}
-                  nestedScrollEnabled={true}
-                  scrollEventThrottle={16}
-                  keyboardShouldPersistTaps="handled"
-                  decelerationRate="normal"
-                >
-                  {/* Clinic Logo Upload Box */}
-                  <View style={styles.clinicLogoUploadBox}>
-                    <Text style={styles.logoBoxLabel}>Clinic Logo</Text>
-                    <View style={styles.cameraIconCircleBadge}>
-                      {clinicForm.logo_url && !logoFailed ? (
-                        <Image
-                          source={{ uri: profilePhotoUrl(clinicForm.logo_url) }}
-                          onError={() => setLogoFailed(true)}
-                          style={styles.extractedInline59}
-                        />
-                      ) : (
-                        <Camera size={22} color="#64748B" />
-                      )}
-                      <TouchableOpacity
-                        style={styles.smallCloseBadge}
-                        disabled={logoUploading || clinicSaving}
-                        onPress={() =>
-                          setClinicForm(form => ({ ...form, logo_url: '' }))
-                        }
-                      >
-                        <X size={10} color="#64748B" />
-                      </TouchableOpacity>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.extractedInline60}
-                      disabled={logoUploading || clinicSaving}
-                      onPress={handleChooseLogo}
-                    >
-                      <Text style={styles.changeLogoLink}>Change logo</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.logoHelperText}>
-                      PNG/JPG only, max 2MB
-                    </Text>
-                  </View>
-
-                  {/* Row 1: Clinic Name & Email */}
-                  <View
-                    style={[
-                      styles.grid2ColRow,
-                      isMobile && styles.extractedInline61,
-                    ]}
-                  >
-                    <View style={styles.extractedInline30}>
-                      <Text style={styles.formLabelText}>
-                        Clinic Name{' '}
-                        <Text style={styles.extractedInline62}>*</Text>
-                      </Text>
-                      <TextInput
-                        style={styles.formInputBox}
-                        placeholder="Aarogya Care Clinic"
-                        placeholderTextColor="#94A3B8"
-                        value={clinicForm.name}
-                        onChangeText={v =>
-                          setClinicForm({ ...clinicForm, name: v })
-                        }
-                      />
-                    </View>
-
-                    <View style={styles.extractedInline30}>
-                      <Text style={styles.formLabelText}>
-                        Email Address{' '}
-                        <Text style={styles.extractedInline62}>*</Text>
-                      </Text>
-                      <TextInput
-                        style={styles.formInputBox}
-                        placeholder="contact@aarogyacare.com"
-                        placeholderTextColor="#94A3B8"
-                        keyboardType="email-address"
-                        value={clinicForm.email}
-                        onChangeText={v =>
-                          setClinicForm({ ...clinicForm, email: v })
-                        }
-                      />
-                    </View>
-                  </View>
-
-                  {/* Row 2: Phone & Address */}
-                  <View
-                    style={[
-                      styles.grid2ColRow,
-                      styles.extractedInline63,
-                      isMobile && styles.extractedInline64,
-                    ]}
-                  >
-                    <View style={styles.extractedInline30}>
-                      <Text style={styles.formLabelText}>
-                        Phone Number{' '}
-                        <Text style={styles.extractedInline62}>*</Text>
-                      </Text>
-                      <TextInput
-                        style={styles.formInputBox}
-                        placeholder="9876543210"
-                        placeholderTextColor="#94A3B8"
-                        keyboardType="phone-pad"
-                        value={clinicForm.phone}
-                        onChangeText={v =>
-                          setClinicForm({ ...clinicForm, phone: v })
-                        }
-                      />
-                    </View>
-
-                    <View style={styles.extractedInline30}>
-                      <Text style={styles.formLabelText}>
-                        Address <Text style={styles.extractedInline62}>*</Text>
-                      </Text>
-                      <TextInput
-                        style={styles.formInputBox}
-                        placeholder="102, Shree Heights, AB Road"
-                        placeholderTextColor="#94A3B8"
-                        value={clinicForm.address}
-                        onChangeText={v =>
-                          setClinicForm({ ...clinicForm, address: v })
-                        }
-                      />
-                    </View>
-                  </View>
-
-                  {/* Row 3: State & City Dropdowns */}
-                  <View
-                    style={[
-                      styles.grid2ColRow,
-                      styles.extractedInline63,
-                      isMobile && styles.extractedInline64,
-                    ]}
-                  >
-                    <View style={styles.extractedInline30}>
-                      <Text style={styles.formLabelText}>
-                        State <Text style={styles.extractedInline62}>*</Text>
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.formDropdownSelectTrigger}
-                        onPress={() =>
-                          setShowFormStateDropdown(!showFormStateDropdown)
-                        }
-                      >
-                        <View style={styles.extractedInline23}>
-                          <MapPin
-                            size={14}
-                            color="#64748B"
-                            style={styles.extractedInline7}
-                          />
-                          <Text style={styles.formDropdownText}>
-                            {stateLabel}
-                          </Text>
-                        </View>
-                        <ChevronDown size={16} color="#64748B" />
-                      </TouchableOpacity>
-
-                      {showFormStateDropdown && (
-                        <View style={styles.formDropdownList}>
-                          {stateOptions.map(st => (
-                            <TouchableOpacity
-                              key={st.id}
-                              style={styles.formDropdownListItem}
-                              onPress={() => {
-                                setClinicForm({
-                                  ...clinicForm,
-                                  state: String(st.id),
-                                  city: '',
-                                });
-                                setShowFormStateDropdown(false);
-                              }}
-                            >
-                              <Text style={styles.formDropdownItemText}>
-                                {st.state_name}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-
-                    <View style={styles.extractedInline30}>
-                      <Text style={styles.formLabelText}>
-                        City <Text style={styles.extractedInline62}>*</Text>
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.formDropdownSelectTrigger}
-                        onPress={() =>
-                          setShowFormCityDropdown(!showFormCityDropdown)
-                        }
-                      >
-                        <View style={styles.extractedInline23}>
-                          <MapPin
-                            size={14}
-                            color="#64748B"
-                            style={styles.extractedInline7}
-                          />
-                          <Text style={styles.formDropdownText}>
-                            {cityLabel}
-                          </Text>
-                        </View>
-                        <ChevronDown size={16} color="#64748B" />
-                      </TouchableOpacity>
-
-                      {showFormCityDropdown && (
-                        <View style={styles.formDropdownList}>
-                          {cityOptions.map(ct => (
-                            <TouchableOpacity
-                              key={ct.id}
-                              style={styles.formDropdownListItem}
-                              onPress={() => {
-                                setClinicForm({
-                                  ...clinicForm,
-                                  city: String(ct.id),
-                                });
-                                setShowFormCityDropdown(false);
-                              }}
-                            >
-                              <Text style={styles.formDropdownItemText}>
-                                {ct.city_name}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-                  </View>
-
-                  {/* Row 4: Country & Website */}
-                  <View
-                    style={[
-                      styles.grid2ColRow,
-                      styles.extractedInline63,
-                      isMobile && styles.extractedInline64,
-                    ]}
-                  >
-                    <View style={styles.extractedInline30}>
-                      <Text style={styles.formLabelText}>
-                        Country <Text style={styles.extractedInline62}>*</Text>
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.formDropdownSelectTrigger}
-                        onPress={() =>
-                          setShowFormCountryDropdown(!showFormCountryDropdown)
-                        }
-                      >
-                        <Text style={styles.formDropdownText}>
-                          {clinicForm.country}
-                        </Text>
-                        <ChevronDown size={16} color="#64748B" />
-                      </TouchableOpacity>
-
-                      {showFormCountryDropdown && (
-                        <View style={styles.formDropdownList}>
-                          {[
-                            'India',
-                            'United States',
-                            'United Kingdom',
-                            'UAE',
-                          ].map(cn => (
-                            <TouchableOpacity
-                              key={cn}
-                              style={styles.formDropdownListItem}
-                              onPress={() => {
-                                setClinicForm({ ...clinicForm, country: cn });
-                                setShowFormCountryDropdown(false);
-                              }}
-                            >
-                              <Text style={styles.formDropdownItemText}>
-                                {cn}
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-
-                    <View style={styles.extractedInline30}>
-                      <Text style={styles.formLabelText}>Website</Text>
-                      <TextInput
-                        style={styles.formInputBox}
-                        placeholder="https://clinic.example.com"
-                        placeholderTextColor="#94A3B8"
-                        value={clinicForm.website}
-                        onChangeText={v =>
-                          setClinicForm({ ...clinicForm, website: v })
-                        }
-                      />
-                    </View>
-                  </View>
-
-                  {/* Row 5: License Number & Available Days */}
-                  <View
-                    style={[
-                      styles.grid2ColRow,
-                      styles.extractedInline63,
-                      isMobile && styles.extractedInline64,
-                    ]}
-                  >
-                    <View style={styles.extractedInline30}>
-                      <Text style={styles.formLabelText}>License Number</Text>
-                      <TextInput
-                        style={styles.formInputBox}
-                        placeholder="L123"
-                        placeholderTextColor="#94A3B8"
-                        value={clinicForm.license_number}
-                        onChangeText={v =>
-                          setClinicForm({ ...clinicForm, license_number: v })
-                        }
-                      />
-                    </View>
-
-                    <View style={styles.extractedInline30}>
-                      <Text style={styles.formLabelText}>Available Days</Text>
-                      <TextInput
-                        style={styles.formInputBox}
-                        placeholder="Mon,Tue,Wed,Thu,Fri"
-                        placeholderTextColor="#94A3B8"
-                        value={clinicForm.available_days}
-                        onChangeText={v =>
-                          setClinicForm({ ...clinicForm, available_days: v })
-                        }
-                      />
-                    </View>
-                  </View>
-
-                  {/* Row 6: Available From & Available To */}
-                  <View
-                    style={[
-                      styles.grid2ColRow,
-                      styles.extractedInline63,
-                      isMobile && styles.extractedInline64,
-                    ]}
-                  >
-                    <View style={styles.extractedInline30}>
-                      <Text style={styles.formLabelText}>Available From</Text>
-                      <View style={styles.formInputBoxWithIcon}>
-                        <Clock
-                          size={14}
-                          color="#64748B"
-                          style={styles.extractedInline7}
-                        />
-                        <TextInput
-                          style={styles.formInputBoxBare}
-                          placeholder="12:30 AM"
-                          placeholderTextColor="#94A3B8"
-                          value={clinicForm.available_from}
-                          onChangeText={v =>
-                            setClinicForm({ ...clinicForm, available_from: v })
-                          }
-                        />
-                        <ChevronsUpDown size={14} color="#64748B" />
-                      </View>
-                      <Text style={styles.apiTimeHelperText}>
-                        API time: 00:30:00 (24-hour format)
-                      </Text>
-                    </View>
-
-                    <View style={styles.extractedInline30}>
-                      <Text style={styles.formLabelText}>Available To</Text>
-                      <View style={styles.formInputBoxWithIcon}>
-                        <Clock
-                          size={14}
-                          color="#64748B"
-                          style={styles.extractedInline7}
-                        />
-                        <TextInput
-                          style={styles.formInputBoxBare}
-                          placeholder="02:30 AM"
-                          placeholderTextColor="#94A3B8"
-                          value={clinicForm.available_to}
-                          onChangeText={v =>
-                            setClinicForm({ ...clinicForm, available_to: v })
-                          }
-                        />
-                        <ChevronsUpDown size={14} color="#64748B" />
-                      </View>
-                      <Text style={styles.apiTimeHelperText}>
-                        API time: 02:30:00 (24-hour format)
-                      </Text>
-                    </View>
-                  </View>
-                </ScrollView>
-
-                {/* Footer Buttons */}
-                <View style={styles.addAdminFooterRow}>
-                  <TouchableOpacity
-                    style={styles.addAdminCancelBtn}
-                    onPress={() => setModalVisible(false)}
-                  >
-                    <Text style={styles.addAdminCancelText}>Cancel</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.addAdminSubmitBtn}
-                    onPress={handleSaveClinic}
-                    disabled={
-                      logoUploading ||
-                      clinicSaving ||
-                      (editingClinicId
-                        ? !canEdit
-                        : !canAdd || !isMultiClinicPlan)
-                    }
-                  >
-                    {clinicSaving ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <>
-                        {editingClinicId ? (
-                          <Edit2
-                            size={15}
-                            color="#FFFFFF"
-                            style={styles.extractedInline7}
-                          />
-                        ) : (
-                          <Plus
-                            size={15}
-                            color="#FFFFFF"
-                            style={styles.extractedInline7}
-                          />
-                        )}
-                        <Text style={styles.addAdminSubmitText}>
-                          {editingClinicId
-                            ? 'Update Clinic'
-                            : 'Register Clinic'}
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </AppModal>
+      <ClinicFormModal
+        modalVisible={modalVisible}
+        setModalVisible={setModalVisible}
+        isMobile={isMobile}
+        editingClinicId={editingClinicId}
+        clinicForm={clinicForm}
+        setClinicForm={setClinicForm}
+        stateOptions={stateOptions}
+        cityOptions={cityOptions}
+        stateLabel={stateLabel}
+        cityLabel={cityLabel}
+        showFormStateDropdown={showFormStateDropdown}
+        setShowFormStateDropdown={setShowFormStateDropdown}
+        showFormCityDropdown={showFormCityDropdown}
+        setShowFormCityDropdown={setShowFormCityDropdown}
+        showFormCountryDropdown={showFormCountryDropdown}
+        setShowFormCountryDropdown={setShowFormCountryDropdown}
+        clinicSaving={clinicSaving}
+        logoUploading={logoUploading}
+        logoFailed={logoFailed}
+        setLogoFailed={setLogoFailed}
+        canEdit={canEdit}
+        canAdd={canAdd}
+        isMultiClinicPlan={isMultiClinicPlan}
+        handleChooseLogo={handleChooseLogo}
+        handleSaveClinic={handleSaveClinic}
+      />
 
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {/* ðŸ‘ï¸ VIEW CLINIC DETAILS MODAL (EXACT SCREENSHOT 3 MATCH)                   */}
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <AppModal visible={!!viewClinicModal} animationType="fade" transparent>
-        <TouchableWithoutFeedback onPress={() => setViewClinicModal(null)}>
-          <View style={styles.modalBg}>
-            <TouchableWithoutFeedback>
-              <View
-                style={[
-                  styles.viewClinicCard,
-                  isMobile && styles.extractedInline57,
-                ]}
-              >
-                {/* Header Banner */}
-                <View style={styles.viewClinicHeader}>
-                  <View style={styles.clinicLogoSquareLarge}>
-                    <Building color="#0D9488" size={24} />
-                  </View>
-                  <View style={styles.extractedInline65}>
-                    <Text style={styles.viewClinicTitle}>
-                      {viewClinicModal?.name}
-                    </Text>
-                    <Text style={styles.viewClinicSubtitle}>
-                      {resolvedViewClinicCity || viewClinicModal?.city
-                        ? `${
-                            resolvedViewClinicCity || viewClinicModal?.city
-                          } â€¢ `
-                        : ''}
-                      {viewClinicModal?.country || 'India'}
-                    </Text>
-                    <View style={styles.viewClinicStatusTag}>
-                      <Text style={styles.viewClinicStatusText}>
-                        {viewClinicModal?.status}
-                      </Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => setViewClinicModal(null)}
-                    style={styles.extractedInline66}
-                  >
-                    <X size={18} color="#64748B" />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView
-                  style={styles.extractedInline67}
-                  showsVerticalScrollIndicator={true}
-                  nestedScrollEnabled={true}
-                  scrollEventThrottle={16}
-                  keyboardShouldPersistTaps="handled"
-                  decelerationRate="normal"
-                >
-                  {/* Contact & Identity Section */}
-                  <View style={styles.viewSectionCard}>
-                    <View style={styles.sectionHeaderTitleRow}>
-                      <Mail
-                        size={15}
-                        color="#0D9488"
-                        style={styles.extractedInline7}
-                      />
-                      <Text style={styles.viewSectionCardTitle}>
-                        Contact & Identity
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.grid2ColRow,
-                        isMobile && styles.extractedInline68,
-                      ]}
-                    >
-                      <View style={styles.extractedInline30}>
-                        <Text style={styles.infoBoxLabel}>Email Address</Text>
-                        <Text style={styles.infoBoxVal}>
-                          {viewClinicModal?.email || '—'}
-                        </Text>
-                      </View>
-                      <View style={styles.extractedInline30}>
-                        <Text style={styles.infoBoxLabel}>Phone Number</Text>
-                        <Text style={styles.infoBoxVal}>
-                          {viewClinicModal?.phone || '—'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View
-                      style={[
-                        styles.grid2ColRow,
-                        styles.extractedInline69,
-                        isMobile && styles.extractedInline70,
-                      ]}
-                    >
-                      <View style={styles.extractedInline30}>
-                        <Text style={styles.infoBoxLabel}>Website</Text>
-                        <Text style={styles.infoBoxVal}>
-                          {viewClinicModal?.website || '—'}
-                        </Text>
-                      </View>
-                      <View style={styles.extractedInline30}>
-                        <Text style={styles.infoBoxLabel}>License Number</Text>
-                        <Text style={styles.infoBoxVal}>
-                          {viewClinicModal?.license_number || '—'}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Location Section */}
-                  <View
-                    style={[styles.viewSectionCard, styles.extractedInline71]}
-                  >
-                    <View style={styles.sectionHeaderTitleRow}>
-                      <MapPin
-                        size={15}
-                        color="#0D9488"
-                        style={styles.extractedInline7}
-                      />
-                      <Text style={styles.viewSectionCardTitle}>Location</Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.grid2ColRow,
-                        isMobile && styles.extractedInline68,
-                      ]}
-                    >
-                      <View style={styles.extractedInline30}>
-                        <Text style={styles.infoBoxLabel}>Address</Text>
-                        <Text style={styles.infoBoxVal}>
-                          {viewClinicModal?.address || '—'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View
-                      style={[
-                        styles.grid2ColRow,
-                        styles.extractedInline69,
-                        isMobile && styles.extractedInline70,
-                      ]}
-                    >
-                      <View style={styles.extractedInline30}>
-                        <Text style={styles.infoBoxLabel}>City</Text>
-                        <Text style={styles.infoBoxVal}>
-                          {resolvedViewClinicCity ||
-                            viewClinicModal?.city ||
-                            '—'}
-                        </Text>
-                      </View>
-                      <View style={styles.extractedInline30}>
-                        <Text style={styles.infoBoxLabel}>State</Text>
-                        <Text style={styles.infoBoxVal}>
-                          {resolvedViewClinicState ||
-                            viewClinicModal?.state ||
-                            '—'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View
-                      style={[
-                        styles.grid2ColRow,
-                        styles.extractedInline69,
-                        isMobile && styles.extractedInline70,
-                      ]}
-                    >
-                      <View style={styles.extractedInline30}>
-                        <Text style={styles.infoBoxLabel}>Country</Text>
-                        <Text style={styles.infoBoxVal}>
-                          {viewClinicModal?.country || 'India'}
-                        </Text>
-                      </View>
-                      <View style={styles.extractedInline30}>
-                        <Text style={styles.infoBoxLabel}>Created</Text>
-                        <Text style={styles.infoBoxVal}>
-                          {formatClinicDate(viewClinicModal?.created_at)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Availability Section */}
-                  <View
-                    style={[
-                      styles.viewSectionCard,
-                      styles.availabilityBgCard,
-                      styles.extractedInline72,
-                    ]}
-                  >
-                    <View style={styles.sectionHeaderTitleRow}>
-                      <CalendarIcon
-                        size={15}
-                        color="#0D9488"
-                        style={styles.extractedInline7}
-                      />
-                      <Text style={styles.viewSectionCardTitle}>
-                        Availability
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.grid3ColRow,
-                        isMobile && styles.extractedInline68,
-                      ]}
-                    >
-                      <View style={styles.extractedInline30}>
-                        <Text style={styles.infoBoxLabel}>Available Days</Text>
-                        <Text style={styles.infoBoxVal}>
-                          {viewClinicModal?.available_days || '—'}
-                        </Text>
-                      </View>
-                      <View style={styles.extractedInline30}>
-                        <Text style={styles.infoBoxLabel}>Available From</Text>
-                        <Text style={styles.infoBoxVal}>
-                          {formatClinicTime(viewClinicModal?.available_from)}
-                        </Text>
-                      </View>
-                      <View style={styles.extractedInline30}>
-                        <Text style={styles.infoBoxLabel}>Available To</Text>
-                        <Text style={styles.infoBoxVal}>
-                          {formatClinicTime(viewClinicModal?.available_to)}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </ScrollView>
-
-                {/* Footer */}
-                <View style={styles.viewClinicFooter}>
-                  <TouchableOpacity
-                    style={styles.viewClinicCloseBtn}
-                    onPress={() => setViewClinicModal(null)}
-                  >
-                    <Text style={styles.viewClinicCloseBtnText}>Close</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </AppModal>
+      <ClinicDetailsModal
+        viewClinicModal={viewClinicModal}
+        isMobile={isMobile}
+        resolvedViewClinicState={resolvedViewClinicState}
+        resolvedViewClinicCity={resolvedViewClinicCity}
+        onClose={() => setViewClinicModal(null)}
+      />
 
       {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {/* ðŸ‘¥ VIEW CLINIC ADMINS MODAL (EXACT SCREENSHOT 4 MATCH)                     */}
@@ -3379,7 +2686,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                                 style={styles.extractedInline84}
                                 onPress={() => handleOpenEditClinicAdmin(admin)}
                               >
-                                <Edit2
+                                <Edit
                                   size={13}
                                   color="#0D9488"
                                   style={styles.extractedInline85}
@@ -3507,7 +2814,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                               <TouchableOpacity
                                 onPress={() => handleOpenEditClinicAdmin(admin)}
                               >
-                                <Edit2 size={15} color="#0D9488" />
+                                <Edit size={15} color="#0D9488" />
                               </TouchableOpacity>
                             )}
                             {canDeleteAdmin && (
@@ -3549,7 +2856,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 {/* Header */}
                 <View style={styles.addAdminHeader}>
                   <View style={styles.userPlusIconBox}>
-                    <UserPlus color="#0D9488" size={20} />
+                    <UserCog color="#0D9488" size={20} />
                   </View>
                   <View style={styles.extractedInline65}>
                     <Text style={styles.addAdminTitle}>
@@ -3668,7 +2975,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                       Assigned Clinic
                     </Text>
                     <View style={styles.extractedInline98}>
-                      <Building
+                      <Building2
                         size={16}
                         color="#0D9488"
                         style={styles.extractedInline7}
@@ -3708,7 +3015,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
                       <>
-                        <UserPlus
+                        <UserCog
                           size={15}
                           color="#FFFFFF"
                           style={styles.extractedInline7}
@@ -3749,7 +3056,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                 {/* Header */}
                 <View style={styles.addAdminHeader}>
                   <View style={styles.userPlusIconBox}>
-                    <Edit2 color="#0D9488" size={20} />
+                    <Edit color="#0D9488" size={20} />
                   </View>
                   <View style={styles.extractedInline65}>
                     <Text style={styles.addAdminTitle}>Edit Clinic Admin</Text>
@@ -3955,7 +3262,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
                       <>
-                        <Edit2
+                        <Edit
                           size={15}
                           color="#FFFFFF"
                           style={styles.extractedInline7}

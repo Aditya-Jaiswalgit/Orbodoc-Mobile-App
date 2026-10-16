@@ -15,10 +15,8 @@ import {
   MessageCircle,
   MoreVertical,
   Phone,
-  Plus,
   Printer,
   Receipt,
-  RefreshCw,
   Search,
   Stethoscope,
   UserRound,
@@ -26,6 +24,7 @@ import {
   X,
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { PatientHeader } from '../../components/common/PatientHeader';
 import { Pagination } from '../../components/common/Pagination';
 import { ColumnSelectorModal } from '../../components/common/ColumnSelectorModal';
 import { RefreshButton } from '../../components/common/RefreshButton';
@@ -57,13 +56,15 @@ interface Props {
   onOpenDrawer: () => void;
   onNavigateScreen?: (screen: string) => void;
   initialFilters?: Record<string, string>;
+  patientMode?: boolean;
 }
-type Picker = 'status' | 'doctor' | 'date' | null;
+type Picker = 'status' | 'doctor' | null;
 
 export const AppointmentsManagerScreen: React.FC<Props> = ({
   onOpenDrawer,
   onNavigateScreen,
   initialFilters = {},
+  patientMode = false,
 }) => {
   const {
     token,
@@ -72,56 +73,56 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
     permissionsMap = {},
     activeClinicId,
   } = useAuthContext();
-  const canView = canUseStaffScreen(
+  const canView = (patientMode && Object.keys(permissionsMap || {}).length === 0) || canUseStaffScreen(
     role,
     permissionsMap,
     'appointments',
     'view',
   );
-  const canAdd = canUseStaffScreen(role, permissionsMap, 'appointments', 'add');
-  const canEdit = canUseStaffScreen(
+  const canAdd = !patientMode && canUseStaffScreen(role, permissionsMap, 'appointments', 'add');
+  const canEdit = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'appointments',
     'edit',
   );
-  const canDelete = canUseStaffScreen(
+  const canDelete = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'appointments',
     'delete',
   );
-  const canExecute = canUseStaffScreen(
+  const canExecute = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'appointments',
     'execute',
   );
-  const canExecuteVideo = canUseStaffScreen(
+  const canExecuteVideo = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'video_services',
     'execute',
   );
-  const canViewPatients = canUseStaffScreen(
+  const canViewPatients = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'patients',
     'view',
   );
-  const canAddPrescription = canUseStaffScreen(
+  const canAddPrescription = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'prescriptions',
     'add',
   );
-  const canEditPrescription = canUseStaffScreen(
+  const canEditPrescription = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'prescriptions',
     'edit',
   );
-  const canViewPrescription = canUseStaffScreen(
+  const canViewPrescription = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'prescriptions',
@@ -156,6 +157,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
   const [activeMenu, setActiveMenu] = useState<Appointment | null>(null);
   const [viewTarget, setViewTarget] = useState<Appointment | null>(null);
+  const notificationAppointmentId = initialFilters.appointmentId;
   const [rescheduleTarget, setRescheduleTarget] = useState<Appointment | null>(
     null,
   );
@@ -170,28 +172,28 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
     appointments,
     loading,
     error: appointmentsError,
-    lastRefreshed,
     refresh: loadAppointments,
   } = useAppointmentsData(
     token,
-    activeClinicId,
+    patientMode ? null : activeClinicId,
     canView,
     initialFilters,
   );
+  useEffect(() => {
+    if (!notificationAppointmentId || loading) return;
+    const target = appointments.find(row => String(row.id) === String(notificationAppointmentId));
+    if (target) setViewTarget(target);
+  }, [appointments, loading, notificationAppointmentId]);
   useEffect(() => {
     if (appointmentsError) showErrorToast('Appointments', appointmentsError);
   }, [appointmentsError]);
   const closeActionMenu = useCallback(() => setActiveMenu(null), []);
   const {
     activeVideoCall,
-    callPatient,
     cancelAppointment,
-    deleteAppointment,
-    openBooking,
     patientPickerVisible,
     patients,
     saveReschedule,
-    sendReminder,
     setActiveVideoCall,
     setPatientPickerVisible,
     startingCallId,
@@ -335,14 +337,6 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
-  const openReschedule = (appointment: Appointment) => {
-    setActiveMenu(null);
-    setRescheduleTarget(appointment);
-    setRescheduleDate(dateOnly(appointment.appointment_date));
-    setRescheduleTime(
-      appointment.appointment_time || appointment.time_slot || '',
-    );
-  };
   const menuAction = (
     label: string,
     action: () => void,
@@ -361,7 +355,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
         <VideoCallRoomScreen
           appointment={activeVideoCall.appointment}
           roomId={activeVideoCall.roomId}
-          callerRole="doctor"
+          callerRole={patientMode ? 'patient' : 'doctor'}
           userId={user.id}
           token={token}
           onClose={() => {
@@ -370,7 +364,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
           }}
         />
       ) : null}
-      <StaffHeader onOpenDrawer={onOpenDrawer} title="Appointments" />
+      {patientMode ? <PatientHeader onOpenDrawer={onOpenDrawer} /> : <StaffHeader onOpenDrawer={onOpenDrawer} title="Appointments" />}
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -382,16 +376,10 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
           <View style={styles.headingCopy}>
             <Text style={styles.pageTitle}>Appointments</Text>
             <Text style={styles.subtitle}>
-              Book, search patients, and view all appointments in one page
+              {patientMode ? 'View your upcoming and past appointments' : 'Book, search patients, and view all appointments in one page'}
             </Text>
           </View>
         </View>
-        {canAdd ? (
-          <TouchableOpacity style={styles.bookLocationButton} onPress={openBooking}>
-            <Plus size={18} color="#FFF" />
-            <Text style={styles.bookLocationButtonText}>Book Appointment</Text>
-          </TouchableOpacity>
-        ) : null}
         <View style={styles.listPanel}>
           <View style={styles.panelHeading}>
             <Text style={styles.panelTitle}>All Appointments</Text>
@@ -452,31 +440,41 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
               <ChevronDown size={15} color="#64748B" />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={styles.filterSelect}
-            onPress={() => setPicker(picker === 'date' ? null : 'date')}
-          >
-            <CalendarDays size={15} color="#64748B" />
-            <Text
-              numberOfLines={1}
-              style={[styles.selectText, styles.dateSelectText]}
-            >
-              {dateFilter === 'custom' && (fromDate || toDate)
-                ? `${fromDate ? prettyDate(fromDate) : 'Any'} · ${
-                    toDate ? prettyDate(toDate) : 'Any'
-                  }`
-                : (
-                    {
-                      all: 'Filter by date',
-                      today: 'Today',
-                      upcoming: 'Upcoming',
-                      past: 'Past',
-                      custom: 'Choose date range',
-                    } as Record<string, string>
-                  )[dateFilter]}
-            </Text>
-            <ChevronDown size={15} color="#64748B" />
-          </TouchableOpacity>
+          <View style={styles.dateFilterRow}>
+            <View style={styles.calendarPickerFlex}>
+              <CustomCalendarPicker
+                key={dateFilter === 'all' ? 'appointments-date-empty' : 'appointments-date-selected'}
+                selectedDate={fromDate ? new Date(`${fromDate}T00:00:00`) : undefined}
+                placeholder="Filter by date"
+                triggerStyle={styles.calendarFilterTrigger}
+                triggerTextStyle={styles.calendarFilterText}
+                iconColor="#64748B"
+                onOpen={() => setPicker(null)}
+                onDateChange={date => {
+                  const selected = localDateOnly(date);
+                  setFromDate(selected);
+                  setToDate(selected);
+                  setDateFilter('custom');
+                  setCurrentPage(1);
+                }}
+              />
+            </View>
+            {dateFilter !== 'all' ? (
+              <TouchableOpacity
+                style={styles.clearDateFilter}
+                onPress={() => {
+                  setFromDate('');
+                  setToDate('');
+                  setDateFilter('all');
+                  setCurrentPage(1);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Clear date filter"
+              >
+                <X size={16} color="#64748B" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
           {picker === 'status' ? (
             <View style={styles.inlineOptions}>
               <ScrollView nestedScrollEnabled>
@@ -515,54 +513,6 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            </View>
-          ) : null}
-          {picker === 'date' ? (
-            <View style={styles.inlineOptions}>
-              {(['all', 'today', 'upcoming', 'past', 'custom'] as const).map(option => (
-                <TouchableOpacity
-                  key={option}
-                  style={styles.inlineOptionRow}
-                  onPress={() => {
-                    setDateFilter(option);
-                    setCurrentPage(1);
-                    setPicker(null);
-                  }}
-                >
-                  <Text style={styles.optionText}>
-                    {({ all: 'All Dates', today: 'Today', upcoming: 'Upcoming', past: 'Past', custom: 'Choose Date' })[option]}
-                  </Text>
-                  {dateFilter === option ? <Check size={17} color="#0D9488" /> : null}
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : null}
-          {dateFilter === 'custom' ? (
-            <View style={styles.dateRangeRow}>
-              <CustomCalendarPicker
-                selectedDate={
-                  fromDate ? new Date(`${fromDate}T00:00:00`) : undefined
-                }
-                placeholder="From date"
-                triggerStyle={styles.rangeDateTrigger}
-                triggerTextStyle={styles.rangeDateText}
-                onDateChange={date => {
-                  setFromDate(localDateOnly(date));
-                  setCurrentPage(1);
-                }}
-              />
-              <CustomCalendarPicker
-                selectedDate={
-                  toDate ? new Date(`${toDate}T00:00:00`) : undefined
-                }
-                placeholder="To date"
-                triggerStyle={styles.rangeDateTrigger}
-                triggerTextStyle={styles.rangeDateText}
-                onDateChange={date => {
-                  setToDate(localDateOnly(date));
-                  setCurrentPage(1);
-                }}
-              />
             </View>
           ) : null}
         </View>
@@ -750,6 +700,15 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                     <Text style={styles.callButtonText}>
                       {startingCallId === item.id ? 'Starting call...' : 'Start Video Call'}
                     </Text>
+                  </TouchableOpacity>
+                ) : null}
+                {patientMode && isVideoAppointment && !isCancelled && !isCompleted && item.video_room_id ? (
+                  <TouchableOpacity
+                    style={styles.callButton}
+                    onPress={() => setActiveVideoCall({ appointment: item, roomId: String(item.video_room_id) })}
+                  >
+                    <Video size={15} color="#FFF" />
+                    <Text style={styles.callButtonText}>Join Video Consultation</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>

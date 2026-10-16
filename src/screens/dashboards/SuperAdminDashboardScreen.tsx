@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { CalendarDays } from 'lucide-react-native';
 import { useAuthContext } from '../../context/AuthContext';
 import { useRemoteData } from '../../hooks/useRemoteData';
 import { apiFetch } from '../../api/apiConfig';
@@ -35,6 +36,10 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
       String(b.created_at || '').localeCompare(String(a.created_at || ''))).slice(0, 3) };
   });
   const stats = resource.data?.stats;
+  const now = new Date();
+  const adminName = user?.fullName || user?.full_name || '';
+  const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
+  const todayLabel = now.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' });
   const metric = (name: string) => dashboardNumber(stats?.[name]);
   const treatment = metric('treatment_revenue');
   const medicine = metric('medicine_revenue');
@@ -48,6 +53,18 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
       />
 
       <ScrollView refreshControl={<RefreshControl refreshing={resource.loading} onRefresh={resource.refresh} />} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.greetingSection}>
+          <Text style={styles.greetingTitle}>{greeting}{adminName ? `, ${adminName}` : ''}!</Text>
+          <Text style={styles.greetingSubtitle}>Here's what's happening across your platform today.</Text>
+          <View style={styles.todayDateCard}>
+            <View style={styles.todayIconBox}><CalendarDays size={22} color="#0D9488" strokeWidth={2.2} /></View>
+            <View style={styles.todayTextCol}>
+              <View style={styles.todayBadgeRow}><View style={styles.greenDot} /><Text style={styles.todayBadgeText}>TODAY</Text></View>
+              <Text style={styles.todayDateText}>{todayLabel}</Text>
+            </View>
+          </View>
+        </View>
+
         {/* Banner */}
         <View style={styles.heroCard}>
           <View style={styles.heroTextCol}>
@@ -141,6 +158,16 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   content: { padding: 16, paddingBottom: 80 },
+  greetingSection: { marginBottom: 18 },
+  greetingTitle: { color: '#0f172a', fontSize: 21, fontWeight: '800' },
+  greetingSubtitle: { color: '#64748b', fontSize: 13, marginTop: 4 },
+  todayDateCard: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, marginTop: 16, borderRadius: 16, borderWidth: 1, borderColor: '#99f6e4', backgroundColor: '#f0fdfa' },
+  todayIconBox: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#ccfbf1', alignItems: 'center', justifyContent: 'center' },
+  todayTextCol: { flex: 1 },
+  todayBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 },
+  greenDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#0d9488' },
+  todayBadgeText: { color: '#0d9488', fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
+  todayDateText: { color: '#0f172a', fontSize: 14, fontWeight: '700' },
   heroCard: {
     backgroundColor: '#0f172a',
     borderRadius: 16,

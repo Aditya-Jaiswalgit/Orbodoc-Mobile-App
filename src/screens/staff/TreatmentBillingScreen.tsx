@@ -1,7 +1,7 @@
 // src/screens/staff/TreatmentBillingScreen.tsx
 import { AppModal } from '../../components/common/AppModal';
 import { styles } from './styles/TreatmentBilling.styles';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Linking, NativeModules, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions } from 'react-native';
 import {
@@ -19,6 +19,7 @@ import {
   MessageCircle,
   MoreVertical,
   Plus,
+  Printer,
   Receipt,
   RefreshCw,
   Search,
@@ -26,6 +27,7 @@ import {
   X,
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { PatientHeader } from '../../components/common/PatientHeader';
 import { AppToastOverlay, AppToastNotice } from '../../components/common/AppToast';
 import { Pagination } from '../../components/common/Pagination';
 import { ColumnSelectorModal } from '../../components/common/ColumnSelectorModal';
@@ -41,6 +43,7 @@ import { BASE_URL } from '../../api/apiConfig';
 import { CreateTreatmentBillModal } from './billing/CreateTreatmentBillModal';
 import { useTreatmentBills } from '../../hooks/useTreatmentBills';
 import { showErrorToast, showSuccessToast } from '../../utils/toast';
+import { openPdfForPrinting } from '../../utils/pdfActions';
 import {
   BillColumn,
   capitalize,
@@ -60,6 +63,8 @@ interface Props {
   initialDateFrom?: string;
   initialDateTo?: string;
   initialStatus?: string;
+  initialBillId?: string;
+  patientMode?: boolean;
 }
 
 export const TreatmentBillingScreen: React.FC<Props> = ({
@@ -69,6 +74,8 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
   initialDateFrom,
   initialDateTo,
   initialStatus,
+  initialBillId,
+  patientMode = false,
 }) => {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -82,31 +89,31 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
   } = useAuthContext();
 
   // Permission Checks (Unified with RBAC)
-  const canView = canUseStaffScreen(
+  const canView = (patientMode && Object.keys(permissionsMap || {}).length === 0) || canUseStaffScreen(
     role,
     permissionsMap,
     'treatment_billing',
     'view',
   );
-  const canAdd = canUseStaffScreen(
+  const canAdd = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'treatment_billing',
     'add',
   );
-  const canEdit = canUseStaffScreen(
+  const canEdit = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'treatment_billing',
     'edit',
   );
-  const canDelete = canUseStaffScreen(
+  const canDelete = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'treatment_billing',
     'delete',
   );
-  const canExecute = canUseStaffScreen(
+  const canExecute = !patientMode && canUseStaffScreen(
     role,
     permissionsMap,
     'treatment_billing',
@@ -147,7 +154,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
     refresh: loadBills,
   } = useTreatmentBills({
     token,
-    clinicId: activeClinicId,
+    clinicId: patientMode ? null : activeClinicId,
     canView,
     status: statusFilter,
     search: debouncedSearch,
@@ -169,6 +176,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
   const [viewInvoiceModalVisible, setViewInvoiceModalVisible] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [selectedBill, setSelectedBill] = useState<TreatmentBill | null>(null);
+  const [printingBill, setPrintingBill] = useState(false);
   const [billDetailsLoading, setBillDetailsLoading] = useState(false);
 
   // Form State for Create / Edit Bill Modal
@@ -230,7 +238,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
   };
 
   // View Bill Invoice Details
-  const handleViewInvoice = async (bill: TreatmentBill) => {
+  const handleViewInvoice = useCallback(async (bill: TreatmentBill) => {
     setSelectedBill(bill);
     setViewInvoiceModalVisible(true);
     setBillDetailsLoading(true);
@@ -254,7 +262,13 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
     } finally {
       setBillDetailsLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (!initialBillId || loading || viewInvoiceModalVisible) return;
+    const target = bills.find(bill => String(bill.id) === String(initialBillId));
+    if (target) void handleViewInvoice(target);
+  }, [bills, handleViewInvoice, initialBillId, loading, viewInvoiceModalVisible]);
 
   // Open Record Payment Modal
   const handleOpenRecordPayment = (bill: TreatmentBill) => {
@@ -410,6 +424,22 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
     }
   };
 
+  const handlePrintBill = async (bill: TreatmentBill) => {
+    if (!token) return;
+    setPrintingBill(true);
+    try {
+      await openPdfForPrinting(
+        `${BASE_URL}/treatment-bills/${bill.id}/pdf`,
+        token,
+        `treatment-bill-${bill.bill_number || bill.id}.pdf`,
+      );
+    } catch (error: any) {
+      showErrorToast('Print failed', error?.message || 'Could not open the invoice for printing.');
+    } finally {
+      setPrintingBill(false);
+    }
+  };
+
   // Share Representation
   const getBillShareText = (bill: TreatmentBill) => {
     const billId = String(bill.id || '');
@@ -512,7 +542,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
 
   return (
     <View style={styles.container}>
-      <StaffHeader
+      {patientMode ? <PatientHeader onOpenDrawer={onOpenDrawer} /> : <StaffHeader
         onOpenDrawer={onOpenDrawer}
         title="Treatment Billing"
         onNavigate={path => {
@@ -521,7 +551,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
             onNavigateScreen(cleanPath);
           }
         }}
-      />
+      />}
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -545,7 +575,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
             <View style={styles.extractedInline2}>
               <Text style={[styles.bannerTitle, isMobile && styles.bannerTitleMobile]}>Treatment Bills</Text>
               <Text style={styles.bannerSubtitle}>
-                Manage bills, payments, and billing items
+                {patientMode ? 'View your treatment invoices and payment history' : 'Manage bills, payments, and billing items'}
               </Text>
             </View>
           </View>
@@ -1559,18 +1589,26 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
               <View style={styles.invoiceActionButtonsRow}>
                 <TouchableOpacity
                   accessibilityRole="button"
-                  style={[styles.invoiceCloseAction, styles.invoiceActionButton]}
+                  style={[styles.invoiceCloseAction, styles.invoiceCloseActionButton]}
                   onPress={() => setViewInvoiceModalVisible(false)}>
                   <X size={16} color="#334155" />
-                  <Text style={styles.invoiceCloseActionText}>Close</Text>
+                  <Text maxFontSizeMultiplier={1.15} style={styles.invoiceCloseActionText}>Close</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   accessibilityRole="button"
                   disabled={!selectedBill || billDetailsLoading}
-                  style={[styles.invoiceDownloadButton, styles.invoiceActionButton]}
+                  style={[styles.invoiceDownloadButton, styles.invoicePrimaryActionButton]}
                   onPress={() => selectedBill && handleDownloadPDF(selectedBill)}>
                   <Download size={17} color="#FFFFFF" />
-                  <Text style={styles.invoiceDownloadButtonText}>Download PDF</Text>
+                  <Text maxFontSizeMultiplier={1.15} numberOfLines={1} adjustsFontSizeToFit style={styles.invoiceDownloadButtonText}>Download PDF</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  disabled={!selectedBill || printingBill}
+                  style={[styles.invoiceDownloadButton, styles.invoicePrintActionButton]}
+                  onPress={() => selectedBill && void handlePrintBill(selectedBill)}>
+                  {printingBill ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Printer size={17} color="#FFFFFF" />}
+                  <Text maxFontSizeMultiplier={1.15} numberOfLines={1} adjustsFontSizeToFit style={styles.invoiceDownloadButtonText}>{printingBill ? 'Opening…' : 'Print Bill'}</Text>
                 </TouchableOpacity>
               </View>
             </View>

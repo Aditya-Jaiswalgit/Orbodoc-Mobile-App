@@ -142,6 +142,17 @@ export function VideoCallRoomScreen({ appointment, roomId, callerRole, userId, t
       pendingCandidates.current.delete(peerId);
     };
 
+    const safelyHandleSignal = async (handler: () => Promise<void>) => {
+      try {
+        await handler();
+      } catch {
+        if (mountedRef.current) {
+          setConnecting(false);
+          setStatus('Video connection interrupted. Please try again.');
+        }
+      }
+    };
+
     const connect = async () => {
       try {
         if (!(await requestMediaPermissions())) throw new Error('Camera and microphone permission are required for a video consultation.');
@@ -172,42 +183,52 @@ export function VideoCallRoomScreen({ appointment, roomId, callerRole, userId, t
             });
           }
         });
-        socket.on('room-joined', async ({ peers = [] }: { peers?: string[] }) => {
-          setStatus(peers.length ? 'Connecting to the other participant…' : 'Waiting for the other participant…');
-          for (const peerId of peers) {
-            const connection = await createPeer(peerId);
-            const offer = await connection.createOffer();
-            await connection.setLocalDescription(offer);
-            socket?.emit('offer', { video_room_id: roomId, offer, targetSocketId: peerId });
-          }
+        socket.on('room-joined', ({ peers = [] }: { peers?: string[] }) => {
+          void safelyHandleSignal(async () => {
+            setStatus(peers.length ? 'Connecting to the other participant…' : 'Waiting for the other participant…');
+            for (const peerId of peers) {
+              const connection = await createPeer(peerId);
+              const offer = await connection.createOffer();
+              await connection.setLocalDescription(offer);
+              socket?.emit('offer', { video_room_id: roomId, offer, targetSocketId: peerId });
+            }
+          });
         });
         socket.on('peer-joined', ({ socketId }: { socketId: string }) => {
-          void createPeer(socketId);
-          setStatus('Participant joined. Connecting…');
+          void safelyHandleSignal(async () => {
+            await createPeer(socketId);
+            setStatus('Participant joined. Connecting…');
+          });
         });
-        socket.on('offer', async ({ socketId, offer }: SignalPayload) => {
-          if (!socketId || !offer) return;
-          const connection = await createPeer(socketId);
-          await connection.setRemoteDescription(new RTCSessionDescription(offer));
-          await flushCandidates(socketId, connection);
-          const answer = await connection.createAnswer();
-          await connection.setLocalDescription(answer);
-          socket?.emit('answer', { video_room_id: roomId, answer, targetSocketId: socketId });
+        socket.on('offer', ({ socketId, offer }: SignalPayload) => {
+          void safelyHandleSignal(async () => {
+            if (!socketId || !offer) return;
+            const connection = await createPeer(socketId);
+            await connection.setRemoteDescription(new RTCSessionDescription(offer));
+            await flushCandidates(socketId, connection);
+            const answer = await connection.createAnswer();
+            await connection.setLocalDescription(answer);
+            socket?.emit('answer', { video_room_id: roomId, answer, targetSocketId: socketId });
+          });
         });
-        socket.on('answer', async ({ socketId, answer }: SignalPayload) => {
-          const connection = socketId ? peerConnections.current.get(socketId) : null;
-          if (!connection || !answer) return;
-          await connection.setRemoteDescription(new RTCSessionDescription(answer));
-          await flushCandidates(socketId!, connection);
+        socket.on('answer', ({ socketId, answer }: SignalPayload) => {
+          void safelyHandleSignal(async () => {
+            const connection = socketId ? peerConnections.current.get(socketId) : null;
+            if (!connection || !answer) return;
+            await connection.setRemoteDescription(new RTCSessionDescription(answer));
+            await flushCandidates(socketId, connection);
+          });
         });
-        socket.on('ice-candidate', async ({ socketId, candidate }: SignalPayload) => {
-          if (!socketId || !candidate) return;
-          const connection = await createPeer(socketId);
-          if (!connection.remoteDescription) {
-            pendingCandidates.current.set(socketId, [...(pendingCandidates.current.get(socketId) || []), candidate]);
-          } else {
-            await connection.addIceCandidate(new RTCIceCandidate(candidate));
-          }
+        socket.on('ice-candidate', ({ socketId, candidate }: SignalPayload) => {
+          void safelyHandleSignal(async () => {
+            if (!socketId || !candidate) return;
+            const connection = await createPeer(socketId);
+            if (!connection.remoteDescription) {
+              pendingCandidates.current.set(socketId, [...(pendingCandidates.current.get(socketId) || []), candidate]);
+            } else {
+              await connection.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+          });
         });
         socket.on('peer-left', () => {
           setRemoteStream(null);
@@ -237,7 +258,20 @@ export function VideoCallRoomScreen({ appointment, roomId, callerRole, userId, t
       localStreamRef.current?.getTracks().forEach(track => track.stop());
       remoteStreamRef.current?.getTracks().forEach(track => track.stop());
     };
-  }, [appointment.id, callerRole, closePeerConnections, endCall, roomId, userId]);
+  }, [
+    appointment.appointment_date,
+    appointment.appointment_time,
+    appointment.doctor_id,
+    appointment.doctor_name,
+    appointment.id,
+    appointment.patient_id,
+    appointment.time_slot,
+    callerRole,
+    closePeerConnections,
+    endCall,
+    roomId,
+    userId,
+  ]);
 
   const toggleMute = () => {
     const next = !muted;

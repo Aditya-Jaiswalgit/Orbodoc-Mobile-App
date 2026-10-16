@@ -24,6 +24,7 @@ export function useStaffHeaderData(
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
   const inbox = useNotificationInbox();
+  const refreshInbox = inbox.refresh;
   const [plan, setPlan] = useState<ClinicPlan | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
   const [planError, setPlanError] = useState(false);
@@ -46,9 +47,9 @@ export function useStaffHeaderData(
   const previousNotificationsOpen = useRef(notificationsOpen);
   useEffect(() => {
     if (notificationsOpen && !previousNotificationsOpen.current)
-      void inbox.refresh();
+      void refreshInbox();
     previousNotificationsOpen.current = notificationsOpen;
-  }, [notificationsOpen, inbox.refresh]);
+  }, [notificationsOpen, refreshInbox]);
 
   useEffect(() => {
     let current = true;

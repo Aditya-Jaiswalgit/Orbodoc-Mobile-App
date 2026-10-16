@@ -13,7 +13,10 @@ import {
   FileText,
   FlaskConical,
   HeartPulse,
+  IndianRupee,
+  Microscope,
   Pill,
+  Printer,
   RotateCcw,
   Search,
   ShieldAlert,
@@ -28,6 +31,7 @@ import {
 } from '../../../api/patientApi';
 import { PatientModel } from '../../../types/clinicTypes';
 import { showErrorToast } from '../../../utils/toast';
+import { printHtmlDocument } from '../../../utils/pdfActions';
 
 type Props = {
   visible: boolean;
@@ -110,50 +114,24 @@ const escapeHtml = (value: unknown) =>
       ]!),
   );
 
-function createPdfHtml(
-  title: string,
-  rows: Array<[string, string]>,
-  table?: Array<{ name: string; value: string; unit: string; range: string }>,
+function createLabReportHtml(
+  report: MedicalHistoryPayload['labReports'][number],
+  patientName: string,
+  patientId: string | number,
+  patientCode: string,
+  clinicName: string,
+  uploadedAt: string,
+  statusText: string,
+  price: number,
 ) {
-  const dateLabel = new Intl.DateTimeFormat('en-IN', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  }).format(new Date());
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=794, initial-scale=1"><style>
-    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#fff;color:#1e293b;font:13px Arial,sans-serif}body{padding:34px 42px 38px}.page-meta{display:flex;justify-content:space-between;color:#64748b;font-size:10px;padding-bottom:18px;border-bottom:1px solid #e2e8f0}.sheet{margin:22px auto 0;max-width:710px;border:1px solid #e2e8f0;border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 12px 32px rgba(15,23,42,.10)}.hero{display:flex;align-items:center;gap:14px;padding:22px 26px;background:#071522;color:white}.mark{width:46px;height:46px;border-radius:15px;background:#2dd4bf;color:#071522;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:bold}.hero h1{margin:0;font-size:22px;letter-spacing:-.4px}.hero p{margin:6px 0 0;color:#cbd5e1;font-size:12px}.body{padding:22px 24px}.section{margin:0 0 20px}.section h2{font-size:15px;margin:0 0 4px;color:#0f172a}.section .sub{font-size:11px;color:#64748b;margin-bottom:12px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}.info{padding:13px 14px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;min-height:62px}.info b{display:block;color:#94a3b8;font-size:9px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}.info span{font-size:12px;font-weight:600}.record{margin:11px 0;border:1px solid #dbe3eb;border-radius:15px;overflow:hidden}.record-head{padding:14px 15px;background:linear-gradient(90deg,#f8fafc,#fff);border-bottom:1px solid #eef2f6}.record-head strong{font-size:14px}.badge{display:inline-block;margin-left:8px;padding:4px 8px;border-radius:12px;background:#ecfdf5;color:#059669;font-size:9px;font-weight:bold;text-transform:uppercase}.meta{margin-top:7px;color:#64748b;font-size:10px}.record-body{padding:14px 15px}.note{padding:11px 12px;background:#fffbeb;border:1px solid #fef3c7;border-radius:11px;color:#78350f;margin-bottom:10px}.detail{padding:11px 12px;margin:8px 0;background:#f8fafc;border-radius:11px}.detail b{display:block;color:#94a3b8;font-size:9px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}.detail span{font-size:12px}.table-title{font-size:13px;font-weight:bold;margin:14px 0 8px}.table{width:100%;border-collapse:collapse;font-size:10px}.table td,.table th{border:1px solid #dbe3eb;padding:9px;text-align:left}.table th{background:#f8fafc;color:#64748b;font-size:9px;text-transform:uppercase}.label{color:#64748b;width:32%;background:#f8fafc}.report-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.footer{padding:12px 24px;border-top:1px solid #e2e8f0;color:#64748b;font-size:9px;display:flex;justify-content:space-between}
-  </style></head><body><div class="page-meta"><span>${escapeHtml(
-    dateLabel,
-  )}</span><span>Clinic Management</span></div><main class="sheet"><header class="hero"><div class="mark">â™¡</div><div><h1>${escapeHtml(
-    title,
-  )}</h1><p>Patient medical records and diagnostic history</p></div></header><div class="body"><section class="section"><h2>${
-    table ? 'Lab report' : 'Patient overview and medical history'
-  }</h2><div class="sub">Private patient information Â· Handle with care</div><div class="cards">${rows
-    .map(
-      ([label, value]) =>
-        `<div class="info"><b>${escapeHtml(label)}</b><span>${escapeHtml(
-          value || 'Not recorded',
-        )}</span></div>`,
-    )
-    .join('')}</div></section>${
-    table
-      ? `<section><div class="table-title">Test results</div><div class="sub">${
-          table.length
-        } parameters recorded</div><table class="table"><thead><tr><th>Parameter</th><th>Result</th><th>Unit</th><th>Reference range</th></tr></thead><tbody>${table
-          .map(
-            row =>
-              `<tr><td>${escapeHtml(row.name)}</td><td><b>${escapeHtml(
-                row.value,
-              )}</b></td><td>${escapeHtml(row.unit)}</td><td>${escapeHtml(
-                row.range,
-              )}</td></tr>`,
-          )
-          .join('')}</tbody></table></section>`
-      : ''
-  }</div><footer class="footer"><span>Clinic: ${escapeHtml(
-    rows.find(([label]) => label === 'Clinic')?.[1] || 'Clinic',
-  )}</span><span>Patient record Â· ${escapeHtml(
-    dateLabel,
-  )}</span></footer></main></body></html>`;
+  const rows = resultRows(report.report_data);
+  const reportId = String(report.report_id || report.lab_test_id || '-');
+  const bodyRows = (rows.length ? rows : [{ name: '-', value: '-', unit: '-', range: '-' }])
+    .map((row, index) => `<tr><td>${escapeHtml(report.test_name || '-')}</td><td>${escapeHtml(reportId)}</td><td>${escapeHtml(row.name || '-')}</td><td>${escapeHtml(row.value || '-')}</td><td>${escapeHtml(row.unit || '-')}</td><td>${escapeHtml(row.range || report.reference_range || '-')}</td><td>${escapeHtml(statusText)}</td><td>${escapeHtml(uploadedAt)}</td><td class="right">${index === 0 ? `₹ ${price.toFixed(2)}` : ''}</td></tr>`)
+    .join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(clinicName)} - Lab Report #${escapeHtml(reportId)}</title><style>
+  *{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:18px;color:#0f172a;background:#f8fafc}.page{border:1px solid #0d9488;background:#fff}.header{border-bottom:1px solid #0d9488;padding:18px;text-align:center}.header h1{margin:0;font-size:28px;text-transform:capitalize}.subtitle{margin:6px 0 0;color:#0f766e;font-size:16px;font-weight:700}.generated{margin:6px 0 0;font-size:13px}.info{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #0d9488}.info-card{padding:14px;border-right:1px solid #e2e8f0}.info-card:last-child{border-right:none}.info-card p{margin:6px 0;font-size:14px}.table-wrap{padding:14px 20px}table{width:100%;border-collapse:collapse;table-layout:fixed}th{border:1px solid #0d9488;padding:8px 5px;text-align:left;font-size:10px;color:#64748b;overflow-wrap:anywhere}td{border:1px solid #cbd5e1;padding:8px 5px;font-size:11px;vertical-align:top;overflow-wrap:anywhere}.right{text-align:right}.total td{font-weight:700}.remarks{margin:12px 20px 16px;border:1px solid #0d9488;padding:12px}.remarks h3{margin:0 0 8px;color:#0f766e;font-size:16px}.remarks p{margin:0;font-size:15px;white-space:pre-wrap}.foot{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #0d9488;padding:12px 20px;color:#0f766e;font-size:12px;overflow-wrap:anywhere}@page{size:A4;margin:12mm}@media print{body{margin:0;background:#fff}.page{border:none}.table-wrap{padding:12px 14px}th,td{font-size:9px;padding:6px 4px}}
+  </style></head><body><main class="page"><header class="header"><h1>${escapeHtml(clinicName)}</h1><p class="subtitle">Lab Diagnostic Report</p><p class="generated">Generated on: ${escapeHtml(uploadedAt)}</p></header><section class="info"><div class="info-card"><p><b>Patient Name:</b> ${escapeHtml(patientName)}</p><p><b>Patient ID:</b> ${escapeHtml(patientId)}</p><p><b>Patient Code:</b> ${escapeHtml(patientCode)}</p></div><div class="info-card"><p><b>Referred Doctor(s):</b> ${escapeHtml(report.doctor_name || '-')}</p><p><b>Technician:</b> ${escapeHtml(report.technician_name || '-')}</p><p><b>Total Price:</b> ₹ ${price.toFixed(2)}</p></div></section><section class="table-wrap"><table><thead><tr><th>Test Name</th><th>Report ID</th><th>Parameter</th><th>Value</th><th>Unit</th><th>Reference Range</th><th>Status</th><th>Uploaded At</th><th class="right">Price</th></tr></thead><tbody>${bodyRows}<tr class="total"><td colspan="8" class="right">Total</td><td class="right">₹ ${price.toFixed(2)}</td></tr></tbody></table></section><section class="remarks"><h3>Remarks</h3><p>${escapeHtml(report.remarks || '-')}</p></section><footer class="foot"><span>Clinic: ${escapeHtml(clinicName)}</span><span>Patient: ${escapeHtml(patientName)} (${escapeHtml(patientId)})</span></footer></main></body></html>`;
 }
 
 function createHistoryPdfHtml(
@@ -354,7 +332,7 @@ function SummaryRow({
   return (
     <View style={styles.summaryRow}>
       <View style={styles.summaryIcon}>
-        <Icon size={16} color="#64748B" />
+        <Icon size={16} color="#0D9488" />
       </View>
       <View style={styles.summaryCopy}>
         <Text style={styles.eyebrow}>{title}</Text>
@@ -380,6 +358,7 @@ export function PatientMedicalHistoryModal({
   const [openFilter, setOpenFilter] = useState<'record' | 'date' | null>(null);
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [printing, setPrinting] = useState<string | null>(null);
 
   useEffect(() => {
     if (!visible || !patient?.id || !token) return;
@@ -486,13 +465,6 @@ export function PatientMedicalHistoryModal({
   const reportPdf = async (
     report: MedicalHistoryPayload['labReports'][number],
   ) => {
-    if (!canExport) {
-      showErrorToast(
-        'Permission denied',
-        'You do not have permission to export patient records.',
-      );
-      return;
-    }
     if (
       Platform.OS !== 'android' ||
       !NativeModules.BillPdfDownload?.downloadHtmlAsPdf
@@ -504,25 +476,17 @@ export function PatientMedicalHistoryModal({
       return;
     }
     const patientInfo = history?.patient;
-    const results = resultRows(report.report_data);
-    const html = createPdfHtml(
-      report.test_name || 'Lab report',
-      [
-        [
-          'Patient',
-          `${patientInfo?.full_name || patient?.full_name || 'Patient'} Â· ${
-            patientInfo?.patient_code || patient?.patient_code || ''
-          }`,
-        ],
-        ['Clinic', patientInfo?.clinic_name || 'Clinic'],
-        ['Report ID', String(report.report_id || report.lab_test_id)],
-        ['Status', report.is_abnormal ? 'Abnormal' : 'Normal'],
-        ['Referred by', report.doctor_name || 'Not recorded'],
-        ['Technician', report.technician_name || 'Not recorded'],
-        ['Reported on', dateTime(report.uploaded_at || report.created_at)],
-        ['Remarks', report.remarks || 'No remarks recorded'],
-      ],
-      results,
+    const patientName = patientInfo?.full_name || patient?.full_name || 'Patient';
+    const patientCode = patientInfo?.patient_code || patient?.patient_code || '-';
+    const html = createLabReportHtml(
+      report,
+      patientName,
+      patientInfo?.id || patient?.id || patientCode,
+      patientCode,
+      patientInfo?.clinic_name || 'Clinic',
+      dateTime(report.uploaded_at || report.created_at),
+      report.is_abnormal ? 'Abnormal' : 'Normal',
+      Number(report.price || 0),
     );
     const fileName = `lab-report-${report.report_id || report.lab_test_id}.pdf`;
     setDownloading(String(report.lab_test_id));
@@ -536,6 +500,30 @@ export function PatientMedicalHistoryModal({
       );
     } finally {
       setDownloading(null);
+    }
+  };
+
+  const printReport = async (report: MedicalHistoryPayload['labReports'][number]) => {
+    const patientInfo = history?.patient;
+    const patientName = patientInfo?.full_name || patient?.full_name || 'Patient';
+    const patientCode = patientInfo?.patient_code || patient?.patient_code || '-';
+    const html = createLabReportHtml(
+      report,
+      patientName,
+      patientInfo?.id || patient?.id || patientCode,
+      patientCode,
+      patientInfo?.clinic_name || 'Clinic',
+      dateTime(report.uploaded_at || report.created_at),
+      report.is_abnormal ? 'Abnormal' : 'Normal',
+      Number(report.price || 0),
+    );
+    setPrinting(String(report.lab_test_id));
+    try {
+      await printHtmlDocument(html, `Lab report ${report.report_id || report.lab_test_id}`);
+    } catch (error: any) {
+      Alert.alert('Print failed', error?.message || 'Could not open the lab report print dialog.');
+    } finally {
+      setPrinting(null);
     }
   };
 
@@ -584,6 +572,24 @@ export function PatientMedicalHistoryModal({
       );
     } finally {
       setDownloading(null);
+    }
+  };
+
+  const printHistory = async () => {
+    if (!canExport || !history) return;
+    const html = createHistoryPdfHtml(
+      history,
+      patient?.full_name || 'Patient',
+      patient?.patient_code || '-',
+      age,
+    );
+    setPrinting('history');
+    try {
+      await printHtmlDocument(html, `Medical history ${patient?.patient_code || patient?.id || ''}`);
+    } catch (error: any) {
+      Alert.alert('Print failed', error?.message || 'Could not open the medical history print dialog.');
+    } finally {
+      setPrinting(null);
     }
   };
 
@@ -1051,37 +1057,40 @@ export function PatientMedicalHistoryModal({
                               ) : null}
                               {expanded ? (
                                 <View style={styles.reportDetails}>
-                                  <View style={styles.reportActions}>
-                                    <Text style={styles.recordMetaText}>
-                                      Clinic:{' '}
-                                      {history?.patient?.clinic_name ||
-                                        'Clinic'}{' '}
-                                      Â· Total: â‚¹
-                                      {Number(report.price || 0).toFixed(2)}
-                                    </Text>
-                                    {canExport ? (
-                                      <TouchableOpacity
-                                        disabled={
-                                          downloading ===
-                                          String(report.lab_test_id)
-                                        }
-                                        style={styles.downloadSmall}
-                                        onPress={() => void reportPdf(report)}
-                                      >
-                                        {downloading ===
-                                        String(report.lab_test_id) ? (
-                                          <ActivityIndicator
-                                            size="small"
-                                            color="#0D9488"
-                                          />
-                                        ) : (
-                                          <Download size={13} color="#0D9488" />
-                                        )}
-                                        <Text style={styles.downloadSmallText}>
-                                          Download PDF
+                                  <View style={styles.reportPrintableCard}>
+                                  <View style={styles.reportExpandedHeader}>
+                                    <View style={styles.reportFileIcon}>
+                                      <FileText size={18} color="#0D9488" />
+                                    </View>
+                                    <View style={styles.reportExpandedCopy}>
+                                      <View style={styles.recordTitleRow}>
+                                        <Text style={styles.reportDetailTitle} numberOfLines={2}>
+                                          {report.test_name || 'Lab report'}
                                         </Text>
-                                      </TouchableOpacity>
-                                    ) : null}
+                                        <Text style={[styles.statusBadge, report.is_abnormal ? styles.abnormalReportStatus : undefined]}>
+                                          {report.is_abnormal ? 'Abnormal' : 'Normal'}
+                                        </Text>
+                                      </View>
+                                      <Text style={styles.reportDetailSubtitle}>
+                                        {history?.patient?.clinic_name || 'Clinic'} · Report #{report.report_id || report.lab_test_id}
+                                      </Text>
+                                    </View>
+                                  </View>
+                                  <View style={styles.reportActions}>
+                                    <TouchableOpacity
+                                      disabled={printing === String(report.lab_test_id)}
+                                      style={styles.reportActionButton}
+                                      onPress={() => void printReport(report)}>
+                                      {printing === String(report.lab_test_id) ? <ActivityIndicator size="small" color="#0D9488" /> : <Printer size={13} color="#475569" />}
+                                      <Text style={styles.reportActionText}>Print</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                      disabled={downloading === String(report.lab_test_id)}
+                                      style={styles.reportActionButton}
+                                      onPress={() => void reportPdf(report)}>
+                                      {downloading === String(report.lab_test_id) ? <ActivityIndicator size="small" color="#0D9488" /> : <Download size={13} color="#475569" />}
+                                      <Text style={styles.reportActionText}>Download</Text>
+                                    </TouchableOpacity>
                                   </View>
                                   <SummaryRow
                                     title="Patient"
@@ -1106,7 +1115,7 @@ export function PatientMedicalHistoryModal({
                                     value={
                                       report.technician_name || 'Not recorded'
                                     }
-                                    Icon={FlaskConical}
+                                    Icon={Microscope}
                                   />
                                   <SummaryRow
                                     title="Reported on"
@@ -1116,12 +1125,17 @@ export function PatientMedicalHistoryModal({
                                     Icon={CalendarDays}
                                   />
                                   <View style={styles.resultSection}>
-                                    <Text style={styles.subTitle}>
-                                      Test results
-                                    </Text>
-                                    <Text style={styles.recordMetaText}>
-                                      {rows.length} parameters recorded
-                                    </Text>
+                                    <View style={styles.resultSectionHeader}>
+                                      <View>
+                                        <Text style={styles.subTitle}>Test results</Text>
+                                        <Text style={styles.recordMetaText}>{rows.length} parameters recorded</Text>
+                                      </View>
+                                      <View style={styles.resultTotalPill}>
+                                        <IndianRupee size={13} color="#0D9488" />
+                                        <Text style={styles.recordMetaText}>Total:</Text>
+                                        <Text style={styles.resultTotalValue}>{Number(report.price || 0).toFixed(2)}</Text>
+                                      </View>
+                                    </View>
                                     {rows.length ? (
                                       rows.map((row, index) => (
                                         <View
@@ -1137,16 +1151,20 @@ export function PatientMedicalHistoryModal({
                                               {row.value || '-'} {row.unit}
                                             </Text>
                                           </View>
-                                          <Text style={styles.recordMetaText}>
-                                            Reference range:{' '}
-                                            {row.range ||
-                                              report.reference_range ||
-                                              '-'}{' '}
-                                            Â·{' '}
-                                            {report.is_abnormal
-                                              ? 'Abnormal'
-                                              : 'Normal'}
-                                          </Text>
+                                          <View style={styles.resultMetrics}>
+                                            <View style={styles.resultMetric}>
+                                              <Text style={styles.resultMetricLabel}>Reference range</Text>
+                                              <Text style={styles.resultMetricValue}>
+                                                {row.range || report.reference_range || '-'}
+                                              </Text>
+                                            </View>
+                                            <View style={styles.resultMetric}>
+                                              <Text style={styles.resultMetricLabel}>Status</Text>
+                                              <Text style={styles.resultMetricValue}>
+                                                {report.is_abnormal ? 'Abnormal' : 'Normal'}
+                                              </Text>
+                                            </View>
+                                          </View>
                                         </View>
                                       ))
                                     ) : (
@@ -1162,6 +1180,7 @@ export function PatientMedicalHistoryModal({
                                     <Text style={styles.detailValue}>
                                       {report.remarks || 'No remarks recorded.'}
                                     </Text>
+                                  </View>
                                   </View>
                                 </View>
                               ) : null}
@@ -1182,6 +1201,15 @@ export function PatientMedicalHistoryModal({
 
           <View style={styles.footer}>
             <View style={{ flex: 1 }} />
+            {canExport ? (
+              <TouchableOpacity
+                disabled={!history || printing === 'history'}
+                style={styles.downloadButton}
+                onPress={() => void printHistory()}>
+                {printing === 'history' ? <ActivityIndicator size="small" color="#0D9488" /> : <Printer size={14} color="#475569" />}
+                <Text style={styles.downloadButtonText}>Print</Text>
+              </TouchableOpacity>
+            ) : null}
             {canExport ? (
               <TouchableOpacity
                 disabled={!history || downloading === 'history'}
@@ -1393,24 +1421,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   summaryRow: {
-    minHeight: 64,
+    minHeight: 58,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    padding: 11,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 15,
-    backgroundColor: '#FFFFFF',
-    elevation: 1,
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
   },
   summaryIcon: {
-    width: 34,
-    height: 34,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 11,
-    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
   },
   summaryCopy: { flex: 1, minWidth: 0 },
   eyebrow: {
@@ -1567,13 +1592,77 @@ const styles = StyleSheet.create({
     borderColor: '#F1F5F9',
     backgroundColor: '#F8FAFC',
   },
+  reportPrintableCard: {
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+  },
+  reportExpandedHeader: {
+    minHeight: 66,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#F0FDFA',
+    borderBottomWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  reportFileIcon: {
+    width: 42,
+    height: 42,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#CCFBF1',
+    backgroundColor: '#FFFFFF',
+  },
+  reportExpandedCopy: { flex: 1, minWidth: 0, gap: 4 },
+  reportDetailTitle: { flexShrink: 1, color: '#0F172A', fontSize: 12, fontWeight: '800' },
+  reportDetailSubtitle: { color: '#64748B', fontSize: 9 },
+  abnormalReportStatus: { backgroundColor: '#DC2626', color: '#FFFFFF' },
   reportActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#F0FDFA',
+  },
+  reportActionButton: {
+    minHeight: 36,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 11,
+    backgroundColor: '#FFFFFF',
+  },
+  reportActionText: { color: '#475569', fontSize: 10, fontWeight: '700' },
+  resultSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    flexWrap: 'wrap',
     gap: 6,
   },
+  resultTotalPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+  },
+  resultTotalValue: { color: '#0F172A', fontSize: 10, fontWeight: '800' },
   downloadSmall: {
     minHeight: 32,
     flexDirection: 'row',
@@ -1605,6 +1694,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 7,
+  },
+  resultMetrics: {
+    flexDirection: 'row',
+    gap: 14,
+    marginTop: 5,
+  },
+  resultMetric: { flex: 1, gap: 3 },
+  resultMetricLabel: {
+    color: '#64748B',
+    fontSize: 8,
+    textTransform: 'uppercase',
+  },
+  resultMetricValue: {
+    color: '#0F172A',
+    fontSize: 10,
+    fontWeight: '600',
   },
   resultValue: { color: '#0F766E', fontSize: 11, fontWeight: '800' },
   footer: {

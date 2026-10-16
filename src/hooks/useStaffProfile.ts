@@ -80,6 +80,7 @@ export function useStaffProfile() {
     },
     Boolean(token && user),
   );
+  const refreshProfile = resource.refresh;
 
   const profile = resource.data;
 
@@ -161,9 +162,9 @@ export function useStaffProfile() {
   useEffect(
     () =>
       subscribeProfileUpdated(() => {
-        void resource.refresh();
+        void refreshProfile();
       }),
-    [resource.refresh],
+    [refreshProfile],
   );
 
   useEffect(() => {

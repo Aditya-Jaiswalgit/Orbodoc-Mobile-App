@@ -54,7 +54,7 @@ export interface UpdateRolePermissionPayload {
   can_execute?: number;
 }
 
-import { extractArrayData } from './userManagementApi';
+import { extractArrayData } from '../utils/apiData';
 
 /**
  * 1. Fetch System Modules List
@@ -130,8 +130,11 @@ export async function updateUserRoleApi(
 export async function fetchRolePermissionsApi(clinicId?: string | number): Promise<ApiResponse<RolePermissionItem[]>> {
   if (!clinicId) return { success: false, message: 'Select a clinic to manage permissions.' };
   const res = await apiFetch<RolePermissionItem[]>('/role_per/list?clinic_id=' + encodeURIComponent(String(clinicId)));
-  return { ...res, data: res.success ? extractArrayData(res).map(row => ({
-    ...row, id: row.permission_id ?? row.id,
+  return { ...res, data: res.success ? extractArrayData<RolePermissionItem & Record<string, unknown>>(res).map(row => ({
+    ...row,
+    id: typeof row.permission_id === 'string' || typeof row.permission_id === 'number'
+      ? row.permission_id
+      : row.id,
     can_view: Number(permissionEnabled(row.can_view ?? row.view)),
     can_add: Number(permissionEnabled(row.can_add ?? row.add)),
     can_edit: Number(permissionEnabled(row.can_edit ?? row.edit)),
@@ -183,7 +186,7 @@ export async function fetchPermissionMapByRoleApi(
       // Match the web client: the role permission endpoint is authoritative.
       // Do not OR-merge older clinic-list rows, because that can keep a revoked
       // permission enabled in the app after it has been turned off on the web.
-      return { success: true, data: mergedMap };
+      return { success: true, message: direct.message || 'Success', data: mergedMap };
     }
   } catch {
     // continue to clinic list

@@ -25,7 +25,7 @@ import { normalizeRoleName } from '../../utils/rolePermissions';
 import { showErrorToast, showSuccessToast } from '../../utils/toast';
 import { styles } from './styles/SuperAdmin.styles';
 
-type Props = { onOpenDrawer: () => void };
+type Props = { onOpenDrawer: () => void; initialPlanId?: string };
 type PlanFilter = 'all' | SubscriptionPlanType;
 type ObjectOption = { id: number; name: string };
 
@@ -60,7 +60,7 @@ function NumberField({ label, value, onChange, placeholder }: { label: string; v
   );
 }
 
-export default function SubscriptionPlansScreen({ onOpenDrawer }: Props) {
+export default function SubscriptionPlansScreen({ onOpenDrawer, initialPlanId }: Props) {
   const { role } = useAuthContext();
   const isSuperAdmin = normalizeRoleName(role || '') === 'super_admin';
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -119,7 +119,7 @@ export default function SubscriptionPlansScreen({ onOpenDrawer }: Props) {
 
   const openCreate = () => { setEditPlanId(null); setForm({ ...EMPTY_PLAN }); setDialogOpen(true); };
 
-  const openEdit = async (planId: number) => {
+  const openEdit = useCallback(async (planId: number) => {
     setSaving(true);
     try {
       const row = await fetchSubscriptionPlanByIdApi(planId);
@@ -134,7 +134,12 @@ export default function SubscriptionPlansScreen({ onOpenDrawer }: Props) {
     } catch (cause) {
       showErrorToast('Could not fetch plan', cause instanceof Error ? cause.message : undefined);
     } finally { setSaving(false); }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!initialPlanId || loading || !isSuperAdmin) return;
+    void openEdit(Number(initialPlanId));
+  }, [initialPlanId, isSuperAdmin, loading, openEdit]);
 
   const savePlan = async () => {
     const payload = { ...form, plan_name: form.plan_name.trim(), price_monthly: Number(form.price_monthly || 0), price_yearly: Number(form.price_yearly || 0) };

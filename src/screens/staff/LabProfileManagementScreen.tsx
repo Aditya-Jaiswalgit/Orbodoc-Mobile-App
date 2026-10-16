@@ -41,7 +41,7 @@ import { profilePhotoUrl } from '../../api/profilePhotoApi';
 import { useAuthContext } from '../../context/AuthContext';
 import { canUseStaffScreen } from '../../navigation/staffAccess';
 import { normalizeRoleName } from '../../utils/rolePermissions';
-import { IndiaLocation, LabAdmin, LabProfile } from '../../api/labProfileApi';
+import { IndiaLocation, LabAdmin } from '../../api/labProfileApi';
 import { useLabProfileManagement } from '../../hooks/useLabProfileManagement';
 import { styles } from './styles/LabProfileManagement.styles';
 
@@ -95,7 +95,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
     removeLogo,
     saveLab,
     addAdmin,
-    saveAdminChanges: hookSaveAdmin,
+    updateAdmin: hookSaveAdmin,
     toggleAdminStatus,
     resetAdminPassword,
   } = useLabProfileManagement(token, canView);

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import {
   Calendar,
+  CalendarDays,
   CalendarCheck,
   CalendarX,
   IndianRupee,
@@ -126,7 +127,7 @@ export function AdminDashboard({
           {/* Today Date Card */}
           <View style={styles.todayDateCard}>
             <View style={styles.todayIconBox}>
-              <Calendar size={20} color="#0D9488" />
+              <CalendarDays size={22} color="#0D9488" strokeWidth={2.2} />
             </View>
             <View style={styles.todayTextCol}>
               <View style={styles.todayBadgeRow}>

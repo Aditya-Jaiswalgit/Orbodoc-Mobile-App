@@ -117,6 +117,19 @@ export async function getLabReportsApi(
   });
 }
 
+export async function getLabReportByTestIdApi(
+  token: string,
+  labTestId: number | string,
+): Promise<ApiResponse<unknown>> {
+  return apiFetch<unknown>(
+    `/labs/reports/by-test/${encodeURIComponent(String(labTestId))}`,
+    {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+}
+
 export async function getLabCatalogApi(
   token: string,
   clinicId: number | string,

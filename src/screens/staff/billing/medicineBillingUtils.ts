@@ -19,6 +19,13 @@ export type MedicineBill = {
   patient_code?: string;
   patient_phone?: string;
   pharmacist_name?: string;
+  clinic_name?: string;
+  clinic_address?: string;
+  clinic_city?: string;
+  clinic_state?: string;
+  clinic_postal_code?: string;
+  clinic_phone?: string;
+  clinic_email?: string;
   bill_number?: string;
   prescription_id?: number;
   doctor_name?: string;

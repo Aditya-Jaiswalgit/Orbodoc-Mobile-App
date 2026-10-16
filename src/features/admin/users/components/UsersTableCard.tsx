@@ -1,10 +1,9 @@
 // src/features/admin/users/components/UsersTableCard.tsx
 import React, { useState } from 'react';
 import { AppModal } from '../../../../components/common/AppModal';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import {
   Edit,
-  Mail,
   MoreVertical,
   Phone,
   Trash2,

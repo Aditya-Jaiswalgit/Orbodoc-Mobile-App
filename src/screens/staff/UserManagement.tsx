@@ -1,28 +1,17 @@
 // src/screens/staff/UserManagement.tsx
+import { styles } from './styles/UserManagement.styles';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { AppModal } from '../../components/common/AppModal';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform, StatusBar, ActivityIndicator, Alert, useWindowDimensions, RefreshControl, TouchableWithoutFeedback, KeyboardAvoidingView, Keyboard, Switch } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform, StatusBar, ActivityIndicator, Alert, useWindowDimensions, RefreshControl, TouchableWithoutFeedback, KeyboardAvoidingView, Keyboard, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   UserPlus,
-  RefreshCw,
-  Columns,
   Columns3,
   Search,
   Eye,
   EyeOff,
   Edit2,
   X,
-  Mail,
-  Phone,
-  Clock,
-  Building,
-  Stethoscope,
-  GraduationCap,
-  Award,
-  Calendar,
-  IndianRupee,
-  MapPin,
   Lock,
   ChevronDown,
 } from 'lucide-react-native';
@@ -38,8 +27,8 @@ import {
   updateClinicUserApi,
   resetStaffPasswordApi,
   deactivateStaffApi,
-  extractArrayData,
 } from '../../api/userManagementApi';
+import { extractArrayData } from '../../utils/apiData';
 import { fetchUserRolesApi } from '../../api/roleManagementApi';
 import { apiFetch } from '../../api/apiConfig';
 import { useRemoteData } from '../../hooks/useRemoteData';
@@ -47,33 +36,17 @@ import { useAuthContext } from '../../context/AuthContext';
 import { canUseStaffScreen } from '../../navigation/staffAccess';
 import { normalizeRoleName } from '../../utils/rolePermissions';
 import { buildRoleCatalog, getManageableRoles, isProtectedAdminRole } from '../../utils/roleManagement';
+import { formatCreatedAt, formatRoleTitle, mapStaffApiRecord, normalizeAssignedClinic, normalizeClinicOption } from './users/userManagementTypes';
+import { ResetPasswordModal } from './users/ResetPasswordModal';
+import { UserDetailsModal } from './users/UserDetailsModal';
+import type { ClinicOption, StaffApiRecord, UserItem } from './users/userManagementTypes';
 
-export interface UserItem {
-  id: string;
-  role_id?: number;
-  clinic_id?: number;
-  user_id: string;
-  full_name: string;
-  email: string;
-  phone: string;
-  clinic_name: string;
-  role: string;
-  is_doctor: boolean;
-  status: 'Active' | 'Inactive';
-  created_at: string;
-  department?: string;
-  specialization?: string;
-  qualification?: string;
-  registration_number?: string;
-  experience?: string;
-  consultation_fee?: string;
-  available_days?: string;
-  address?: string;
-}
+export type { UserItem } from './users/userManagementTypes';
 
 interface UserManagementProps {
   onOpenDrawer?: () => void;
   onNavigateScreen?: (screen: string) => void;
+  initialUserId?: string;
 }
 
 const userColumns = {
@@ -85,26 +58,7 @@ type UserColumn = keyof typeof userColumns;
 const defaultColumns = Object.fromEntries(Object.keys(userColumns).map(key =>
   [key, !['address', 'department', 'specialization', 'created_at'].includes(key)])) as Record<UserColumn, boolean>;
 
-function formatRoleTitle(value: string): string {
-  return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-}
-
-function formatCreatedAt(value?: string): string {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleString('en-US', {
-    month: 'numeric',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true,
-  });
-}
-
-export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagementProps) {
+export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }: UserManagementProps) {
   const { width, fontScale } = useWindowDimensions();
   const isMobile = width < 768;
 
@@ -156,6 +110,10 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
   }, [activeClinicName, assignedClinics]);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const notificationUserOpenedRef = useRef('');
+  useEffect(() => {
+    if (initialUserId) setSearchQuery(initialUserId);
+  }, [initialUserId]);
   const [selectedRoleFilter, setSelectedRoleFilter] = useState('All Roles');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('All Status');
   const [selectedClinicFilter, setSelectedClinicFilter] = useState('All Clinics');
@@ -229,51 +187,10 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
     resetCreateForm();
   };
 
-  const formatStaffUser = useCallback((staff: any): UserItem => {
-    const rawRole = (
-      staff.role ||
-      staff.role_name ||
-      staff.user_role ||
-      staff.roleName ||
-      ''
-    ).toString();
-
-    const formattedRole = formatRoleTitle(rawRole);
-
-    const isDoc =
-      Number(staff.is_doctor) === 1 ||
-      normalizeRoleName(rawRole) === 'doctor';
-
-    const clinic =
-      staff.clinic_name ||
-      staff.clinicName ||
-      staff.clinic?.name ||
-      activeClinicName ||
-      '';
-
-    return {
-      id: String(staff.id || staff.user_id),
-      role_id: Number(staff.role_id),
-      clinic_id: staff.clinic_id == null ? undefined : Number(staff.clinic_id),
-      user_id: String(staff.user_id || staff.id),
-      full_name: staff.full_name || staff.name || staff.first_name || 'User Account',
-      email: staff.email || '',
-      phone: staff.phone || staff.mobile || '',
-      clinic_name: clinic,
-      role: formattedRole,
-      is_doctor: isDoc,
-      status: Number(staff.is_active) === 0 || staff.status === 'Inactive' ? 'Inactive' : 'Active',
-      created_at: staff.created_at || staff.createdAt || '',
-      department: staff.department || '',
-      specialization: staff.specialization || '',
-      qualification: staff.qualification || '',
-      registration_number: staff.registration_number || '',
-      experience: staff.experience_years != null ? String(staff.experience_years) : '',
-      consultation_fee: staff.consultation_fee ? String(staff.consultation_fee) : '0.00',
-      available_days: staff.available_days || '',
-      address: staff.address || '',
-    };
-  }, [activeClinicName]);
+  const formatStaffUser = useCallback(
+    (staff: StaffApiRecord): UserItem => mapStaffApiRecord(staff, activeClinicName),
+    [activeClinicName],
+  );
 
   const scope = [user?.id, token, activeClinicId, role, canView].join(':');
   const scopeRef = useRef(scope);
@@ -328,24 +245,28 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
   const metadata = useRemoteData(scope + ':staff-options:' + canChooseCreateClinic, async () => {
     const [roles, clinics] = await Promise.all([
       fetchUserRolesApi(activeClinicId),
-      canChooseCreateClinic ? apiFetch<any>('/clinics/my-clinics')
+      canChooseCreateClinic ? apiFetch<unknown>('/clinics/my-clinics')
         : Promise.resolve({ success: true, data: assignedClinics ?? [] }),
     ]);
     if (!roles.success) throw new Error('Unable to load user options');
     return { roles: buildRoleCatalog(roles.data ?? []),
-      clinics: clinics.success ? extractArrayData(clinics) : assignedClinics ?? [],
+      clinics: (clinics.success ? extractArrayData<Record<string, unknown>>(clinics) : assignedClinics ?? [])
+        .map(normalizeClinicOption),
       clinicsError: !clinics.success };
   }, Boolean(token && canView));
   const roleRows = getManageableRoles(metadata.data?.roles ?? [], role).filter(r => normalizeRoleName(r.role_name) !== 'patient');
-  const clinicRows = metadata.data?.clinics ?? assignedClinics;
+  const clinicRows: ClinicOption[] = metadata.data?.clinics ?? (assignedClinics ?? []).map(normalizeAssignedClinic);
   const dbRolesList = Array.from(new Set<string>(roleRows.map(r => formatRoleTitle(r.role_name || r.name || ''))));
-  const dbClinicsList = Array.from(new Set<string>([...contextClinics, ...clinicRows.map(c => c.name || c.clinic_name).filter(Boolean)]));
+  const dbClinicsList = Array.from(new Set<string>([
+    ...contextClinics,
+    ...clinicRows.map(c => c.name || c.clinic_name).filter((name): name is string => Boolean(name)),
+  ]));
   const createRoles = useRemoteData(scope + ':create-roles:' + createClinicId, async () => {
     const result = await fetchUserRolesApi(createClinicId);
     if (!result.success) throw new Error(result.message);
     return getManageableRoles(buildRoleCatalog(result.data ?? []), role).filter(r => normalizeRoleName(r.role_name) !== 'patient');
   }, Boolean(token && canCreate && createUserModalOpen && createClinicId));
-  const selectedCreateRole = createRoles.data?.find(r => String((r as any).role_id ?? r.id) === createRole);
+  const selectedCreateRole = createRoles.data?.find(r => String(r.role_id ?? r.id) === createRole);
   const createRoleName = normalizeRoleName(selectedCreateRole?.role_name || '');
   const isDoctorCreateRole = createRoleName === 'doctor';
   const isNurseCreateRole = createRoleName === 'nurse';
@@ -383,16 +304,24 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
       if (!details.success || !details.data?.staff) throw new Error('Unable to load user addresses');
       return { ...staff, ...details.data.staff };
     })) : result.data.data;
-    return { users: rows.map(formatStaffUser), total: Number(result.data.total), refreshed: new Date().toLocaleString() };
+    return { users: rows.map(formatStaffUser), total: Number(result.data.total) };
   }, Boolean(token && canView) && Boolean(metadata.data) && !metadata.error);
   const loading = resource.loading || metadata.loading;
   const loadError = resource.error || metadata.error;
-  const users = loadError ? [] : resource.data?.users ?? [];
+  const users = useMemo(() => loadError ? [] : resource.data?.users ?? [], [loadError, resource.data]);
+  useEffect(() => {
+    if (!initialUserId || loading) return;
+    const match = users.find(item => String(item.id) === String(initialUserId) || String(item.user_id) === String(initialUserId));
+    if (!match || notificationUserOpenedRef.current === String(initialUserId)) return;
+    notificationUserOpenedRef.current = String(initialUserId);
+    setDetailsLoading(true);
+    setDetailsError('');
+    setViewUserModal(match);
+  }, [initialUserId, loading, users]);
   const filteredUsers = users;
   const paginatedUsers = users;
   const totalUsers = loadError ? 0 : resource.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalUsers / pageSize));
-  const lastRefreshed = resource.data?.refreshed ?? '';
   useEffect(() => {
     if (!loading && !loadError && currentPage > totalPages) setCurrentPage(totalPages);
   }, [loading, loadError, currentPage, totalPages]);
@@ -449,7 +378,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
   const handleSaveEdit = async (forceActive = false) => {
     if (!canEdit || !editForm || detailsLoading || detailsError) return;
     const selectedEditRole = editRoles.data?.find(r => normalizeRoleName(r.role_name || r.name || '') === normalizeRoleName(editForm.role));
-    const roleId = protectedEditRole || editForm.role === editUserModal?.role ? editUserModal?.role_id : Number((selectedEditRole as any)?.role_id ?? selectedEditRole?.id);
+    const roleId = protectedEditRole || editForm.role === editUserModal?.role ? editUserModal?.role_id : Number(selectedEditRole?.role_id ?? selectedEditRole?.id);
     if (busyRef.current) return;
     const errors: Partial<Record<keyof UserItem, string>> = {};
     if (!editForm.full_name.trim()) errors.full_name = 'Full name is required';
@@ -1050,180 +979,14 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
 
       {/*  VIEW USER DETAILS MODAL                                                  */}
 
-      <AppModal visible={!!viewUserModal} animationType="fade" transparent>
-        <TouchableWithoutFeedback onPress={() => setViewUserModal(null)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={[styles.viewModalCard, isMobile && styles.viewModalCardMobile]}>
-                <View style={[styles.viewModalHeader, isMobile && { padding: 12 }]}>
-                  <View style={styles.viewAvatarCircle}>
-                    <Text style={styles.viewAvatarText}>
-                      {(viewUserModal?.full_name || 'U').charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={[styles.viewModalName, isMobile && { fontSize: 16 }]} numberOfLines={1}>
-                      {viewUserModal?.full_name}
-                    </Text>
-                    <Text style={[styles.viewModalEmail, isMobile && { fontSize: 12 }]} numberOfLines={1}>
-                      {viewUserModal?.email}
-                    </Text>
-                    <View style={{ flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-                      <View style={styles.viewRoleBadge}>
-                        <Text style={styles.viewRoleBadgeText}>{viewUserModal?.role}</Text>
-                      </View>
-                      <View
-                        style={[
-                          styles.viewActiveBadge,
-                          viewUserModal?.status === 'Inactive' && { backgroundColor: '#EF4444' },
-                        ]}
-                      >
-                        <Text style={styles.viewActiveBadgeText}>{viewUserModal?.status}</Text>
-                      </View>
-                    </View>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => setViewUserModal(null)}
-                    style={styles.closeHeaderBtn}>
-                    <X size={18} color="#64748B" />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView style={{ padding: isMobile ? 12 : 16 }} showsVerticalScrollIndicator={false}>
-                  <View style={styles.viewSectionCard}>
-                    <Text style={styles.viewSectionTitle}>Account information</Text>
-                    <View style={[styles.viewGrid2Col, isMobile && { flexDirection: 'column', gap: 8 }]}>
-                      <View style={styles.viewInfoBox}>
-                        <View style={styles.viewInfoLabelRow}>
-                          <Mail size={14} color="#0D9488" style={{ marginRight: 6 }} />
-                          <Text style={styles.viewInfoLabel}>Email address</Text>
-                        </View>
-                        <Text style={styles.viewInfoVal}>{viewUserModal?.email}</Text>
-                      </View>
-
-                      <View style={styles.viewInfoBox}>
-                        <View style={styles.viewInfoLabelRow}>
-                          <Phone size={14} color="#0D9488" style={{ marginRight: 6 }} />
-                          <Text style={styles.viewInfoLabel}>Phone number</Text>
-                        </View>
-                        <Text style={styles.viewInfoVal}>{viewUserModal?.phone}</Text>
-                      </View>
-                    </View>
-
-                    <View style={[styles.viewInfoBox, { marginTop: 10 }]}>
-                      <View style={styles.viewInfoLabelRow}>
-                        <Clock size={14} color="#0D9488" style={{ marginRight: 6 }} />
-                        <Text style={styles.viewInfoLabel}>Created at</Text>
-                      </View>
-                      <Text style={styles.viewInfoVal}>{formatCreatedAt(viewUserModal?.created_at)}</Text>
-                    </View>
-                  </View>
-
-                  <View style={[styles.viewSectionCard, { marginTop: 14 }]}>
-                    <Text style={styles.viewSectionTitle}>Professional details</Text>
-                    <View style={[styles.viewGrid3Col, isMobile && { flexDirection: 'column', gap: 8 }]}>
-                      <View style={styles.viewInfoBoxSmall}>
-                        <View style={styles.viewInfoLabelRow}>
-                          <Building size={13} color="#0D9488" style={{ marginRight: 4 }} />
-                          <Text style={styles.viewInfoLabel}>Department</Text>
-                        </View>
-                        <Text style={styles.viewInfoValSmall}>
-                          {viewUserModal?.department || '—'}
-                        </Text>
-                      </View>
-
-                      <View style={styles.viewInfoBoxSmall}>
-                        <View style={styles.viewInfoLabelRow}>
-                          <Stethoscope size={13} color="#0D9488" style={{ marginRight: 4 }} />
-                          <Text style={styles.viewInfoLabel}>Specialization</Text>
-                        </View>
-                        <Text style={styles.viewInfoValSmall}>
-                          {viewUserModal?.specialization || '—'}
-                        </Text>
-                      </View>
-
-                      <View style={styles.viewInfoBoxSmall}>
-                        <View style={styles.viewInfoLabelRow}>
-                          <GraduationCap size={13} color="#0D9488" style={{ marginRight: 4 }} />
-                          <Text style={styles.viewInfoLabel}>Qualification</Text>
-                        </View>
-                        <Text style={styles.viewInfoValSmall}>
-                          {viewUserModal?.qualification || '—'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={[styles.viewGrid3Col, { marginTop: 10 }, isMobile && { flexDirection: 'column', gap: 8, marginTop: 8 }]}>
-                      <View style={styles.viewInfoBoxSmall}>
-                        <View style={styles.viewInfoLabelRow}>
-                          <Award size={13} color="#0D9488" style={{ marginRight: 4 }} />
-                          <Text style={styles.viewInfoLabel}>Registration number</Text>
-                        </View>
-                        <Text style={styles.viewInfoValSmall}>
-                          {viewUserModal?.registration_number || '—'}
-                        </Text>
-                      </View>
-
-                      <View style={styles.viewInfoBoxSmall}>
-                        <View style={styles.viewInfoLabelRow}>
-                          <Clock size={13} color="#0D9488" style={{ marginRight: 4 }} />
-                          <Text style={styles.viewInfoLabel}>Experience</Text>
-                        </View>
-                        <Text style={styles.viewInfoValSmall}>
-                          {viewUserModal?.experience || '—'}
-                        </Text>
-                      </View>
-
-                      <View style={styles.viewInfoBoxSmall}>
-                        <View style={styles.viewInfoLabelRow}>
-                          <IndianRupee size={13} color="#0D9488" style={{ marginRight: 4 }} />
-                          <Text style={styles.viewInfoLabel}>Consultation fee</Text>
-                        </View>
-                        <Text style={styles.viewInfoValSmall}>
-                          ₹{viewUserModal?.consultation_fee || '0.00'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={[styles.viewInfoBox, { marginTop: 10 }]}>
-                      <View style={styles.viewInfoLabelRow}>
-                        <Calendar size={13} color="#0D9488" style={{ marginRight: 6 }} />
-                        <Text style={styles.viewInfoLabel}>Available days</Text>
-                      </View>
-                      <Text style={styles.viewInfoVal}>
-                        {viewUserModal?.available_days || '—'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={[styles.viewSectionCard, { marginTop: 14, marginBottom: 10 }]}>
-                    <View style={styles.viewInfoLabelRow}>
-                      <MapPin size={14} color="#0D9488" style={{ marginRight: 6 }} />
-                      <Text style={styles.viewInfoLabel}>Address</Text>
-                    </View>
-                    <Text style={[styles.viewInfoVal, { marginTop: 4 }]}>
-                      {detailsLoading ? 'Loading address…' : detailsError || viewUserModal?.address || 'No address provided'}
-                    </Text>
-                    {!!detailsError && (
-                      <TouchableOpacity onPress={() => setDetailsRetry(value => value + 1)}>
-                        <Text>Retry</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </ScrollView>
-
-                <View style={[styles.viewModalFooter, isMobile && styles.viewModalFooterMobile]}>
-                  <TouchableOpacity
-                    style={[styles.modalCloseFooterBtn, isMobile && { width: '100%', alignItems: 'center' }]}
-                    onPress={() => setViewUserModal(null)}>
-                    <Text style={styles.modalCloseFooterBtnText}>Close</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </AppModal>
+      <UserDetailsModal
+        user={viewUserModal}
+        isMobile={isMobile}
+        addressLoading={detailsLoading}
+        addressError={detailsError}
+        onClose={() => setViewUserModal(null)}
+        onRetryAddress={() => setDetailsRetry(value => value + 1)}
+      />
 
       {/*  EDIT USER MODAL (MOBILE RESPONSIVE + DYNAMIC ACTIVATE / DEACTIVATE)       */}
       <AppModal visible={!!editUserModal} animationType="fade" transparent onRequestClose={closeEditForm}>
@@ -1529,123 +1292,36 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
 
       {/*  RESET PASSWORD MODAL (EXACT MATCH TO UPLOADED SCREENSHOT)               */}
 
-      <AppModal visible={!!resetPasswordModalUser} animationType="fade" transparent onRequestClose={closeResetPassword}>
-        <TouchableWithoutFeedback onPress={closeResetPassword}>
-          <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            <TouchableWithoutFeedback>
-              <View style={styles.resetPasswordCard}>
-                {/* Header with rounded teal Lock icon and light cyan background */}
-                <View style={styles.resetPasswordHeader}>
-                  <View style={styles.resetLockIconBox}>
-                    <Lock size={22} color="#FFFFFF" />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.resetTitle}>Reset Password</Text>
-                    <Text style={styles.resetSubtitle}>
-                      Set a secure temporary password for {resetPasswordModalUser?.full_name || 'User'}.
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={closeResetPassword}
-                    style={{ padding: 4 }}
-                  >
-                    <X size={18} color="#64748B" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Form Fields */}
-                <ScrollView style={styles.resetFormScroll} contentContainerStyle={styles.resetFormBody} keyboardShouldPersistTaps="handled">
-                  {/* New Password */}
-                  <Text style={styles.resetFieldLabel}>
-                    New password <Text style={{ color: '#EF4444' }}>*</Text>
-                  </Text>
-                  <View style={[styles.passwordInputContainerActive, !!resetErrors.password && styles.invalidInput]}>
-                    <TextInput
-                      style={styles.passwordInputText}
-                      placeholder="Enter at least 8 characters"
-                      placeholderTextColor="#94A3B8"
-                      secureTextEntry={!showNewPass}
-                      value={newPassword}
-                      accessibilityLabel="New password" aria-invalid={!!resetErrors.password}
-                      editable={!resetSaving} autoCapitalize="none" autoCorrect={false} autoComplete="new-password"
-                      onChangeText={value => {
-                        setNewPassword(value); setResetError('');
-                        setResetErrors(previous => ({ ...previous, password: '',
-                          confirm: confirmPassword && confirmPassword !== value ? 'Passwords do not match' : '' }));
-                      }}
-                    />
-                    <TouchableOpacity onPress={() => setShowNewPass(!showNewPass)} style={{ padding: 6 }}>
-                      {showNewPass ? (
-                        <EyeOff size={18} color="#64748B" />
-                      ) : (
-                        <Eye size={18} color="#64748B" />
-                      )}
-                    </TouchableOpacity>
-                  </View>
-
-                  {!!resetErrors.password && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.fieldError}>{resetErrors.password}</Text>}
-
-                  {/* Confirm Password */}
-                  <Text style={[styles.resetFieldLabel, { marginTop: 14 }]}>
-                    Confirm password <Text style={{ color: '#EF4444' }}>*</Text>
-                  </Text>
-                  <View style={[styles.passwordInputContainer, !!resetErrors.confirm && styles.invalidInput]}>
-                    <TextInput
-                      style={styles.passwordInputText}
-                      placeholder="Re-enter the new password"
-                      placeholderTextColor="#94A3B8"
-                      secureTextEntry={!showConfirmPass}
-                      value={confirmPassword}
-                      accessibilityLabel="Confirm password" aria-invalid={!!resetErrors.confirm}
-                      editable={!resetSaving} autoCapitalize="none" autoCorrect={false} autoComplete="new-password"
-                      onChangeText={value => {
-                        setConfirmPassword(value); setResetError('');
-                        setResetErrors(previous => ({ ...previous, confirm: '' }));
-                      }}
-                    />
-                    <TouchableOpacity onPress={() => setShowConfirmPass(!showConfirmPass)} style={{ padding: 6 }}>
-                      {showConfirmPass ? (
-                        <EyeOff size={18} color="#64748B" />
-                      ) : (
-                        <Eye size={18} color="#64748B" />
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                  {!!resetErrors.confirm && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.fieldError}>{resetErrors.confirm}</Text>}
-                  {!!resetError && <Text accessibilityRole="alert" style={styles.fieldError}>{resetError}</Text>}
-                </ScrollView>
-
-                {/* Footer Actions */}
-                <View style={styles.resetFooterRow}>
-                  <TouchableOpacity
-                    style={styles.resetCancelBtn}
-                    disabled={resetSaving}
-                    onPress={closeResetPassword}
-                  >
-                    <Text style={styles.resetCancelBtnText}>Cancel</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    testID="submit-password-reset"
-                    style={styles.resetSubmitBtn}
-                    onPress={handleConfirmResetPassword}
-                    disabled={!canEdit || resetSaving}
-                  >
-                    {resetSaving ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <>
-                        <Lock size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
-                        <Text style={styles.resetSubmitBtnText}>Reset Password</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
-      </AppModal>
+      <ResetPasswordModal
+        visible={!!resetPasswordModalUser}
+        userName={resetPasswordModalUser?.full_name}
+        canEdit={canEdit}
+        saving={resetSaving}
+        password={newPassword}
+        confirmPassword={confirmPassword}
+        showPassword={showNewPass}
+        showConfirmPassword={showConfirmPass}
+        errors={resetErrors}
+        errorMessage={resetError}
+        onDismiss={closeResetPassword}
+        onPasswordChange={value => {
+          setNewPassword(value);
+          setResetError('');
+          setResetErrors(previous => ({
+            ...previous,
+            password: '',
+            confirm: confirmPassword && confirmPassword !== value ? 'Passwords do not match' : '',
+          }));
+        }}
+        onConfirmPasswordChange={value => {
+          setConfirmPassword(value);
+          setResetError('');
+          setResetErrors(previous => ({ ...previous, confirm: '' }));
+        }}
+        onPasswordVisibilityChange={() => setShowNewPass(value => !value)}
+        onConfirmVisibilityChange={() => setShowConfirmPass(value => !value)}
+        onSubmit={handleConfirmResetPassword}
+      />
 
       {/*  CREATE USER MODAL                                                       */}
       
@@ -1776,7 +1452,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
                   {showCreateRoleDropdown && (
                     <View style={styles.editDropdownList}>
                       {(createRoles.data ?? []).map((r) => {
-                        const roleId = String((r as any).role_id ?? r.id);
+                        const roleId = String(r.role_id ?? r.id);
                         const roleName = formatRoleTitle(r.role_name || r.name || '');
                         const isSelected = createRole === roleId;
                         return (
@@ -1871,593 +1547,6 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen }: UserManagemen
   );
 }
 
-const styles = StyleSheet.create({
-  columnOptionRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    minHeight: 44, paddingVertical: 6,
-  },
-  columnOptionLabel: {
-    flex: 1, marginRight: 16, fontSize: 12, fontWeight: '600', color: '#334155',
-  },
-  createErrorBox: {
-    width: '100%', padding: 10, marginBottom: 10, borderRadius: 8,
-    backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA',
-  },
-  createErrorText: { color: '#B91C1C', fontSize: 13 },
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  mainScrollView: { flex: 1, padding: 12 },
 
-  outerHeaderCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 12,
-  },
-  outerTitle: { fontSize: 22, fontWeight: '700', color: '#0F172A' },
-  outerSubtitle: { fontSize: 13, color: '#64748B', marginTop: 2 },
-
-  mainCardBorder: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-    padding: 16,
-    marginBottom: 30,
-  },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  cardTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  cardSubtitle: { fontSize: 13, color: '#64748B', marginTop: 2 },
-  timestampText: { fontSize: 11, color: '#94A3B8', marginTop: 6 },
-
-  topButtonsRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginTop: 14,
-    gap: 8,
-    width: '100%',
-  },
-  topButtonCol: {
-    flex: 1,
-  },
-  outlineBtn: {
-    height: 40,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 6,
-    borderRadius: 8,
-    width: '100%',
-  },
-  outlineBtnText: { fontSize: 13, fontWeight: '600', color: '#0F172A' },
-  tealCreateBtn: {
-    height: 40,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0D9488',
-    paddingHorizontal: 6,
-    borderRadius: 8,
-    width: '100%',
-  },
-  tealCreateBtnText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
-
-  filtersRow: {
-    marginTop: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  searchBar: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 10,
-    height: 40,
-  },
-  searchInput: { flex: 1, fontSize: 13, color: '#0F172A' },
-  dropdownsWrapper: {
-    flex: 3,
-    flexDirection: 'row',
-    gap: 6,
-  },
-  dropdownTrigger: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    height: 40,
-  },
-  dropdownTriggerText: { fontSize: 12, color: '#475569', fontWeight: '500' },
-  dropdownMenuBox: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 6,
-    marginTop: 4,
-    elevation: 4,
-  },
-  dropdownMenuItem: { paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6 },
-  dropdownMenuItemText: { fontSize: 13, color: '#334155' },
-  dropdownMenuItemTextActive: { color: '#0D9488', fontWeight: '700' },
-
-  loadingBox: {
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#64748B',
-    fontSize: 13,
-  },
-
-  tableContainer: {
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  tableHeaderRow: {
-    flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    alignItems: 'center',
-  },
-  thText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
-  tableBodyRow: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    alignItems: 'center',
-  },
-  tdText: { fontSize: 13, color: '#334155' },
-  userCell: { flexDirection: 'row', alignItems: 'center' },
-  circleAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#CCFBF1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  circleAvatarText: { fontSize: 11, fontWeight: '700', color: '#0D9488' },
-  userNameText: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
-  rolePillBadge: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  rolePillText: { fontSize: 11, fontWeight: '600', color: '#334155' },
-  statusPillBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  statusActiveBg: { backgroundColor: '#DCFCE7' },
-  statusInactiveBg: { backgroundColor: '#FEE2E2' },
-  statusPillText: { fontSize: 11, fontWeight: '700' },
-  statusActiveText: { color: '#166534' },
-  statusInactiveText: { color: '#991B1B' },
-  actionsCell: { alignItems: 'flex-end', justifyContent: 'center' },
-  actionIconBtn: { padding: 4 },
-
-  emptyBox: { padding: 24, alignItems: 'center' },
-  emptyText: { color: '#94A3B8', fontSize: 13 },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 14,
-  },
-
-  viewModalCard: {
-    width: '100%',
-    maxWidth: 500,
-    maxHeight: '90%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 10,
-  },
-  viewModalCardMobile: {
-    maxWidth: '96%',
-    maxHeight: '92%',
-    borderRadius: 14,
-  },
-  viewModalHeader: {
-    backgroundColor: '#ECFDF5',
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#A7F3D0',
-  },
-  viewAvatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#0D9488',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  viewAvatarText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
-  viewModalName: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  viewModalEmail: { fontSize: 13, color: '#64748B', marginTop: 1 },
-  viewRoleBadge: {
-    backgroundColor: '#CCFBF1',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  viewRoleBadgeText: { fontSize: 11, fontWeight: '600', color: '#0D9488' },
-  viewActiveBadge: {
-    backgroundColor: '#0D9488',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  viewActiveBadgeText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
-  closeHeaderBtn: { padding: 4 },
-
-  viewSectionCard: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    padding: 14,
-  },
-  viewSectionTitle: { fontSize: 14, fontWeight: '700', color: '#0F172A', marginBottom: 10 },
-  viewGrid2Col: { flexDirection: 'row', gap: 10 },
-  viewGrid3Col: { flexDirection: 'row', gap: 8 },
-  viewInfoBox: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    padding: 10,
-  },
-  viewInfoBoxSmall: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    padding: 8,
-  },
-  viewInfoLabelRow: { flexDirection: 'row', alignItems: 'center' },
-  viewInfoLabel: { fontSize: 11, color: '#64748B', fontWeight: '500' },
-  viewInfoVal: { fontSize: 13, fontWeight: '700', color: '#0F172A', marginTop: 4 },
-  viewInfoValSmall: { fontSize: 12, fontWeight: '700', color: '#0F172A', marginTop: 4 },
-  viewModalFooter: {
-    padding: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    alignItems: 'flex-end',
-    backgroundColor: '#F8FAFC',
-  },
-  viewModalFooterMobile: {
-    padding: 12,
-    alignItems: 'stretch',
-  },
-  modalCloseFooterBtn: {
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  modalCloseFooterBtnText: { fontSize: 13, fontWeight: '600', color: '#334155' },
-
-  // Edit Modal Styling
-  editModalCard: {
-    width: '100%',
-    maxWidth: 520,
-    maxHeight: '90%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 10,
-  },
-  editModalCardMobile: {
-    maxWidth: '96%',
-    maxHeight: '92%',
-    borderRadius: 14,
-  },
-  editModalHeader: {
-    backgroundColor: '#ECFDF5',
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#A7F3D0',
-  },
-  editAvatarIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#0D9488',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editModalTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  editModalSubtitle: { fontSize: 12, color: '#64748B', marginTop: 1 },
-
-  editSectionCard: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    padding: 14,
-  },
-  editSectionTitle: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
-  editSectionSub: { fontSize: 12, color: '#64748B', marginBottom: 12 },
-
-  formLabel: { fontSize: 12, fontWeight: '600', color: '#334155', marginTop: 10, marginBottom: 4 },
-  formInput: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 13,
-    color: '#0F172A',
-    backgroundColor: '#FFFFFF',
-  },
-  formInputFocused: {
-    borderColor: '#0D9488',
-    borderWidth: 1.5,
-    backgroundColor: '#F0FDFA',
-  },
-  disabledInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-    paddingRight: 10,
-  },
-  disabledInput: { flex: 1, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: '#64748B' },
-  helperText: { fontSize: 11, color: '#64748B', marginTop: 3 },
-
-  selectInputTrigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
-  },
-  selectInputText: { fontSize: 13, color: '#0F172A', fontWeight: '500' },
-  editDropdownList: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    marginTop: 4,
-    padding: 4,
-    elevation: 3,
-  },
-  editDropdownItem: { paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6 },
-  editDropdownItemActive: { backgroundColor: '#E6F4F1' },
-  editDropdownItemText: { fontSize: 13, color: '#334155' },
-  editDropdownItemTextActive: { color: '#0D9488', fontWeight: '700' },
-
-  formGrid2Col: { flexDirection: 'row', gap: 10 },
-
-  editModalFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
-  },
-  editModalFooterMobile: {
-    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: 8,
-  },
-  editActionButton: { minHeight: 44, flexShrink: 1 },
-  editActionButtonMobile: { width: '48%', flexGrow: 1, minHeight: 48, paddingHorizontal: 8 },
-  editActionButtonStacked: { width: '100%' },
-  editActionText: { textAlign: 'center', flexShrink: 1 },
-  disabledAction: { opacity: 0.5 },
-  invalidInput: { borderColor: '#DC2626' },
-  fieldError: { color: '#B91C1C', fontSize: 12, marginTop: 4, marginBottom: 4 },
-
-  // Dynamic Status Button: Red for Deactivate, Green for Activate
-  deactivateBtn: {
-    backgroundColor: '#DC2626',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activateBtnBg: {
-    backgroundColor: '#16A34A', // Green for Activate User
-  },
-  deactivateBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
-
-  modalSecondaryBtn: {
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalSecondaryBtnText: { fontSize: 13, fontWeight: '600', color: '#334155' },
-  tealSaveBtn: {
-    backgroundColor: '#0D9488',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tealSaveBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
-
-  // Reset Password Modal Styling (Exact Match to Screenshot)
-  resetFormScroll: { flexShrink: 1 },
-  resetPasswordCard: {
-    maxHeight: '90%',
-    width: '100%',
-    maxWidth: 460,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-  },
-  resetPasswordHeader: {
-    backgroundColor: '#F0FDFA', // Light cyan background header
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E6F4F1',
-  },
-  resetLockIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#0D9488',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  resetTitle: { fontSize: 20, fontWeight: '700', color: '#0F172A' },
-  resetSubtitle: { fontSize: 13, color: '#64748B', marginTop: 3 },
-
-  resetFormBody: { padding: 18 },
-  resetFieldLabel: { fontSize: 13, fontWeight: '600', color: '#334155', marginBottom: 6 },
-
-  passwordInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 12,
-    height: 46,
-  },
-  passwordInputContainerActive: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#0D9488',
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    height: 46,
-  },
-  passwordInputText: { flex: 1, fontSize: 14, color: '#0F172A' },
-
-  resetFooterRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
-  },
-  resetCancelBtn: {
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  resetCancelBtnText: { color: '#334155', fontSize: 14, fontWeight: '600' },
-  resetSubmitBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0D9488',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  resetSubmitBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-
-  mobileUserCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 12,
-    gap: 6,
-    elevation: 1,
-  },
-  mobileCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  mobileCardMeta: {
-    gap: 8,
-    paddingTop: 0,
-  },
-  mobileMetaText: {
-    fontSize: 12,
-    color: '#475569',
-  },
-  mobileEmailText: {
-    fontSize: 11,
-    color: '#64748B',
-  },
-  mobileCardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 2,
-  },
-});
 
 export default UserManagement;

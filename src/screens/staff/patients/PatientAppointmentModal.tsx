@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AppModal } from '../../../components/common/AppModal';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import {
@@ -136,14 +136,17 @@ export function PatientAppointmentModal({
   const isIndependentVideoDoctor =
     String(selectedDoctor?.doctor_type || '').toLowerCase() ===
       'independent_doctor' && isVideoAvailable(selectedDoctor);
-  const consultationModes: SelectOption[] = isIndependentVideoDoctor
-    ? [{ id: 'video', label: 'Video Consultation' }]
-    : [
-        { id: 'in_person', label: 'In Person' },
-        ...(isVideoAvailable(selectedDoctor)
-          ? [{ id: 'video', label: 'Video Consultation' }]
-          : []),
-      ];
+  const consultationModes = useMemo<SelectOption[]>(
+    () => isIndependentVideoDoctor
+      ? [{ id: 'video', label: 'Video Consultation' }]
+      : [
+          { id: 'in_person', label: 'In Person' },
+          ...(isVideoAvailable(selectedDoctor)
+            ? [{ id: 'video', label: 'Video Consultation' }]
+            : []),
+        ],
+    [isIndependentVideoDoctor, selectedDoctor],
+  );
 
   useEffect(() => {
     if (!visible) return;

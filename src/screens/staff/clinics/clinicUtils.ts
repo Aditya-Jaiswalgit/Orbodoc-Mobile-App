@@ -34,6 +34,23 @@ function allowsMultipleClinics(
   return null;
 }
 
+export function formatClinicDate(value?: string): string {
+  if (!value) return '\u2014';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+export function formatClinicTime(value?: string): string {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '\u2014';
+  return /^\d{2}:\d{2}/.test(trimmed) ? trimmed.slice(0, 5) : trimmed;
+}
+
 export function checkIsMultiClinicPlan(
   planData: unknown,
   userData: unknown,

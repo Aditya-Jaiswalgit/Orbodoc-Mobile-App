@@ -18,7 +18,6 @@ import {
   Edit2,
   Save,
   X,
-  Building,
   Building2,
   Briefcase,
   BadgeCheck,
@@ -27,27 +26,55 @@ import {
   Phone,
   Video,
   ShieldCheck,
-  CheckCircle,
   Clock,
   Upload,
-  Camera,
   Stethoscope,
   Award,
   IndianRupee,
   MapPin,
   HeartPulse,
   AlertTriangle,
-  Droplet,
+  Hash,
+  Activity,
+  Droplets,
+  UserRound,
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { PatientHeader } from '../../components/common/PatientHeader';
 import { useStaffProfile } from '../../hooks/useStaffProfile';
 
 interface Props {
   onOpenDrawer: () => void;
   onNavigateScreen?: (screen: string) => void;
+  patientMode?: boolean;
 }
 
-export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScreen }) => {
+interface PatientInfoCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  valueColor?: string;
+}
+
+const PatientInfoCard: React.FC<PatientInfoCardProps> = ({ icon, label, value, valueColor }) => (
+  <View style={[styles.infoCardItem, styles.patientInfoCard]}>
+    <View style={styles.infoCardLabelRow}>
+      <View style={styles.patientInfoIcon}>{icon}</View>
+      <Text style={styles.infoCardLabel}>{label}</Text>
+    </View>
+    <Text style={[styles.infoCardValue, valueColor ? { color: valueColor } : null]}>{value}</Text>
+  </View>
+);
+
+const formatPatientDateOfBirth = (value: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return value || 'Not provided';
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])).toLocaleDateString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  });
+};
+
+export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScreen, patientMode = false }) => {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
@@ -73,9 +100,9 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
     dateOfBirth, setDateOfBirth,
     age, bloodGroup, setBloodGroup,
     allergies, setAllergies,
-    chronicConditions, setChronicConditions,
+    chronicConditions,
     medicalHistory, setMedicalHistory,
-    currentMedications, setCurrentMedications,
+    currentMedications,
     emergencyContactName, setEmergencyContactName,
     emergencyContactPhone, setEmergencyContactPhone,
     emergencyRelation, setEmergencyRelation,
@@ -85,7 +112,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
 
   return (
     <View style={styles.container}>
-      <StaffHeader
+      {patientMode ? <PatientHeader onOpenDrawer={onOpenDrawer} /> : <StaffHeader
         onOpenDrawer={onOpenDrawer}
         title="My Profile"
         onNavigate={(path) => {
@@ -94,7 +121,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
             onNavigateScreen(screen);
           }
         }}
-      />
+      />}
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={loadProfile} colors={['#0D9488']} tintColor="#0D9488" />}
@@ -401,77 +428,24 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
             {isPatientRole ? (
               <View style={styles.professionalSectionCard}>
                 <View style={styles.sectionHeaderRow}>
-                  <View style={[styles.sectionHeaderIconBox, { backgroundColor: '#FEE2E2' }]}>
-                    <HeartPulse size={18} color="#E11D48" />
+                  <View style={[styles.sectionHeaderIconBox, { backgroundColor: '#CCFBF1' }]}>
+                    <HeartPulse size={16} color="#0F766E" />
                   </View>
                   <Text style={styles.sectionHeaderTitle}>Patient & Medical Information</Text>
                 </View>
 
                 <View style={styles.infoCardsGrid}>
-                  <View style={styles.infoCardItem}>
-                    <Text style={styles.infoCardLabel}>Gender</Text>
-                    <Text style={styles.infoCardValue}>{gender ? gender.toUpperCase() : 'Not provided'}</Text>
-                  </View>
-
-                  <View style={styles.infoCardItem}>
-                    <Text style={styles.infoCardLabel}>Date of Birth</Text>
-                    <Text style={styles.infoCardValue}>{dateOfBirth || 'Not provided'}</Text>
-                  </View>
-
-                  <View style={styles.infoCardItem}>
-                    <Text style={styles.infoCardLabel}>Age</Text>
-                    <Text style={styles.infoCardValue}>{age}</Text>
-                  </View>
-
-                  <View style={styles.infoCardItem}>
-                    <Text style={styles.infoCardLabel}>Blood Group</Text>
-                    <Text style={[styles.infoCardValue, { color: '#E11D48', fontWeight: '800' }]}>
-                      {bloodGroup || 'Not provided'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.infoCardItem}>
-                    <Text style={styles.infoCardLabel}>Emergency Contact</Text>
-                    <Text style={styles.infoCardValue}>{emergencyContactName || 'Not provided'}</Text>
-                  </View>
-
-                  <View style={styles.infoCardItem}>
-                    <Text style={styles.infoCardLabel}>Emergency Phone</Text>
-                    <Text style={styles.infoCardValue}>{emergencyContactPhone || 'Not provided'}</Text>
-                  </View>
-
-                  <View style={styles.infoCardItem}>
-                    <Text style={styles.infoCardLabel}>Relation</Text>
-                    <Text style={styles.infoCardValue}>{emergencyRelation || 'Not provided'}</Text>
-                  </View>
-
-                  {allergies ? (
-                    <View style={[styles.infoCardItem, { width: '100%' }]}>
-                      <Text style={styles.infoCardLabel}>Allergies</Text>
-                      <Text style={[styles.infoCardValue, { color: '#DC2626' }]}>{allergies}</Text>
-                    </View>
-                  ) : null}
-
-                  {chronicConditions ? (
-                    <View style={[styles.infoCardItem, { width: '100%' }]}>
-                      <Text style={styles.infoCardLabel}>Chronic Conditions</Text>
-                      <Text style={styles.infoCardValue}>{chronicConditions}</Text>
-                    </View>
-                  ) : null}
-
-                  {medicalHistory ? (
-                    <View style={[styles.infoCardItem, { width: '100%' }]}>
-                      <Text style={styles.infoCardLabel}>Medical History</Text>
-                      <Text style={styles.infoCardValue}>{medicalHistory}</Text>
-                    </View>
-                  ) : null}
-
-                  {currentMedications ? (
-                    <View style={[styles.infoCardItem, { width: '100%' }]}>
-                      <Text style={styles.infoCardLabel}>Current Medications</Text>
-                      <Text style={styles.infoCardValue}>{currentMedications}</Text>
-                    </View>
-                  ) : null}
+                  <PatientInfoCard icon={<UserRound size={16} color="#0D9488" />} label="Gender" value={gender || 'Not provided'} />
+                  <PatientInfoCard icon={<Calendar size={16} color="#0D9488" />} label="Date of Birth" value={formatPatientDateOfBirth(dateOfBirth)} />
+                  <PatientInfoCard icon={<Hash size={16} color="#0D9488" />} label="Age" value={age || 'Not provided'} />
+                  <PatientInfoCard icon={<Droplets size={16} color="#0D9488" />} label="Blood Group" value={bloodGroup || 'Not provided'} />
+                  <PatientInfoCard icon={<AlertTriangle size={16} color="#0D9488" />} label="Allergies" value={allergies || 'None reported'} />
+                  <PatientInfoCard icon={<Activity size={16} color="#0D9488" />} label="Chronic Conditions" value={chronicConditions || 'None reported'} />
+                  <PatientInfoCard icon={<HeartPulse size={16} color="#0D9488" />} label="Medical History" value={medicalHistory || 'None reported'} />
+                  <PatientInfoCard icon={<Stethoscope size={16} color="#0D9488" />} label="Current Medications" value={currentMedications || 'None reported'} />
+                  <PatientInfoCard icon={<UserRound size={16} color="#0D9488" />} label="Emergency Contact" value={emergencyContactName || 'Not provided'} />
+                  <PatientInfoCard icon={<Phone size={16} color="#0D9488" />} label="Emergency Phone" value={emergencyContactPhone || 'Not provided'} />
+                  <PatientInfoCard icon={<ShieldCheck size={16} color="#0D9488" />} label="Relation" value={emergencyRelation || 'Not provided'} />
                 </View>
               </View>
             ) : null}
@@ -852,6 +826,8 @@ const styles = StyleSheet.create({
   sectionHeaderTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
   infoCardsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   infoCardItem: { width: '48%', backgroundColor: '#F8FAFC', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  patientInfoCard: { backgroundColor: '#FFFFFF', minHeight: 72, justifyContent: 'center' },
+  patientInfoIcon: { width: 28, height: 28, borderRadius: 8, backgroundColor: '#F0FDFA', alignItems: 'center', justifyContent: 'center', marginRight: 7 },
   infoCardLabelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   infoCardLabel: { fontSize: 11, color: '#64748B', fontWeight: '600' },
   infoCardValue: { fontSize: 13, color: '#0F172A', fontWeight: '700' },

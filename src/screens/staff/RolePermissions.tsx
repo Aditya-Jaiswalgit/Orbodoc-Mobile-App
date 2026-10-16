@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AppModal } from '../../components/common/AppModal';
 import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet, ActivityIndicator, BackHandler, useWindowDimensions, TextInput, TouchableWithoutFeedback } from 'react-native';
-import { ShieldCheck, Check, RefreshCw, Plus, Pencil, ChevronDown, X, Shield } from 'lucide-react-native';
+import { ShieldCheck, Check, Plus, Pencil, ChevronDown, X, Shield } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { RefreshButton } from '../../components/common/RefreshButton';
 import { showSuccessToast, showErrorToast } from '../../utils/toast';
@@ -21,10 +21,10 @@ import {
 } from '../../api/roleManagementApi';
 import { useRemoteData } from '../../hooks/useRemoteData';
 import { useAuthContext } from '../../context/AuthContext';
-import { apiFetch } from '../../api/apiConfig';
 import { normalizeRoleName, permissionEnabled } from '../../utils/rolePermissions';
 import { canUseStaffScreen } from '../../navigation/staffAccess';
-import { extractArrayData, fetchAllUsersApi } from '../../api/userManagementApi';
+import { fetchAllUsersApi } from '../../api/userManagementApi';
+import { extractArrayData } from '../../utils/apiData';
 import { buildRoleCatalog, buildPermissionRoleOptions, getManageableRoles } from '../../utils/roleManagement';
 
 interface RolePermissionsProps {
@@ -120,7 +120,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
       id: o.sys_obj_id ?? o.id, name: o.display_name || o.system_object_name || o.object_name || o.name,
       code: o.module || o.object_name, subtext: o.module || o.object_name,
     }));
-    return { roles, allRoles: roleCatalog, objects, permissions: (permsRes.data || []).filter(p => p.clinic_id == null || String(p.clinic_id) === String(managedClinicId)), refreshed: new Date().toLocaleString() };
+    return { roles, allRoles: roleCatalog, objects, permissions: (permsRes.data || []).filter(p => p.clinic_id == null || String(p.clinic_id) === String(managedClinicId)) };
   }, Boolean(token && canView && managedClinicId));
   const roles = useMemo(() => resource.data?.roles ?? [], [resource.data]);
   const counts = useRemoteData(scope + ':role-counts:' + roles.map(r => r.id).join(','), async () => {
@@ -139,7 +139,6 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
     resource.data?.allRoles ?? [], currentRole, resource.data?.permissions ?? [], customRoleSetupId,
   ).map(row => ({ ...row, role_name: formatRoleTitle(row.role_name) })), [resource.data, currentRole, customRoleSetupId]);
   const loading = resource.loading;
-  const lastRefreshed = resource.error ? 'Unable to load. Please refresh.' : resource.data?.refreshed || 'Loading...';
   const loadRoleDataFromApi = async () => { await Promise.allSettled([resource.refresh(), counts.refresh(), refreshPermissions?.()]); };
   useEffect(() => {
     scopeRef.current = scope;
@@ -772,8 +771,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   refreshButtonText: { color: '#334155', fontSize: 13, fontWeight: '600' },
-  lastRefreshedText: { color: '#94A3B8', fontSize: 11, marginTop: 4 },
-
   // Main Card with Teal Border
   tealBorderCard: {
     backgroundColor: '#FFFFFF',

@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { setGlobalAuthToken } from '../api/apiConfig';
+import { disconnectNotificationSocket } from '../api/notificationSocket';
 import {
   fetchMyClinicsApi,
   fetchProfileApi,
@@ -95,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const [profileRes, clinicsRes, permsRes, objectsRes] = await Promise.all([
               fetchProfileApi(),
               fetchMyClinicsApi(),
-              Boolean(resolvedRoleId && stored.userType !== 'patient')
+              Boolean(resolvedRoleId)
                 ? fetchPermissionMapByRoleApi(resolvedRoleId!, stored.activeClinicId, currentStaffRole)
                 : Promise.resolve(null),
               fetchSystemObjectsApi().catch(() => null),
@@ -121,6 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ) {
               await clearStoredSession();
               if (isMounted) {
+                disconnectNotificationSocket();
                 setToken(null);
                 setUser(null);
                 setGlobalAuthToken(null);
@@ -136,6 +138,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   .map((c: any) => ({
                     id: Number(c.id || c.clinic_id),
                     name: c.name || c.clinic_name || c.title || 'Unnamed clinic',
+                    logo_url: c.logo_url || c.clinic_logo_url || undefined,
+                    clinic_logo_url: c.clinic_logo_url || c.logo_url || undefined,
                     is_primary: c.is_primary ? 1 : 0,
                     entity_type: c.entity_type || c.clinic_entity_type || undefined,
                   }))
@@ -261,6 +265,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .map((c: any) => ({
                 id: Number(c.id || c.clinic_id),
                 name: c.name || c.clinic_name || c.title || 'Unnamed clinic',
+                logo_url: c.logo_url || c.clinic_logo_url || undefined,
+                clinic_logo_url: c.clinic_logo_url || c.logo_url || undefined,
                 is_primary: c.is_primary ? 1 : 0,
                 entity_type: c.entity_type || c.clinic_entity_type || undefined,
               }))
@@ -355,6 +361,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     sessionRevision.current += 1;
+    disconnectNotificationSocket();
     setIsLoading(false);
     setUser(null);
     setToken(null);
@@ -370,8 +377,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const role = normalizeAppRole(user);
   const permissionRoleId = resolveRoleId(user, token, role);
 
-  // Directly fetch live permissions from the backend for every authenticated staff role
-  const canFetchPermissions = Boolean(token && userType !== 'patient' && permissionRoleId);
+  // Keep patient navigation permissions in sync with the web role sidebar too.
+  const canFetchPermissions = Boolean(token && permissionRoleId);
   const permissionScope = [token, user?.id, activeClinicId, permissionRoleId, role].join(':');
 
   const permissionResource = useRemoteData<PermissionMap>(
@@ -403,6 +410,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Exact Web parity: Merge base login permissions with live role permissions
   const effectivePermissionsMap = useMemo(() => {
+    // Keep access denied when the live permission request fails.
     if (permissionResource.error) return {};
     const fetched = permissionResource.data;
     if (fetched && Object.keys(fetched).length > 0) {

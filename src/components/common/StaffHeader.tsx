@@ -1,23 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { AppModal } from './AppModal';
-import { Alert, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Switch, Text as NativeText, TouchableOpacity, View } from 'react-native';
 import {
   ArrowRight,
+  AlertCircle,
   Bell,
   Calendar,
   Check,
+  CheckCircle,
   CheckCheck,
   ChevronDown,
   ChevronUp,
-  CreditCard,
   Crown,
+  FileText,
   Key,
   LogOut,
   Menu,
   Stethoscope,
+  Trash2,
   User,
-  UserCheck,
+  UserPlus,
   Video,
+  WalletCards,
   X,
 } from 'lucide-react-native';
 import { useAuthContext } from '../../context/AuthContext';
@@ -27,6 +31,15 @@ import { navigateStaffScreen } from '../../utils/navigationEvents';
 import { normalizeRoleName } from '../../utils/rolePermissions';
 import { getMobileNotificationDestination } from '../../utils/notificationNavigation';
 import { markNotificationAsRead } from '../../api/notificationApi';
+import { getProviderWalletSummaryApi } from '../../api/providerWalletApi';
+import { canUseStaffScreen } from '../../navigation/staffAccess';
+import { getNotificationSocket } from '../../api/notificationSocket';
+import { showErrorToast } from '../../utils/toast';
+import type { InboxNotification } from '../../api/staffHeaderApi';
+
+const Text = (props: React.ComponentProps<typeof NativeText>) => (
+  <NativeText maxFontSizeMultiplier={1.2} {...props} />
+);
 
 interface StaffHeaderProps {
   onOpenDrawer: () => void;
@@ -48,6 +61,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
     activeClinicId,
     activeClinicName,
     assignedClinics,
+    permissionsMap = {},
     switchClinic,
     logout,
   } = useAuthContext();
@@ -70,6 +84,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [videoToast, setVideoToast] = useState<{ title: string; message: string } | null>(null);
   const [notificationsModalOpen, setNotificationsModalOpen] = useState(false);
+  const [providerWalletBalance, setProviderWalletBalance] = useState<number | null>(null);
   const {
     notifications: inbox, unreadCount, notificationsLoading, notificationsError, notificationBusy,
     refreshNotifications, markAllRead: handleMarkAllAsRead, clearAll: handleClearAllNotifications,
@@ -78,12 +93,37 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
   } = useStaffHeaderData(notificationsModalOpen, planModalOpen, profileMenuOpen);
   const notifications = inbox.map(item => ({
     id: item.not_rec_id,
-    title: item.title || item.not_cat_name || 'Notification',
+    title: item.not_cat_name || item.title || 'Notification',
     message: item.message,
     timestamp: displayDate(item.sent_at || item.created_at),
     type: item.entity_type,
     unread: Number(item.is_read) !== 1,
   }));
+  const notificationBadgeLabel = Number(unreadCount || 0) > 99 ? '99+' : String(unreadCount || 0);
+  const renderNotificationIcon = (item: InboxNotification) => {
+    const text = `${item.not_cat_name || ''} ${item.message || ''}`.toLowerCase();
+    if (text.includes('appointment')) return <Calendar size={18} color="#2563eb" />;
+    if (text.includes('patient') || text.includes('user')) return <UserPlus size={18} color="#059669" />;
+    if (text.includes('report') || text.includes('lab')) return <FileText size={18} color="#7c3aed" />;
+    if (text.includes('success') || text.includes('paid')) return <CheckCircle size={18} color="#0d9488" />;
+    return <AlertCircle size={18} color="#d97706" />;
+  };
+  const canEditNotifications = canUseStaffScreen(role || '', permissionsMap, 'notifications', 'edit');
+  const canDeleteNotifications = canUseStaffScreen(role || '', permissionsMap, 'notifications', 'delete');
+
+  useEffect(() => {
+    let active = true;
+    if (!isProviderWalletUser) {
+      setProviderWalletBalance(null);
+      return () => { active = false; };
+    }
+    getProviderWalletSummaryApi(activeClinicId).then(result => {
+      if (active && result.success) {
+        setProviderWalletBalance(Number(result.data?.wallet?.available_balance || 0));
+      }
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [activeClinicId, isProviderWalletUser]);
 
   const statusBarHeight = StatusBar.currentHeight || 36;
   const staffName = user?.fullName || user?.full_name || 'Account';
@@ -150,8 +190,16 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
 
           {/* Wallet Icon Button (Web Parity: ONLY Clinic Admin or Independent Doctor) */}
           {isProviderWalletUser && (
-            <TouchableOpacity style={styles.walletCircleBtn} onPress={() => onNavigate('/wallet')} activeOpacity={0.8}>
-              <CreditCard size={16} color="#FFFFFF" />
+            <TouchableOpacity
+              style={styles.walletCircleBtn}
+              onPress={() => onNavigate('/wallet')}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`Open provider wallet${providerWalletBalance === null ? '' : `, available balance ${displayAmount(providerWalletBalance)}`}`}
+            >
+              <View style={styles.walletHeaderIconWrap}>
+                <WalletCards size={16} color="#FFFFFF" strokeWidth={2.2} />
+              </View>
             </TouchableOpacity>
           )}
 
@@ -167,7 +215,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             <Bell size={17} color="#334155" />
             {(unreadCount ?? 0) > 0 && (
               <View style={styles.bellBadge}>
-                <Text style={styles.bellBadgeText}>{unreadCount}</Text>
+                <Text style={styles.bellBadgeText}>{notificationBadgeLabel}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -344,18 +392,31 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                     </View>
                   )}
                 </View>
-                <Text style={styles.notifSubTitle}>You have updates to review</Text>
+                <Text style={styles.notifSubTitle}>{Number(unreadCount || 0) > 0 ? 'You have updates to review' : 'You are all caught up'}</Text>
               </View>
 
               {/* Action Icons Right */}
               <View style={styles.notifHeaderActions}>
-                <TouchableOpacity
-                  onPress={handleMarkAllAsRead}
-                  disabled={notificationBusy || notificationsLoading}
-                  activeOpacity={0.7}
-                  style={styles.notifActionBtn}>
-                  <CheckCheck size={18} color="#475569" />
-                </TouchableOpacity>
+                {canEditNotifications && Number(unreadCount || 0) > 0 ? (
+                  <TouchableOpacity
+                    onPress={handleMarkAllAsRead}
+                    disabled={notificationBusy || notificationsLoading}
+                    activeOpacity={0.7}
+                    style={styles.notifActionBtn}
+                    accessibilityLabel="Mark all notifications as read">
+                    <CheckCheck size={18} color="#475569" />
+                  </TouchableOpacity>
+                ) : null}
+                {canDeleteNotifications && notifications.length > 0 ? (
+                  <TouchableOpacity
+                    onPress={handleClearAllNotifications}
+                    disabled={notificationBusy || notificationsLoading}
+                    activeOpacity={0.7}
+                    style={styles.notifActionBtn}
+                    accessibilityLabel="Clear notification history">
+                    <Trash2 size={18} color="#dc2626" />
+                  </TouchableOpacity>
+                ) : null}
 
                 <TouchableOpacity
                   onPress={() => setNotificationsModalOpen(false)}
@@ -390,12 +451,18 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                     style={styles.notifItemCard}
                     activeOpacity={0.7}
                     onPress={async () => {
-                      if (item.unread) {
+                      if (item.unread && canEditNotifications) {
                         try {
-                          await markNotificationAsRead(item.id);
+                          const result = await markNotificationAsRead(item.id);
+                          if (!result.success) throw new Error(result.message);
+                          try {
+                            getNotificationSocket().emit('mark_as_read', { id: item.id });
+                          } catch {
+                            // The REST update has already succeeded.
+                          }
                           refreshNotifications();
-                        } catch {
-                          // quiet
+                        } catch (error) {
+                          showErrorToast('Failed to mark notification', error instanceof Error ? error.message : 'Please try again.');
                         }
                       }
                       setNotificationsModalOpen(false);
@@ -414,11 +481,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                     }}>
                     {/* Left Icon Square Box */}
                     <View style={styles.notifIconBox}>
-                      {item.type === 'appointment' ? (
-                        <Calendar size={18} color="#2563EB" />
-                      ) : (
-                        <UserCheck size={18} color="#0D9488" />
-                      )}
+                      {renderNotificationIcon(inbox.find(notification => notification.not_rec_id === item.id) || { not_rec_id: item.id, message: item.message, is_read: item.unread ? 0 : 1 })}
                     </View>
 
                     {/* Content Col */}
@@ -458,7 +521,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             <Stethoscope size={20} color="#FFFFFF" />
           </View>
           <View style={styles.clinicTitleWrap}>
-            <Text style={styles.clinicTitleText}>{selectedClinicName}</Text>
+            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.clinicTitleText}>{selectedClinicName}</Text>
             <View style={styles.titleUnderline} />
           </View>
         </View>
@@ -472,7 +535,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             setNotificationsModalOpen(false);
             setDropdownOpen(!dropdownOpen);
           }}>
-          <Text style={styles.clinicDropdownText}>{selectedClinicName}</Text>
+          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.clinicDropdownText}>{selectedClinicName}</Text>
           {dropdownOpen ? (
             <ChevronUp size={18} color="#0D9488" />
           ) : (
@@ -644,13 +707,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   walletCircleBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#0D9488',
+    width: 54,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#99F6E4',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  walletHeaderIconWrap: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#0D9488', alignItems: 'center', justifyContent: 'center', position: 'relative' },
   bellCircleBtn: {
     width: 38,
     height: 38,
@@ -668,13 +734,13 @@ const styles = StyleSheet.create({
     right: -2,
     backgroundColor: '#EF4444',
     borderRadius: 9,
-    minWidth: 18,
+    minWidth: 19,
     height: 18,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
   },
-  bellBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
+  bellBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
   avatarPillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -959,8 +1025,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clinicTitleWrap: { position: 'relative' },
-  clinicTitleText: { fontSize: 20, fontWeight: '700', color: '#0F766E' },
+  clinicTitleWrap: { position: 'relative', flex: 1, minWidth: 0 },
+  clinicTitleText: { fontSize: 20, fontWeight: '700', color: '#0F766E', flexShrink: 1 },
   titleUnderline: { height: 3, backgroundColor: '#2563EB', marginTop: 4, borderRadius: 2, width: '100%' },
 
   clinicDropdownCard: {
@@ -974,7 +1040,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#CCFBF1',
   },
-  clinicDropdownText: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
+  clinicDropdownText: { fontSize: 15, fontWeight: '700', color: '#0F172A', flex: 1, flexShrink: 1, marginRight: 10 },
 
   // Inline Expandable Dropdown
   dropdownExpandCard: {

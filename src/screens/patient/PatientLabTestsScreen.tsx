@@ -14,6 +14,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Download,
+  Printer,
   FlaskConical,
   MapPin,
   Search,
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react-native';
 import { AppModal } from '../../components/common/AppModal';
 import { PatientHeader } from '../../components/common/PatientHeader';
+import { PatientPageHeading } from '../../components/common/PatientPageHeading';
 import { BASE_URL } from '../../api/apiConfig';
 import { getPatientMedicalHistoryApi } from '../../api/patientApi';
 import {
@@ -390,18 +392,11 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
           <RefreshControl refreshing={loading} onRefresh={search} />
         }
       >
-        <View style={styles.hero}>
-          <View style={styles.heroIcon}>
-            <FlaskConical size={23} color="#0D9488" />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.title}>Find Lab Tests</Text>
-            <Text style={styles.subtitle}>
-              Search tests by name, symptom or disease, compare nearby clinics
-              and book a slot.
-            </Text>
-          </View>
-        </View>
+        <PatientPageHeading
+          title="Find Lab Tests"
+          subtitle="Search tests by name, symptom or disease, compare nearby clinics and book a slot."
+          icon={<FlaskConical size={21} color="#0D9488" />}
+        />
 
         <View style={styles.historySection}>
           <View style={styles.sectionHeader}>
@@ -444,26 +439,32 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
                   )}
                 </View>
                 {item.report_file_url ? (
-                  <TouchableOpacity
-                    style={styles.historyDownload}
-                    onPress={() => {
-                      const url = /^(https?:\/\/|file:)/i.test(
-                        item.report_file_url || '',
-                      )
-                        ? item.report_file_url || ''
-                        : `${BASE_URL.replace(/\/api\/?$/, '')}/${String(
-                            item.report_file_url,
-                          ).replace(/^\/+/, '')}`;
-                      Linking.openURL(url).catch(() =>
-                        showErrorToast(
-                          'Could not open report',
-                          'Try again later.',
-                        ),
-                      );
-                    }}
-                  >
-                    <Download size={16} color="#0f766e" />
-                  </TouchableOpacity>
+                  <View style={styles.historyReportActions}>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel="Open report to print"
+                      style={styles.historyDownload}
+                      onPress={() => {
+                        const url = /^(https?:\/\/|file:)/i.test(item.report_file_url || '')
+                          ? item.report_file_url || ''
+                          : `${BASE_URL.replace(/\/api\/?$/, '')}/${String(item.report_file_url).replace(/^\/+/, '')}`;
+                        Linking.openURL(url).catch(() => showErrorToast('Could not open report', 'Try again later.'));
+                      }}>
+                      <Printer size={16} color="#0f766e" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityLabel="Open report file"
+                      style={styles.historyDownload}
+                      onPress={() => {
+                        const url = /^(https?:\/\/|file:)/i.test(item.report_file_url || '')
+                          ? item.report_file_url || ''
+                          : `${BASE_URL.replace(/\/api\/?$/, '')}/${String(item.report_file_url).replace(/^\/+/, '')}`;
+                        Linking.openURL(url).catch(() => showErrorToast('Could not open report', 'Try again later.'));
+                      }}>
+                      <Download size={16} color="#0f766e" />
+                    </TouchableOpacity>
+                  </View>
                 ) : null}
               </View>
             ))
@@ -930,6 +931,7 @@ const styles = StyleSheet.create({
     borderColor: '#BFE3DB',
     borderRadius: 9,
   },
+  historyReportActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   historyEmpty: { color: '#64748B', fontSize: 12, paddingVertical: 5 },
   title: { color: '#0F172A', fontSize: 20, fontWeight: '800' },
   subtitle: { color: '#64748B', fontSize: 12, lineHeight: 18, marginTop: 3 },

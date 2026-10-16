@@ -26,6 +26,7 @@ import {
   CheckCircle2,
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { PatientHeader } from '../../components/common/PatientHeader';
 import { useAuthContext } from '../../context/AuthContext';
 import { changePasswordApi } from '../../api/authApi';
 import { showSuccessToast, showErrorToast } from '../../utils/toast';
@@ -33,11 +34,12 @@ import { showSuccessToast, showErrorToast } from '../../utils/toast';
 interface Props {
   onOpenDrawer: () => void;
   onNavigateScreen?: (screen: string) => void;
+  patientMode?: boolean;
 }
 
 type PasswordField = 'currentPassword' | 'newPassword' | 'confirmPassword';
 
-export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScreen }) => {
+export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScreen, patientMode = false }) => {
   const { logout } = useAuthContext();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -217,7 +219,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
 
   return (
     <View style={styles.container}>
-      <StaffHeader
+      {patientMode ? <PatientHeader onOpenDrawer={onOpenDrawer} /> : <StaffHeader
         onOpenDrawer={onOpenDrawer}
         title="Change Password"
         onNavigate={(path) => {
@@ -226,7 +228,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
             onNavigateScreen(screen);
           }
         }}
-      />
+      />}
 
       <KeyboardAvoidingView
         style={styles.keyboardView}

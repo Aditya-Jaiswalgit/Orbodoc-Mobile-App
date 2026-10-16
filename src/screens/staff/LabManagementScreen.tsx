@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -10,10 +10,12 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import {
   ChevronDown,
   Download,
+  Printer,
   Eye,
   FileText,
   FlaskConical,
@@ -32,9 +34,11 @@ import {
 } from 'lucide-react-native';
 import { AppModal } from '../../components/common/AppModal';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { PatientHeader } from '../../components/common/PatientHeader';
 import { Pagination } from '../../components/common/Pagination';
 import {
   createLabCatalogItemApi,
+  getLabReportByTestIdApi,
   getMasterLabTestsApi,
   mapMasterLabTestApi,
   updateLabReportApi,
@@ -47,6 +51,7 @@ import { BASE_URL } from '../../api/apiConfig';
 import { useAuthContext } from '../../context/AuthContext';
 import { canUseStaffScreen } from '../../navigation/staffAccess';
 import { showErrorToast, showSuccessToast } from '../../utils/toast';
+import { printHtmlDocument } from '../../utils/pdfActions';
 import {
   LabReportRecord,
   LabTestRecord,
@@ -181,6 +186,8 @@ interface Props {
   initialDate?: string;
   initialDateFrom?: string;
   initialDateTo?: string;
+  initialReportId?: string;
+  patientMode?: boolean;
 }
 
 export const LabManagementScreen: React.FC<Props> = ({
@@ -190,7 +197,11 @@ export const LabManagementScreen: React.FC<Props> = ({
   initialDate,
   initialDateFrom,
   initialDateTo,
+  initialReportId,
+  patientMode = false,
 }) => {
+  const { width: screenWidth, fontScale } = useWindowDimensions();
+  const compactReportActions = screenWidth < 350 || fontScale > 1.2;
   const {
     token,
     user,
@@ -200,10 +211,15 @@ export const LabManagementScreen: React.FC<Props> = ({
     assignedClinics,
     permissionsMap = {},
   } = useAuthContext();
+  const canViewReports = patientMode ||
+    canUseStaffScreen(role, permissionsMap, 'lab_reports', 'view');
   const { tests, reports, catalog, loading, refreshing, error, lastRefreshed, refresh } =
-    useLabManagement(token, activeClinicId);
+    useLabManagement(token, patientMode ? null : activeClinicId, patientMode, canViewReports);
   const [tab] = useState<Tab>(initialTab);
   const [query, setQuery] = useState('');
+  useEffect(() => {
+    if (initialReportId) setQuery(initialReportId);
+  }, [initialReportId]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [statusTest, setStatusTest] = useState<LabTestRecord | null>(null);
@@ -218,6 +234,7 @@ export const LabManagementScreen: React.FC<Props> = ({
     patientName: string;
     tests: LabTestRecord[];
   } | null>(null);
+  const [selectedGroupReports, setSelectedGroupReports] = useState<LabReportRecord[]>([]);
   const [catalogEditorOpen, setCatalogEditorOpen] = useState(false);
   const [masterPickerOpen, setMasterPickerOpen] = useState(false);
   const [masterTests, setMasterTests] = useState<MasterTest[]>([]);
@@ -247,30 +264,31 @@ export const LabManagementScreen: React.FC<Props> = ({
   const [abnormal, setAbnormal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [downloadingReport, setDownloadingReport] = useState(false);
+  const [printingReport, setPrintingReport] = useState(false);
   const [savingCatalog, setSavingCatalog] = useState(false);
   const [loadingMasterTests, setLoadingMasterTests] = useState(false);
   const [busyStatusId, setBusyStatusId] = useState<number | null>(null);
-  const canView = initialTab === 'reports'
+  const canView = (patientMode && Object.keys(permissionsMap || {}).length === 0) || (initialTab === 'reports'
     ? canUseStaffScreen(role, permissionsMap, 'lab_reports', 'view') || canUseStaffScreen(role, permissionsMap, 'lab_tests', 'view')
-    : canUseStaffScreen(role, permissionsMap, 'lab_tests', 'view');
-  const canUpdate = initialTab === 'orders' && canUseStaffScreen(
+    : canUseStaffScreen(role, permissionsMap, 'lab_tests', 'view'));
+  const canUpdate = !patientMode && initialTab === 'orders' && canUseStaffScreen(
     role,
     permissionsMap,
     'lab_tests',
     'edit',
   );
-  const canCreateReport =
+  const canCreateReport = !patientMode && (
     canUseStaffScreen(role, permissionsMap, 'lab_reports', 'add') ||
-    canUseStaffScreen(role, permissionsMap, 'lab_tests', 'add');
-  const canEditReport =
+    canUseStaffScreen(role, permissionsMap, 'lab_tests', 'add'));
+  const canEditReport = !patientMode && (
     canUseStaffScreen(role, permissionsMap, 'lab_reports', 'edit') ||
-    canUseStaffScreen(role, permissionsMap, 'lab_tests', 'edit');
-  const canAddInventory =
+    canUseStaffScreen(role, permissionsMap, 'lab_tests', 'edit'));
+  const canAddInventory = !patientMode && (
     canUseStaffScreen(role, permissionsMap, 'lab_inventory', 'add') ||
-    canUseStaffScreen(role, permissionsMap, 'lab_tests', 'add');
-  const canEditInventory =
+    canUseStaffScreen(role, permissionsMap, 'lab_tests', 'add'));
+  const canEditInventory = !patientMode && (
     canUseStaffScreen(role, permissionsMap, 'lab_inventory', 'edit') ||
-    canUseStaffScreen(role, permissionsMap, 'lab_tests', 'edit');
+    canUseStaffScreen(role, permissionsMap, 'lab_tests', 'edit'));
   const canManageInventory = canAddInventory || canEditInventory;
   const clinicName =
     assignedClinics.find(clinic => clinic.id === activeClinicId)?.name ||
@@ -329,6 +347,46 @@ export const LabManagementScreen: React.FC<Props> = ({
       tests: [...group.tests].sort((a, b) => b.id - a.id),
     }));
   }, [filteredTests]);
+  useEffect(() => {
+    if (!selectedPatientGroup || !token) {
+      setSelectedGroupReports([]);
+      return;
+    }
+    let cancelled = false;
+    const group = selectedPatientGroup;
+    const groupReports = reports.filter(report =>
+      group.tests.some(test => Number(test.id) === Number(report.lab_test_id)),
+    );
+    setSelectedGroupReports(groupReports);
+    const missingTests = group.tests.filter(test =>
+      !groupReports.some(report => Number(report.lab_test_id) === Number(test.id)),
+    );
+    Promise.all(
+      missingTests.map(async test => {
+        const response = await getLabReportByTestIdApi(token, test.id);
+        if (!response.success) return null;
+        const data = response.data as any;
+        const report = data?.report || data?.data?.report || data?.data || data;
+        if (!report || typeof report !== 'object') return null;
+        return {
+          ...report,
+          lab_test_id: report.lab_test_id ?? test.id,
+        } as LabReportRecord;
+      }),
+    ).then(fetched => {
+      if (cancelled) return;
+      const merged = new Map<number, LabReportRecord>();
+      groupReports.forEach(report => merged.set(Number(report.lab_test_id), report));
+      fetched.filter((report): report is LabReportRecord => Boolean(report))
+        .forEach(report => merged.set(Number(report.lab_test_id), report));
+      setSelectedGroupReports(Array.from(merged.values()));
+    }).catch(() => {
+      if (!cancelled) setSelectedGroupReports(groupReports);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [reports, selectedPatientGroup, token]);
   const filteredReports = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return reports.filter(
@@ -640,7 +698,7 @@ export const LabManagementScreen: React.FC<Props> = ({
       return;
     }
     const group = selectedPatientGroup;
-    const patientReports = reports.filter(report => group.tests.some(test => Number(test.id) === Number(report.lab_test_id)));
+    const patientReports = selectedGroupReports;
     const pricedTests = group.tests.map(test => ({ ...test, price: getClinicPrice(test) }));
     const html = buildPatientLabReportHtml(clinicName, group.patientName, patientReports, pricedTests);
     const fileName = `patient-${String(group.patientId).replace(/[^a-zA-Z0-9_-]/g, '_')}-lab-report.pdf`;
@@ -652,6 +710,43 @@ export const LabManagementScreen: React.FC<Props> = ({
       showErrorToast('Download failed', cause instanceof Error ? cause.message : 'Could not create the report PDF.');
     } finally {
       setDownloadingReport(false);
+    }
+  };
+
+  const patientReportHtml = (group: NonNullable<typeof selectedPatientGroup>) => {
+    const patientReports = selectedGroupReports;
+    const pricedTests = group.tests.map(test => ({ ...test, price: getClinicPrice(test) }));
+    return buildPatientLabReportHtml(clinicName, group.patientName, patientReports, pricedTests);
+  };
+
+  const printPatientReport = async () => {
+    if (!selectedPatientGroup) return;
+    setPrintingReport(true);
+    try {
+      await printHtmlDocument(patientReportHtml(selectedPatientGroup), `Lab report ${selectedPatientGroup.patientName}`);
+    } catch (cause) {
+      showErrorToast('Print failed', cause instanceof Error ? cause.message : 'Could not open the lab report print dialog.');
+    } finally {
+      setPrintingReport(false);
+    }
+  };
+
+  const printSingleLabReport = async (report: LabReportRecord) => {
+    const test = tests.find(item => Number(item.id) === Number(report.lab_test_id));
+    if (!test) {
+      showErrorToast('Print unavailable', 'The matching lab test could not be loaded.');
+      return;
+    }
+    setPrintingReport(true);
+    try {
+      await printHtmlDocument(
+        buildPatientLabReportHtml(clinicName, report.patient_name || 'Patient', [report], [{ ...test, price: getClinicPrice(test) }]),
+        `Lab report ${report.id}`,
+      );
+    } catch (cause) {
+      showErrorToast('Print failed', cause instanceof Error ? cause.message : 'Could not open the lab report print dialog.');
+    } finally {
+      setPrintingReport(false);
     }
   };
 
@@ -700,6 +795,10 @@ export const LabManagementScreen: React.FC<Props> = ({
         {!!report.remarks && (
           <Text style={styles.reportRemarks}>{report.remarks}</Text>
         )}
+        <TouchableOpacity style={styles.downloadButton} disabled={printingReport} onPress={() => void printSingleLabReport(report)}>
+          {printingReport ? <ActivityIndicator size="small" color="#0f766e" /> : <Printer size={16} color="#0f766e" />}
+          <Text style={styles.downloadText}>{printingReport ? 'Opening print dialog…' : 'Print Report'}</Text>
+        </TouchableOpacity>
         {report.report_file_url ? (
           <TouchableOpacity
             style={styles.downloadButton}
@@ -715,7 +814,7 @@ export const LabManagementScreen: React.FC<Props> = ({
 
   return (
     <View style={styles.container}>
-      <StaffHeader onOpenDrawer={onOpenDrawer} title="Lab Tests" />
+      {patientMode ? <PatientHeader onOpenDrawer={onOpenDrawer} /> : <StaffHeader onOpenDrawer={onOpenDrawer} title="Lab Tests" />}
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -731,7 +830,7 @@ export const LabManagementScreen: React.FC<Props> = ({
           <View style={styles.flex}>
             <Text style={styles.pageTitle}>Lab Tests</Text>
             <Text style={styles.pageSubtitle}>
-              Manage clinic tests and diagnostic reports
+              {patientMode ? 'View your lab test orders and diagnostic reports' : 'Manage clinic tests and diagnostic reports'}
             </Text>
           </View>
         </View>
@@ -754,7 +853,7 @@ export const LabManagementScreen: React.FC<Props> = ({
             <TextInput
               value={query}
               onChangeText={value => { setQuery(value); setPage(1); }}
-              placeholder="Search patient ID, name, or mobile"
+              placeholder={patientMode ? 'Search test name or report' : 'Search patient ID, name, or mobile'}
               placeholderTextColor="#71839d"
               style={styles.searchInput}
               returnKeyType="search"
@@ -763,11 +862,11 @@ export const LabManagementScreen: React.FC<Props> = ({
           <TouchableOpacity style={styles.searchButton} onPress={() => setPage(1)}>
             <Text style={styles.searchButtonText}>Search</Text>
           </TouchableOpacity>
-          <View style={styles.clinicDataNote}>
+          {!patientMode ? <View style={styles.clinicDataNote}>
             <View style={styles.onlineDot} />
             <Text style={styles.clinicDataText}>Showing data for </Text>
             <Text style={styles.clinicDataName} numberOfLines={1}>{clinicName}</Text>
-          </View>
+          </View> : null}
         </View>
 
         <View style={styles.labResultsPanel}>
@@ -1550,7 +1649,7 @@ export const LabManagementScreen: React.FC<Props> = ({
         <View style={styles.modalBackdrop}>
           <View style={styles.patientReportModal}>
             <View style={styles.patientReportHeader}>
-              <View style={styles.patientReportIcon}><TestTube2 size={21} color="#fff" /></View>
+              <View style={styles.patientReportIcon}><TestTube size={21} color="#fff" /></View>
               <View style={styles.flex}>
                 <Text style={styles.patientReportTitle}>Lab Report Overview</Text>
                 <Text style={styles.patientReportSubtitle}>{selectedPatientGroup?.patientName || 'Patient lab tests'}</Text>
@@ -1563,22 +1662,27 @@ export const LabManagementScreen: React.FC<Props> = ({
               <ScrollView style={styles.patientReportBody} contentContainerStyle={styles.patientReportContent}>
                 <View style={styles.reportPaper}>
                   <View style={styles.reportPaperHeader}>
-                    <View style={styles.patientReportIcon}><TestTube2 size={20} color="#0f766e" /></View>
-                    <View style={styles.flex}>
-                      <Text style={styles.reportClinicName}>{clinicName}</Text>
-                      <Text style={styles.reportClinicCaption}>DIAGNOSTIC & LABORATORY SERVICES</Text>
+                    <View style={styles.reportBrand}>
+                      <View style={styles.reportPaperIcon}><TestTube size={18} color="#0f766e" /></View>
+                      <View style={styles.flex}>
+                        <Text style={styles.reportClinicName}>{clinicName}</Text>
+                        <Text style={styles.reportClinicCaption}>DIAGNOSTIC & LABORATORY SERVICES</Text>
+                      </View>
                     </View>
-                    <Text style={styles.reportIssued}>Lab Diagnostic Report</Text>
+                    <View style={styles.reportIssueBlock}>
+                      <Text style={styles.reportIssued}>LAB DIAGNOSTIC REPORT</Text>
+                      <Text style={styles.reportIssueDate}>Issued {new Date().toLocaleString()}</Text>
+                    </View>
                   </View>
                   <View style={styles.patientDetailsBlock}>
-                    <View style={styles.flex}>
+                    <View style={styles.reportInfoCell}>
                       <Text style={styles.reportOverline}>Patient Details</Text>
                       <Text style={styles.reportPatientName}>{selectedPatientGroup.patientName}</Text>
                     </View>
-                    <View style={styles.flex}>
+                    <View style={[styles.reportInfoCell, styles.reportDoctorCell]}>
                       <Text style={styles.reportOverline}>Doctor & Status</Text>
                       <Text style={styles.reportDoctor}>{Array.from(new Set(selectedPatientGroup.tests.map(test => test.doctor_name || '—'))).join(', ')}</Text>
-                      <Text style={styles.reportMeta}>{selectedPatientGroup.tests.filter(test => reports.some(report => Number(report.lab_test_id) === Number(test.id))).length} of {selectedPatientGroup.tests.length} reports ready</Text>
+                      <Text style={styles.reportMeta}>{selectedPatientGroup.tests.filter(test => selectedGroupReports.some(report => Number(report.lab_test_id) === Number(test.id))).length} of {selectedPatientGroup.tests.length} reports ready</Text>
                     </View>
                   </View>
                   <Text style={styles.reportSectionTitle}>Test Results</Text>
@@ -1599,7 +1703,7 @@ export const LabManagementScreen: React.FC<Props> = ({
                           ))}
                         </View>
                         {selectedPatientGroup.tests.flatMap(test => {
-                          const report = reports.find(item => Number(item.lab_test_id) === Number(test.id));
+                          const report = selectedGroupReports.find(item => Number(item.lab_test_id) === Number(test.id));
                           const existingRows = report ? reportRowsFrom(report.report_data).filter(row => row.parameter || row.value || row.unit || row.reference_range) : [];
                           const displayRows = existingRows.length ? existingRows : [{ parameter: report ? '—' : 'Awaiting report', value: '—', unit: '—', reference_range: '—' }];
                           return displayRows.map((row, index) => (
@@ -1625,20 +1729,29 @@ export const LabManagementScreen: React.FC<Props> = ({
                   </View>
                   <View style={styles.reportRemarksBlock}>
                     <Text style={styles.reportOverline}>Remarks</Text>
-                    <Text style={styles.reportMeta}>{selectedPatientGroup.tests.map(test => reports.find(report => Number(report.lab_test_id) === Number(test.id))?.remarks).filter(Boolean).join(' · ') || 'Report results are pending.'}</Text>
+                    <Text style={styles.reportMeta}>{selectedPatientGroup.tests.map(test => selectedGroupReports.find(report => Number(report.lab_test_id) === Number(test.id))?.remarks).filter(Boolean).join(' · ') || 'Report results are pending.'}</Text>
                     <Text style={[styles.reportOverline, styles.formFieldSpacing]}>Report Status</Text>
-                    <Text style={styles.reportDoctor}>{selectedPatientGroup.tests.length > 0 && selectedPatientGroup.tests.every(test => reports.some(report => Number(report.lab_test_id) === Number(test.id))) ? 'Complete' : 'In progress'}</Text>
+                    <Text style={styles.reportDoctor}>{selectedPatientGroup.tests.length > 0 && selectedPatientGroup.tests.every(test => selectedGroupReports.some(report => Number(report.lab_test_id) === Number(test.id))) ? 'Complete' : 'In progress'}</Text>
                   </View>
                   <Text style={styles.reportFooter}>This is a system-generated diagnostic report.</Text>
                 </View>
               </ScrollView>
             ) : null}
             <View style={styles.patientReportFooter}>
-              <TouchableOpacity style={[styles.reportCancelButton, styles.patientReportAction]} onPress={() => setSelectedPatientGroup(null)}><Text style={styles.cancelText}>Close</Text></TouchableOpacity>
-              <TouchableOpacity style={[styles.reportSubmitButton, styles.patientReportAction]} disabled={downloadingReport} onPress={() => downloadPatientReport()}>
-                {downloadingReport ? <ActivityIndicator size="small" color="#fff" /> : <Download size={16} color="#fff" />}
-                <Text style={styles.primaryText}>{downloadingReport ? 'Preparing PDF…' : 'Download Report'}</Text>
+              <View style={[styles.patientReportActionsRow, compactReportActions && styles.patientReportActionsRowCompact]}>
+              <TouchableOpacity style={[styles.reportCancelButton, styles.patientReportCloseAction, compactReportActions && styles.patientReportActionCompact]} onPress={() => setSelectedPatientGroup(null)}>
+                <X size={15} color="#334155" />
+                <Text maxFontSizeMultiplier={1.15} numberOfLines={1} adjustsFontSizeToFit style={styles.cancelText}>Close</Text>
               </TouchableOpacity>
+              <TouchableOpacity style={[styles.reportSubmitButton, styles.patientReportDownloadAction, compactReportActions && styles.patientReportActionCompact]} disabled={downloadingReport} onPress={() => downloadPatientReport()}>
+                {downloadingReport ? <ActivityIndicator size="small" color="#fff" /> : <Download size={16} color="#fff" />}
+                <Text maxFontSizeMultiplier={1.15} numberOfLines={1} adjustsFontSizeToFit style={styles.primaryText}>{downloadingReport ? 'Preparing PDF…' : 'Download Report'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.reportSubmitButton, styles.patientReportPrintAction, compactReportActions && styles.patientReportActionCompact]} disabled={printingReport} onPress={() => void printPatientReport()}>
+                {printingReport ? <ActivityIndicator size="small" color="#fff" /> : <Printer size={16} color="#fff" />}
+                <Text maxFontSizeMultiplier={1.15} numberOfLines={1} adjustsFontSizeToFit style={styles.primaryText}>{printingReport ? 'Opening…' : 'Print Report'}</Text>
+              </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>

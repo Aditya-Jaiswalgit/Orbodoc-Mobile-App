@@ -1,14 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { styles } from './styles/NotificationsCenterScreen.styles';
 // Exact Web Mobile Responsive Parity - Notifications Center
 import { AppModal } from '../../components/common/AppModal';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   Switch,
   Text,
   TextInput,
@@ -19,16 +17,15 @@ import {
   Bell,
   CheckCircle2,
   ChevronDown,
-  Megaphone,
   Search,
   Trash2,
   X,
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { PatientHeader } from '../../components/common/PatientHeader';
 import { RefreshButton } from '../../components/common/RefreshButton';
 import { useAuthContext } from '../../context/AuthContext';
 import {
-  broadcastNotification,
   clearMyNotifications,
   fetchMyClinicOptions,
   fetchMyNotifications,
@@ -40,7 +37,6 @@ import {
   markAllNotificationsAsRead,
   markNotificationAsRead,
   updateNotificationSubscriptions,
-  type BroadcastPayload,
   type NotificationCategoryItem,
   type NotificationClinicOption,
   type NotificationInboxItem,
@@ -50,12 +46,13 @@ import {
 } from '../../api/notificationApi';
 import { getMobileNotificationDestination } from '../../utils/notificationNavigation';
 import { navigateStaffScreen } from '../../utils/navigationEvents';
-import { showSuccessToast } from '../../utils/toast';
+import { showErrorToast, showSuccessToast } from '../../utils/toast';
 import { canUseStaffScreen } from '../../navigation/staffAccess';
 
 interface Props {
   onOpenDrawer: () => void;
   onNavigateScreen?: (screen: string) => void;
+  patientMode?: boolean;
 }
 
 type TabKey = 'history' | 'category' | 'subscriptions';
@@ -95,6 +92,32 @@ const getSubscriptionRowKey = (item: NotificationSubscriptionItem, index: number
 const getSubscriptionMessage = (item: NotificationSubscriptionItem) =>
   String(item.message || '').trim() || String(item.description || '').trim() || '-';
 
+const fetchSubscriptionsAcrossClinics = async (clinics: NotificationClinicOption[]) => {
+  if (!clinics.length) {
+    const result = await fetchNotificationSubscriptions();
+    return result.success ? result.data?.subscriptions || [] : [];
+  }
+  const results = await Promise.allSettled(
+    clinics.map(clinic => fetchNotificationSubscriptions({ clinicId: clinic.id })),
+  );
+  return results.flatMap(result =>
+    result.status === 'fulfilled' && result.value.success
+      ? result.value.data?.subscriptions || []
+      : [],
+  );
+};
+
+const fetchSubscriptionsForClinicFilter = async (
+  clinicId: string,
+  clinics: NotificationClinicOption[],
+) => {
+  if (clinicId !== 'all') {
+    const result = await fetchNotificationSubscriptions({ clinicId });
+    return result.success ? result.data?.subscriptions || [] : [];
+  }
+  return fetchSubscriptionsAcrossClinics(clinics);
+};
+
 const prettifyRoleName = (name?: string) => {
   if (!name) return '-';
   return name
@@ -106,6 +129,7 @@ const prettifyRoleName = (name?: string) => {
 export const NotificationsCenterScreen: React.FC<Props> = ({
   onOpenDrawer,
   onNavigateScreen = navigateStaffScreen,
+  patientMode = false,
 }) => {
   const { user, role, activeClinicId, permissionsMap = {} } = useAuthContext();
   const isSuperAdmin = role === 'super_admin';
@@ -130,6 +154,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
   const [roles, setRoles] = useState<UserRoleRecord[]>([]);
   const [clinicOptions, setClinicOptions] = useState<NotificationClinicOption[]>([]);
   const [subscriptions, setSubscriptions] = useState<NotificationSubscriptionItem[]>([]);
+  const [subscriptionReloadKey, setSubscriptionReloadKey] = useState(0);
   const [logs, setLogs] = useState<NotificationLogItem[]>([]);
 
   // Filter states - History
@@ -158,12 +183,6 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
   const [subRoleModalVisible, setSubRoleModalVisible] = useState(false);
   const [logRoleModalVisible, setLogRoleModalVisible] = useState(false);
 
-  // Broadcast Modal
-  const [broadcastModalVisible, setBroadcastModalVisible] = useState(false);
-  const [broadcastTitle, setBroadcastTitle] = useState('');
-  const [broadcastMessage, setBroadcastMessage] = useState('');
-  const [broadcastCategory, setBroadcastCategory] = useState<number | null>(null);
-  const [broadcastTarget, setBroadcastTarget] = useState<'all' | 'staff' | 'patients'>('all');
 
   // Load data
   const loadData = useCallback(async () => {
@@ -191,10 +210,9 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
       }
 
       if (canManageNotificationAdmin) {
-        const [catResult, logsResult, subResult] = await Promise.allSettled([
+        const [catResult, logsResult] = await Promise.allSettled([
           fetchNotificationCategories(),
           fetchNotificationLogs(),
-          fetchNotificationSubscriptions(),
         ]);
 
         if (catResult.status === 'fulfilled' && catResult.value.success) {
@@ -202,14 +220,6 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
         }
         if (logsResult.status === 'fulfilled' && logsResult.value.success) {
           setLogs(logsResult.value.data?.data || []);
-        }
-        if (subResult.status === 'fulfilled' && subResult.value.success) {
-          setSubscriptions(subResult.value.data?.subscriptions || []);
-        }
-      } else {
-        const subResult = await fetchNotificationSubscriptions().catch(() => null);
-        if (subResult?.success) {
-          setSubscriptions(subResult.data?.subscriptions || []);
         }
       }
     } catch {
@@ -224,8 +234,17 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
     void loadData();
   }, [loadData, activeClinicId]);
 
+  useEffect(() => {
+    let active = true;
+    fetchSubscriptionsForClinicFilter(subscriptionClinicFilter, clinicOptions)
+      .then(rows => { if (active) setSubscriptions(rows); })
+      .catch(() => { if (active) setSubscriptions([]); });
+    return () => { active = false; };
+  }, [clinicOptions, subscriptionClinicFilter, subscriptionReloadKey]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
+    setSubscriptionReloadKey(value => value + 1);
     void loadData();
   }, [loadData]);
 
@@ -362,15 +381,14 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
 
   // Actions
   const handleNotificationOpen = async (item: NotificationInboxItem) => {
-    if (!boolFromApi(item.is_read)) {
+    if (!boolFromApi(item.is_read) && canEditNotifications) {
       try {
-        await markNotificationAsRead(item.not_rec_id);
-        setHistory(prev =>
-          prev.map(n => (n.not_rec_id === item.not_rec_id ? { ...n, is_read: 1 } : n)),
-        );
+        const response = await markNotificationAsRead(item.not_rec_id);
+        if (!response.success) throw new Error(response.message);
+        setHistory(prev => prev.map(n => (n.not_rec_id === item.not_rec_id ? { ...n, is_read: 1 } : n)));
         setUnreadCount(prev => Math.max(0, prev - 1));
-      } catch {
-        // quiet
+      } catch (error) {
+        showErrorToast('Failed to mark notification', error instanceof Error ? error.message : 'Please try again.');
       }
     }
     const destination = getMobileNotificationDestination(item, { role, currentUserId });
@@ -380,7 +398,8 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
   const handleMarkAllRead = async () => {
     try {
       setSaving(true);
-      await markAllNotificationsAsRead();
+      const response = await markAllNotificationsAsRead();
+      if (!response.success) throw new Error(response.message);
       setHistory(prev => prev.map(n => ({ ...n, is_read: 1 })));
       setUnreadCount(0);
       showSuccessToast('All Read', 'All notifications marked as read.');
@@ -400,7 +419,8 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
         onPress: async () => {
           try {
             setSaving(true);
-            await clearMyNotifications();
+            const response = await clearMyNotifications();
+            if (!response.success) throw new Error(response.message);
             setHistory([]);
             setUnreadCount(0);
             showSuccessToast('Cleared', 'Notification history cleared.');
@@ -438,10 +458,11 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
         is_subscribed: (subscriptionDraft[getSubscriptionRowKey(item, index)] ? 1 : 0) as 0 | 1,
       }));
 
-      await updateNotificationSubscriptions(payload);
+      const response = await updateNotificationSubscriptions(payload);
+      if (!response.success) throw new Error(response.message);
       setSelectedSubscriptionUserKey(null);
       showSuccessToast('Updated', 'User subscriptions updated successfully.');
-      void loadData();
+      setSubscriptionReloadKey(value => value + 1);
     } catch {
       Alert.alert('Error', 'Failed to update subscriptions.');
     } finally {
@@ -449,37 +470,11 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
     }
   };
 
-  const handleBroadcast = async () => {
-    if (!broadcastTitle.trim() || !broadcastMessage.trim() || !broadcastCategory || !activeClinicId) {
-      Alert.alert('Missing Details', 'Please select a category and fill in title and message.');
-      return;
-    }
-    try {
-      setSaving(true);
-      const payload: BroadcastPayload = {
-        title: broadcastTitle.trim(),
-        message: broadcastMessage.trim(),
-        not_cat_id: broadcastCategory,
-        clinic_id: activeClinicId,
-        target: broadcastTarget,
-      };
-      await broadcastNotification(payload);
-      setBroadcastModalVisible(false);
-      setBroadcastTitle('');
-      setBroadcastMessage('');
-      setBroadcastCategory(null);
-      showSuccessToast('Announcement Sent', 'Broadcast notification dispatched.');
-      void loadData();
-    } catch {
-      Alert.alert('Error', 'Broadcast failed. Please retry.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   return (
     <View style={styles.container}>
-      <StaffHeader onOpenDrawer={onOpenDrawer} title="Notification Management" hideClinicBanner={true} />
+      {patientMode
+        ? <PatientHeader onOpenDrawer={onOpenDrawer} unreadCount={unreadCount} />
+        : <StaffHeader onOpenDrawer={onOpenDrawer} title="Notification Management" hideClinicBanner={true} />}
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -545,16 +540,14 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                 </View>
 
                 {/* Buttons (Exact Web RBAC Match: Controlled by canEdit and canDelete) */}
-                {canEditNotifications && (
-                  <TouchableOpacity
+                <TouchableOpacity
                     style={styles.markAllReadButton}
                     activeOpacity={0.8}
                     disabled={saving || !unreadCount}
                     onPress={handleMarkAllRead}>
                     <CheckCircle2 size={18} color="#0f172a" style={{ marginRight: 8 }} />
                     <Text style={styles.markAllReadText}>Mark All Read</Text>
-                  </TouchableOpacity>
-                )}
+                </TouchableOpacity>
 
                 {canDeleteNotifications && (
                   <TouchableOpacity
@@ -1017,103 +1010,6 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
         </View>
       </AppModal>
 
-      {/* ═════════════════════════════════════════════════════════════════ */}
-      {/* MODAL 2: BROADCAST ANNOUNCEMENT */}
-      {/* ═════════════════════════════════════════════════════════════════ */}
-      <AppModal
-        visible={broadcastModalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => {
-          if (!saving) setBroadcastModalVisible(false);
-        }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}>
-          <View style={styles.dialogCard}>
-            <View style={styles.dialogHeader}>
-              <View style={{ flex: 1, paddingRight: 8 }}>
-                <Text style={styles.dialogTitle}>Broadcast Announcement</Text>
-                <Text style={styles.dialogSubtitle}>Send alert to all staff, patients, or everyone.</Text>
-              </View>
-              <TouchableOpacity onPress={() => setBroadcastModalVisible(false)} style={{ padding: 4 }}>
-                <X size={20} color="#64748b" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={{ padding: 16 }}>
-              <Text style={styles.fieldLabel}>Category *</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-                {categories.map(c => (
-                  <TouchableOpacity
-                    key={`b-cat-${c.not_cat_id}`}
-                    style={[styles.categoryChip, broadcastCategory === c.not_cat_id && styles.categoryChipActive]}
-                    onPress={() => setBroadcastCategory(c.not_cat_id)}>
-                    <Text
-                      style={[styles.categoryChipText, broadcastCategory === c.not_cat_id && styles.categoryChipTextActive]}>
-                      {c.not_cat_name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              <Text style={styles.fieldLabel}>Recipients Target</Text>
-              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
-                {(['all', 'staff', 'patients'] as const).map(target => (
-                  <TouchableOpacity
-                    key={`target-${target}`}
-                    style={[styles.targetChoiceBtn, broadcastTarget === target && styles.targetChoiceBtnActive]}
-                    onPress={() => setBroadcastTarget(target)}>
-                    <Text style={[styles.targetChoiceText, broadcastTarget === target && styles.targetChoiceTextActive]}>
-                      {target.toUpperCase()}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.fieldLabel}>Broadcast Title *</Text>
-              <TextInput
-                style={styles.dialogInput}
-                placeholder="Announcement Title"
-                placeholderTextColor="#94a3b8"
-                value={broadcastTitle}
-                onChangeText={setBroadcastTitle}
-              />
-
-              <Text style={styles.fieldLabel}>Message *</Text>
-              <TextInput
-                style={[styles.dialogInput, { height: 90, textAlignVertical: 'top' }]}
-                placeholder="Type broadcast message here..."
-                placeholderTextColor="#94a3b8"
-                multiline
-                numberOfLines={4}
-                value={broadcastMessage}
-                onChangeText={setBroadcastMessage}
-              />
-            </ScrollView>
-
-            <View style={styles.dialogFooter}>
-              <TouchableOpacity
-                style={styles.dialogCancelBtn}
-                disabled={saving}
-                onPress={() => setBroadcastModalVisible(false)}>
-                <Text style={styles.dialogCancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dialogSaveBtn, (!broadcastCategory || !broadcastTitle.trim()) && styles.disabledButton]}
-                disabled={saving || !broadcastCategory || !broadcastTitle.trim()}
-                onPress={handleBroadcast}>
-                {saving ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <Text style={styles.dialogSaveBtnText}>Send Broadcast</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </AppModal>
-
       {/* ─── Role Filter Picker Modal ─── */}
       <AppModal
         visible={roleModalVisible}
@@ -1286,688 +1182,6 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 110,
-  },
 
-  // 1. Page Header (Exact Screenshot)
-  pageHeader: {
-    marginBottom: 16,
-  },
-  pageTitle: {
-    fontSize: 27,
-    fontWeight: '900',
-    color: '#0f172a',
-    letterSpacing: -0.6,
-  },
-  pageSubtitle: {
-    fontSize: 13,
-    color: '#64748b',
-    marginTop: 6,
-    lineHeight: 18,
-  },
-
-  // 2. Vertical Tabs Stack (Exact Screenshot)
-  tabsStack: {
-    backgroundColor: '#cbd5e1',
-    borderRadius: 8,
-    padding: 3,
-    gap: 2,
-    marginBottom: 16,
-  },
-  tabItemBtn: {
-    paddingVertical: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 6,
-  },
-  tabItemBtnActive: {
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  tabItemText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#475569',
-    textAlign: 'center',
-  },
-  tabItemTextActive: {
-    color: '#0f172a',
-    fontWeight: '600',
-  },
-
-  // 3. Main White Card Container (Exact Screenshot)
-  mainWhiteCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    padding: 16,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.03,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  cardHeaderTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 12,
-  },
-
-  // Full-width Unread Strip (Exact Screenshot)
-  unreadStrip: {
-    backgroundColor: '#f1f5f9',
-    borderRadius: 8,
-    paddingVertical: 9,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-  },
-  unreadStripText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-
-  // Mark All Read Button (Exact Screenshot)
-  markAllReadButton: {
-    width: '100%',
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  markAllReadText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-
-  // Clear History Button (Exact Screenshot)
-  clearHistoryButton: {
-    width: '100%',
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#fecaca',
-    borderRadius: 8,
-    marginBottom: 14,
-  },
-  clearHistoryText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ef4444',
-  },
-
-  broadcastBannerBtn: {
-    width: '100%',
-    height: 42,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 8,
-    marginBottom: 14,
-  },
-  broadcastBannerText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-
-  // Search Box (Exact Screenshot)
-  searchBox: {
-    width: '100%',
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginBottom: 10,
-  },
-  searchInput: {
-    flex: 1,
-    height: 44,
-    fontSize: 14,
-    color: '#0f172a',
-  },
-
-  // Select Triggers (Exact Screenshot)
-  selectTriggerBox: {
-    width: '100%',
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    marginBottom: 10,
-  },
-  selectTriggerText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#334155',
-  },
-
-  // Notification Cards List
-  cardsList: {
-    gap: 12,
-  },
-
-  // Notification Card (Exact Screenshot: Cyan tint with border for unread)
-  notifCard: {
-    borderRadius: 16,
-    padding: 16,
-  },
-  notifCardUnread: {
-    backgroundColor: '#ecfeff',
-    borderWidth: 1,
-    borderColor: '#a5f3fc',
-  },
-  notifCardRead: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-
-  notifCardTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  notifCardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  notifCardDate: {
-    fontSize: 12,
-    color: '#64748b',
-    marginTop: 3,
-  },
-  notifPillBadge: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 9999,
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    alignSelf: 'flex-start',
-  },
-  notifPillBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  notifPillBadgeRead: {
-    backgroundColor: '#f1f5f9',
-    borderColor: 'transparent',
-  },
-  notifPillBadgeReadText: {
-    color: '#475569',
-  },
-  notifCardMessage: {
-    fontSize: 14,
-    color: '#334155',
-    lineHeight: 21,
-    marginTop: 12,
-    marginBottom: 14,
-  },
-
-  notifCardFooterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(226, 232, 240, 0.9)',
-  },
-  notifToLabel: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  notifToName: {
-    fontWeight: '600',
-    color: '#334155',
-  },
-  notifRolePill: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 9999,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  notifRolePillText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#334155',
-  },
-
-  // Loader & Empty States
-  loaderBox: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 13,
-    color: '#64748b',
-  },
-  emptyCard: {
-    paddingVertical: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderStyle: 'dashed',
-    borderRadius: 12,
-  },
-  emptyText: {
-    fontSize: 13,
-    color: '#94a3b8',
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-
-  // Section Header Flex
-  sectionHeaderFlex: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-
-  // Category Tab Styles (Exact Screenshot)
-  categoryCardBox: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    padding: 14,
-    marginBottom: 10,
-  },
-  categoryLine: {
-    fontSize: 14,
-    color: '#334155',
-    lineHeight: 20,
-  },
-  categoryLabel: {
-    fontWeight: '700',
-    color: '#1e293b',
-  },
-  categoryValue: {
-    fontWeight: '400',
-    color: '#334155',
-  },
-
-  // Subscriptions Tab Specifics (Exact Screenshot Match)
-  subUserCardBox: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
-    padding: 16,
-    marginBottom: 12,
-  },
-  subUserName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  subUserClinic: {
-    fontSize: 13,
-    color: '#64748b',
-    marginTop: 4,
-  },
-  subCardBodyBox: {
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
-  subCatLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748b',
-    letterSpacing: 0.5,
-  },
-  subCatText: {
-    fontSize: 14,
-    color: '#334155',
-    marginTop: 4,
-    lineHeight: 20,
-  },
-  systemPill: {
-    backgroundColor: '#1e293b',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 9999,
-  },
-  systemPillText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  activePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#bbf7d0',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 9999,
-  },
-  activePillText: {
-    color: '#047857',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  manageSubButton: {
-    height: 44,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 14,
-    backgroundColor: '#ffffff',
-  },
-  manageSubButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-
-  // Pagination Row
-  paginationRow: {
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    gap: 8,
-  },
-  paginationLabel: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  pageNavBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 6,
-    backgroundColor: '#ffffff',
-  },
-  pageNavBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#334155',
-  },
-  pageNavText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-
-  // Delivery Logs Specifics (Exact Screenshot Match)
-  deliveryLogCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
-    padding: 16,
-    marginBottom: 12,
-  },
-  logGridBox: {
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
-  logMetaLabel: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  logMetaVal: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginTop: 2,
-  },
-
-  // Modals Styling
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  dialogCard: {
-    width: '100%',
-    maxHeight: '90%',
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  dialogHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  dialogTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  dialogSubtitle: {
-    fontSize: 12,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  categoryGroupBox: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  categoryGroupTitle: {
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f8fafc',
-  },
-  toggleText: {
-    fontSize: 13,
-    color: '#334155',
-    flex: 1,
-    marginRight: 10,
-  },
-  dialogPaginationRow: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    gap: 8,
-  },
-  dialogFooter: {
-    flexDirection: 'row',
-    gap: 10,
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    backgroundColor: '#ffffff',
-  },
-  dialogCancelBtn: {
-    flex: 1,
-    height: 44,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
-  },
-  dialogCancelBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
-  },
-  dialogSaveBtn: {
-    flex: 1.4,
-    height: 44,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0f172a',
-  },
-  dialogSaveBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-
-  // Broadcast Modal Components
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#334155',
-    marginTop: 10,
-    marginBottom: 4,
-  },
-  categoryChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 6,
-    backgroundColor: '#f1f5f9',
-    marginRight: 8,
-  },
-  categoryChipActive: {
-    backgroundColor: '#0d9488',
-  },
-  categoryChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  categoryChipTextActive: {
-    color: '#ffffff',
-    fontWeight: '800',
-  },
-  targetChoiceBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 8,
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-  },
-  targetChoiceBtnActive: {
-    borderColor: '#0d9488',
-    backgroundColor: '#f0fdf4',
-  },
-  targetChoiceText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  targetChoiceTextActive: {
-    color: '#0d9488',
-    fontWeight: '800',
-  },
-  dialogInput: {
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#0f172a',
-    backgroundColor: '#ffffff',
-  },
-
-  // Filter Pickers
-  pickerBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  pickerCard: {
-    width: '100%',
-    maxWidth: 320,
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
-    padding: 16,
-    elevation: 10,
-  },
-  pickerHeaderTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 12,
-  },
-  pickerItemRow: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  pickerItemRowActive: {
-    backgroundColor: '#f0fdf4',
-  },
-  pickerItemText: {
-    fontSize: 14,
-    color: '#334155',
-    fontWeight: '600',
-  },
-});
 
 export default NotificationsCenterScreen;

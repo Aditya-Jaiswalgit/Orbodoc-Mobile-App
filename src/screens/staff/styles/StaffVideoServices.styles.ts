@@ -51,6 +51,8 @@ export const styles = StyleSheet.create({
   heroActionCol: {
     flex: 1,
   },
+  heroActionsStacked: { flexDirection: 'column' },
+  heroActionColStacked: { width: '100%', flex: undefined },
   refreshButton: {
     height: 40,
     borderRadius: 11,
