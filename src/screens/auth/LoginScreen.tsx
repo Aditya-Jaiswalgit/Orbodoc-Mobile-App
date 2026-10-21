@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -18,6 +18,10 @@ import { useAuth } from '../../hooks/useAuth';
 import { UserRoleType } from '../../types/auth';
 import { showErrorToast, showSuccessToast } from '../../utils/toast';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
+import { UserRound, BriefcaseMedical, ArrowLeft, WalletCards, Stethoscope, FlaskConical } from 'lucide-react-native';
+import { PublicRegistrationForm } from './PublicRegistrationForm';
+import { usePublicRegistration } from '../../hooks/usePublicRegistration';
+import { PublicPlanRegistrationFlow } from './PublicPlanRegistrationFlow';
 
 export const LoginScreen = () => {
   const insets = useSafeAreaInsets();
@@ -28,6 +32,11 @@ export const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [forgotModalVisible, setForgotModalVisible] = useState(false);
+  const [registrationKind, setRegistrationKind] = useState<'login' | 'choose' | 'patient' | 'doctor' | 'lab' | 'plans'>('login');
+  const screenScroll = useRef<any>(null);
+  const pendingRegistrationScroll = useRef(false);
+  const planReadyScrollDone = useRef(false);
+  const registration = usePublicRegistration();
 
   const { loading, error, clearError, loginStaff, loginPatient } = useAuth();
 
@@ -36,6 +45,33 @@ export const LoginScreen = () => {
       showErrorToast('Login Failed', error);
     }
   }, [error]);
+
+  useEffect(() => {
+    const initialOffset = registrationKind === 'login' ? 0 : 160;
+    pendingRegistrationScroll.current = registrationKind !== 'login';
+    planReadyScrollDone.current = false;
+    if (registrationKind === 'plans') return;
+    const timer = setTimeout(() => {
+      screenScroll.current?.scrollTo({ y: initialOffset, animated: false });
+      pendingRegistrationScroll.current = false;
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [registrationKind]);
+
+  const applyRegistrationScroll = () => {
+    if (!pendingRegistrationScroll.current || registrationKind === 'plans') return;
+    screenScroll.current?.scrollTo({ y: 160, animated: false });
+    pendingRegistrationScroll.current = false;
+  };
+
+  const applyPlanRegistrationScroll = () => {
+    if (!pendingRegistrationScroll.current || planReadyScrollDone.current) return;
+    planReadyScrollDone.current = true;
+    setTimeout(() => {
+      screenScroll.current?.scrollTo({ y: 160, animated: false });
+      pendingRegistrationScroll.current = false;
+    }, 100);
+  };
 
   const handleRoleChange = (role: UserRoleType) => {
     setActiveRole(role);
@@ -103,6 +139,8 @@ export const LoginScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}>
         <ScrollView
+          ref={screenScroll}
+          onContentSizeChange={applyRegistrationScroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
@@ -116,24 +154,14 @@ export const LoginScreen = () => {
             />
           </View>
 
-          {/* Role Segment Toggle */}
+          {registrationKind === 'login' ? <>
           <View style={styles.toggleContainer}>
             <TouchableOpacity
               activeOpacity={0.8}
-              style={[
-                styles.toggleButton,
-                activeRole === 'staff' && styles.toggleButtonActive,
-              ]}
+              style={[styles.toggleButton, activeRole === 'staff' && styles.toggleButtonActive]}
               onPress={() => handleRoleChange('staff')}>
-              <Text
-                style={[
-                  styles.toggleText,
-                  activeRole === 'staff' && styles.toggleTextActive,
-                ]}>
-                Staff Login
-              </Text>
+              <Text style={[styles.toggleText, activeRole === 'staff' && styles.toggleTextActive]}>Staff Login</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               activeOpacity={0.8}
               style={[
@@ -150,8 +178,6 @@ export const LoginScreen = () => {
               </Text>
             </TouchableOpacity>
           </View>
-
-          {/* Heading Section */}
           <View style={styles.headingContainer}>
             <Text style={styles.title}>
               {activeRole === 'staff' ? 'Staff Login' : 'Patient Login'}
@@ -162,8 +188,6 @@ export const LoginScreen = () => {
                 : 'Access your consultations, lab reports and treatment records.'}
             </Text>
           </View>
-
-          {/* Form Fields Container */}
           <View style={styles.formContainer}>
 
             {/* Error Banner */}
@@ -182,7 +206,7 @@ export const LoginScreen = () => {
                 </Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="superadmin@arogya.clinic"
+                  placeholder="Enter your registered email"
                   placeholderTextColor="#94a3b8"
                   value={email}
                   onChangeText={text => {
@@ -201,7 +225,7 @@ export const LoginScreen = () => {
                 </Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter 10-digit mobile number"
+                  placeholder="Enter your registered mobile number"
                   placeholderTextColor="#94a3b8"
                   value={phone}
                   onChangeText={text => {
@@ -222,7 +246,7 @@ export const LoginScreen = () => {
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
-                  placeholder="Password@123"
+                  placeholder="Enter your password"
                   placeholderTextColor="#94a3b8"
                   value={password}
                   onChangeText={text => {
@@ -266,6 +290,53 @@ export const LoginScreen = () => {
               )}
             </TouchableOpacity>
           </View>
+          <TouchableOpacity style={styles.signupLink} onPress={() => setRegistrationKind('choose')} activeOpacity={0.8}>
+            <Text style={styles.signupPrompt}>Want to Join? </Text><Text style={styles.signupLinkText}>Explore options</Text>
+          </TouchableOpacity>
+          </> : <>
+            <TouchableOpacity style={styles.backToLogin} onPress={() => setRegistrationKind('login')} activeOpacity={0.8}>
+              <ArrowLeft size={18} color="#0d9488" /><Text style={styles.backToLoginText}>Back to sign in</Text>
+            </TouchableOpacity>
+            {registrationKind === 'choose' ? <View style={styles.registrationChoices}>
+              <Text style={styles.choiceTitle}>Want to Join?</Text>
+              <Text style={styles.choiceSubtitle}>Choose how you would like to join OrboDoc.</Text>
+              <TouchableOpacity style={styles.choiceCard} onPress={() => { registration.setError(''); setRegistrationKind('plans'); }}>
+                <View style={styles.choiceIcon}><WalletCards size={21} color="#059669" /></View><View style={styles.choiceText}><Text style={styles.choiceLabel}>Buy a Plan</Text><Text style={styles.choiceDescription}>Explore clinic plans and pricing</Text></View><Text style={styles.choiceArrow}>›</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.choiceCard} onPress={() => { registration.setError(''); setRegistrationKind('doctor'); }}>
+                <View style={styles.choiceIcon}><Stethoscope size={21} color="#059669" /></View><View style={styles.choiceText}><Text style={styles.choiceLabel}>Register as Doctor</Text><Text style={styles.choiceDescription}>Apply for independent teleconsultation</Text></View><Text style={styles.choiceArrow}>›</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.choiceCard} onPress={() => { registration.setError(''); setRegistrationKind('patient'); }}>
+                <View style={styles.choiceIcon}><UserRound size={21} color="#059669" /></View><View style={styles.choiceText}><Text style={styles.choiceLabel}>Register as Patient</Text><Text style={styles.choiceDescription}>Create a patient portal account</Text></View><Text style={styles.choiceArrow}>›</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.choiceCard} onPress={() => { registration.setError(''); setRegistrationKind('lab'); }}>
+                <View style={styles.choiceIcon}><FlaskConical size={21} color="#059669" /></View><View style={styles.choiceText}><Text style={styles.choiceLabel}>Register as Lab</Text><Text style={styles.choiceDescription}>Create a diagnostic lab profile</Text></View><Text style={styles.choiceArrow}>›</Text>
+              </TouchableOpacity>
+            </View> : registrationKind === 'plans' ? <PublicPlanRegistrationFlow
+              states={registration.states}
+              cities={registration.cities}
+              selectedStateId={registration.selectedStateId}
+              locationsLoading={registration.locationsLoading}
+              citiesLoading={registration.citiesLoading}
+              onSelectState={registration.selectState}
+              onReady={applyPlanRegistrationScroll}
+              onBack={() => setRegistrationKind('login')}
+            /> : <PublicRegistrationForm
+              kind={registrationKind}
+              states={registration.states}
+              cities={registration.cities}
+              selectedStateId={registration.selectedStateId}
+              locationsLoading={registration.locationsLoading}
+              citiesLoading={registration.citiesLoading}
+              submitting={registration.submitting}
+              error={registration.error}
+              onSelectState={registration.selectState}
+              onSubmitPatient={registration.submitPatient}
+              onSubmitDoctor={registration.submitDoctor}
+              onSubmitLab={registration.submitLab}
+              onBackToLogin={() => setRegistrationKind('login')}
+            />}
+          </>}
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -347,6 +418,20 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '700',
   },
+  signupLink: { flexDirection: 'row', justifyContent: 'center', paddingVertical: 20 },
+  signupPrompt: { color: '#64748b', fontSize: 14 },
+  signupLinkText: { color: '#059669', fontSize: 14, fontWeight: '800' },
+  backToLogin: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 7, paddingVertical: 8, marginBottom: 14 },
+  backToLoginText: { color: '#0d9488', fontSize: 14, fontWeight: '700' },
+  registrationChoices: { backgroundColor: '#fff', borderRadius: 22, borderWidth: 1, borderColor: '#e2e8f0', padding: 20, marginTop: 8 },
+  choiceTitle: { color: '#0f172a', fontSize: 23, fontWeight: '800' },
+  choiceSubtitle: { color: '#64748b', fontSize: 14, marginTop: 5, marginBottom: 20 },
+  choiceCard: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 76, padding: 13, borderWidth: 1, borderColor: '#dbe7e5', borderRadius: 15, marginBottom: 12, backgroundColor: '#fbfefd' },
+  choiceIcon: { width: 42, height: 42, borderRadius: 13, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center' },
+  choiceText: { flex: 1 },
+  choiceLabel: { color: '#0f172a', fontSize: 15, fontWeight: '800' },
+  choiceDescription: { color: '#64748b', fontSize: 12, marginTop: 3 },
+  choiceArrow: { color: '#0d9488', fontSize: 26, fontWeight: '600' },
   headingContainer: {
     marginBottom: 20,
   },
