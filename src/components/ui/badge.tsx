@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '600',
     color: '#475569',
   },

@@ -33,9 +33,9 @@ const styles = StyleSheet.create({
   icon: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#E6F7F5', alignItems: 'center', justifyContent: 'center' },
   compactIcon: { width: 38, height: 38, borderRadius: 12 },
   copy: { flex: 1, minWidth: 0 },
-  title: { color: '#0F172A', fontSize: 21, lineHeight: 27, fontWeight: '800' },
-  compactTitle: { fontSize: 20, lineHeight: 25 },
-  subtitle: { color: '#64748B', fontSize: 12, lineHeight: 18, marginTop: 2 },
+  title: { fontFamily: 'Inter', color: '#0F172A', fontSize: 20, lineHeight: 27, fontWeight: '800' },
+  compactTitle: { fontFamily: 'Inter', fontSize: 20, lineHeight: 25 },
+  subtitle: { fontFamily: 'Inter', color: '#64748B', fontSize: 14, lineHeight: 18, marginTop: 2 },
   action: { flexShrink: 0, alignSelf: 'center' },
 });
 

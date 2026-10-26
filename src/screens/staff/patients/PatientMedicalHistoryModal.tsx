@@ -130,7 +130,7 @@ function createLabReportHtml(
     .map((row, index) => `<tr><td>${escapeHtml(report.test_name || '-')}</td><td>${escapeHtml(reportId)}</td><td>${escapeHtml(row.name || '-')}</td><td>${escapeHtml(row.value || '-')}</td><td>${escapeHtml(row.unit || '-')}</td><td>${escapeHtml(row.range || report.reference_range || '-')}</td><td>${escapeHtml(statusText)}</td><td>${escapeHtml(uploadedAt)}</td><td class="right">${index === 0 ? `₹ ${price.toFixed(2)}` : ''}</td></tr>`)
     .join('');
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(clinicName)} - Lab Report #${escapeHtml(reportId)}</title><style>
-  *{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:18px;color:#0f172a;background:#f8fafc}.page{border:1px solid #0d9488;background:#fff}.header{border-bottom:1px solid #0d9488;padding:18px;text-align:center}.header h1{margin:0;font-size:28px;text-transform:capitalize}.subtitle{margin:6px 0 0;color:#0f766e;font-size:16px;font-weight:700}.generated{margin:6px 0 0;font-size:13px}.info{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #0d9488}.info-card{padding:14px;border-right:1px solid #e2e8f0}.info-card:last-child{border-right:none}.info-card p{margin:6px 0;font-size:14px}.table-wrap{padding:14px 20px}table{width:100%;border-collapse:collapse;table-layout:fixed}th{border:1px solid #0d9488;padding:8px 5px;text-align:left;font-size:10px;color:#64748b;overflow-wrap:anywhere}td{border:1px solid #cbd5e1;padding:8px 5px;font-size:11px;vertical-align:top;overflow-wrap:anywhere}.right{text-align:right}.total td{font-weight:700}.remarks{margin:12px 20px 16px;border:1px solid #0d9488;padding:12px}.remarks h3{margin:0 0 8px;color:#0f766e;font-size:16px}.remarks p{margin:0;font-size:15px;white-space:pre-wrap}.foot{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #0d9488;padding:12px 20px;color:#0f766e;font-size:12px;overflow-wrap:anywhere}@page{size:A4;margin:12mm}@media print{body{margin:0;background:#fff}.page{border:none}.table-wrap{padding:12px 14px}th,td{font-size:9px;padding:6px 4px}}
+  *{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:18px;color:#0f172a;background:#f8fafc}.page{border:1px solid #27a599;background:#fff}.header{border-bottom:1px solid #27a599;padding:18px;text-align:center}.header h1{margin:0;font-size:28px;text-transform:capitalize}.subtitle{margin:6px 0 0;color:#1d7c72;font-size:16px;font-weight:700}.generated{margin:6px 0 0;font-size:13px}.info{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #27a599}.info-card{padding:14px;border-right:1px solid #e2e8f0}.info-card:last-child{border-right:none}.info-card p{margin:6px 0;font-size:14px}.table-wrap{padding:14px 20px}table{width:100%;border-collapse:collapse;table-layout:fixed}th{border:1px solid #27a599;padding:8px 5px;text-align:left;font-size:10px;color:#64748b;overflow-wrap:anywhere}td{border:1px solid #cbd5e1;padding:8px 5px;font-size:11px;vertical-align:top;overflow-wrap:anywhere}.right{text-align:right}.total td{font-weight:700}.remarks{margin:12px 20px 16px;border:1px solid #27a599;padding:12px}.remarks h3{margin:0 0 8px;color:#1d7c72;font-size:16px}.remarks p{margin:0;font-size:15px;white-space:pre-wrap}.foot{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #27a599;padding:12px 20px;color:#1d7c72;font-size:12px;overflow-wrap:anywhere}@page{size:A4;margin:12mm}@media print{body{margin:0;background:#fff}.page{border:none}.table-wrap{padding:12px 14px}th,td{font-size:9px;padding:6px 4px}}
   </style></head><body><main class="page"><header class="header"><h1>${escapeHtml(clinicName)}</h1><p class="subtitle">Lab Diagnostic Report</p><p class="generated">Generated on: ${escapeHtml(uploadedAt)}</p></header><section class="info"><div class="info-card"><p><b>Patient Name:</b> ${escapeHtml(patientName)}</p><p><b>Patient ID:</b> ${escapeHtml(patientId)}</p><p><b>Patient Code:</b> ${escapeHtml(patientCode)}</p></div><div class="info-card"><p><b>Referred Doctor(s):</b> ${escapeHtml(report.doctor_name || '-')}</p><p><b>Technician:</b> ${escapeHtml(report.technician_name || '-')}</p><p><b>Total Price:</b> ₹ ${price.toFixed(2)}</p></div></section><section class="table-wrap"><table><thead><tr><th>Test Name</th><th>Report ID</th><th>Parameter</th><th>Value</th><th>Unit</th><th>Reference Range</th><th>Status</th><th>Uploaded At</th><th class="right">Price</th></tr></thead><tbody>${bodyRows}<tr class="total"><td colspan="8" class="right">Total</td><td class="right">₹ ${price.toFixed(2)}</td></tr></tbody></table></section><section class="remarks"><h3>Remarks</h3><p>${escapeHtml(report.remarks || '-')}</p></section><footer class="foot"><span>Clinic: ${escapeHtml(clinicName)}</span><span>Patient: ${escapeHtml(patientName)} (${escapeHtml(patientId)})</span></footer></main></body></html>`;
 }
 
@@ -273,9 +273,9 @@ function createHistoryPdfHtml(
     html,body{margin:0;background:#f8fafc;color:#0f172a;font:13px Arial,Helvetica,sans-serif}body{padding:18px}
     .page{max-width:820px;margin:0 auto;background:#f8fafc}.hero{display:flex;align-items:center;gap:14px;padding:20px 22px;background:#020617;color:#fff;border-radius:18px 18px 0 0;border-bottom:3px solid #14b8a6}
     .mark{display:grid;place-items:center;width:46px;height:46px;border-radius:15px;background:#2dd4bf;color:#071522;font-size:24px;font-weight:bold}.hero h1{margin:0;font-size:21px;letter-spacing:-.4px}.hero p{margin:5px 0 0;color:#cbd5e1;font-size:11px}.meta-line{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.code{padding:3px 8px;border:1px solid #2dd4bf55;border-radius:20px;background:#2dd4bf1a;color:#99f6e4;font-size:9px}
-    .filters{display:flex;gap:8px;padding:12px;background:white;border-bottom:1px solid #e2e8f0}.search,.filter{padding:9px 11px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;color:#64748b;font-size:11px}.search{flex:1}.content{padding:18px 14px}.section{margin-bottom:22px}.section-title{display:flex;align-items:center;gap:10px;margin:0 0 12px}.section-icon{display:grid;place-items:center;width:34px;height:34px;border:1px solid #ccfbf1;border-radius:11px;background:#f0fdfa;color:#0d9488;font-weight:bold}.section-title h2{margin:0;font-size:14px}.section-title p{margin:3px 0 0;color:#64748b;font-size:10px}.count{margin-left:auto;padding:5px 8px;border-radius:18px;background:#f1f5f9;color:#64748b;font-size:10px}
+    .filters{display:flex;gap:8px;padding:12px;background:white;border-bottom:1px solid #e2e8f0}.search,.filter{padding:9px 11px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;color:#64748b;font-size:11px}.search{flex:1}.content{padding:18px 14px}.section{margin-bottom:22px}.section-title{display:flex;align-items:center;gap:10px;margin:0 0 12px}.section-icon{display:grid;place-items:center;width:34px;height:34px;border:1px solid #ccfbf1;border-radius:11px;background:#f0fdfa;color:#27a599;font-weight:bold}.section-title h2{margin:0;font-size:14px}.section-title p{margin:3px 0 0;color:#64748b;font-size:10px}.count{margin-left:auto;padding:5px 8px;border-radius:18px;background:#f1f5f9;color:#64748b;font-size:10px}
     .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.summary .info{min-height:72px;padding:12px;border:1px solid #e2e8f0;border-radius:14px;background:white;box-shadow:0 1px 2px #0f172a0a}.info b,.detail b{display:block;margin-bottom:5px;color:#94a3b8;font-size:9px;font-weight:bold;letter-spacing:.08em;text-transform:uppercase}.info span,.detail span{font-size:11px;font-weight:600;line-height:1.45}
-    .record{margin:10px 0;overflow:hidden;border:1px solid #e2e8f0;border-radius:16px;background:white;box-shadow:0 1px 2px #0f172a0a}.record-head{padding:14px 16px;border-bottom:1px solid #f1f5f9;background:linear-gradient(90deg,#f0fdfa,#fff)}.record-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.record-title strong{font-size:13px}.badge{padding:4px 8px;border-radius:20px;background:#d1fae5;color:#047857;font-size:8px;font-weight:bold;text-transform:uppercase}.badge.abnormal{background:#ffe4e6;color:#be123c}.meta{margin-top:6px;color:#64748b;font-size:10px}.prescription{display:inline-block;margin-top:8px;padding:5px 8px;border:1px solid #ccfbf1;border-radius:15px;color:#0f766e;font-size:9px}.record-body{padding:14px 16px}.note{margin-bottom:10px;padding:10px 12px;border:1px solid #fef3c7;border-radius:11px;background:#fffbeb;color:#78350f;font-size:11px;line-height:1.5}.details{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.detail{padding:10px 11px;border-radius:11px;background:#f8fafc}.medicine{margin-top:11px;overflow:hidden;border:1px solid #e2e8f0;border-radius:12px}.medicine-head{padding:10px 12px;border-bottom:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:bold}.medicine-head span{float:right;color:#64748b}.medicine-row{padding:11px 12px;border-bottom:1px solid #f1f5f9;font-size:11px}.medicine-row p{margin:4px 0;color:#64748b}.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.chips span{padding:5px 8px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc;color:#64748b;font-size:9px}
+    .record{margin:10px 0;overflow:hidden;border:1px solid #e2e8f0;border-radius:16px;background:white;box-shadow:0 1px 2px #0f172a0a}.record-head{padding:14px 16px;border-bottom:1px solid #f1f5f9;background:linear-gradient(90deg,#f0fdfa,#fff)}.record-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.record-title strong{font-size:13px}.badge{padding:4px 8px;border-radius:20px;background:#d1fae5;color:#047857;font-size:8px;font-weight:bold;text-transform:uppercase}.badge.abnormal{background:#ffe4e6;color:#be123c}.meta{margin-top:6px;color:#64748b;font-size:10px}.prescription{display:inline-block;margin-top:8px;padding:5px 8px;border:1px solid #ccfbf1;border-radius:15px;color:#1d7c72;font-size:9px}.record-body{padding:14px 16px}.note{margin-bottom:10px;padding:10px 12px;border:1px solid #fef3c7;border-radius:11px;background:#fffbeb;color:#78350f;font-size:11px;line-height:1.5}.details{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.detail{padding:10px 11px;border-radius:11px;background:#f8fafc}.medicine{margin-top:11px;overflow:hidden;border:1px solid #e2e8f0;border-radius:12px}.medicine-head{padding:10px 12px;border-bottom:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:bold}.medicine-head span{float:right;color:#64748b}.medicine-row{padding:11px 12px;border-bottom:1px solid #f1f5f9;font-size:11px}.medicine-row p{margin:4px 0;color:#64748b}.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.chips span{padding:5px 8px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc;color:#64748b;font-size:9px}
     .report-meta{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:13px}.table-title{display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:12px}.table-title small{color:#64748b;font-size:9px;font-weight:normal}.table-title span{margin-left:auto;padding:6px 9px;border-radius:10px;background:#f1f5f9;color:#475569;font-size:9px}table{width:100%;border-collapse:collapse;font-size:9px}th,td{padding:8px 7px;border:1px solid #e2e8f0;text-align:left}th{background:#f8fafc;color:#64748b;font-size:8px;text-transform:uppercase}td{color:#334155}.remarks{margin-top:11px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:11px;background:#f8fafc;color:#475569;font-size:10px;line-height:1.5}.remarks b{color:#94a3b8;font-size:8px;letter-spacing:.08em;text-transform:uppercase}.empty{padding:18px;border:1px dashed #cbd5e1;border-radius:12px;background:#fff;color:#64748b;text-align:center;font-size:11px}
     .footer{display:flex;justify-content:space-between;padding:11px 14px;border-top:1px solid #e2e8f0;background:white;color:#64748b;font-size:9px}
   </style></head><body><main class="page"><header class="hero"><div class="mark">â™¡</div><div><h1>Medical history</h1><p class="meta-line"><b>${escapeHtml(
@@ -332,7 +332,7 @@ function SummaryRow({
   return (
     <View style={styles.summaryRow}>
       <View style={styles.summaryIcon}>
-        <Icon size={16} color="#0D9488" />
+        <Icon size={16} color="#27A599" />
       </View>
       <View style={styles.summaryCopy}>
         <Text style={styles.eyebrow}>{title}</Text>
@@ -748,7 +748,7 @@ export function PatientMedicalHistoryModal({
                     medical records match
                   </Text>
                   <TouchableOpacity style={styles.reset} onPress={resetFilters}>
-                    <RotateCcw size={12} color="#0D9488" />
+                    <RotateCcw size={12} color="#27A599" />
                     <Text style={styles.resetText}>Reset filters</Text>
                   </TouchableOpacity>
                 </View>
@@ -765,7 +765,7 @@ export function PatientMedicalHistoryModal({
 
           {loading ? (
             <View style={styles.loading}>
-              <ActivityIndicator size="large" color="#0D9488" />
+              <ActivityIndicator size="large" color="#27A599" />
               <Text style={styles.sectionTitle}>
                 Loading medical history...
               </Text>
@@ -799,7 +799,7 @@ export function PatientMedicalHistoryModal({
                     Try changing your search, record type, or date filter.
                   </Text>
                   <TouchableOpacity onPress={resetFilters} style={styles.reset}>
-                    <RotateCcw size={13} color="#0D9488" />
+                    <RotateCcw size={13} color="#27A599" />
                     <Text style={styles.resetText}>Clear filters</Text>
                   </TouchableOpacity>
                 </View>
@@ -809,7 +809,7 @@ export function PatientMedicalHistoryModal({
                     <>
                       <View style={styles.sectionTitleRow}>
                         <View style={styles.sectionIcon}>
-                          <HeartPulse size={17} color="#0D9488" />
+                          <HeartPulse size={17} color="#27A599" />
                         </View>
                         <View style={styles.sectionCopy}>
                           <Text style={styles.sectionTitle}>
@@ -850,7 +850,7 @@ export function PatientMedicalHistoryModal({
                     <>
                       <View style={styles.sectionTitleRow}>
                         <View style={styles.sectionIcon}>
-                          <Stethoscope size={17} color="#0D9488" />
+                          <Stethoscope size={17} color="#27A599" />
                         </View>
                         <View style={styles.sectionCopy}>
                           <Text style={styles.sectionTitle}>Visit history</Text>
@@ -892,7 +892,7 @@ export function PatientMedicalHistoryModal({
                               </View>
                               {visit.prescription_id ? (
                                 <Text style={styles.prescriptionBadge}>
-                                  <FileText size={11} color="#0D9488" />{' '}
+                                  <FileText size={11} color="#27A599" />{' '}
                                   Prescription #{visit.prescription_id}
                                 </Text>
                               ) : null}
@@ -926,7 +926,7 @@ export function PatientMedicalHistoryModal({
                               {visit.medicines?.length ? (
                                 <View style={styles.subSection}>
                                   <View style={styles.subHeader}>
-                                    <Pill size={15} color="#0D9488" />
+                                    <Pill size={15} color="#27A599" />
                                     <Text style={styles.subTitle}>
                                       Prescribed medicines
                                     </Text>
@@ -977,7 +977,7 @@ export function PatientMedicalHistoryModal({
                     <>
                       <View style={styles.sectionTitleRow}>
                         <View style={styles.sectionIcon}>
-                          <FlaskConical size={17} color="#0D9488" />
+                          <FlaskConical size={17} color="#27A599" />
                         </View>
                         <View style={styles.sectionCopy}>
                           <Text style={styles.sectionTitle}>Lab reports</Text>
@@ -1041,7 +1041,7 @@ export function PatientMedicalHistoryModal({
                                   }
                                 >
                                   {expanded ? (
-                                    <ChevronUp size={14} color="#0D9488" />
+                                    <ChevronUp size={14} color="#27A599" />
                                   ) : (
                                     <Eye size={14} color="#475569" />
                                   )}
@@ -1060,7 +1060,7 @@ export function PatientMedicalHistoryModal({
                                   <View style={styles.reportPrintableCard}>
                                   <View style={styles.reportExpandedHeader}>
                                     <View style={styles.reportFileIcon}>
-                                      <FileText size={18} color="#0D9488" />
+                                      <FileText size={18} color="#27A599" />
                                     </View>
                                     <View style={styles.reportExpandedCopy}>
                                       <View style={styles.recordTitleRow}>
@@ -1081,14 +1081,14 @@ export function PatientMedicalHistoryModal({
                                       disabled={printing === String(report.lab_test_id)}
                                       style={styles.reportActionButton}
                                       onPress={() => void printReport(report)}>
-                                      {printing === String(report.lab_test_id) ? <ActivityIndicator size="small" color="#0D9488" /> : <Printer size={13} color="#475569" />}
+                                      {printing === String(report.lab_test_id) ? <ActivityIndicator size="small" color="#27A599" /> : <Printer size={13} color="#475569" />}
                                       <Text style={styles.reportActionText}>Print</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                       disabled={downloading === String(report.lab_test_id)}
                                       style={styles.reportActionButton}
                                       onPress={() => void reportPdf(report)}>
-                                      {downloading === String(report.lab_test_id) ? <ActivityIndicator size="small" color="#0D9488" /> : <Download size={13} color="#475569" />}
+                                      {downloading === String(report.lab_test_id) ? <ActivityIndicator size="small" color="#27A599" /> : <Download size={13} color="#475569" />}
                                       <Text style={styles.reportActionText}>Download</Text>
                                     </TouchableOpacity>
                                   </View>
@@ -1131,7 +1131,7 @@ export function PatientMedicalHistoryModal({
                                         <Text style={styles.recordMetaText}>{rows.length} parameters recorded</Text>
                                       </View>
                                       <View style={styles.resultTotalPill}>
-                                        <IndianRupee size={13} color="#0D9488" />
+                                        <IndianRupee size={13} color="#27A599" />
                                         <Text style={styles.recordMetaText}>Total:</Text>
                                         <Text style={styles.resultTotalValue}>{Number(report.price || 0).toFixed(2)}</Text>
                                       </View>
@@ -1206,7 +1206,7 @@ export function PatientMedicalHistoryModal({
                 disabled={!history || printing === 'history'}
                 style={styles.downloadButton}
                 onPress={() => void printHistory()}>
-                {printing === 'history' ? <ActivityIndicator size="small" color="#0D9488" /> : <Printer size={14} color="#475569" />}
+                {printing === 'history' ? <ActivityIndicator size="small" color="#27A599" /> : <Printer size={14} color="#475569" />}
                 <Text style={styles.downloadButtonText}>Print</Text>
               </TouchableOpacity>
             ) : null}
@@ -1217,7 +1217,7 @@ export function PatientMedicalHistoryModal({
                 onPress={() => void downloadHistoryPdf()}
               >
                 {downloading === 'history' ? (
-                  <ActivityIndicator size="small" color="#0D9488" />
+                  <ActivityIndicator size="small" color="#27A599" />
                 ) : (
                   <Download size={14} color="#475569" />
                 )}
@@ -1269,7 +1269,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2DD4BF',
   },
   headerCopy: { flex: 1, minWidth: 0 },
-  title: { color: '#FFFFFF', fontSize: 17, fontWeight: '800' },
+  title: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 20, fontWeight: '800' },
   patientMeta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1278,13 +1278,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   patientName: {
-    maxWidth: '48%',
+    fontFamily: 'Inter', maxWidth: '48%',
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '700',
   },
   codeBadge: {
-    overflow: 'hidden',
+    fontFamily: 'Inter', overflow: 'hidden',
     borderRadius: 10,
     paddingHorizontal: 7,
     paddingVertical: 3,
@@ -1293,7 +1293,7 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '700',
   },
-  patientAge: { color: '#CBD5E1', fontSize: 9 },
+  patientAge: { fontFamily: 'Inter', color: '#CBD5E1', fontSize: 9 },
   closeIcon: {
     position: 'absolute',
     right: 12,
@@ -1326,7 +1326,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: '#F8FAFC',
   },
-  searchInput: { flex: 1, paddingVertical: 5, color: '#334155', fontSize: 11 },
+  searchInput: { fontFamily: 'Inter', flex: 1, paddingVertical: 5, color: '#334155', fontSize: 11 },
   filterRow: { flexDirection: 'row', gap: 8 },
   filterCell: { zIndex: 10, flex: 1 },
   filterButton: {
@@ -1341,7 +1341,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: '#F8FAFC',
   },
-  filterText: { flex: 1, color: '#334155', fontSize: 10 },
+  filterText: { fontFamily: 'Inter', flex: 1, color: '#334155', fontSize: 10 },
   dropdown: {
     position: 'absolute',
     top: 40,
@@ -1368,9 +1368,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 5,
   },
-  filterNote: { color: '#64748B', fontSize: 9 },
+  filterNote: { fontFamily: 'Inter', color: '#64748B', fontSize: 9 },
   reset: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  resetText: { color: '#0D9488', fontSize: 9, fontWeight: '700' },
+  resetText: { fontFamily: 'Inter', color: '#27A599', fontSize: 9, fontWeight: '700' },
   content: { flex: 1 },
   contentInner: { gap: 10, padding: 12, paddingBottom: 20 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
@@ -1382,7 +1382,7 @@ const styles = StyleSheet.create({
     padding: 25,
   },
   emptyTitle: {
-    color: '#334155',
+    fontFamily: 'Inter', color: '#334155',
     fontSize: 13,
     fontWeight: '800',
     textAlign: 'center',
@@ -1405,10 +1405,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDFA',
   },
   sectionCopy: { flex: 1, minWidth: 0 },
-  sectionTitle: { color: '#0F172A', fontSize: 12, fontWeight: '800' },
-  sectionSubtitle: { marginTop: 2, color: '#64748B', fontSize: 9 },
+  sectionTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 18, fontWeight: '800' },
+  sectionSubtitle: { fontFamily: 'Inter', marginTop: 2, color: '#64748B', fontSize: 9 },
   countBadge: {
-    minWidth: 22,
+    fontFamily: 'Inter', minWidth: 22,
     height: 22,
     overflow: 'hidden',
     paddingHorizontal: 6,
@@ -1439,14 +1439,14 @@ const styles = StyleSheet.create({
   },
   summaryCopy: { flex: 1, minWidth: 0 },
   eyebrow: {
-    color: '#94A3B8',
-    fontSize: 8,
+    fontFamily: 'Inter', color: '#94A3B8',
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.7,
     textTransform: 'uppercase',
   },
   summaryValue: {
-    marginTop: 3,
+    fontFamily: 'Inter', marginTop: 3,
     color: '#1E293B',
     fontSize: 11,
     fontWeight: '600',
@@ -1473,9 +1473,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
   },
-  recordTitle: { color: '#0F172A', fontSize: 11, fontWeight: '800' },
+  recordTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 11, fontWeight: '800' },
   statusBadge: {
-    overflow: 'hidden',
+    fontFamily: 'Inter', overflow: 'hidden',
     borderRadius: 9,
     paddingHorizontal: 7,
     paddingVertical: 4,
@@ -1491,9 +1491,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 5,
   },
-  recordMetaText: { color: '#64748B', fontSize: 8 },
+  recordMetaText: { fontFamily: 'Inter', color: '#64748B', fontSize: 8 },
   prescriptionBadge: {
-    alignSelf: 'flex-start',
+    fontFamily: 'Inter', alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -1503,7 +1503,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#99F6E4',
-    color: '#0F766E',
+    color: '#1D7C72',
     fontSize: 8,
   },
   recordBody: { gap: 9, padding: 12 },
@@ -1519,7 +1519,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#FFFBEB',
   },
-  notesText: { flex: 1, color: '#78350F', fontSize: 10 },
+  notesText: { fontFamily: 'Inter', flex: 1, color: '#78350F', fontSize: 10 },
   detailBlock: {
     minHeight: 55,
     justifyContent: 'center',
@@ -1528,7 +1528,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#F8FAFC',
   },
-  detailValue: { color: '#1E293B', fontSize: 10, lineHeight: 15 },
+  detailValue: { fontFamily: 'Inter', color: '#1E293B', fontSize: 10, lineHeight: 15 },
   subSection: {
     overflow: 'hidden',
     borderWidth: 1,
@@ -1544,16 +1544,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#F1F5F9',
   },
-  subTitle: { color: '#1E293B', fontSize: 10, fontWeight: '800' },
+  subTitle: { fontFamily: 'Inter', color: '#1E293B', fontSize: 14, fontWeight: '800' },
   medicine: {
     gap: 3,
     padding: 10,
     borderBottomWidth: 1,
     borderColor: '#F1F5F9',
   },
-  medicineName: { color: '#0F172A', fontSize: 10, fontWeight: '800' },
-  medicineInfo: { color: '#64748B', fontSize: 8 },
-  emptyInline: { padding: 13, color: '#64748B', fontSize: 9 },
+  medicineName: { fontFamily: 'Inter', color: '#0F172A', fontSize: 10, fontWeight: '800' },
+  medicineInfo: { fontFamily: 'Inter', color: '#64748B', fontSize: 8 },
+  emptyInline: { fontFamily: 'Inter', padding: 13, color: '#64748B', fontSize: 9 },
   reportHead: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1569,7 +1569,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F3FF',
   },
   reportCopy: { flex: 1, minWidth: 0, gap: 4 },
-  reportType: { color: '#64748B', fontSize: 9 },
+  reportType: { fontFamily: 'Inter', color: '#64748B', fontSize: 9 },
   expandButton: {
     minHeight: 36,
     flexDirection: 'row',
@@ -1583,8 +1583,8 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: '#F8FAFC',
   },
-  expandText: { color: '#475569', fontSize: 10, fontWeight: '700' },
-  expandTextActive: { color: '#0D9488' },
+  expandText: { fontFamily: 'Inter', color: '#475569', fontSize: 10, fontWeight: '700' },
+  expandTextActive: { color: '#27A599' },
   reportDetails: {
     gap: 8,
     padding: 10,
@@ -1622,8 +1622,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   reportExpandedCopy: { flex: 1, minWidth: 0, gap: 4 },
-  reportDetailTitle: { flexShrink: 1, color: '#0F172A', fontSize: 12, fontWeight: '800' },
-  reportDetailSubtitle: { color: '#64748B', fontSize: 9 },
+  reportDetailTitle: { fontFamily: 'Inter', flexShrink: 1, color: '#0F172A', fontSize: 12, fontWeight: '800' },
+  reportDetailSubtitle: { fontFamily: 'Inter', color: '#64748B', fontSize: 9 },
   abnormalReportStatus: { backgroundColor: '#DC2626', color: '#FFFFFF' },
   reportActions: {
     flexDirection: 'row',
@@ -1646,7 +1646,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: '#FFFFFF',
   },
-  reportActionText: { color: '#475569', fontSize: 10, fontWeight: '700' },
+  reportActionText: { fontFamily: 'Inter', color: '#475569', fontSize: 10, fontWeight: '700' },
   resultSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1662,7 +1662,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#F1F5F9',
   },
-  resultTotalValue: { color: '#0F172A', fontSize: 10, fontWeight: '800' },
+  resultTotalValue: { fontFamily: 'Inter', color: '#0F172A', fontSize: 10, fontWeight: '800' },
   downloadSmall: {
     minHeight: 32,
     flexDirection: 'row',
@@ -1674,7 +1674,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#FFFFFF',
   },
-  downloadSmallText: { color: '#0D9488', fontSize: 9, fontWeight: '700' },
+  downloadSmallText: { fontFamily: 'Inter', color: '#27A599', fontSize: 9, fontWeight: '700' },
   resultSection: {
     gap: 7,
     padding: 10,
@@ -1702,16 +1702,16 @@ const styles = StyleSheet.create({
   },
   resultMetric: { flex: 1, gap: 3 },
   resultMetricLabel: {
-    color: '#64748B',
+    fontFamily: 'Inter', color: '#64748B',
     fontSize: 8,
     textTransform: 'uppercase',
   },
   resultMetricValue: {
-    color: '#0F172A',
+    fontFamily: 'Inter', color: '#0F172A',
     fontSize: 10,
     fontWeight: '600',
   },
-  resultValue: { color: '#0F766E', fontSize: 11, fontWeight: '800' },
+  resultValue: { fontFamily: 'Inter', color: '#1D7C72', fontSize: 11, fontWeight: '800' },
   footer: {
     minHeight: 51,
     flexDirection: 'row',
@@ -1735,7 +1735,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: '#F8FAFC',
   },
-  downloadButtonText: { color: '#475569', fontSize: 9, fontWeight: '700' },
+  downloadButtonText: { fontFamily: 'Inter', color: '#475569', fontSize: 9, fontWeight: '700' },
   closeButton: {
     minWidth: 84,
     minHeight: 36,
@@ -1747,5 +1747,5 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: '#101827',
   },
-  closeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
+  closeText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
 });

@@ -28,7 +28,7 @@ export function ClinicDetailsModal({ viewClinicModal, isMobile, resolvedViewClin
                 {/* Header Banner */}
                 <View style={styles.viewClinicHeader}>
                   <View style={styles.clinicLogoSquareLarge}>
-                    <Building2 color="#0D9488" size={24} />
+                    <Building2 color="#27A599" size={24} />
                   </View>
                   <View style={styles.extractedInline65}>
                     <Text style={styles.viewClinicTitle}>
@@ -69,7 +69,7 @@ export function ClinicDetailsModal({ viewClinicModal, isMobile, resolvedViewClin
                     <View style={styles.sectionHeaderTitleRow}>
                       <Mail
                         size={15}
-                        color="#0D9488"
+                        color="#27A599"
                         style={styles.extractedInline7}
                       />
                       <Text style={styles.viewSectionCardTitle}>
@@ -125,7 +125,7 @@ export function ClinicDetailsModal({ viewClinicModal, isMobile, resolvedViewClin
                     <View style={styles.sectionHeaderTitleRow}>
                       <MapPin
                         size={15}
-                        color="#0D9488"
+                        color="#27A599"
                         style={styles.extractedInline7}
                       />
                       <Text style={styles.viewSectionCardTitle}>Location</Text>
@@ -202,7 +202,7 @@ export function ClinicDetailsModal({ viewClinicModal, isMobile, resolvedViewClin
                     <View style={styles.sectionHeaderTitleRow}>
                       <CalendarDays
                         size={15}
-                        color="#0D9488"
+                        color="#27A599"
                         style={styles.extractedInline7}
                       />
                       <Text style={styles.viewSectionCardTitle}>

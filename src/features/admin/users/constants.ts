@@ -61,7 +61,7 @@ export const roleConfig: Record<string, RoleConfigItem> = {
     label: 'Patient',
     color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 border-teal-200',
     badgeBg: '#CCFBF1',
-    badgeText: '#0F766E',
+    badgeText: '#1D7C72',
     borderColor: '#99F6E4',
     icon: User,
     description: 'Portal user',

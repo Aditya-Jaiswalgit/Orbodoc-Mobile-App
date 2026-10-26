@@ -46,7 +46,7 @@ function SelectField({ label, value, options, onSelect }: { label: string; value
         <Text style={styles.selectValue}>{options.find(option => option.value === value)?.label || value}</Text>
         <ChevronDown size={16} color="#64748B" />
       </TouchableOpacity>
-      {open ? <ScrollView style={styles.selectOptions} nestedScrollEnabled keyboardShouldPersistTaps="handled">{options.map(option => <TouchableOpacity key={option.value} style={[styles.selectOption, option.value === value && styles.selectOptionActive]} onPress={() => { onSelect(option.value); setOpen(false); }}><Text style={styles.selectValue}>{option.label}</Text>{option.value === value ? <Check size={15} color="#0D9488" /> : null}</TouchableOpacity>)}</ScrollView> : null}
+      {open ? <ScrollView style={styles.selectOptions} nestedScrollEnabled keyboardShouldPersistTaps="handled">{options.map(option => <TouchableOpacity key={option.value} style={[styles.selectOption, option.value === value && styles.selectOptionActive]} onPress={() => { onSelect(option.value); setOpen(false); }}><Text style={styles.selectValue}>{option.label}</Text>{option.value === value ? <Check size={15} color="#27A599" /> : null}</TouchableOpacity>)}</ScrollView> : null}
     </View>
   );
 }
@@ -202,7 +202,7 @@ export default function SubscriptionPlansScreen({ onOpenDrawer, initialPlanId }:
           </View>
           <View style={styles.contentInset}>
             <SelectField label="Filter Plans" value={filter} options={[{ value: 'all', label: `All (${plans.length})` }, { value: 'single', label: `Single (${singlePlans.length})` }, { value: 'multi', label: `Multi (${multiPlans.length})` }]} onSelect={value => { setFilter(value as PlanFilter); setPage(1); }} />
-            {loading ? <View style={styles.loading}><ActivityIndicator color="#0D9488" /><Text style={styles.mutedText}>Loading plans...</Text></View> : visiblePlans.length ? <View style={styles.listGap}>
+            {loading ? <View style={styles.loading}><ActivityIndicator color="#27A599" /><Text style={styles.mutedText}>Loading plans...</Text></View> : visiblePlans.length ? <View style={styles.listGap}>
               {visiblePlans.map(plan => <View key={plan.id} style={styles.dataCard}>
                 <View style={styles.cardTopRow}><View style={styles.flexOne}><Text style={styles.cardTitle}>{plan.plan_name}</Text><Text style={styles.mutedText}>Plan ID: {plan.id}</Text></View><View style={[styles.statusBadge, plan.plan_type === 'multi' ? styles.statusBadgeTeal : styles.statusBadgeMuted]}><Text style={[styles.statusText, plan.plan_type === 'multi' ? styles.statusTextTeal : styles.statusTextMuted]}>{plan.plan_type}</Text></View></View>
                 <View style={styles.detailGrid}>
@@ -262,7 +262,7 @@ export default function SubscriptionPlansScreen({ onOpenDrawer, initialPlanId }:
             {(viewPlan?.features || []).map((feature, index) => <View key={`${feature.feature_id}-${feature.sys_obj_id}-${index}`} style={styles.dataCard}>
               <View style={styles.cardTopRow}><Text style={styles.cardTitle}>{feature.object_name || `Feature ${index + 1}`}</Text><View style={[styles.statusBadge, Number(feature.is_enabled) ? styles.statusBadgeTeal : styles.statusBadgeMuted]}><Text style={[styles.statusText, Number(feature.is_enabled) ? styles.statusTextTeal : styles.statusTextMuted]}>{Number(feature.is_enabled) ? 'enabled' : 'disabled'}</Text></View></View>
               <Text style={styles.mutedText}>Feature ID: {feature.feature_id ?? '-'} · System Object ID: {feature.sys_obj_id ?? '-'}</Text>
-              <TouchableOpacity style={styles.outlineButton} onPress={() => updateFeature(feature)} disabled={updatingFeatureId === Number(feature.feature_id)}>{updatingFeatureId === Number(feature.feature_id) ? <ActivityIndicator size="small" color="#0D9488" /> : <Text style={styles.outlineButtonText}>Update</Text>}</TouchableOpacity>
+              <TouchableOpacity style={styles.outlineButton} onPress={() => updateFeature(feature)} disabled={updatingFeatureId === Number(feature.feature_id)}>{updatingFeatureId === Number(feature.feature_id) ? <ActivityIndicator size="small" color="#27A599" /> : <Text style={styles.outlineButtonText}>Update</Text>}</TouchableOpacity>
             </View>)}
             {(viewPlan?.features || []).length === 0 ? <Text style={styles.mutedText}>No features mapped to this plan.</Text> : null}
           </ScrollView>

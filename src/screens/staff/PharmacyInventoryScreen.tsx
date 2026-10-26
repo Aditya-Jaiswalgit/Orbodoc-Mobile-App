@@ -249,7 +249,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
       <StaffHeader onOpenDrawer={onOpenDrawer} title="Medicine Inventory" />
       {!canView ? (
         <View style={styles.permissionBox}>
-          <Pill size={28} color="#0D9488" />
+          <Pill size={28} color="#27A599" />
           <Text style={styles.emptyTitle}>
             Medicine inventory access required
           </Text>
@@ -264,7 +264,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
         >
           <View style={styles.pageHeading}>
             <View style={styles.headingIcon}>
-              <Pill size={19} color="#0D9488" />
+              <Pill size={19} color="#27A599" />
             </View>
             <View style={styles.headingText}>
               <Text style={styles.pageTitle}>Medicine Inventory</Text>
@@ -300,13 +300,13 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
 
           <View style={styles.statsGrid}>
             <StatCard
-              icon={<Pill size={16} color="#0D9488" />}
+              icon={<Pill size={16} color="#27A599" />}
               label="Total Medicines"
               value={String(totalItems)}
               tone="teal"
             />
             <StatCard
-              icon={<Package size={16} color="#16A34A" />}
+              icon={<Package size={16} color="#2EB877" />}
               label="In Stock"
               value={String(inStockCount)}
               tone="green"
@@ -328,23 +328,23 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
             />
           </View>
 
-          <View style={styles.searchBox}>
-            <Search size={17} color="#64748B" />
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search medicines, batch, category..."
-              placeholderTextColor="#94A3B8"
-              style={styles.searchInput}
-              returnKeyType="search"
-            />
-            {search ? (
-              <TouchableOpacity onPress={() => setSearch('')}>
-                <X size={16} color="#64748B" />
-              </TouchableOpacity>
-            ) : null}
-          </View>
           <View style={styles.filtersCard}>
+            <View style={styles.searchBox}>
+              <Search size={17} color="#64748B" />
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search medicines..."
+                placeholderTextColor="#94A3B8"
+                style={styles.searchInput}
+                returnKeyType="search"
+              />
+              {search ? (
+                <TouchableOpacity onPress={() => setSearch('')}>
+                  <X size={16} color="#64748B" />
+                </TouchableOpacity>
+              ) : null}
+            </View>
             <View style={styles.filterSelectRow}>
               <View
                 style={[
@@ -386,7 +386,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                             : option}
                         </Text>
                         {selectedCategory === option ? (
-                          <Check size={15} color="#0D9488" />
+                          <Check size={15} color="#27A599" />
                         ) : null}
                       </TouchableOpacity>
                     ))}
@@ -432,7 +432,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                           {option === 'All status' ? 'All Status' : option}
                         </Text>
                         {selectedStatus === option ? (
-                          <Check size={15} color="#0D9488" />
+                          <Check size={15} color="#27A599" />
                         ) : null}
                       </TouchableOpacity>
                     ))}
@@ -451,34 +451,34 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
 
           <View style={styles.listHeader}>
             <Pill size={17} color="#0F172A" />
-            <Text style={styles.listTitle}>
-              All Medicines ({visibleMedicines.length})
-            </Text>
-          </View>
-          {loading ? (
-            <View style={styles.loading}>
-              <ActivityIndicator size="large" color="#0D9488" />
-              <Text style={styles.muted}>Loading medicines...</Text>
-            </View>
-          ) : visibleMedicines.length === 0 ? (
-            <View style={styles.empty}>
-              <Package size={28} color="#94A3B8" />
-              <Text style={styles.emptyTitle}>
-                {loadError
-                  ? 'Inventory could not be loaded'
-                  : 'No medicines found'}
-              </Text>
-              <Text style={styles.muted}>
-                {loadError ||
-                  (debouncedSearch ||
-                  selectedCategory !== 'All categories' ||
-                  selectedStatus !== 'All status'
-                    ? 'Try changing your search or filters.'
-                    : 'Add a medicine to start managing stock.')}
+              <Text style={styles.listTitle}>
+                All Medicines ({visibleMedicines.length})
               </Text>
             </View>
-          ) : (
-            <View style={styles.cards}>
+            {loading ? (
+              <View style={styles.loading}>
+                <ActivityIndicator size="large" color="#27A599" />
+                <Text style={styles.muted}>Loading medicines...</Text>
+              </View>
+            ) : visibleMedicines.length === 0 ? (
+              <View style={styles.empty}>
+                <Package size={28} color="#94A3B8" />
+                <Text style={styles.emptyTitle}>
+                  {loadError
+                    ? 'Inventory could not be loaded'
+                    : 'No medicines found'}
+                </Text>
+                <Text style={styles.muted}>
+                  {loadError ||
+                    (debouncedSearch ||
+                    selectedCategory !== 'All categories' ||
+                    selectedStatus !== 'All status'
+                      ? 'Try changing your search or filters.'
+                      : 'Add a medicine to start managing stock.')}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.cards}>
               {visibleMedicines.map(medicine => {
                 const status = stockStatus(medicine);
                 const statusStyle =
@@ -491,7 +491,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                   <View key={medicine.id} style={styles.card}>
                     <View style={styles.cardTop}>
                       <View style={styles.medicineIcon}>
-                        <Pill size={17} color="#0D9488" />
+                        <Pill size={17} color="#27A599" />
                       </View>
                       <View style={styles.cardTitleBlock}>
                         {visibleColumns.medicine ? (
@@ -605,21 +605,21 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                   </View>
                 );
               })}
-            </View>
-          )}
+              </View>
+            )}
           {totalItems > 0 ? (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={pageCount}
-              totalItems={totalItems}
-              pageSize={pageSize}
-              onPageChange={setCurrentPage}
-              onPageSizeChange={size => {
-                setPageSize(size);
-                setCurrentPage(1);
-              }}
-            />
-          ) : null}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={pageCount}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={size => {
+                  setPageSize(size);
+                  setCurrentPage(1);
+                }}
+              />
+            ) : null}
         </ScrollView>
       )}
 
@@ -656,7 +656,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
             {canEdit ? (
               <MenuAction
                 highlighted
-                icon={<Edit2 size={16} color="#0D9488" />}
+                icon={<Edit2 size={16} color="#27A599" />}
                 label="Edit"
                 onPress={() => menu && openEdit(menu.medicine)}
               />
@@ -867,7 +867,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
           style={styles.filePicker}
           onPress={() => chooseImportFile()}
         >
-          <Upload size={18} color="#0D9488" />
+          <Upload size={18} color="#27A599" />
           <Text style={styles.filePickerText}>
             {pickedFile
               ? 'Choose a different file'
@@ -876,7 +876,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
         </TouchableOpacity>
         {pickedFile ? (
           <View style={styles.selectedFile}>
-            <Package size={16} color="#0D9488" />
+            <Package size={16} color="#27A599" />
             <View style={styles.fileCopy}>
               <Text style={styles.fileName} numberOfLines={1}>
                 {pickedFile.name}

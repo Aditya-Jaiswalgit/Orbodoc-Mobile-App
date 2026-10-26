@@ -410,8 +410,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Exact Web parity: Merge base login permissions with live role permissions
   const effectivePermissionsMap = useMemo(() => {
-    // Keep access denied when the live permission request fails.
-    if (permissionResource.error) return {};
+    // Match web behavior: use the permissions delivered at login if the live
+    // role-permission request fails, so valid actions do not disappear offline.
+    if (permissionResource.error) return authPermissions;
     const fetched = permissionResource.data;
     if (fetched && Object.keys(fetched).length > 0) {
       return fetched;

@@ -102,8 +102,8 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
   const passwordStrength = useMemo(() => {
     if (metCount === 0 || !newPassword) return { score: 0, label: 'Very Weak', color: '#EF4444' };
     if (metCount <= 2) return { score: 25, label: 'Weak', color: '#EF4444' };
-    if (metCount <= 3) return { score: 50, label: 'Fair', color: '#F59E0B' };
-    if (metCount <= 4) return { score: 75, label: 'Good', color: '#0D9488' };
+    if (metCount <= 3) return { score: 50, label: 'Fair', color: '#F9A91F' };
+    if (metCount <= 4) return { score: 75, label: 'Good', color: '#27A599' };
     return { score: 100, label: 'Strong', color: '#10B981' };
   }, [metCount, newPassword]);
 
@@ -247,7 +247,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
 
             <View style={styles.bannerTextCol}>
               <View style={styles.securityBadgeRow}>
-                <Sparkles size={12} color="#0D9488" style={{ marginRight: 4 }} />
+                <Sparkles size={12} color="#27A599" style={{ marginRight: 4 }} />
                 <Text style={styles.securityBadgeText}>ACCOUNT SECURITY</Text>
               </View>
               <Text style={styles.bannerTitleText}>Change Password</Text>
@@ -273,7 +273,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
               <View style={styles.formCardTopBar} />
 
               <View style={styles.formCardHeader}>
-                <Lock size={20} color="#0D9488" style={{ marginRight: 8 }} />
+                <Lock size={20} color="#27A599" style={{ marginRight: 8 }} />
                 <Text style={styles.formCardTitleText}>Update password</Text>
               </View>
               <Text style={styles.formCardSubtitleText}>
@@ -450,7 +450,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
             {/* ── RIGHT CARD: PASSWORD CHECKLIST ──────────────────────────────── */}
             <View style={[styles.checklistCard, isMobile ? { width: '100%' } : { flex: 1 }]}>
               <View style={styles.checklistHeaderRow}>
-                <Shield size={18} color="#0D9488" style={{ marginRight: 8 }} />
+                <Shield size={18} color="#27A599" style={{ marginRight: 8 }} />
                 <Text style={styles.checklistTitleText}>Password checklist</Text>
               </View>
               <Text style={styles.checklistSubtitleText}>Complete at least four requirements.</Text>
@@ -465,7 +465,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
                         req.met ? styles.reqIconBadgeMet : styles.reqIconBadgeUnmet,
                       ]}>
                       {req.met ? (
-                        <Check size={12} color="#0D9488" />
+                        <Check size={12} color="#27A599" />
                       ) : (
                         <X size={12} color="#94A3B8" />
                       )}
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -537,18 +537,18 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   securityBadgeText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '700',
-    color: '#0D9488',
+    color: '#27A599',
     letterSpacing: 0.8,
   },
   bannerTitleText: {
-    fontSize: 22,
+    fontFamily: 'Inter', fontSize: 22,
     fontWeight: '700',
     color: '#0F172A',
   },
   bannerSubtitleText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#64748B',
     marginTop: 2,
   },
@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   generalErrorText: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     fontSize: 13,
     color: '#B91C1C',
     lineHeight: 18,
@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 4,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
   },
   formCardHeader: {
     flexDirection: 'row',
@@ -607,12 +607,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   formCardTitleText: {
-    fontSize: 18,
+    fontFamily: 'Inter', fontSize: 18,
     fontWeight: '700',
     color: '#0F172A',
   },
   formCardSubtitleText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#64748B',
     marginBottom: 16,
   },
@@ -621,7 +621,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   fieldLabelText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '600',
     color: '#334155',
     marginBottom: 6,
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
   },
   passwordInputBare: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     paddingVertical: 11,
     fontSize: 13,
     color: '#0F172A',
@@ -655,7 +655,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   inlineErrorText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#EF4444',
     fontWeight: '500',
   },
@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   inlineSuccessText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#10B981',
     fontWeight: '500',
   },
@@ -683,11 +683,11 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   strengthLabelText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#64748B',
   },
   strengthValueText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '700',
   },
   strengthBarTrack: {
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     borderRadius: 10,
     paddingVertical: 13,
     marginTop: 10,
@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   changePasswordSubmitText: {
-    color: '#FFFFFF',
+    fontFamily: 'Inter', color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 14,
   },
@@ -734,12 +734,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   checklistTitleText: {
-    fontSize: 16,
+    fontFamily: 'Inter', fontSize: 16,
     fontWeight: '700',
     color: '#0F172A',
   },
   checklistSubtitleText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
     marginBottom: 16,
   },
@@ -770,7 +770,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   reqLabelText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
   },
   reqLabelTextMet: {
     color: '#0F172A',
@@ -786,7 +786,7 @@ const styles = StyleSheet.create({
     marginVertical: 18,
   },
   checklistFooterNoteText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#64748B',
     lineHeight: 16,
   },

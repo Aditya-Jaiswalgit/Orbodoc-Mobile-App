@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#0F172A',
   },

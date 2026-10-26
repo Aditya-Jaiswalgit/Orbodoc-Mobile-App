@@ -371,7 +371,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
       >
         <View style={styles.pageBanner}>
           <View style={styles.pageIconBox}>
-            <CalendarDays size={23} color="#0D9488" />
+            <CalendarDays size={23} color="#27A599" />
           </View>
           <View style={styles.headingCopy}>
             <Text style={styles.pageTitle}>Appointments</Text>
@@ -489,7 +489,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                     }}
                   >
                     <Text style={styles.optionText}>{option.label}</Text>
-                    {filter === option.value ? <Check size={17} color="#0D9488" /> : null}
+                    {filter === option.value ? <Check size={17} color="#27A599" /> : null}
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -509,7 +509,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                     }}
                   >
                     <Text style={styles.optionText}>{option.label}</Text>
-                    {doctorFilter === option.value ? <Check size={17} color="#0D9488" /> : null}
+                    {doctorFilter === option.value ? <Check size={17} color="#27A599" /> : null}
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -517,7 +517,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
           ) : null}
         </View>
         {loading ? (
-          <ActivityIndicator color="#0D9488" style={styles.extractedInline1} />
+          <ActivityIndicator color="#27A599" style={styles.extractedInline1} />
         ) : pageRows.length ? (
           pageRows.map(item => {
             const isVideoAppointment = String(item.consultation_mode || '')
@@ -553,7 +553,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
               >
                 <View style={styles.cardTop}>
                   <View style={styles.patientMark}>
-                    <UserRound size={18} color="#0D9488" />
+                    <UserRound size={18} color="#27A599" />
                   </View>
                   <View style={styles.patientBlock}>
                     {columns.patient ? (
@@ -633,7 +633,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                 <View style={styles.cardDetails}>
                   {columns.date ? (
                     <View style={styles.detailRow}>
-                      <CalendarDays size={15} color="#0D9488" />
+                      <CalendarDays size={15} color="#27A599" />
                       <Text style={styles.detailText}>
                         {prettyDate(item.appointment_date)}
                       </Text>
@@ -641,7 +641,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                   ) : null}
                   {columns.doctor ? (
                     <View style={styles.detailRow}>
-                      <Stethoscope size={15} color="#0D9488" />
+                      <Stethoscope size={15} color="#27A599" />
                       <Text style={styles.detailText}>
                         {item.doctor_name || 'Doctor'}
                         {item.doctor_specialization

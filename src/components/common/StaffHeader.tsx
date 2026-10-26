@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AppModal } from './AppModal';
+import { DashboardWelcomeCard } from './DashboardWelcomeCard';
 import { Alert, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Switch, Text as NativeText, TouchableOpacity, View } from 'react-native';
 import {
   ArrowRight,
@@ -52,6 +53,7 @@ interface StaffHeaderProps {
 export const StaffHeader: React.FC<StaffHeaderProps> = ({
   onOpenDrawer,
   onOpenNotifications,
+  title,
   onNavigate = navigateStaffScreen,
   hideClinicBanner = false,
 }) => {
@@ -105,7 +107,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
     if (text.includes('appointment')) return <Calendar size={18} color="#2563eb" />;
     if (text.includes('patient') || text.includes('user')) return <UserPlus size={18} color="#059669" />;
     if (text.includes('report') || text.includes('lab')) return <FileText size={18} color="#7c3aed" />;
-    if (text.includes('success') || text.includes('paid')) return <CheckCircle size={18} color="#0d9488" />;
+    if (text.includes('success') || text.includes('paid')) return <CheckCircle size={18} color="#27a599" />;
     return <AlertCircle size={18} color="#d97706" />;
   };
   const canEditNotifications = canUseStaffScreen(role || '', permissionsMap, 'notifications', 'edit');
@@ -233,7 +235,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               <Text style={styles.avatarInitials}>{staffInitials}</Text>
             </View>
             {profileMenuOpen ? (
-              <ChevronUp size={14} color="#0D9488" />
+              <ChevronUp size={14} color="#27A599" />
             ) : (
               <ChevronDown size={14} color="#64748B" />
             )}
@@ -289,7 +291,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             <>
               <View style={styles.profileMenuItemRow}>
                 <View style={styles.menuItemLeft}>
-                  <Video size={16} color="#0D9488" />
+                  <Video size={16} color="#27A599" />
                   <View>
                     <Text allowFontScaling={false} style={styles.menuItemTitle}>Video Calling</Text>
                     <Text allowFontScaling={false} style={styles.menuItemSub}>{videoCallingEnabled ? 'Enabled' : 'Disabled'}</Text>
@@ -315,7 +317,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               onNavigate('profile');
             }}
             activeOpacity={0.7}>
-            <User size={16} color="#0D9488" />
+            <User size={16} color="#27A599" />
             <Text allowFontScaling={false} style={styles.menuItemTitle}>My Profile</Text>
           </TouchableOpacity>
 
@@ -508,7 +510,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               }}
               activeOpacity={0.8}>
               <Text style={styles.notifFooterText}>View all notifications</Text>
-              <ArrowRight size={16} color="#0D9488" />
+              <ArrowRight size={16} color="#27A599" />
             </TouchableOpacity>
           </View>
         </View>
@@ -537,9 +539,9 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
           }}>
           <Text numberOfLines={1} ellipsizeMode="tail" style={styles.clinicDropdownText}>{selectedClinicName}</Text>
           {dropdownOpen ? (
-            <ChevronUp size={18} color="#0D9488" />
+            <ChevronUp size={18} color="#27A599" />
           ) : (
-            <ChevronDown size={18} color="#0D9488" />
+            <ChevronDown size={18} color="#27A599" />
           )}
         </TouchableOpacity>
 
@@ -556,7 +558,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                   style={[styles.dropdownItemRow, isSelected && styles.dropdownItemRowSelected]}
                   onPress={() => handleSelectClinic(Number(clinic.id))}>
                   <View style={styles.itemRowLeft}>
-                    {isSelected && <Check size={16} color="#0D9488" style={{ marginRight: 8 }} />}
+                    {isSelected && <Check size={16} color="#27A599" style={{ marginRight: 8 }} />}
                     <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextSelected]}>
                       {clinic.name}
                     </Text>
@@ -568,6 +570,8 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
         )}
       </View>}
 
+      {title?.toLowerCase().includes('dashboard') && <DashboardWelcomeCard />}
+
       {/* ── 5. EXACT SUBSCRIPTION PLAN MODAL ── */}
       <AppModal visible={planModalOpen} animationType="slide" transparent={true} onRequestClose={() => setPlanModalOpen(false)}>
         <View style={styles.planModalOverlay}>
@@ -575,7 +579,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             <View style={styles.planModalHeaderGlow} />
 
             <TouchableOpacity style={styles.planCloseBtn} onPress={() => setPlanModalOpen(false)} activeOpacity={0.8}>
-              <X size={18} color="#0D9488" />
+              <X size={18} color="#27A599" />
             </TouchableOpacity>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
@@ -644,7 +648,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
 
               {/* Bottom Notice Box */}
               <View style={styles.planNoticeBox}>
-                <Calendar size={18} color="#0D9488" />
+                <Calendar size={18} color="#27A599" />
                 <Text style={styles.planNoticeText}>
                   Plan dates are based on the active clinic subscription.
                 </Text>
@@ -716,7 +720,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  walletHeaderIconWrap: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#0D9488', alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  walletHeaderIconWrap: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#27A599', alignItems: 'center', justifyContent: 'center', position: 'relative' },
   bellCircleBtn: {
     width: 38,
     height: 38,
@@ -740,7 +744,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 3,
   },
-  bellBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
+  bellBadgeText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
   avatarPillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -756,11 +760,11 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarInitials: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  avatarInitials: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
 
   // Profile Dropdown Menu Card
   profileMenuOverlay: {
@@ -797,12 +801,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   videoToastTitle: {
-    color: '#1E293B',
+    fontFamily: 'Inter', color: '#1E293B',
     fontSize: 13,
     fontWeight: '600',
   },
   videoToastMessage: {
-    marginTop: 3,
+    fontFamily: 'Inter', marginTop: 3,
     color: '#475569',
     fontSize: 12,
   },
@@ -830,12 +834,12 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   profileMenuName: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '800',
     color: '#0F172A',
   },
   profileMenuSub: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
     marginTop: 2,
   },
@@ -856,12 +860,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   menuItemTitle: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '600',
     color: '#1E293B',
   },
   menuItemSub: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#64748B',
     marginTop: 1,
   },
@@ -912,7 +916,7 @@ const styles = StyleSheet.create({
   },
   notifHeaderLeft: {},
   notifTitle: {
-    fontSize: 20,
+    fontFamily: 'Inter', fontSize: 20,
     fontWeight: '800',
     color: '#0F172A',
   },
@@ -925,12 +929,12 @@ const styles = StyleSheet.create({
     borderColor: '#CCFBF1',
   },
   notifCountText: {
-    color: '#0F766E',
+    fontFamily: 'Inter', color: '#1D7C72',
     fontSize: 12,
     fontWeight: '700',
   },
   notifSubTitle: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#64748B',
     marginTop: 4,
   },
@@ -967,18 +971,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notifItemTitle: {
-    fontSize: 15,
+    fontFamily: 'Inter', fontSize: 15,
     fontWeight: '800',
     color: '#0F172A',
   },
   notifItemMsg: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#475569',
     marginTop: 3,
     lineHeight: 18,
   },
   notifItemTime: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#94A3B8',
     marginTop: 6,
   },
@@ -986,7 +990,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     marginTop: 6,
   },
   emptyNotifBox: {
@@ -994,7 +998,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyNotifText: {
-    color: '#94A3B8',
+    fontFamily: 'Inter', color: '#94A3B8',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -1009,9 +1013,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   notifFooterText: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '700',
-    color: '#0D9488',
+    color: '#27A599',
   },
 
   // Clinic Banner & Dropdown
@@ -1021,12 +1025,12 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 10,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     alignItems: 'center',
     justifyContent: 'center',
   },
   clinicTitleWrap: { position: 'relative', flex: 1, minWidth: 0 },
-  clinicTitleText: { fontSize: 20, fontWeight: '700', color: '#0F766E', flexShrink: 1 },
+  clinicTitleText: { fontFamily: 'Inter', fontSize: 20, fontWeight: '700', color: '#1D7C72', flexShrink: 1 },
   titleUnderline: { height: 3, backgroundColor: '#2563EB', marginTop: 4, borderRadius: 2, width: '100%' },
 
   clinicDropdownCard: {
@@ -1040,7 +1044,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#CCFBF1',
   },
-  clinicDropdownText: { fontSize: 15, fontWeight: '700', color: '#0F172A', flex: 1, flexShrink: 1, marginRight: 10 },
+  clinicDropdownText: { fontFamily: 'Inter', fontSize: 15, fontWeight: '700', color: '#0F172A', flex: 1, flexShrink: 1, marginRight: 10 },
 
   // Inline Expandable Dropdown
   dropdownExpandCard: {
@@ -1070,8 +1074,8 @@ const styles = StyleSheet.create({
     borderColor: '#CCFBF1',
   },
   itemRowLeft: { flexDirection: 'row', alignItems: 'center' },
-  dropdownItemText: { fontSize: 15, fontWeight: '600', color: '#334155' },
-  dropdownItemTextSelected: { fontWeight: '700', color: '#0F766E' },
+  dropdownItemText: { fontFamily: 'Inter', fontSize: 15, fontWeight: '600', color: '#334155' },
+  dropdownItemTextSelected: { fontWeight: '700', color: '#1D7C72' },
 
   // Exact Subscription Plan Modal
   planModalOverlay: {
@@ -1126,25 +1130,25 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: '#F59E0B',
+    backgroundColor: '#F9A91F',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
     marginTop: 4,
     elevation: 4,
-    shadowColor: '#F59E0B',
+    shadowColor: '#F9A91F',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
   },
   planModalTitle: {
-    fontSize: 24,
+    fontFamily: 'Inter', fontSize: 24,
     fontWeight: '800',
     color: '#0F172A',
     letterSpacing: -0.3,
   },
   planModalSubtitle: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     color: '#64748B',
     marginTop: 6,
     marginBottom: 20,
@@ -1162,7 +1166,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   planNameText: {
-    fontSize: 22,
+    fontFamily: 'Inter', fontSize: 22,
     fontWeight: '800',
     color: '#0F172A',
   },
@@ -1173,12 +1177,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   activePillText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '700',
     color: '#059669',
   },
   planSubLabel: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     color: '#64748B',
     marginTop: 6,
     fontWeight: '400',
@@ -1202,13 +1206,13 @@ const styles = StyleSheet.create({
     width: '48%',
   },
   detailLabel: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '700',
     color: '#1E293B',
     marginBottom: 2,
   },
   detailValue: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     color: '#64748B',
     fontWeight: '400',
   },
@@ -1223,9 +1227,9 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   planNoticeText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '500',
-    color: '#0F766E',
+    color: '#1D7C72',
     flex: 1,
     lineHeight: 18,
   },

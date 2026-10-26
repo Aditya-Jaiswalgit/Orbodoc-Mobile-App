@@ -270,9 +270,9 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
             <View style={styles.headerRow}>
               <View style={styles.headerIconBadge}>
                 {step === 4 ? (
-                  <CheckCircle2 color="#0D9488" size={22} />
+                  <CheckCircle2 color="#27A599" size={22} />
                 ) : (
-                  <KeyRound color="#0D9488" size={22} />
+                  <KeyRound color="#27A599" size={22} />
                 )}
               </View>
               <View style={styles.headerTitles}>
@@ -407,7 +407,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                   <View style={styles.inputGroup}>
                     <Text style={styles.fieldLabel}>6-Digit Verification Code</Text>
                     <View style={styles.inputWrapper}>
-                      <ShieldCheck color="#0D9488" size={18} style={styles.inputIcon} />
+                      <ShieldCheck color="#27A599" size={18} style={styles.inputIcon} />
                       <TextInput
                         style={[styles.textInput, styles.otpInput]}
                         placeholder="• • • • • •"
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
   },
   accentBar: {
     height: 4,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
   },
   headerRow: {
     flexDirection: 'row',
@@ -653,12 +653,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
+    fontFamily: 'Inter', fontSize: 18,
     fontWeight: '700',
     color: '#0F172A',
   },
   headerSubtitle: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
     marginTop: 2,
   },
@@ -686,7 +686,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#CBD5E1',
   },
   stepDotActive: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     transform: [{ scale: 1.2 }],
   },
   stepLine: {
@@ -696,13 +696,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
   stepLineActive: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
   },
   scrollBody: {
     padding: 20,
   },
   instructionText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#475569',
     lineHeight: 20,
     marginBottom: 16,
@@ -711,7 +711,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   fieldLabel: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#334155',
     marginBottom: 6,
@@ -732,13 +732,13 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   textInput: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     fontSize: 14,
     color: '#0F172A',
     paddingVertical: 8,
   },
   otpInput: {
-    fontSize: 18,
+    fontFamily: 'Inter', fontSize: 18,
     fontWeight: '700',
     letterSpacing: 6,
     textAlign: 'center',
@@ -751,12 +751,12 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   matchSuccessText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#059669',
     fontWeight: '600',
   },
   matchErrorText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#DC2626',
     fontWeight: '600',
   },
@@ -765,12 +765,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   resendTimerText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
   },
   resendActionText: {
-    fontSize: 13,
-    color: '#0D9488',
+    fontFamily: 'Inter', fontSize: 13,
+    color: '#27A599',
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
@@ -785,7 +785,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   errorText: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     fontSize: 12,
     color: '#B91C1C',
     lineHeight: 18,
@@ -801,7 +801,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   successText: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     fontSize: 12,
     color: '#047857',
     lineHeight: 18,
@@ -813,12 +813,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   primaryButton: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     height: 48,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0D9488',
+    shadowColor: '#27A599',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -828,7 +828,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    fontFamily: 'Inter', color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0.2,
@@ -845,7 +845,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   secondaryButtonText: {
-    color: '#475569',
+    fontFamily: 'Inter', color: '#475569',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -866,14 +866,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   successTitle: {
-    fontSize: 20,
+    fontFamily: 'Inter', fontSize: 20,
     fontWeight: '700',
     color: '#0F172A',
     marginBottom: 8,
     textAlign: 'center',
   },
   successDescription: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 20,

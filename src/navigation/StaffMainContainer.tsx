@@ -563,7 +563,7 @@ export const StaffMainContainer = () => {
       <View style={styles.screenContainer}>{renderActiveScreen()}</View>
 
       {/* ─── SIDE DRAWER MODAL (DARK NAVY EXACT SCREENSHOT THEME) ─── */}
-      <AppModal visible={drawerOpen} animationType="fade" transparent={true} onRequestClose={() => setDrawerOpen(false)}>
+      <AppModal visible={drawerOpen} animationType="fade" transparent={true} statusBarTranslucent={Platform.OS === 'android'} onRequestClose={() => setDrawerOpen(false)}>
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback onPress={() => setDrawerOpen(false)}>
             <View style={styles.backdrop} />
@@ -796,26 +796,28 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#0d9488',
+    backgroundColor: '#27a599',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: -20,
-    shadowColor: '#0d9488',
+    shadowColor: '#27a599',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 6,
   },
   fabIcon: { color: '#ffffff', fontSize: 20, fontWeight: 'bold' },
-  fabLabel: { fontSize: 10, color: '#0d9488', fontWeight: '700', marginTop: 2 },
+  fabLabel: { fontSize: 10, color: '#27a599', fontWeight: '700', marginTop: 2 },
   tabIconWrapper: { position: 'relative' },
   tabLabel: { fontSize: 10, fontWeight: '600', color: '#64748b', marginTop: 2 },
-  tabLabelActive: { color: '#0d9488', fontWeight: '800' },
+  tabLabelActive: { color: '#27a599', fontWeight: '800' },
   smallBadge: { position: 'absolute', top: -3, right: -6, backgroundColor: '#ef4444', borderRadius: 8, minWidth: 14, height: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
   smallBadgeText: { color: '#ffffff', fontSize: 9, fontWeight: 'bold' },
   modalOverlay: {
     position: 'absolute',
-    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 36) + 10 : 20,
+    // A translucent Android modal fills the screen, so offset the drawer by the
+    // status bar height. This keeps the header below system icons on edge-to-edge devices.
+    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 20,
     left: 0,
     right: 0,
     bottom: 0,
@@ -844,13 +846,13 @@ const styles = StyleSheet.create({
   scrollArea: { flex: 1 },
   menuList: { gap: 4, marginBottom: 20 },
   menuItemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, marginBottom: 4 },
-  activeMenuItemRow: { backgroundColor: 'rgba(13, 148, 136, 0.15)', borderWidth: 1.5, borderColor: '#0D9488' },
+  activeMenuItemRow: { backgroundColor: 'rgba(13, 148, 136, 0.15)', borderWidth: 1.5, borderColor: '#27A599' },
   itemLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   menuIconContainer: { width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(15, 30, 46, 0.7)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  menuIconContainerActive: { backgroundColor: '#0D9488' },
+  menuIconContainerActive: { backgroundColor: '#27A599' },
   menuItemLabel: { fontSize: 14, fontWeight: '500', color: '#E2E8F0' },
   activeItemText: { color: '#FFFFFF', fontWeight: '700' },
-  itemBadge: { backgroundColor: '#0d9488', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
+  itemBadge: { backgroundColor: '#27a599', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
   itemBadgeText: { color: '#ffffff', fontSize: 11, fontWeight: 'bold' },
 
   // Sub-items Tree (Exact Match)
@@ -861,7 +863,7 @@ const styles = StyleSheet.create({
   subMenuItemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8, marginBottom: 4 },
   activeSubMenuItemRow: { backgroundColor: 'rgba(13, 148, 136, 0.2)' },
   subIconBadge: { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(15, 23, 42, 0.8)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  subIconBadgeActive: { backgroundColor: '#0D9488' },
+  subIconBadgeActive: { backgroundColor: '#27A599' },
   subMenuItemLabel: { color: '#CBD5E1', fontSize: 13, fontWeight: '500' },
   activeSubItemText: { color: '#2DD4BF', fontWeight: '700' },
 
@@ -875,10 +877,10 @@ const styles = StyleSheet.create({
   clinicModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   clinicModalTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
   clinicOptionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10, marginBottom: 6, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0' },
-  clinicOptionRowSelected: { backgroundColor: '#f0fdf4', borderColor: '#16a34a' },
+  clinicOptionRowSelected: { backgroundColor: '#f0fdf4', borderColor: '#2eb877' },
   clinicOptionText: { fontSize: 14, fontWeight: '600', color: '#334155' },
   clinicOptionTextSelected: { fontWeight: '800', color: '#166534' },
-  selectedCheck: { fontSize: 12, fontWeight: '800', color: '#16a34a' },
+  selectedCheck: { fontSize: 12, fontWeight: '800', color: '#2eb877' },
 });
 
 export default StaffMainContainer;

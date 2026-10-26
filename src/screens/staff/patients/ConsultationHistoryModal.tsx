@@ -146,7 +146,7 @@ function DetailRow({
   if (!hasData(value)) return null;
   return (
     <View style={styles.detailRow}>
-      <Icon size={15} color={accent ? '#0D9488' : '#0D9488'} />
+      <Icon size={15} color={accent ? '#27A599' : '#27A599'} />
       <View style={styles.detailCopy}>
         <Text style={styles.detailLabel}>{label}</Text>
         <Text style={[styles.detailValue, accent && styles.accentValue]}>
@@ -170,7 +170,7 @@ function ClinicalNote({
   return (
     <View style={styles.noteRow}>
       <View style={styles.noteLabel}>
-        <Icon size={14} color="#0D9488" />
+        <Icon size={14} color="#27A599" />
         <Text style={styles.noteLabelText}>{label}</Text>
       </View>
       <Text style={styles.noteValue}>{String(value)}</Text>
@@ -407,7 +407,7 @@ export function ConsultationHistoryModal({
                     style={styles.resetButton}
                     onPress={resetFilters}
                   >
-                    <RotateCcw size={12} color="#0D9488" />
+                    <RotateCcw size={12} color="#27A599" />
                     <Text style={styles.resetText}>Reset</Text>
                   </TouchableOpacity>
                 </View>
@@ -423,7 +423,7 @@ export function ConsultationHistoryModal({
           >
             {loading ? (
               <View style={styles.emptyState}>
-                <ActivityIndicator size="large" color="#0D9488" />
+                <ActivityIndicator size="large" color="#27A599" />
                 <Text style={styles.emptyTitle}>Loading consultations...</Text>
                 <Text style={styles.emptyText}>
                   Fetching visit and consultation history.
@@ -432,7 +432,7 @@ export function ConsultationHistoryModal({
             ) : consultations.length === 0 ? (
               <View style={styles.emptyState}>
                 <View style={styles.emptyIcon}>
-                  <Stethoscope size={26} color="#0D9488" />
+                  <Stethoscope size={26} color="#27A599" />
                 </View>
                 <Text style={styles.emptyTitle}>No consultations yet</Text>
                 <Text style={styles.emptyText}>
@@ -452,7 +452,7 @@ export function ConsultationHistoryModal({
                   style={styles.clearButton}
                   onPress={resetFilters}
                 >
-                  <RotateCcw size={14} color="#0D9488" />
+                  <RotateCcw size={14} color="#27A599" />
                   <Text style={styles.clearText}>Clear filters</Text>
                 </TouchableOpacity>
               </View>
@@ -474,7 +474,7 @@ export function ConsultationHistoryModal({
                   >
                     <View style={styles.cardHeader}>
                       <View style={styles.doctorIcon}>
-                        <UserRound size={18} color="#0D9488" />
+                        <UserRound size={18} color="#27A599" />
                       </View>
                       <View style={styles.doctorCopy}>
                         <Text style={styles.doctorName} numberOfLines={1}>
@@ -674,8 +674,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#22A99D',
   },
   headerCopy: { flex: 1, minWidth: 0 },
-  title: { color: '#1F2937', fontSize: 17, fontWeight: '800' },
-  subtitle: { color: '#718096', fontSize: 11, marginTop: 3 },
+  title: { fontFamily: 'Inter', color: '#1F2937', fontSize: 20, fontWeight: '800' },
+  subtitle: { fontFamily: 'Inter', color: '#718096', fontSize: 14, marginTop: 3 },
   iconButton: {
     width: 34,
     height: 34,
@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
     borderColor: '#DEE6ED',
     backgroundColor: '#FFFFFF',
   },
-  searchInput: { flex: 1, paddingVertical: 6, color: '#334155', fontSize: 12 },
+  searchInput: { fontFamily: 'Inter', flex: 1, paddingVertical: 6, color: '#334155', fontSize: 12 },
   filterRow: { flexDirection: 'row', gap: 8 },
   filterCell: { flex: 1, position: 'relative', zIndex: 10 },
   selectButton: {
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#FFFFFF',
   },
-  selectText: { flex: 1, color: '#334155', fontSize: 11 },
+  selectText: { fontFamily: 'Inter', flex: 1, color: '#334155', fontSize: 11 },
   filterMenu: {
     position: 'absolute',
     top: 41,
@@ -740,21 +740,21 @@ const styles = StyleSheet.create({
     borderRadius: 7,
   },
   filterOptionSelected: { backgroundColor: '#DDF5F2' },
-  filterOptionText: { color: '#334155', fontSize: 11 },
-  filterOptionTextSelected: { color: '#0D9488', fontWeight: '700' },
+  filterOptionText: { fontFamily: 'Inter', color: '#334155', fontSize: 11 },
+  filterOptionTextSelected: { color: '#27A599', fontWeight: '700' },
   resultBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  resultText: { color: '#718096', fontSize: 10 },
+  resultText: { fontFamily: 'Inter', color: '#718096', fontSize: 10 },
   resetButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     padding: 4,
   },
-  resetText: { color: '#0D9488', fontSize: 10, fontWeight: '700' },
+  resetText: { fontFamily: 'Inter', color: '#27A599', fontSize: 10, fontWeight: '700' },
   list: { flex: 1 },
   listContent: { padding: 11, gap: 11, flexGrow: 1 },
   consultationCard: {
@@ -787,8 +787,8 @@ const styles = StyleSheet.create({
     borderColor: '#D4EAE7',
   },
   doctorCopy: { flex: 1, minWidth: 0 },
-  doctorName: { color: '#1F2937', fontSize: 13, fontWeight: '800' },
-  specialization: { marginTop: 3, color: '#718096', fontSize: 10 },
+  doctorName: { fontFamily: 'Inter', color: '#1F2937', fontSize: 13, fontWeight: '800' },
+  specialization: { fontFamily: 'Inter', marginTop: 3, color: '#718096', fontSize: 10 },
   statusPill: {
     alignSelf: 'flex-start',
     marginTop: 9,
@@ -797,7 +797,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 20,
   },
-  statusText: { fontSize: 9, fontWeight: '800', textTransform: 'capitalize' },
+  statusText: { fontFamily: 'Inter', fontSize: 9, fontWeight: '800', textTransform: 'capitalize' },
   completePill: { backgroundColor: '#D1FAE5' },
   completeText: { color: '#047857' },
   cancelledPill: { backgroundColor: '#FFE4E6' },
@@ -816,14 +816,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F9FA',
   },
   detailCopy: { flex: 1 },
-  detailLabel: { color: '#718096', fontSize: 10 },
+  detailLabel: { fontFamily: 'Inter', color: '#718096', fontSize: 10 },
   detailValue: {
-    marginTop: 2,
+    fontFamily: 'Inter', marginTop: 2,
     color: '#1F2937',
     fontSize: 11,
     fontWeight: '700',
   },
-  accentValue: { color: '#0D9488' },
+  accentValue: { color: '#27A599' },
   clinicalNotes: {
     gap: 7,
     marginTop: 2,
@@ -839,8 +839,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FCFDFD',
   },
   noteLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  noteLabelText: { color: '#334155', fontSize: 10, fontWeight: '800' },
-  noteValue: { marginTop: 5, color: '#64748B', fontSize: 11, lineHeight: 16 },
+  noteLabelText: { fontFamily: 'Inter', color: '#334155', fontSize: 10, fontWeight: '800' },
+  noteValue: { fontFamily: 'Inter', marginTop: 5, color: '#64748B', fontSize: 11, lineHeight: 16 },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
@@ -857,14 +857,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#DDF5F2',
   },
   emptyTitle: {
-    marginTop: 12,
+    fontFamily: 'Inter', marginTop: 12,
     color: '#1F2937',
     fontSize: 15,
     fontWeight: '800',
     textAlign: 'center',
   },
   emptyText: {
-    marginTop: 5,
+    fontFamily: 'Inter', marginTop: 5,
     color: '#718096',
     fontSize: 11,
     textAlign: 'center',
@@ -876,7 +876,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     padding: 9,
   },
-  clearText: { color: '#0D9488', fontSize: 11, fontWeight: '700' },
+  clearText: { fontFamily: 'Inter', color: '#27A599', fontSize: 11, fontWeight: '700' },
   footer: {
     paddingHorizontal: 12,
     paddingTop: 9,
@@ -891,7 +891,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  pageLabel: { color: '#64748B', fontSize: 10, fontWeight: '600' },
+  pageLabel: { fontFamily: 'Inter', color: '#64748B', fontSize: 10, fontWeight: '600' },
   pageButtons: { flexDirection: 'row', gap: 7 },
   pageButton: {
     width: 30,
@@ -913,5 +913,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#22A99D',
   },
-  closeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
+  closeText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
 });

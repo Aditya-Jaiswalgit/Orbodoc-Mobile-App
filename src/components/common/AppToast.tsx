@@ -10,7 +10,7 @@ export type AppToastNotice = { title: string; message?: string };
 const palette: Record<ToastType, { accent: string; title: string }> = {
   success: { accent: '#059669', title: '#065F46' },
   error: { accent: '#DC2626', title: '#991B1B' },
-  info: { accent: '#0D9488', title: '#0F766E' },
+  info: { accent: '#27A599', title: '#1D7C72' },
 };
 
 type AppToastCardProps = Pick<
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   },
   accent: { width: 4, alignSelf: 'stretch' },
   content: { flex: 1, paddingVertical: 12, paddingHorizontal: 12 },
-  title: { fontSize: 14, fontWeight: '700' },
-  message: { marginTop: 2, color: '#475569', fontSize: 12 },
+  title: { fontFamily: 'Inter', fontSize: 20, fontWeight: '700' },
+  message: { fontFamily: 'Inter', marginTop: 2, color: '#475569', fontSize: 12 },
   closeButton: { paddingHorizontal: 12, paddingVertical: 12 },
 });

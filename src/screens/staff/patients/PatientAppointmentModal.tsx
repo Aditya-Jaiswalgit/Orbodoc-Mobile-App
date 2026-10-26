@@ -422,7 +422,7 @@ export function PatientAppointmentModal({
               </View>
             ) : null}
             {kind === 'doctor' && loadingDoctors ? (
-              <ActivityIndicator color="#0D9488" style={styles.loading} />
+              <ActivityIndicator color="#27A599" style={styles.loading} />
             ) : (
               <ScrollView
                 style={[
@@ -451,7 +451,7 @@ export function PatientAppointmentModal({
                         onPress={() => chooseOption(item)}
                       >
                         {selected ? (
-                          <Check size={15} color="#0D9488" />
+                          <Check size={15} color="#27A599" />
                         ) : (
                           <View style={styles.checkSpacer} />
                         )}
@@ -510,7 +510,7 @@ export function PatientAppointmentModal({
         >
           <View style={styles.header}>
             <View style={styles.iconBox}>
-              <CalendarDays size={19} color="#0D9488" />
+              <CalendarDays size={19} color="#27A599" />
             </View>
             <View style={styles.headerCopy}>
               <Text style={styles.title}>Book Appointment</Text>
@@ -555,7 +555,7 @@ export function PatientAppointmentModal({
                 {Number(selectedDoctor.consultation_fee || 0) > 0 ? (
                   <View style={styles.feeCard}>
                     <View style={styles.feeHeading}>
-                      <IndianRupee size={15} color="#0D9488" />
+                      <IndianRupee size={15} color="#27A599" />
                       <Text style={styles.feeTitle}>Consultation Fee</Text>
                     </View>
                     <Text style={styles.feeAmount}>
@@ -746,14 +746,14 @@ const styles = StyleSheet.create({
   },
   headerCopy: { flex: 1, minWidth: 0 },
   title: {
-    color: '#1F2937',
-    fontSize: 15,
+    fontFamily: 'Inter', color: '#1F2937',
+    fontSize: 20,
     fontWeight: '600',
     textAlign: 'center',
   },
   subtitle: {
-    color: '#64748B',
-    fontSize: 9,
+    fontFamily: 'Inter', color: '#64748B',
+    fontSize: 14,
     marginTop: 2,
     textAlign: 'center',
   },
@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
   },
-  label: { color: '#1F2937', fontSize: 11, fontWeight: '600' },
+  label: { fontFamily: 'Inter', color: '#1F2937', fontSize: 14, fontWeight: '600' },
   required: { color: '#EF4444', fontWeight: '700' },
   selectInput: {
     minHeight: 39,
@@ -785,7 +785,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#F8FAFC',
   },
-  selectText: { flex: 1, color: '#334155', fontSize: 11 },
+  selectText: { fontFamily: 'Inter', flex: 1, color: '#334155', fontSize: 11 },
   placeholder: { color: '#718096' },
   focusedInput: { borderColor: '#27B8AB', borderWidth: 2 },
   disabledInput: { opacity: 0.55 },
@@ -812,14 +812,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   inlineSearchInput: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     paddingVertical: 5,
     color: '#334155',
     fontSize: 11,
   },
   inlineOptions: { maxHeight: 168, flexGrow: 0 },
   doctorInfo: { gap: 6 },
-  doctorDetails: { marginTop: -4, color: '#64748B', fontSize: 10 },
+  doctorDetails: { fontFamily: 'Inter', marginTop: -4, color: '#64748B', fontSize: 10 },
   feeCard: {
     padding: 10,
     borderWidth: 1,
@@ -829,11 +829,11 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   feeHeading: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  feeTitle: { color: '#1F2937', fontSize: 11, fontWeight: '600' },
-  feeAmount: { color: '#1F2937', fontSize: 14, fontWeight: '800' },
-  feeHint: { color: '#718096', fontSize: 9, lineHeight: 13 },
+  feeTitle: { fontFamily: 'Inter', color: '#1F2937', fontSize: 11, fontWeight: '600' },
+  feeAmount: { fontFamily: 'Inter', color: '#1F2937', fontSize: 14, fontWeight: '800' },
+  feeHint: { fontFamily: 'Inter', color: '#718096', fontSize: 9, lineHeight: 13 },
   textArea: {
-    minHeight: 64,
+    fontFamily: 'Inter', minHeight: 64,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderWidth: 1,
@@ -843,14 +843,14 @@ const styles = StyleSheet.create({
     color: '#334155',
     fontSize: 11,
   },
-  helpText: { color: '#64748B', fontSize: 10, lineHeight: 15 },
+  helpText: { fontFamily: 'Inter', color: '#64748B', fontSize: 10, lineHeight: 15 },
   retryText: {
-    color: '#B45309',
+    fontFamily: 'Inter', color: '#B45309',
     fontSize: 10,
     textDecorationLine: 'underline',
   },
   videoBillingNote: {
-    color: '#047857',
+    fontFamily: 'Inter', color: '#047857',
     backgroundColor: '#ECFDF5',
     borderColor: '#A7F3D0',
     borderWidth: 1,
@@ -860,7 +860,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  error: { color: '#DC2626', fontSize: 11, fontWeight: '600' },
+  error: { fontFamily: 'Inter', color: '#DC2626', fontSize: 11, fontWeight: '600' },
   footer: {
     gap: 7,
     paddingHorizontal: 14,
@@ -877,7 +877,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#26A69A',
     borderRadius: 10,
   },
-  confirmText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  confirmText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
   cancel: {
     minHeight: 36,
     alignItems: 'center',
@@ -887,11 +887,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#F8FAFC',
   },
-  cancelText: { color: '#1F2937', fontSize: 11, fontWeight: '600' },
+  cancelText: { fontFamily: 'Inter', color: '#1F2937', fontSize: 11, fontWeight: '600' },
   disabled: { opacity: 0.65 },
   loading: { paddingVertical: 18 },
   emptyText: {
-    paddingHorizontal: 10,
+    fontFamily: 'Inter', paddingHorizontal: 10,
     paddingVertical: 18,
     color: '#64748B',
     fontSize: 11,
@@ -908,7 +908,7 @@ const styles = StyleSheet.create({
   pickerOptionSelected: { backgroundColor: '#DDF5F2' },
   checkSpacer: { width: 16 },
   optionCopy: { flex: 1 },
-  optionLabel: { color: '#334155', fontSize: 11, fontWeight: '600' },
-  optionLabelSelected: { color: '#0D9488' },
-  optionDescription: { marginTop: 2, color: '#64748B', fontSize: 9 },
+  optionLabel: { fontFamily: 'Inter', color: '#334155', fontSize: 11, fontWeight: '600' },
+  optionLabelSelected: { color: '#27A599' },
+  optionDescription: { fontFamily: 'Inter', marginTop: 2, color: '#64748B', fontSize: 9 },
 });

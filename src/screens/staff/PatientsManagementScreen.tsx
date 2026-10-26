@@ -422,21 +422,22 @@ const PatientsManagementContent: React.FC<Props> = ({
       <View style={styles.bannerRow}>
         <View style={styles.bannerTitleBlock}>
           <View style={styles.iconBox}>
-            <Users size={24} color="#0D9488" />
+            <Users size={24} color="#27A599" />
           </View>
           <View style={styles.bannerTitleCopy}>
-            <Text style={styles.bannerTitle}>{patientMode ? 'Patients' : 'Patient Management'}</Text>
-            <Text style={styles.bannerSubtitle}>
+            <Text style={[styles.bannerTitle, windowWidth >= 640 && styles.bannerTitleWide]}>{patientMode ? 'Patients' : 'Patient Management'}</Text>
+            <Text style={[styles.bannerSubtitle, windowWidth >= 640 && styles.bannerSubtitleWide]}>
               {patientMode ? 'View your patient details and medical history' : 'Manage patient records and medical history'}
             </Text>
           </View>
         </View>
       </View>
-      <View style={styles.patientHeaderActions}>
+      <View style={[styles.patientHeaderActions, windowWidth >= 640 && styles.patientHeaderActionsWide]}>
         {canAddPatient ? (
           <TouchableOpacity
             style={[
               styles.addButton,
+              windowWidth >= 640 && styles.headerButtonWide,
               focusedCard === 'add-patient' && focusedCardOutline,
             ]}
             onPress={() => {
@@ -452,6 +453,7 @@ const PatientsManagementContent: React.FC<Props> = ({
           <TouchableOpacity
             style={[
               styles.exportButton,
+              windowWidth >= 640 && styles.headerButtonWide,
               focusedCard === 'export' && focusedCardOutline,
             ]}
             onPress={() => {
@@ -484,27 +486,18 @@ const PatientsManagementContent: React.FC<Props> = ({
       ) : null}
 
       {canViewPatients ? (
-        <View style={styles.sectionTitleRow}>
-          <View style={styles.sectionTitleCopy}>
-            <Text style={styles.sectionTitle}>Patient Directory</Text>
-            <Text style={styles.sectionSubtitle}>
-              {totalItems.toLocaleString()} patients in this clinic
-            </Text>
-          </View>
-        </View>
-      ) : null}
-      {canViewPatients ? (
         <View
           style={[
             styles.searchCard,
+            windowWidth >= 640 && styles.searchCardWide,
             focusedCard === 'search' && focusedCardOutline,
           ]}
         >
-          <Search size={18} color="#64748B" />
+          <Search size={16} color="#6C7C93" />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, windowWidth >= 640 && styles.searchInputWide]}
             placeholder="Search name, phone or patient ID"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor="#6C7C93"
             value={searchQuery}
             onChangeText={setSearchQuery}
             onFocus={() => focusCard('search')}
@@ -549,7 +542,7 @@ const PatientsManagementContent: React.FC<Props> = ({
           />
           <View style={styles.resultsHeading}>
             <View style={styles.resultsTitleRow}>
-              <Users size={17} color="#1E293B" />
+              <Users size={20} color="#1C2830" />
               <Text style={styles.resultsTitle}>
                 Patients ({visiblePatients.length})
               </Text>
@@ -575,7 +568,10 @@ const PatientsManagementContent: React.FC<Props> = ({
         </View>
       ) : (
         <FlatList
+          key={windowWidth >= 768 ? 'patient-grid' : 'patient-list'}
           data={visiblePatients}
+          numColumns={windowWidth >= 768 ? 2 : 1}
+          columnWrapperStyle={windowWidth >= 768 ? styles.patientCardGridRow : undefined}
           keyExtractor={patient => String(patient.id)}
           contentContainerStyle={styles.content}
           ListHeaderComponent={listHeader}
@@ -583,8 +579,8 @@ const PatientsManagementContent: React.FC<Props> = ({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => loadPatients(true)}
-              colors={['#0D9488']}
-              tintColor="#0D9488"
+              colors={['#27A599']}
+              tintColor="#27A599"
             />
           }
           renderItem={({ item }) => (
@@ -594,6 +590,7 @@ const PatientsManagementContent: React.FC<Props> = ({
               visibleColumns={visibleColumns}
               canEdit={canEditPatient}
               canManageActions={canManagePatientActions}
+              wideLayout={windowWidth >= 768}
               onToggleStatus={() => togglePatientStatus(item)}
               onOpenActions={ref => {
                 focusCard(`patient-${item.id}`);
@@ -607,13 +604,13 @@ const PatientsManagementContent: React.FC<Props> = ({
           ListEmptyComponent={
             loading ? (
               <View style={styles.emptyState}>
-                <ActivityIndicator size="large" color="#0D9488" />
+                <ActivityIndicator size="large" color="#27A599" />
                 <Text style={styles.emptyTitle}>Loading patients…</Text>
               </View>
             ) : (
               <View style={styles.emptyState}>
                 <View style={styles.emptyIcon}>
-                  <Users size={23} color="#0D9488" />
+                  <Users size={23} color="#27A599" />
                 </View>
                 <Text style={styles.emptyTitle}>No patients found</Text>
                 <Text style={styles.emptySubtitle}>
@@ -860,6 +857,7 @@ function PatientListCard({
   canManageActions = false,
   onOpenActions,
   onToggleStatus,
+  wideLayout = false,
 }: {
   patient: PatientModel;
   onPress: () => void;
@@ -868,6 +866,7 @@ function PatientListCard({
   canManageActions?: boolean;
   onOpenActions: (ref: any) => void;
   onToggleStatus: () => void;
+  wideLayout?: boolean;
 }) {
   const { focusedCard, focusCard } = usePatientCardFocus();
   const cardFocusId = `patient-${patient.id}`;
@@ -918,6 +917,7 @@ function PatientListCard({
     <View
       style={[
         styles.patientCard,
+        wideLayout && styles.patientCardWide,
         focusedCard === cardFocusId && focusedCardOutline,
       ]}
     >
@@ -1004,7 +1004,7 @@ function PatientAction({
         highlighted && styles.actionMenuItemHighlighted,
       ]}
     >
-      <Icon size={15} color={highlighted ? '#0D9488' : '#334155'} />
+      <Icon size={15} color={highlighted ? '#27A599' : '#334155'} />
       <Text
         style={[
           styles.actionMenuText,

@@ -159,7 +159,7 @@ function ClinicalDetail({
   return (
     <View style={styles.clinicalDetail}>
       <View style={styles.eyebrowRow}>
-        <Icon size={13} color="#0D9488" />
+        <Icon size={13} color="#27A599" />
         <Text style={styles.eyebrow}>{title}</Text>
       </View>
       <Text style={styles.clinicalValue}>{value || 'Not recorded'}</Text>
@@ -508,7 +508,7 @@ export function PatientPrescriptionModal({
                         style={styles.resetAction}
                         onPress={resetFilters}
                       >
-                        <RotateCcw size={11} color="#0D9488" />
+                        <RotateCcw size={11} color="#27A599" />
                         <Text style={styles.resetText}>Reset</Text>
                       </TouchableOpacity>
                     </View>
@@ -530,7 +530,7 @@ export function PatientPrescriptionModal({
               >
                 {loading ? (
                   <View style={styles.emptyState}>
-                    <ActivityIndicator color="#0D9488" size="large" />
+                    <ActivityIndicator color="#27A599" size="large" />
                     <Text style={styles.emptyTitle}>
                       Loading prescriptions...
                     </Text>
@@ -572,7 +572,7 @@ export function PatientPrescriptionModal({
                       style={styles.clearFilters}
                       onPress={resetFilters}
                     >
-                      <RotateCcw size={13} color="#0D9488" />
+                      <RotateCcw size={13} color="#27A599" />
                       <Text style={styles.clearFiltersText}>Clear filters</Text>
                     </TouchableOpacity>
                   </View>
@@ -591,7 +591,7 @@ export function PatientPrescriptionModal({
                       >
                         <View style={styles.prescriptionTop}>
                           <View style={styles.rxTitleRow}>
-                            <FileText size={14} color="#0D9488" />
+                            <FileText size={14} color="#27A599" />
                             <Text style={styles.rxTitle}>Rx #{row.id}</Text>
                           </View>
                           <Text style={styles.finalBadge}>
@@ -618,7 +618,7 @@ export function PatientPrescriptionModal({
                           <View style={styles.countsRow}>
                             {Number(row.medicine_count || 0) > 0 ? (
                               <View style={styles.countItem}>
-                                <Pill size={11} color="#0D9488" />
+                                <Pill size={11} color="#27A599" />
                                 <Text style={styles.itemCount}>
                                   {Number(row.medicine_count)} medicines
                                 </Text>
@@ -685,7 +685,7 @@ export function PatientPrescriptionModal({
             >
               {detailLoading ? (
                 <View style={styles.detailEmpty}>
-                  <ActivityIndicator size="large" color="#0D9488" />
+                  <ActivityIndicator size="large" color="#27A599" />
                   <Text style={styles.emptyTitle}>
                     Loading prescription details...
                   </Text>
@@ -693,7 +693,7 @@ export function PatientPrescriptionModal({
               ) : !detail ? (
                 <View style={styles.detailEmpty}>
                   <View style={styles.emptyIcon}>
-                    <ClipboardList size={25} color="#0D9488" />
+                    <ClipboardList size={25} color="#27A599" />
                   </View>
                   <Text style={styles.emptyTitle}>Select a prescription</Text>
                   <Text style={styles.emptyHint}>
@@ -704,7 +704,7 @@ export function PatientPrescriptionModal({
                     style={styles.backHistory}
                     onPress={() => setView('history')}
                   >
-                    <ClipboardList size={14} color="#0D9488" />
+                    <ClipboardList size={14} color="#27A599" />
                     <Text style={styles.backHistoryText}>
                       Prescription history
                     </Text>
@@ -715,7 +715,7 @@ export function PatientPrescriptionModal({
                   <View style={styles.detailCard}>
                     <View style={styles.prescriberHeader}>
                       <View style={styles.doctorIcon}>
-                        <UserRound size={19} color="#0D9488" />
+                        <UserRound size={19} color="#27A599" />
                       </View>
                       <View style={styles.prescriberCopy}>
                         <Text style={styles.eyebrow}>PRESCRIBED BY</Text>
@@ -736,7 +736,7 @@ export function PatientPrescriptionModal({
                         {formatStatus(fallbackStatus(detail.status))}
                       </Text>
                       <View style={styles.followUp}>
-                        <CalendarClock size={14} color="#0D9488" />
+                        <CalendarClock size={14} color="#27A599" />
                         <Text style={styles.followUpText}>
                           Follow-up:{' '}
                           <Text style={styles.followUpStrong}>
@@ -770,7 +770,7 @@ export function PatientPrescriptionModal({
                   <View style={styles.detailCard}>
                     <View style={styles.sectionHeader}>
                       <View style={styles.sectionIcon}>
-                        <Pill size={15} color="#0D9488" />
+                        <Pill size={15} color="#27A599" />
                       </View>
                       <View>
                         <Text style={styles.sectionTitle}>
@@ -953,13 +953,13 @@ const styles = StyleSheet.create({
   },
   headerCopy: { flex: 1, minWidth: 0 },
   title: {
-    color: '#FFFFFF',
-    fontSize: 18,
+    fontFamily: 'Inter', color: '#FFFFFF',
+    fontSize: 20,
     fontWeight: '800',
     letterSpacing: -0.3,
   },
   patientName: {
-    color: '#CBD5E1',
+    fontFamily: 'Inter', color: '#CBD5E1',
     fontSize: 10,
     fontWeight: '600',
     marginTop: 3,
@@ -995,10 +995,10 @@ const styles = StyleSheet.create({
     borderRadius: 11,
   },
   tabActive: { backgroundColor: '#101827' },
-  tabText: { color: '#64748B', fontSize: 12, fontWeight: '700' },
+  tabText: { fontFamily: 'Inter', color: '#64748B', fontSize: 12, fontWeight: '700' },
   tabTextActive: { color: '#FFFFFF' },
   tabCount: {
-    overflow: 'hidden',
+    fontFamily: 'Inter', overflow: 'hidden',
     color: '#64748B',
     backgroundColor: '#F1F5F9',
     fontSize: 9,
@@ -1022,10 +1022,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#F1F5F9',
   },
-  historyTitle: { color: '#0F172A', fontSize: 12, fontWeight: '800' },
-  historyHint: { color: '#64748B', fontSize: 10, marginTop: 2 },
+  historyTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 12, fontWeight: '800' },
+  historyHint: { fontFamily: 'Inter', color: '#64748B', fontSize: 10, marginTop: 2 },
   countBadge: {
-    minWidth: 23,
+    fontFamily: 'Inter', minWidth: 23,
     height: 23,
     textAlign: 'center',
     textAlignVertical: 'center',
@@ -1057,7 +1057,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#FFFFFF',
   },
-  searchInput: { flex: 1, paddingVertical: 5, color: '#334155', fontSize: 11 },
+  searchInput: { fontFamily: 'Inter', flex: 1, paddingVertical: 5, color: '#334155', fontSize: 11 },
   filterRow: { flexDirection: 'row', gap: 7 },
   filterCell: { position: 'relative', zIndex: 10, flex: 1 },
   filterButton: {
@@ -1072,7 +1072,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#FFFFFF',
   },
-  filterText: { flex: 1, color: '#334155', fontSize: 10 },
+  filterText: { fontFamily: 'Inter', flex: 1, color: '#334155', fontSize: 10 },
   dropdownMenu: {
     position: 'absolute',
     top: 38,
@@ -1094,9 +1094,9 @@ const styles = StyleSheet.create({
     borderRadius: 7,
   },
   dropdownOptionActive: { backgroundColor: '#DDF5F2' },
-  dropdownText: { color: '#334155', fontSize: 10 },
-  dropdownTextActive: { color: '#0D9488', fontWeight: '700' },
-  helperText: { color: '#94A3B8', fontSize: 9 },
+  dropdownText: { fontFamily: 'Inter', color: '#334155', fontSize: 10 },
+  dropdownTextActive: { color: '#27A599', fontWeight: '700' },
+  helperText: { fontFamily: 'Inter', color: '#94A3B8', fontSize: 12 },
   helperRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   filterHintRow: {
     flexDirection: 'row',
@@ -1109,7 +1109,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 2,
   },
-  resetText: { color: '#0D9488', fontSize: 10, fontWeight: '700' },
+  resetText: { fontFamily: 'Inter', color: '#27A599', fontSize: 10, fontWeight: '700' },
   historyList: { flex: 1 },
   historyListContent: { padding: 11, gap: 8, flexGrow: 1 },
   prescriptionCard: {
@@ -1129,9 +1129,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
   },
-  rxTitle: { color: '#0F172A', fontSize: 12, fontWeight: '800' },
+  rxTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 12, fontWeight: '800' },
   finalBadge: {
-    overflow: 'hidden',
+    fontFamily: 'Inter', overflow: 'hidden',
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -1141,7 +1141,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textTransform: 'uppercase',
   },
-  prescriptionDate: { color: '#64748B', fontSize: 9 },
+  prescriptionDate: { fontFamily: 'Inter', color: '#64748B', fontSize: 9 },
   diagnosisRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1151,7 +1151,7 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   prescriptionDiagnosis: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     color: '#0F172A',
     fontSize: 11,
     fontWeight: '600',
@@ -1164,14 +1164,14 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: '#E2E8F0',
   },
-  itemCount: { color: '#64748B', fontSize: 9 },
+  itemCount: { fontFamily: 'Inter', color: '#64748B', fontSize: 9 },
   pagination: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 5,
   },
-  pageInfo: { color: '#64748B', fontSize: 10 },
+  pageInfo: { fontFamily: 'Inter', color: '#64748B', fontSize: 10 },
   pageActions: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   pageButton: {
     width: 27,
@@ -1183,7 +1183,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#FFFFFF',
   },
-  pageNumber: { color: '#475569', fontSize: 10, fontWeight: '700' },
+  pageNumber: { fontFamily: 'Inter', color: '#475569', fontSize: 10, fontWeight: '700' },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
@@ -1199,14 +1199,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
   },
   emptyTitle: {
-    marginTop: 11,
+    fontFamily: 'Inter', marginTop: 11,
     color: '#334155',
     fontSize: 13,
     fontWeight: '800',
     textAlign: 'center',
   },
   emptyHint: {
-    marginTop: 5,
+    fontFamily: 'Inter', marginTop: 5,
     color: '#64748B',
     fontSize: 10,
     textAlign: 'center',
@@ -1218,7 +1218,7 @@ const styles = StyleSheet.create({
     gap: 5,
     marginTop: 11,
   },
-  clearFiltersText: { color: '#0D9488', fontSize: 10, fontWeight: '700' },
+  clearFiltersText: { fontFamily: 'Inter', color: '#27A599', fontSize: 10, fontWeight: '700' },
   detailsPanel: { flex: 1, backgroundColor: '#F8FAFC' },
   detailsContent: { padding: 11, gap: 10, flexGrow: 1 },
   detailEmpty: {
@@ -1257,19 +1257,19 @@ const styles = StyleSheet.create({
   },
   prescriberCopy: { flex: 1, minWidth: 0 },
   eyebrow: {
-    color: '#94A3B8',
-    fontSize: 8,
+    fontFamily: 'Inter', color: '#94A3B8',
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1,
   },
   prescriberName: {
-    marginTop: 2,
+    fontFamily: 'Inter', marginTop: 2,
     color: '#0F172A',
     fontSize: 12,
     fontWeight: '800',
   },
   prescribedDate: {
-    flexDirection: 'row',
+    fontFamily: 'Inter', flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     marginTop: 3,
@@ -1285,7 +1285,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   metaTag: {
-    overflow: 'hidden',
+    fontFamily: 'Inter', overflow: 'hidden',
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 9,
@@ -1307,7 +1307,7 @@ const styles = StyleSheet.create({
     borderColor: '#CCFBF1',
     backgroundColor: '#FFFFFF',
   },
-  followUpText: { color: '#475569', fontSize: 9 },
+  followUpText: { fontFamily: 'Inter', color: '#475569', fontSize: 9 },
   followUpStrong: { color: '#0F172A', fontWeight: '800' },
   clinicalGrid: { padding: 12, gap: 8 },
   adviceCell: {},
@@ -1320,7 +1320,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   clinicalValue: {
-    marginTop: 7,
+    fontFamily: 'Inter', marginTop: 7,
     color: '#1E293B',
     fontSize: 11,
     fontWeight: '500',
@@ -1352,10 +1352,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#F0F9FF',
   },
-  sectionTitle: { color: '#0F172A', fontSize: 11, fontWeight: '800' },
-  sectionSubtitle: { marginTop: 2, color: '#64748B', fontSize: 8 },
+  sectionTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 18, fontWeight: '800' },
+  sectionSubtitle: { fontFamily: 'Inter', marginTop: 2, color: '#64748B', fontSize: 8 },
   testCount: {
-    marginLeft: 'auto',
+    fontFamily: 'Inter', marginLeft: 'auto',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 10,
@@ -1374,7 +1374,7 @@ const styles = StyleSheet.create({
     borderColor: '#F1F5F9',
   },
   itemIndex: {
-    minWidth: 23,
+    fontFamily: 'Inter', minWidth: 23,
     height: 23,
     overflow: 'hidden',
     textAlign: 'center',
@@ -1387,7 +1387,7 @@ const styles = StyleSheet.create({
     paddingTop: 5,
   },
   testIndex: {
-    minWidth: 23,
+    fontFamily: 'Inter', minWidth: 23,
     height: 23,
     overflow: 'hidden',
     textAlign: 'center',
@@ -1400,7 +1400,7 @@ const styles = StyleSheet.create({
     paddingTop: 5,
   },
   lineItemBody: { flex: 1, minWidth: 0 },
-  lineItemName: { color: '#0F172A', fontSize: 11, fontWeight: '800' },
+  lineItemName: { fontFamily: 'Inter', color: '#0F172A', fontSize: 11, fontWeight: '800' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
   metaChip: {
     flexDirection: 'row',
@@ -1412,15 +1412,15 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     backgroundColor: '#F8FAFC',
   },
-  metaLabel: { color: '#94A3B8', fontSize: 8 },
-  metaValue: { color: '#64748B', fontSize: 8, fontWeight: '700' },
+  metaLabel: { fontFamily: 'Inter', color: '#94A3B8', fontSize: 8 },
+  metaValue: { fontFamily: 'Inter', color: '#64748B', fontSize: 8, fontWeight: '700' },
   metaChipEmphasis: { borderColor: '#FDE68A', backgroundColor: '#FFFBEB' },
   metaLabelEmphasis: { color: '#D97706' },
   metaValueEmphasis: { color: '#92400E' },
   testTitleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  testCode: { marginTop: 2, color: '#94A3B8', fontSize: 8 },
+  testCode: { fontFamily: 'Inter', marginTop: 2, color: '#94A3B8', fontSize: 8 },
   testStatus: {
-    overflow: 'hidden',
+    fontFamily: 'Inter', overflow: 'hidden',
     paddingHorizontal: 7,
     paddingVertical: 4,
     borderRadius: 9,
@@ -1431,7 +1431,7 @@ const styles = StyleSheet.create({
   testStatusComplete: { backgroundColor: '#ECFDF5', color: '#047857' },
   testStatusDefault: { backgroundColor: '#F0F9FF', color: '#0369A1' },
   testDescription: {
-    marginTop: 6,
+    fontFamily: 'Inter', marginTop: 6,
     padding: 7,
     borderRadius: 8,
     backgroundColor: '#F8FAFC',
@@ -1440,7 +1440,7 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   emptySection: {
-    paddingHorizontal: 14,
+    fontFamily: 'Inter', paddingHorizontal: 14,
     paddingVertical: 20,
     color: '#64748B',
     fontSize: 10,
@@ -1452,7 +1452,7 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 13,
   },
-  backHistoryText: { color: '#0D9488', fontSize: 10, fontWeight: '700' },
+  backHistoryText: { fontFamily: 'Inter', color: '#27A599', fontSize: 10, fontWeight: '700' },
   eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   rxTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   prescriptionDateRow: {
@@ -1488,5 +1488,5 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: '#101827',
   },
-  footerCloseText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  footerCloseText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
 });

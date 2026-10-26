@@ -416,7 +416,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
 
               {loading ? (
                 <View style={styles.loadingBox}>
-                  <ActivityIndicator size="large" color="#0D9488" />
+                  <ActivityIndicator size="large" color="#27A599" />
                   <Text style={styles.loadingText}>Loading role list...</Text>
                 </View>
               ) : (
@@ -523,7 +523,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
               {/* MATRIX TABLE / LIST VIEW */}
               {loading ? (
                 <View style={styles.loadingBox}>
-                  <ActivityIndicator size="large" color="#0D9488" />
+                  <ActivityIndicator size="large" color="#27A599" />
                   <Text style={styles.loadingText}>Loading permissions matrix...</Text>
                 </View>
               ) : isMobile ? (
@@ -549,7 +549,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                                 value={val}
                                 onValueChange={() => togglePermission(obj.id, key)}
                                 trackColor={{ false: '#E2E8F0', true: '#99F6E4' }}
-                                thumbColor={val ? '#0D9488' : '#F1F5F9'}
+                                thumbColor={val ? '#27A599' : '#F1F5F9'}
                               />
                             </View>
                           );
@@ -596,7 +596,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                                 value={val}
                                 onValueChange={() => togglePermission(obj.id, key)}
                                 trackColor={{ false: '#E2E8F0', true: '#99F6E4' }}
-                                thumbColor={val ? '#0D9488' : '#F1F5F9'}
+                                thumbColor={val ? '#27A599' : '#F1F5F9'}
                               />
                             </View>
                           );
@@ -642,7 +642,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                     }}
                   >
                     {isSelected ? (
-                      <Check color="#0D9488" size={16} style={{ marginRight: 8 }} />
+                      <Check color="#27A599" size={16} style={{ marginRight: 8 }} />
                     ) : (
                       <View style={{ width: 24 }} />
                     )}
@@ -735,7 +735,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
 }
 
 const styles = StyleSheet.create({
-  roleFormError: { color: '#B91C1C', fontSize: 12, marginTop: 6 },
+  roleFormError: { fontFamily: 'Inter', color: '#B91C1C', fontSize: 12, marginTop: 6 },
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   body: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
 
@@ -751,8 +751,8 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     gap: 12,
   },
-  headerTitle: { color: '#0F172A', fontSize: 22, fontWeight: '700' },
-  headerSubtitle: { color: '#64748B', fontSize: 13, marginTop: 4 },
+  headerTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 22, fontWeight: '700' },
+  headerSubtitle: { fontFamily: 'Inter', color: '#64748B', fontSize: 13, marginTop: 4 },
 
   refreshContainer: { alignItems: 'flex-end' },
   refreshContainerMobile: {
@@ -770,13 +770,13 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 8,
   },
-  refreshButtonText: { color: '#334155', fontSize: 13, fontWeight: '600' },
+  refreshButtonText: { fontFamily: 'Inter', color: '#334155', fontSize: 13, fontWeight: '600' },
   // Main Card with Teal Border
   tealBorderCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#0D9488',
+    borderColor: '#27A599',
     padding: 16,
     marginBottom: 20,
     elevation: 2,
@@ -785,8 +785,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 3,
   },
-  innerCardTitle: { color: '#0F172A', fontSize: 18, fontWeight: '700' },
-  innerCardSubtitle: { color: '#64748B', fontSize: 12, marginTop: 2 },
+  innerCardTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 18, fontWeight: '700' },
+  innerCardSubtitle: { fontFamily: 'Inter', color: '#64748B', fontSize: 12, marginTop: 2 },
 
   // Segmented Tab Bar
   segmentedTabBar: {
@@ -811,7 +811,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  segmentTabText: { color: '#64748B', fontSize: 14, fontWeight: '600' },
+  segmentTabText: { fontFamily: 'Inter', color: '#64748B', fontSize: 14, fontWeight: '600' },
   segmentTabTextActive: { color: '#0F172A', fontWeight: '700' },
 
   // Roles Tab Layout
@@ -821,16 +821,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  sectionTitleText: { color: '#0F172A', fontSize: 15, fontWeight: '700' },
+  sectionTitleText: { fontFamily: 'Inter', color: '#0F172A', fontSize: 15, fontWeight: '700' },
   addRoleButton: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
   },
-  addRoleButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+  addRoleButtonText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
 
   rolesGrid: {
     flexDirection: 'row',
@@ -857,9 +857,9 @@ const styles = StyleSheet.create({
   roleCardMobile: {
     width: '100%',
   },
-  roleCardName: { color: '#0F172A', fontSize: 15, fontWeight: '700' },
-  roleCardId: { color: '#64748B', fontSize: 12, marginTop: 2 },
-  roleCardDesc: { color: '#94A3B8', fontSize: 11, marginTop: 4 },
+  roleCardName: { fontFamily: 'Inter', color: '#0F172A', fontSize: 15, fontWeight: '700' },
+  roleCardId: { fontFamily: 'Inter', color: '#64748B', fontSize: 12, marginTop: 2 },
+  roleCardDesc: { fontFamily: 'Inter', color: '#94A3B8', fontSize: 11, marginTop: 4 },
 
   roleCardRightCol: {
     flexDirection: 'row',
@@ -873,7 +873,7 @@ const styles = StyleSheet.create({
   },
   badgeSystem: { backgroundColor: '#DCFCE7' },
   badgeCustom: { backgroundColor: '#E0F2FE' },
-  badgeTagText: { fontSize: 11, fontWeight: '700' },
+  badgeTagText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700' },
   badgeSystemText: { color: '#15803D' },
   badgeCustomText: { color: '#0369A1' },
 
@@ -885,7 +885,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
-  usersCountText: { color: '#334155', fontSize: 11, fontWeight: '600' },
+  usersCountText: { fontFamily: 'Inter', color: '#334155', fontSize: 11, fontWeight: '600' },
 
   editIconTouch: {
     padding: 6,
@@ -920,7 +920,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     minWidth: 160,
   },
-  roleDropdownSelectorText: { color: '#0F172A', fontSize: 14, fontWeight: '600' },
+  roleDropdownSelectorText: { fontFamily: 'Inter', color: '#0F172A', fontSize: 14, fontWeight: '600' },
 
   // Same floating card as before, positioned relative to the screen root.
   dropdownMenuCard: {
@@ -945,8 +945,8 @@ const styles = StyleSheet.create({
   dropdownMenuItemActive: {
     backgroundColor: '#E6F4F1',
   },
-  dropdownMenuText: { color: '#334155', fontSize: 14, flexShrink: 1 },
-  dropdownMenuTextActive: { color: '#0D9488', fontWeight: '700' },
+  dropdownMenuText: { fontFamily: 'Inter', color: '#334155', fontSize: 14, flexShrink: 1 },
+  dropdownMenuTextActive: { color: '#27A599', fontWeight: '700' },
 
   saveChangesButton: {
     backgroundColor: '#20A69A',
@@ -958,7 +958,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   saveChangesButtonDisabled: { backgroundColor: '#93D4CE' },
-  saveChangesButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  saveChangesButtonText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
 
   // Matrix Desktop View
   matrixHeaderRow: {
@@ -969,9 +969,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderRadius: 6,
   },
-  matrixHeaderCell: { color: '#64748B', fontSize: 12, fontWeight: '700', paddingHorizontal: 8 },
+  matrixHeaderCell: { fontFamily: 'Inter', color: '#64748B', fontSize: 12, fontWeight: '700', paddingHorizontal: 8 },
   matrixHeaderCellCenter: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     color: '#64748B',
     fontSize: 12,
     fontWeight: '700',
@@ -985,8 +985,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
   },
-  matrixObjName: { color: '#0F172A', fontSize: 14, fontWeight: '700' },
-  matrixObjSub: { color: '#94A3B8', fontSize: 11, marginTop: 2 },
+  matrixObjName: { fontFamily: 'Inter', color: '#0F172A', fontSize: 14, fontWeight: '700' },
+  matrixObjSub: { fontFamily: 'Inter', color: '#94A3B8', fontSize: 11, marginTop: 2 },
   matrixSwitchCell: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   // Mobile Perm Card
@@ -1012,10 +1012,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 6,
   },
-  mobileSwitchLabel: { color: '#64748B', fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  mobileSwitchLabel: { fontFamily: 'Inter', color: '#64748B', fontSize: 11, fontWeight: '600', marginBottom: 4 },
 
   loadingBox: { padding: 40, alignItems: 'center' },
-  loadingText: { marginTop: 10, color: '#64748B', fontSize: 13 },
+  loadingText: { fontFamily: 'Inter', marginTop: 10, color: '#64748B', fontSize: 13 },
 
   // Modal Overlay
   modalOverlay: {
@@ -1052,12 +1052,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  roleModalTitle: { fontSize: 20, fontWeight: '700', color: '#0F172A' },
-  roleModalSubtitle: { fontSize: 13, color: '#64748B', marginTop: 2 },
+  roleModalTitle: { fontFamily: 'Inter', fontSize: 20, fontWeight: '700', color: '#0F172A' },
+  roleModalSubtitle: { fontFamily: 'Inter', fontSize: 13, color: '#64748B', marginTop: 2 },
 
   roleModalBody: {
     paddingHorizontal: 20,
@@ -1065,7 +1065,7 @@ const styles = StyleSheet.create({
   },
   roleInputContainerActive: {
     borderWidth: 1.5,
-    borderColor: '#0D9488',
+    borderColor: '#27A599',
     borderRadius: 10,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 14,
@@ -1073,7 +1073,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   roleInputText: {
-    fontSize: 15,
+    fontFamily: 'Inter', fontSize: 15,
     color: '#0F172A',
     fontWeight: '500',
   },
@@ -1097,14 +1097,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
   },
-  roleCancelBtnText: { color: '#334155', fontSize: 14, fontWeight: '600' },
+  roleCancelBtnText: { fontFamily: 'Inter', color: '#334155', fontSize: 14, fontWeight: '600' },
   roleSaveBtn: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     paddingHorizontal: 22,
     paddingVertical: 10,
     borderRadius: 10,
   },
-  roleSaveBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  roleSaveBtnText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
 });
 
 export default RolePermissions;

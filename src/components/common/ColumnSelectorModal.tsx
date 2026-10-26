@@ -49,7 +49,7 @@ export const ColumnSelectorModal = memo(function ColumnSelectorModal<K extends s
               {/* Header */}
               <View style={styles.dropdownHeader}>
                 <View style={styles.headerTitleRow}>
-                  <Columns color="#0D9488" size={16} style={{ marginRight: 8 }} />
+                  <Columns color="#27A599" size={16} style={{ marginRight: 8 }} />
                   <Text style={styles.dropdownTitle}>{title}</Text>
                 </View>
                 <TouchableOpacity
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dropdownTitle: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '700',
     color: '#0F172A',
   },
@@ -188,15 +188,15 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   dropdownSubtitle: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#64748B',
     flex: 1,
     marginRight: 8,
   },
   resetText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '600',
-    color: '#0D9488',
+    color: '#27A599',
   },
   dropdownDivider: {
     height: 1,
@@ -229,11 +229,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   checkboxBoxChecked: {
-    backgroundColor: '#0D9488',
-    borderColor: '#0D9488',
+    backgroundColor: '#27A599',
+    borderColor: '#27A599',
   },
   checkboxLabel: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '500',
     color: '#334155',
   },
@@ -252,18 +252,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   activeCountText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#64748B',
     fontWeight: '500',
   },
   doneBtn: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 6,
   },
   doneBtnText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
   },

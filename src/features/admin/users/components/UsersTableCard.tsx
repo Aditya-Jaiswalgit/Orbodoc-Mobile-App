@@ -67,7 +67,7 @@ export function UsersTableCard({
       <View style={styles.cardHeader}>
         <View style={styles.titleRow}>
           <View style={styles.titleIconBg}>
-            <Users size={20} color="#0D9488" />
+            <Users size={20} color="#27A599" />
           </View>
           <Text style={styles.cardTitle}>All Users ({users.length})</Text>
         </View>
@@ -76,7 +76,7 @@ export function UsersTableCard({
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0D9488" />
+          <ActivityIndicator size="large" color="#27A599" />
           <Text style={styles.loadingText}>Loading users...</Text>
         </View>
       ) : users.length === 0 ? (
@@ -181,7 +181,7 @@ export function UsersTableCard({
               onPress={() =>
                 selectedUserForMenu && handleAction('edit', selectedUserForMenu)
               }>
-              <Edit size={18} color="#0D9488" style={styles.menuIcon} />
+              <Edit size={18} color="#27A599" style={styles.menuIcon} />
               <Text style={styles.menuItemText}>Edit User</Text>
             </TouchableOpacity>
 
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   cardTitle: {
-    fontSize: 16,
+    fontFamily: 'Inter', fontSize: 18,
     fontWeight: '700',
     color: '#0F172A',
   },
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loadingText: {
-    marginTop: 8,
+    fontFamily: 'Inter', marginTop: 8,
     color: '#64748B',
     fontSize: 13,
   },
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#94A3B8',
+    fontFamily: 'Inter', color: '#94A3B8',
     fontSize: 14,
   },
   listContainer: {
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   avatarText: {
-    color: '#0F766E',
+    fontFamily: 'Inter', color: '#1D7C72',
     fontSize: 16,
     fontWeight: '700',
   },
@@ -299,12 +299,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userName: {
-    fontSize: 15,
+    fontFamily: 'Inter', fontSize: 15,
     fontWeight: '700',
     color: '#0F172A',
   },
   userEmail: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
     marginTop: 1,
   },
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   statusBadgeText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '600',
   },
   activeStatusText: {
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   roleBadgeText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '600',
     marginLeft: 4,
   },
@@ -366,12 +366,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   contactText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
     marginLeft: 2,
   },
   dateText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#94A3B8',
   },
 
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
   },
   menuHeaderTitle: {
-    fontSize: 15,
+    fontFamily: 'Inter', fontSize: 15,
     fontWeight: '700',
     color: '#0F172A',
     marginBottom: 12,
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   menuItemText: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#334155',
   },

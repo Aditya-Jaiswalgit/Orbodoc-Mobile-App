@@ -1,10 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { AppModal } from '../../components/common/AppModal';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { CalendarClock, CheckCircle2, Clock3, CreditCard, IndianRupee, Video, Wallet, X } from 'lucide-react-native';
+import { CalendarClock, Clock3, CreditCard, IndianRupee, Video, Wallet, X } from 'lucide-react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 import { PatientHeader } from '../../components/common/PatientHeader';
-import { PatientPageHeading } from '../../components/common/PatientPageHeading';
 import { useAuthContext } from '../../context/AuthContext';
 import { Appointment } from '../../types/clinicTypes';
 import { confirmVideoPaymentApi, createWalletRechargeOrderApi, getVideoPaymentQuoteApi, verifyWalletRechargeApi, VideoPaymentQuote } from '../../api/videoServicesApi';
@@ -21,7 +20,7 @@ const statusColor = (status?: string) => ['completed', 'complete', 'settled'].in
 export const VideoServicesScreen: React.FC<Props> = ({ onOpenDrawer = () => {}, onJoinCall }) => {
   const { token, user } = useAuthContext();
   const { appointments, sessions, walletBalance, loading, refreshing, error, refresh, setWalletBalance } = useVideoServices(token, undefined, true);
-  const [tab, setTab] = useState<'active' | 'history'>('active');
+  const [tab, setTab] = useState<'calls' | 'history' | 'wallet'>('calls');
   const [payable, setPayable] = useState<Payable | null>(null);
   const [loadingAppointment, setLoadingAppointment] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -29,7 +28,7 @@ export const VideoServicesScreen: React.FC<Props> = ({ onOpenDrawer = () => {}, 
   const [rechargeAmount, setRechargeAmount] = useState('500');
   const active = useMemo(() => appointments.filter(item => activeStatus(item.status)), [appointments]);
   const history = useMemo(() => appointments.filter(item => ['completed', 'complete', 'cancelled', 'no_show'].includes(String(item.status || '').toLowerCase())), [appointments]);
-  const rows = tab === 'active' ? active : history;
+  const rows = tab === 'calls' ? active : history;
 
   const openPayment = async (appointment: Appointment) => {
     if (!token) return;
@@ -76,7 +75,7 @@ export const VideoServicesScreen: React.FC<Props> = ({ onOpenDrawer = () => {}, 
         name: 'OrboDoc',
         description: 'Patient wallet recharge',
         prefill: { name: user?.full_name || user?.fullName, email: user?.email, contact: user?.phone },
-        theme: { color: '#0f766e' },
+        theme: { color: '#1d7c72' },
       });
       const verifyResult = await verifyWalletRechargeApi(token, payment);
       if (!verifyResult.success) throw new Error(verifyResult.message || 'Payment verification failed.');
@@ -97,14 +96,22 @@ export const VideoServicesScreen: React.FC<Props> = ({ onOpenDrawer = () => {}, 
     const paymentStatus = String(session?.status || 'payment due').replace(/_/g, ' ');
     const fee = Number(session?.quoted_amount || 0);
     const canJoin = activeStatus(appointment.status) && Boolean(onJoinCall);
+    const paymentReady = ['confirmed', 'in_call', 'completed'].includes(String(session?.status || '').toLowerCase());
     return <View key={appointment.id} style={styles.card}>
-      <View style={styles.cardTop}><View style={styles.iconCircle}><Video size={19} color="#0f766e" /></View><View style={styles.flex}><Text style={styles.doctor}>Dr. {appointment.doctor_name || 'Doctor'}</Text><Text style={styles.muted}>{appointment.specialization || appointment.doctor_specialization || 'Video consultation'} · #{appointment.id}</Text></View><Text style={[styles.badge, { color: statusColor(appointment.status), backgroundColor: `${statusColor(appointment.status)}12` }]}>{String(appointment.status || 'scheduled').replace(/_/g, ' ')}</Text></View>
+      <View style={styles.cardTop}>
+        <View style={styles.iconCircle}><Video size={19} color="#27A598" /></View>
+        <View style={styles.flex}>
+          <View style={styles.doctorLine}><Text style={styles.doctor}>Dr. {appointment.doctor_name || 'Doctor'}</Text><View style={styles.appointmentBadge}><Text style={styles.appointmentBadgeText}>#{appointment.id}</Text></View></View>
+          <Text style={styles.muted}>{appointment.clinic_name || 'Clinic'}</Text>
+          <Text style={styles.muted}>{appointment.reason || 'Video consultation'}</Text>
+        </View>
+      </View>
+      <View style={styles.statusRow}><Text style={styles.tableLabel}>Status</Text><Text style={[styles.badge, { color: statusColor(appointment.status), backgroundColor: `${statusColor(appointment.status)}12` }]}>{String(appointment.status || 'approved').replace(/_/g, ' ')}</Text></View>
       <View style={styles.rule} />
-      <Text style={styles.detail}><CalendarClock size={14} color="#64748b" />  {appointment.appointment_date || 'Date not set'} · {(appointment.appointment_time || appointment.time_slot || '').slice(0, 5)}</Text>
-      {!!appointment.reason && <Text style={styles.reason}>{appointment.reason}</Text>}
-      <View style={styles.paymentRow}><Text style={styles.paymentLabel}>Payment</Text><Text style={[styles.paymentStatus, { color: statusColor(session?.status) }]}>{paymentStatus}</Text>{fee > 0 && <Text style={styles.fee}>{money(fee)}</Text>}</View>
+      <View style={styles.dataRow}><CalendarClock size={16} color="#6C7C93" /><View style={styles.dataCopy}><Text style={styles.tableLabel}>Date & Time</Text><Text style={styles.detail}>{appointment.appointment_date || 'Date not set'} · {(appointment.appointment_time || appointment.time_slot || '').slice(0, 5)}</Text></View></View>
+      <View style={styles.paymentRow}><Text style={styles.tableLabel}>Payment</Text><Text style={[styles.paymentStatus, { color: paymentReady ? '#047857' : statusColor(session?.status) }]}>{paymentReady ? 'Ready' : paymentStatus}</Text>{fee > 0 && <Text style={styles.fee}>{money(fee)}</Text>}</View>
       <View style={styles.actions}>
-        {activeStatus(appointment.status) && <TouchableOpacity style={styles.secondaryButton} disabled={loadingAppointment === appointment.id} onPress={() => openPayment(appointment)}>{loadingAppointment === appointment.id ? <ActivityIndicator size="small" color="#0f766e" /> : <CreditCard size={16} color="#0f766e" />}<Text style={styles.secondaryText}>Payment details</Text></TouchableOpacity>}
+        {activeStatus(appointment.status) && <TouchableOpacity style={styles.secondaryButton} disabled={loadingAppointment === appointment.id} onPress={() => openPayment(appointment)}>{loadingAppointment === appointment.id ? <ActivityIndicator size="small" color="#1d7c72" /> : <CreditCard size={16} color="#1d7c72" />}<Text style={styles.secondaryText}>Payment details</Text></TouchableOpacity>}
         {canJoin && <TouchableOpacity style={styles.primaryButton} onPress={() => onJoinCall?.(appointment)}><Video size={16} color="#fff" /><Text style={styles.primaryText}>Join call</Text></TouchableOpacity>}
       </View>
     </View>;
@@ -113,14 +120,33 @@ export const VideoServicesScreen: React.FC<Props> = ({ onOpenDrawer = () => {}, 
   return <View style={styles.container}>
     <PatientHeader onOpenDrawer={onOpenDrawer} />
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
-      <View style={styles.hero}><PatientPageHeading title="Video Services" subtitle="Manage your video consultation payments and calls." icon={<Video size={21} color="#0f766e" />} compact /></View>
-      <View style={styles.walletCard}><View style={styles.walletIcon}><Wallet size={20} color="#0f766e" /></View><View style={styles.flex}><Text style={styles.muted}>Wallet balance</Text><Text style={styles.balance}>{walletBalance === null ? '—' : money(walletBalance)}</Text></View><TouchableOpacity style={styles.rechargeButton} onPress={() => setRechargeOpen(true)}><IndianRupee size={14} color="#0f766e" /><Text style={styles.secondaryText}>Recharge</Text></TouchableOpacity><Text style={styles.walletNote}>Fee is charged when your doctor starts the call.</Text></View>
-      <View style={styles.counts}><Count icon={<Video size={17} color="#0f766e" />} title="Active appointments" count={active.length} /><Count icon={<CheckCircle2 size={17} color="#047857" />} title="Completed calls" count={history.length} /></View>
-      <View style={styles.tabs}><TouchableOpacity onPress={() => setTab('active')} style={[styles.tab, tab === 'active' && styles.activeTab]}><Text style={[styles.tabText, tab === 'active' && styles.activeTabText]}>Active ({active.length})</Text></TouchableOpacity><TouchableOpacity onPress={() => setTab('history')} style={[styles.tab, tab === 'history' && styles.activeTab]}><Text style={[styles.tabText, tab === 'history' && styles.activeTabText]}>History ({history.length})</Text></TouchableOpacity></View>
-      {error ? <View style={styles.error}><Text style={styles.errorText}>{error}</Text><TouchableOpacity onPress={refresh}><Text style={styles.retry}>Try again</Text></TouchableOpacity></View> : null}
-      {loading ? <ActivityIndicator style={{ marginTop: 34 }} color="#0f766e" size="large" /> : null}
-      {!loading && !error && rows.map(renderAppointment)}
-      {!loading && !error && rows.length === 0 ? <View style={styles.empty}><Clock3 size={30} color="#0f766e" /><Text style={styles.emptyTitle}>{tab === 'active' ? 'No active video appointments' : 'No video consultation history'}</Text><Text style={styles.muted}>Video appointments booked with your doctors will show here.</Text></View> : null}
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryHeading}><Video size={20} color="#27A598" /><Text style={styles.summaryTitle}>Patient Video Services</Text></View>
+        <Text style={styles.summaryDescription}>Manage your video consultation payments and calls.</Text>
+        <View style={styles.summaryMetrics}>
+          <Metric title="Wallet Balance" value={walletBalance === null ? '—' : money(walletBalance)} icon={<Wallet size={20} color="#27A598" />} />
+          <Metric title="Active Video Appointments" value={String(active.length)} />
+          <Metric title="Completed Calls" value={String(history.length)} />
+        </View>
+      </View>
+      <View style={styles.tabs}>
+        {(['calls', 'history', 'wallet'] as const).map((key) => (
+          <TouchableOpacity key={key} onPress={() => setTab(key)} style={[styles.tab, tab === key && styles.activeTab]}>
+            <Text style={[styles.tabText, tab === key && styles.activeTabText]}>{key === 'calls' ? 'Video Calls' : key === 'history' ? 'History' : 'Wallet'}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {tab === 'wallet' ? <View style={styles.walletPanel}>
+        <Text style={styles.walletTitle}>Wallet</Text>
+        <Text style={styles.walletDescription}>Top up your wallet to pay consultation fees.</Text>
+        <Text style={styles.availableBalance}>Available Balance: {walletBalance === null ? '—' : money(walletBalance)}</Text>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => setRechargeOpen(true)}><IndianRupee size={16} color="#fff" /><Text style={styles.primaryText}>Recharge via UPI</Text></TouchableOpacity>
+      </View> : <>
+        {error ? <View style={styles.error}><Text style={styles.errorText}>{error}</Text><TouchableOpacity onPress={refresh}><Text style={styles.retry}>Try again</Text></TouchableOpacity></View> : null}
+        {loading ? <ActivityIndicator style={{ marginTop: 34 }} color="#27A598" size="large" /> : null}
+        {!loading && !error && rows.map(renderAppointment)}
+        {!loading && !error && rows.length === 0 ? <View style={styles.empty}><Clock3 size={30} color="#27A598" /><Text style={styles.emptyTitle}>{tab === 'calls' ? 'No active video appointments found.' : 'No video consultation history'}</Text><Text style={styles.muted}>Video appointments booked with your doctors will show here.</Text></View> : null}
+      </>}
     </ScrollView>
     <AppModal visible={Boolean(payable)} transparent animationType="slide" onRequestClose={() => setPayable(null)}>
       <View style={styles.modalBackdrop}><View style={styles.modal}>
@@ -145,11 +171,24 @@ export const VideoServicesScreen: React.FC<Props> = ({ onOpenDrawer = () => {}, 
   </View>;
 };
 
-const Count = ({ icon, title, count }: { icon: React.ReactNode; title: string; count: number }) => <View style={styles.count}>{icon}<Text style={styles.countValue}>{count}</Text><Text style={styles.muted}>{title}</Text></View>;
+const Metric = ({ icon, title, value }: { icon?: React.ReactNode; title: string; value: string }) => (
+  <View style={styles.metric}>
+    <Text style={styles.metricTitle}>{title}</Text>
+    <View style={styles.metricValueRow}>
+      {icon}
+      <Text style={styles.countValue}>{value}</Text>
+    </View>
+  </View>
+);
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' }, content: { padding: 16, paddingBottom: 38 }, flex: { flex: 1 }, hero: { backgroundColor: '#fff', borderRadius: 18, padding: 20, alignItems: 'stretch', marginBottom: 13, borderWidth: 1, borderColor: '#e2e8f0' }, heroIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#ccfbf1', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }, title: { fontSize: 22, fontWeight: '800', color: '#0f172a' }, subtitle: { fontSize: 13, color: '#64748b', marginTop: 4, textAlign: 'center' }, walletCard: { backgroundColor: '#fff', borderRadius: 16, padding: 15, borderWidth: 1, borderColor: '#e2e8f0', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 10 }, walletIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#ccfbf1', justifyContent: 'center', alignItems: 'center' }, balance: { color: '#0f172a', fontWeight: '800', fontSize: 20, marginTop: 2 }, walletNote: { width: '100%', color: '#64748b', fontSize: 11, paddingLeft: 50 }, rechargeButton: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#99f6e4', paddingHorizontal: 9, paddingVertical: 7, borderRadius: 9 }, counts: { flexDirection: 'row', gap: 10, marginBottom: 12 }, count: { flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 13, borderWidth: 1, borderColor: '#e2e8f0' }, countValue: { fontSize: 19, color: '#0f172a', fontWeight: '800', marginTop: 8 }, muted: { color: '#64748b', fontSize: 12, marginTop: 3 }, tabs: { flexDirection: 'row', gap: 8, backgroundColor: '#e2e8f0', padding: 4, borderRadius: 12, marginBottom: 12 }, tab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 9 }, activeTab: { backgroundColor: '#fff' }, tabText: { color: '#64748b', fontSize: 13, fontWeight: '600' }, activeTabText: { color: '#0f766e', fontWeight: '700' },
-  card: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', padding: 15, marginBottom: 11 }, cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 }, iconCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#ccfbf1', alignItems: 'center', justifyContent: 'center' }, doctor: { color: '#0f172a', fontSize: 15, fontWeight: '700' }, badge: { fontSize: 10, fontWeight: '700', textTransform: 'capitalize', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 10, overflow: 'hidden' }, rule: { height: 1, backgroundColor: '#e2e8f0', marginVertical: 12 }, detail: { flexDirection: 'row', color: '#475569', fontSize: 12, marginTop: 6 }, reason: { color: '#475569', fontSize: 12, marginTop: 9, fontStyle: 'italic' }, paymentRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 13, paddingTop: 11, borderTopWidth: 1, borderTopColor: '#f1f5f9' }, paymentLabel: { color: '#64748b', fontSize: 12 }, paymentStatus: { fontSize: 12, fontWeight: '700', textTransform: 'capitalize' }, fee: { marginLeft: 'auto', color: '#0f172a', fontWeight: '700', fontSize: 13 }, actions: { flexDirection: 'row', gap: 8, marginTop: 12 }, primaryButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: '#0f766e', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 }, primaryText: { color: '#fff', fontSize: 12, fontWeight: '700' }, secondaryButton: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, paddingHorizontal: 11, paddingVertical: 10 }, secondaryText: { color: '#0f766e', fontSize: 12, fontWeight: '700' }, disabled: { opacity: 0.5 }, empty: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: '#cbd5e1', padding: 26, gap: 8 }, emptyTitle: { color: '#0f172a', fontSize: 15, fontWeight: '700', textAlign: 'center' }, error: { backgroundColor: '#fef2f2', borderRadius: 12, padding: 14 }, errorText: { color: '#b91c1c', fontSize: 13 }, retry: { color: '#0f766e', fontWeight: '700', marginTop: 7 },
-  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(15,23,42,.45)' }, modal: { backgroundColor: '#fff', padding: 20, borderTopLeftRadius: 22, borderTopRightRadius: 22 }, modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#e2e8f0', marginBottom: 4 }, modalTitle: { color: '#0f172a', fontSize: 18, fontWeight: '800' }, quoteRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }, quoteValue: { color: '#334155', fontSize: 13, fontWeight: '700' }, totalRow: { marginTop: 4 }, totalLabel: { color: '#0f172a', fontWeight: '700', fontSize: 14 }, total: { color: '#0f766e', fontSize: 17, fontWeight: '800' }, helper: { color: '#64748b', fontSize: 12, lineHeight: 18, marginTop: 13 }, confirmButton: { marginTop: 16 }, inputLabel: { fontSize: 13, color: '#334155', fontWeight: '700', marginTop: 16 }, amountInput: { height: 46, borderColor: '#cbd5e1', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, fontSize: 16, color: '#0f172a', marginTop: 7 },
+  container: { flex: 1, backgroundColor: '#F8FAFC' }, content: { padding: 16, paddingBottom: 38 }, flex: { flex: 1, minWidth: 0 },
+  summaryCard: { backgroundColor: '#fff', borderRadius: 12, padding: 18, borderWidth: 1, borderColor: '#DFE5EC', marginBottom: 16, shadowColor: '#1C2830', shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  summaryHeading: { flexDirection: 'row', alignItems: 'center', gap: 8 }, summaryTitle: { fontFamily: 'Inter', color: '#1C2830', fontSize: 18, fontWeight: '600' }, summaryDescription: { fontFamily: 'Inter', color: '#6C7C93', fontSize: 14, marginTop: 6 },
+  summaryMetrics: { gap: 12, marginTop: 16 }, metric: { borderWidth: 1, borderColor: '#DFE5EC', borderRadius: 12, padding: 16, backgroundColor: '#FFFFFF' }, metricTitle: { fontFamily: 'Inter', color: '#6C7C93', fontSize: 14 }, metricValueRow: { flexDirection: 'row', alignItems: 'center', gap: 8 }, countValue: { fontFamily: 'Inter', fontSize: 24, lineHeight: 32, color: '#1C2830', fontWeight: '600', marginTop: 8 }, muted: { fontFamily: 'Inter', color: '#6C7C93', fontSize: 14, marginTop: 3 },
+  tabs: { flexDirection: 'row', alignSelf: 'flex-start', gap: 2, padding: 4, borderRadius: 6, backgroundColor: '#F1F5F9', marginBottom: 16 }, tab: { alignItems: 'center', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 4 }, activeTab: { backgroundColor: '#FFFFFF', elevation: 1 }, tabText: { fontFamily: 'Inter', color: '#64748B', fontSize: 14, fontWeight: '500' }, activeTabText: { color: '#1C2830' },
+  walletPanel: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#DFE5EC', borderRadius: 12, padding: 18, shadowColor: '#1C2830', shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 }, walletTitle: { fontFamily: 'Inter', color: '#1C2830', fontSize: 18, fontWeight: '600' }, walletDescription: { fontFamily: 'Inter', color: '#6C7C93', fontSize: 14, marginTop: 5 }, availableBalance: { fontFamily: 'Inter', color: '#1C2830', fontSize: 18, fontWeight: '600', marginTop: 18, marginBottom: 14 },
+  card: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#DFE5EC', padding: 16, marginBottom: 12, elevation: 1 }, cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 }, iconCircle: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#E6F7F5', alignItems: 'center', justifyContent: 'center' }, doctorLine: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }, doctor: { fontFamily: 'Inter', color: '#1C2830', fontSize: 15, fontWeight: '600' }, appointmentBadge: { borderWidth: 1, borderColor: '#DFE5EC', backgroundColor: '#F8FAFC', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 }, appointmentBadgeText: { fontFamily: 'Inter', color: '#334155', fontSize: 12, fontWeight: '500' }, badge: { fontFamily: 'Inter', fontSize: 12, fontWeight: '600', textTransform: 'capitalize', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, overflow: 'hidden' }, statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }, tableLabel: { fontFamily: 'Inter', color: '#6C7C93', fontSize: 14 }, rule: { height: 1, backgroundColor: '#DFE5EC', marginVertical: 12 }, dataRow: { flexDirection: 'row', alignItems: 'center', gap: 10 }, dataCopy: { flex: 1 }, detail: { fontFamily: 'Inter', color: '#6C7C93', fontSize: 14, marginTop: 3 }, reason: { fontFamily: 'Inter', color: '#475569', fontSize: 14, marginTop: 9 }, paymentRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 13, paddingTop: 11, borderTopWidth: 1, borderTopColor: '#DFE5EC' }, paymentLabel: { fontFamily: 'Inter', color: '#6C7C93', fontSize: 14 }, paymentStatus: { fontFamily: 'Inter', fontSize: 14, fontWeight: '600', textTransform: 'capitalize' }, fee: { fontFamily: 'Inter', marginLeft: 'auto', color: '#1C2830', fontWeight: '600', fontSize: 14 }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 }, primaryButton: { minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: '#27A598', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 9 }, primaryText: { fontFamily: 'Inter', color: '#fff', fontSize: 14, fontWeight: '500' }, secondaryButton: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: '#DFE5EC', borderRadius: 6, paddingHorizontal: 11, paddingVertical: 9 }, secondaryText: { fontFamily: 'Inter', color: '#27A598', fontSize: 14, fontWeight: '500' }, disabled: { opacity: 0.5 }, empty: { alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderStyle: 'dashed', borderWidth: 1, borderColor: '#DFE5EC', padding: 26, gap: 8 }, emptyTitle: { fontFamily: 'Inter', color: '#1C2830', fontSize: 16, fontWeight: '600', textAlign: 'center' }, error: { backgroundColor: '#fef2f2', borderRadius: 12, borderWidth: 1, borderColor: '#FECACA', padding: 14 }, errorText: { fontFamily: 'Inter', color: '#b91c1c', fontSize: 14 }, retry: { color: '#27A598', fontWeight: '600', marginTop: 7 },
+  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(15,23,42,.45)' }, modal: { backgroundColor: '#fff', padding: 20, borderTopLeftRadius: 22, borderTopRightRadius: 22 }, modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#e2e8f0', marginBottom: 4 }, modalTitle: { fontFamily: 'Inter', color: '#0f172a', fontSize: 20, fontWeight: '800' }, quoteRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }, quoteValue: { fontFamily: 'Inter', color: '#334155', fontSize: 13, fontWeight: '700' }, totalRow: { marginTop: 4 }, totalLabel: { fontFamily: 'Inter', color: '#0f172a', fontWeight: '700', fontSize: 14 }, total: { fontFamily: 'Inter', color: '#1d7c72', fontSize: 17, fontWeight: '800' }, helper: { fontFamily: 'Inter', color: '#64748b', fontSize: 12, lineHeight: 18, marginTop: 13 }, confirmButton: { marginTop: 16 }, inputLabel: { fontFamily: 'Inter', fontSize: 14, color: '#334155', fontWeight: '700', marginTop: 16 }, amountInput: { fontFamily: 'Inter', height: 46, borderColor: '#cbd5e1', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, fontSize: 16, color: '#0f172a', marginTop: 7 },
 });
 
 export default VideoServicesScreen;

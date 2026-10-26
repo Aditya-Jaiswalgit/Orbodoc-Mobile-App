@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { AppModal } from './AppModal';
 import { View, Text, TouchableOpacity, StyleSheet, Pressable, ScrollView, TextInput, useWindowDimensions } from 'react-native';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, Check, Search } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 
 interface CustomCalendarPickerProps {
   selectedDate?: Date;
@@ -11,6 +12,7 @@ interface CustomCalendarPickerProps {
   triggerStyle?: any;
   triggerTextStyle?: any;
   iconColor?: string;
+  icon?: LucideIcon;
   placeholder?: string;
   formatTriggerDate?: (date: Date) => string;
   onOpen?: () => void;
@@ -47,7 +49,8 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
   onDateChange,
   triggerStyle,
   triggerTextStyle,
-  iconColor = '#0D9488',
+  iconColor = '#27A599',
+  icon: TriggerIcon = CalendarIcon,
   placeholder = 'Select date',
   formatTriggerDate,
   onOpen,
@@ -203,7 +206,7 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
         }}
         activeOpacity={0.8}
       >
-        <CalendarIcon color={iconColor} size={16} style={styles.triggerIcon} />
+        <TriggerIcon color={iconColor} size={16} style={styles.triggerIcon} />
         <Text style={[styles.triggerText, triggerTextStyle]} numberOfLines={1}>{formattedTriggerText}</Text>
       </TouchableOpacity>
 
@@ -360,7 +363,7 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
                       setDropdownType(null);
                     }}
                   >
-                    {active ? <Check size={15} color="#0D9488" /> : <View style={styles.dropdownCheckSpace} />}
+                    {active ? <Check size={15} color="#27A599" /> : <View style={styles.dropdownCheckSpace} />}
                     <Text style={[styles.dropdownOptionText, active && styles.dropdownOptionTextActive]}>{label}</Text>
                   </TouchableOpacity>
                 );
@@ -385,7 +388,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   triggerText: {
-    color: '#0D9488',
+    fontFamily: 'Inter', color: '#27A599',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -440,7 +443,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   selectorPillText: {
-    color: '#0F172A',
+    fontFamily: 'Inter', color: '#0F172A',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -485,16 +488,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#FFFFFF',
   },
-  yearSearchInput: { flex: 1, padding: 0, color: '#334155', fontSize: 12 },
+  yearSearchInput: { fontFamily: 'Inter', flex: 1, padding: 0, color: '#334155', fontSize: 12 },
   dropdownOptionActive: {
     backgroundColor: '#E6F4F1',
   },
   dropdownOptionText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#334155',
   },
   dropdownOptionTextActive: {
-    color: '#0D9488',
+    color: '#27A599',
     fontWeight: '700',
   },
 
@@ -504,7 +507,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   weekdayText: {
-    width: 36,
+    fontFamily: 'Inter', width: 36,
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '600',
@@ -531,13 +534,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayCellSelected: {
-    backgroundColor: '#0D9488', // Exact teal highlight from screenshot 4
+    backgroundColor: '#27A599', // Exact teal highlight from screenshot 4
   },
   triggerIcon: { marginRight: 8 },
   dayCellDisabled: { opacity: 0.35 },
 
   dayText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#0F172A',
     fontWeight: '500',
   },

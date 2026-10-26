@@ -59,7 +59,7 @@ const ActivityChart = ({ values, width }: { values: Array<{ name: string; value:
   const max = Math.max(1, ...values.map(row => row.value));
   const slot = (chartWidth - 32) / values.length;
   const barWidth = Math.min(36, slot * 0.55);
-  const colors = ['#0d9488', '#22c55e', '#f59e0b', '#6366f1'];
+  const colors = ['#27a599', '#22c55e', '#f9a91f', '#6366f1'];
   return (
     <Svg width={chartWidth} height={chartHeight}>
       {[0, 1, 2, 3, 4].map(index => {
@@ -86,7 +86,7 @@ const StatusMixChart = ({ values }: { values: Array<{ name: string; value: numbe
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const total = values.reduce((sum, row) => sum + row.value, 0);
-  const colors = ['#0d9488', '#22c55e', '#f59e0b'];
+  const colors = ['#27a599', '#22c55e', '#f9a91f'];
   let offset = 0;
   return <View style={styles.donutLayout}>
     <View style={styles.donutWrap}>
@@ -136,27 +136,27 @@ export const ReceptionistDashboardScreen: React.FC<Props> = ({
 
   return <View style={styles.screen}>
     <StaffHeader onOpenDrawer={onOpenDrawer} onOpenNotifications={onOpenNotifications} title="Reception Dashboard" />
-    <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#0d9488" colors={['#0d9488']} />}>
+    <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#27a599" colors={['#27a599']} />}>
       <View style={styles.welcomeBlock}>
         <Text style={styles.greetingTitle}>{greeting}, {staffName}!</Text>
         <Text style={styles.greetingSubtitle}>Here's what's happening at your clinic today.</Text>
       </View>
       <View style={styles.todayCard}>
-        <View style={styles.todayIcon}><CalendarDays size={22} color="#0d9488" strokeWidth={2.2} /></View>
+        <View style={styles.todayIcon}><CalendarDays size={22} color="#27a599" strokeWidth={2.2} /></View>
         <View style={styles.todayCopy}>
           <View style={styles.todayEyebrow}><View style={styles.todayDot} /><Text style={styles.todayLabel}>TODAY</Text></View>
           <Text style={styles.todayDate}>{dateLabel}</Text>
         </View>
       </View>
 
-      {loading && !data ? <View style={styles.stateCard}><ActivityIndicator size="large" color="#0d9488" /><Text style={styles.muted}>Loading receptionist dashboard…</Text></View> : error && !data ? <View style={styles.stateCard}><Text style={styles.sectionTitle}>Dashboard unavailable</Text><Text style={styles.muted}>{error}</Text><TouchableOpacity style={styles.retryButton} onPress={refresh}><RefreshCw size={16} color="#fff" /><Text style={styles.retryText}>Retry</Text></TouchableOpacity></View> : data ? <>
+      {loading && !data ? <View style={styles.stateCard}><ActivityIndicator size="large" color="#27a599" /><Text style={styles.muted}>Loading receptionist dashboard…</Text></View> : error && !data ? <View style={styles.stateCard}><Text style={styles.sectionTitle}>Dashboard unavailable</Text><Text style={styles.muted}>{error}</Text><TouchableOpacity style={styles.retryButton} onPress={refresh}><RefreshCw size={16} color="#fff" /><Text style={styles.retryText}>Retry</Text></TouchableOpacity></View> : data ? <>
         {error ? <TouchableOpacity style={styles.warningBanner} onPress={refresh}><Text style={styles.warningText}>Some dashboard data could not be loaded. Tap to retry.</Text></TouchableOpacity> : null}
         <View style={styles.kpiGrid}>
           <MetricTile
             title="Total Patients"
             value={String(data.totalPatients ?? 0)}
             icon={Users}
-            color="#0D9488"
+            color="#27A599"
             background="#E6FFFA"
             onPress={() => onNavigateScreen('/patients?status=all')}
           />
@@ -164,7 +164,7 @@ export const ReceptionistDashboardScreen: React.FC<Props> = ({
             title="Today's Appointments"
             value={String(data.todayAppointments ?? 0)}
             icon={CalendarDays}
-            color="#16A34A"
+            color="#2EB877"
             background="#DCFCE7"
             onPress={() => onNavigateScreen(`/appointments?date=${today}`)}
           />
@@ -191,15 +191,15 @@ export const ReceptionistDashboardScreen: React.FC<Props> = ({
 
         <View style={styles.overviewCard}>
           <Text style={styles.sectionTitle}>Quick Overview</Text>
-          <View style={styles.overviewTile}><View><Text style={styles.overviewLabel}>Today's Schedule</Text><Text style={styles.overviewValue}>{data.todayAppointments}</Text></View><CalendarDays size={36} color="#0d9488" strokeWidth={2} /></View>
+          <View style={styles.overviewTile}><View><Text style={styles.overviewLabel}>Today's Schedule</Text><Text style={styles.overviewValue}>{data.todayAppointments}</Text></View><CalendarDays size={36} color="#27a599" strokeWidth={2} /></View>
           <View style={styles.overviewTile}><View><Text style={styles.overviewLabel}>Pending Approvals</Text><Text style={styles.overviewValue}>{data.pendingApprovals}</Text></View><AlertCircle size={38} color="#d97706" /></View>
         </View>
 
         <View style={styles.overviewCard}>
           <Text style={styles.sectionTitle}>Appointment Status</Text>
           <StatusRow label="Today's Appointments" value={data.todayAppointments} color="#22c55e" progress={0.7} />
-          <StatusRow label="Upcoming Appointments" value={data.upcomingAppointments} color="#0d9488" progress={0.5} />
-          <StatusRow label="Pending Approvals" value={data.pendingApprovals} color="#f59e0b" progress={0.3} />
+          <StatusRow label="Upcoming Appointments" value={data.upcomingAppointments} color="#27a599" progress={0.5} />
+          <StatusRow label="Pending Approvals" value={data.pendingApprovals} color="#f9a91f" progress={0.3} />
         </View>
       </> : null}
     </ScrollView>
@@ -212,11 +212,11 @@ const StatusRow = ({ label, value, color, progress }: { label: string; value: nu
 </View>;
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#f8fafc' },
+  screen: { flex: 1, backgroundColor: '#F8FAFC' },
   content: { padding: 16, paddingBottom: 40, gap: 16 },
   welcomeBlock: { gap: 4 },
-  greetingTitle: { color: '#1e293b', fontSize: 18, fontWeight: '800' },
-  greetingSubtitle: { color: '#718096', fontSize: 13 },
+  greetingTitle: { fontFamily: 'Inter', color: '#1e293b', fontSize: 18, fontWeight: '800' },
+  greetingSubtitle: { fontFamily: 'Inter', color: '#718096', fontSize: 13 },
   todayCard: {
     minHeight: 68,
     flexDirection: 'row',
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#99f6e4',
     backgroundColor: '#ffffff',
-    shadowColor: '#0d9488',
+    shadowColor: '#27a599',
     shadowOpacity: 0.1,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
@@ -244,9 +244,9 @@ const styles = StyleSheet.create({
   },
   todayCopy: { flex: 1, gap: 3 },
   todayEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  todayDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#0d9488' },
-  todayLabel: { color: '#0d9488', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
-  todayDate: { color: '#0f172a', fontSize: 15, fontWeight: '700' },
+  todayDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#27a599' },
+  todayLabel: { fontFamily: 'Inter', color: '#27a599', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
+  todayDate: { fontFamily: 'Inter', color: '#0f172a', fontSize: 15, fontWeight: '700' },
   kpiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -276,13 +276,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   kpiCardValue: {
-    fontSize: 24,
+    fontFamily: 'Inter', fontSize: 24,
     fontWeight: '800',
     color: '#0F172A',
     marginBottom: 4,
   },
   kpiCardLabel: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '500',
     color: '#64748B',
     minHeight: 32,
@@ -291,36 +291,36 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   kpiActionLink: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '700',
-    color: '#0D9488',
+    color: '#27A599',
   },
   chartCard: { backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0', padding: 16, overflow: 'hidden' },
-  sectionTitle: { color: '#0f172a', fontSize: 17, fontWeight: '700', marginBottom: 14 },
+  sectionTitle: { fontFamily: 'Inter', color: '#0f172a', fontSize: 18, fontWeight: '700', marginBottom: 14 },
   donutLayout: { alignItems: 'center', gap: 14 },
   donutWrap: { width: 190, height: 190, alignItems: 'center', justifyContent: 'center' },
   donutCenter: { position: 'absolute', alignItems: 'center' },
-  donutTotal: { color: '#0f172a', fontSize: 27, fontWeight: '800' },
+  donutTotal: { fontFamily: 'Inter', color: '#0f172a', fontSize: 27, fontWeight: '800' },
   legendList: { width: '100%', gap: 8 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 8, backgroundColor: '#f8fafc' },
   legendDot: { width: 9, height: 9, borderRadius: 5 },
-  legendLabel: { color: '#64748b', fontSize: 12, flex: 1 },
-  legendValue: { color: '#0f172a', fontWeight: '700', fontSize: 12 },
-  muted: { color: '#64748b', fontSize: 12, lineHeight: 18 },
+  legendLabel: { fontFamily: 'Inter', color: '#64748b', fontSize: 12, flex: 1 },
+  legendValue: { fontFamily: 'Inter', color: '#0f172a', fontWeight: '700', fontSize: 12 },
+  muted: { fontFamily: 'Inter', color: '#64748b', fontSize: 12, lineHeight: 18 },
   overviewCard: { backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0', padding: 16, gap: 10 },
   overviewTile: { backgroundColor: '#f8fafc', borderRadius: 10, padding: 14, minHeight: 82, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  overviewLabel: { color: '#64748b', fontSize: 13, flex: 1 },
-  overviewValue: { color: '#0f172a', fontSize: 25, fontWeight: '800', marginTop: 4 },
+  overviewLabel: { fontFamily: 'Inter', color: '#64748b', fontSize: 13, flex: 1 },
+  overviewValue: { fontFamily: 'Inter', color: '#0f172a', fontSize: 25, fontWeight: '800', marginTop: 4 },
   statusGroup: { gap: 9, marginBottom: 12 },
   statusHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  statusValue: { color: '#0f172a', fontSize: 14, fontWeight: '700' },
+  statusValue: { fontFamily: 'Inter', color: '#0f172a', fontSize: 14, fontWeight: '700' },
   progressTrack: { height: 8, borderRadius: 8, backgroundColor: '#e2e8f0', overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 8 },
   stateCard: { backgroundColor: '#fff', padding: 24, minHeight: 180, gap: 12, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0' },
-  retryButton: { minHeight: 42, paddingHorizontal: 18, borderRadius: 9, backgroundColor: '#0d9488', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  retryButton: { minHeight: 42, paddingHorizontal: 18, borderRadius: 9, backgroundColor: '#27a599', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   retryText: { color: '#fff', fontWeight: '700' },
   warningBanner: { padding: 12, borderRadius: 10, backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fed7aa' },
-  warningText: { color: '#9a3412', fontSize: 12 },
+  warningText: { fontFamily: 'Inter', color: '#9a3412', fontSize: 12 },
 });
 
 export default ReceptionistDashboardScreen;

@@ -5,10 +5,10 @@ export const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: 14, paddingBottom: 36, gap: 14 },
   loadingContainer: { padding: 40, alignItems: 'center', justifyContent: 'center', gap: 10 },
-  loadingText: { color: '#0F766E', fontSize: 14, fontWeight: '600' },
+  loadingText: { fontFamily: 'Inter', color: '#1D7C72', fontSize: 14, fontWeight: '600' },
   centerContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  emptySubtitle: { fontSize: 13, color: '#64748B', textAlign: 'center' },
+  emptyTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  emptySubtitle: { fontFamily: 'Inter', fontSize: 13, color: '#64748B', textAlign: 'center' },
 
   // 1. Hero Banner
   heroBanner: {
@@ -30,7 +30,7 @@ export const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -38,7 +38,7 @@ export const styles = StyleSheet.create({
   heroLogo: { width: '100%', height: '100%', resizeMode: 'contain', backgroundColor: '#fff' },
   heroInfo: { flex: 1, gap: 3 },
   heroTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  heroTitle: { fontSize: 20, fontWeight: '800', color: '#0F172A' },
+  heroTitle: { fontFamily: 'Inter', fontSize: 20, fontWeight: '800', color: '#0F172A' },
   heroBadge: {
     backgroundColor: '#CCFBF1',
     paddingHorizontal: 8,
@@ -47,8 +47,8 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#99F6E4',
   },
-  heroBadgeText: { color: '#0F766E', fontSize: 11, fontWeight: '700' },
-  heroSubtitle: { fontSize: 12, color: '#64748B', lineHeight: 17 },
+  heroBadgeText: { fontFamily: 'Inter', color: '#1D7C72', fontSize: 11, fontWeight: '700' },
+  heroSubtitle: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', lineHeight: 17 },
 
   // 2. Top 3 Stat Cards
   statsRow: {
@@ -78,8 +78,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
-  statLabel: { fontSize: 11, fontWeight: '500', color: '#64748B', lineHeight: 15 },
-  statValue: { fontSize: 15, fontWeight: '800', color: '#0F172A', marginTop: 3 },
+  statLabel: { fontFamily: 'Inter', fontSize: 11, fontWeight: '500', color: '#64748B', lineHeight: 15 },
+  statValue: { fontFamily: 'Inter', fontSize: 15, fontWeight: '800', color: '#0F172A', marginTop: 3 },
 
   // 3. Status Card
   card: {
@@ -108,16 +108,16 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
-  cardSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
+  cardTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  cardSubtitle: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginTop: 2 },
   statusRowItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 2,
   },
-  statusRowLabel: { fontSize: 13, color: '#64748B' },
-  statusRowValue: { fontSize: 13, fontWeight: '600', color: '#0F172A' },
+  statusRowLabel: { fontFamily: 'Inter', fontSize: 13, color: '#64748B' },
+  statusRowValue: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: '#0F172A' },
   tagOutline: {
     borderWidth: 1,
     borderColor: '#CBD5E1',
@@ -125,7 +125,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  tagOutlineText: { fontSize: 11, fontWeight: '600', color: '#475569' },
+  tagOutlineText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '600', color: '#475569' },
 
   // 4. Lab Profile Overview in Main Card
   profileOverviewBox: {
@@ -152,8 +152,8 @@ export const styles = StyleSheet.create({
   },
   overviewLogo: { width: '100%', height: '100%', resizeMode: 'contain', backgroundColor: '#fff' },
   overviewTextWrap: { flex: 1 },
-  overviewName: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
-  overviewLicense: { fontSize: 12, color: '#64748B', marginTop: 1 },
+  overviewName: { fontFamily: 'Inter', fontSize: 16, fontWeight: '700', color: '#0F172A' },
+  overviewLicense: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginTop: 1 },
   activeBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -161,11 +161,11 @@ export const styles = StyleSheet.create({
   },
   badgeActive: { backgroundColor: '#DCFCE7', borderWidth: 1, borderColor: '#A7F3D0' },
   badgeInactive: { backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#CBD5E1' },
-  activeBadgeText: { fontSize: 11, fontWeight: '700' },
+  activeBadgeText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700' },
   textActive: { color: '#047857' },
   textInactive: { color: '#64748B' },
   overviewDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  overviewDetailText: { fontSize: 12.5, color: '#334155' },
+  overviewDetailText: { fontFamily: 'Inter', fontSize: 12.5, color: '#334155' },
   adminsPillButton: {
     alignSelf: 'flex-start',
     backgroundColor: '#EFF6FF',
@@ -177,7 +177,7 @@ export const styles = StyleSheet.create({
     gap: 7,
     marginTop: 2,
   },
-  adminsPillText: { fontSize: 12, fontWeight: '700', color: '#1D4ED8' },
+  adminsPillText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#1D4ED8' },
   adminsPillSub: { color: '#60A5FA' },
 
   actionButtonsGrid: {
@@ -200,17 +200,17 @@ export const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
   },
-  actionBtnSecondaryText: { color: '#0F766E', fontSize: 12, fontWeight: '700' },
+  actionBtnSecondaryText: { fontFamily: 'Inter', color: '#1D7C72', fontSize: 12, fontWeight: '700' },
   actionBtnPrimary: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     paddingHorizontal: 13,
     paddingVertical: 8,
     borderRadius: 10,
   },
-  actionBtnPrimaryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  actionBtnPrimaryText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
 
   hoursBox: {
     backgroundColor: '#F0FDFA',
@@ -222,7 +222,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  hoursText: { color: '#0F766E', fontSize: 12, fontWeight: '600', flex: 1 },
+  hoursText: { fontFamily: 'Inter', color: '#1D7C72', fontSize: 12, fontWeight: '600', flex: 1 },
 
   // Modals Styling
   modalBackdrop: {
@@ -252,13 +252,13 @@ export const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  modalSheetTitle: { fontSize: 17, fontWeight: '800', color: '#0F172A' },
-  modalSheetSubtitle: { fontSize: 12, color: '#64748B', marginTop: 1 },
+  modalSheetTitle: { fontFamily: 'Inter', fontSize: 17, fontWeight: '800', color: '#0F172A' },
+  modalSheetSubtitle: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginTop: 1 },
   modalCloseBtn: { padding: 4 },
   modalBody: { padding: 16 },
   modalFooter: {
@@ -278,24 +278,24 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelBtnText: { color: '#334155', fontSize: 13, fontWeight: '700' },
+  cancelBtnText: { fontFamily: 'Inter', color: '#334155', fontSize: 13, fontWeight: '700' },
   primaryModalBtn: {
     flex: 1.5,
     minHeight: 44,
     borderRadius: 12,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
-  primaryModalBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  primaryModalBtnText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
 
   // View Modal Sections
   sectionHeading: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '800',
-    color: '#0F766E',
+    color: '#1D7C72',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     marginTop: 12,
@@ -317,8 +317,8 @@ export const styles = StyleSheet.create({
     borderColor: '#EDF2F7',
     padding: 12,
   },
-  infoCellLabel: { fontSize: 10.5, fontWeight: '700', color: '#94A3B8', letterSpacing: 0.5 },
-  infoCellValue: { fontSize: 13.5, fontWeight: '600', color: '#1E293B', marginTop: 4 },
+  infoCellLabel: { fontFamily: 'Inter', fontSize: 10.5, fontWeight: '700', color: '#94A3B8', letterSpacing: 0.5 },
+  infoCellValue: { fontFamily: 'Inter', fontSize: 13.5, fontWeight: '600', color: '#1E293B', marginTop: 4 },
   availabilityCard: {
     backgroundColor: '#F0FDFA',
     borderRadius: 14,
@@ -328,7 +328,7 @@ export const styles = StyleSheet.create({
     gap: 10,
   },
   availHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  availTitle: { fontSize: 13, fontWeight: '700', color: '#0F766E' },
+  availTitle: { fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: '#1D7C72' },
   availGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   availItem: {
     width: '48%',
@@ -338,7 +338,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  availValue: { fontSize: 13, fontWeight: '700', color: '#0F172A', marginTop: 4 },
+  availValue: { fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: '#0F172A', marginTop: 4 },
   mt1: { marginTop: 4 },
 
   // Edit Modal Form Styles
@@ -365,8 +365,8 @@ export const styles = StyleSheet.create({
   },
   logoSquareImg: { width: '100%', height: '100%', resizeMode: 'contain' },
   logoTextWrap: { flex: 1, gap: 2 },
-  logoTitle: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
-  logoSubtitle: { fontSize: 11, color: '#64748B' },
+  logoTitle: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  logoSubtitle: { fontFamily: 'Inter', fontSize: 11, color: '#64748B' },
   logoBtnRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
   uploadSmallBtn: {
     flexDirection: 'row',
@@ -379,23 +379,23 @@ export const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
   },
-  uploadSmallBtnText: { color: '#0F766E', fontSize: 11, fontWeight: '700' },
+  uploadSmallBtnText: { fontFamily: 'Inter', color: '#1D7C72', fontSize: 11, fontWeight: '700' },
   removeLogoBtn: { padding: 4 },
-  removeLogoText: { color: '#DC2626', fontSize: 11, fontWeight: '700' },
+  removeLogoText: { fontFamily: 'Inter', color: '#DC2626', fontSize: 11, fontWeight: '700' },
 
   formSectionTitle: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '800',
-    color: '#0F766E',
+    color: '#1D7C72',
     letterSpacing: 1,
     marginTop: 14,
     marginBottom: 8,
   },
   formGroup: { marginBottom: 12 },
-  inputLabel: { fontSize: 12, fontWeight: '600', color: '#475569', marginBottom: 5 },
+  inputLabel: { fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#475569', marginBottom: 5 },
   requiredStar: { color: '#DC2626' },
   input: {
-    height: 44,
+    fontFamily: 'Inter', height: 44,
     backgroundColor: '#F8FAFC',
     borderRadius: 10,
     borderWidth: 1,
@@ -414,7 +414,7 @@ export const styles = StyleSheet.create({
     paddingTop: 8,
   },
   inputError: { borderColor: '#DC2626' },
-  errorText: { color: '#DC2626', fontSize: 11, marginTop: 3 },
+  errorText: { fontFamily: 'Inter', color: '#DC2626', fontSize: 11, marginTop: 3 },
   dropdownBtn: {
     height: 44,
     backgroundColor: '#F8FAFC',
@@ -426,8 +426,8 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  dropdownBtnValue: { fontSize: 13.5, fontWeight: '600', color: '#0F172A' },
-  dropdownBtnPlaceholder: { fontSize: 13.5, color: '#94A3B8' },
+  dropdownBtnValue: { fontFamily: 'Inter', fontSize: 13.5, fontWeight: '600', color: '#0F172A' },
+  dropdownBtnPlaceholder: { fontFamily: 'Inter', fontSize: 13.5, color: '#94A3B8' },
   switchBox: {
     backgroundColor: '#F0FDFA',
     borderRadius: 12,
@@ -441,8 +441,8 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
   switchInfo: { flex: 1, paddingRight: 8 },
-  switchTitle: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
-  switchSubtitle: { fontSize: 11, color: '#64748B', marginTop: 2 },
+  switchTitle: { fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: '#0F172A' },
+  switchSubtitle: { fontFamily: 'Inter', fontSize: 11, color: '#64748B', marginTop: 2 },
 
   // Admins List Modal
   addAdminBannerBtn: {
@@ -457,7 +457,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 14,
   },
-  addAdminBannerText: { fontSize: 13, fontWeight: '700', color: '#0F766E' },
+  addAdminBannerText: { fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: '#1D7C72' },
   emptyAdminsCard: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -469,8 +469,8 @@ export const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#F8FAFC',
   },
-  emptyAdminsTitle: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
-  emptyAdminsSub: { fontSize: 12, color: '#64748B', textAlign: 'center' },
+  emptyAdminsTitle: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  emptyAdminsSub: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', textAlign: 'center' },
   adminCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
@@ -485,14 +485,14 @@ export const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarInitial: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
+  avatarInitial: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
   adminHeaderInfo: { flex: 1 },
-  adminName: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
-  adminRole: { fontSize: 11, color: '#64748B' },
+  adminName: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  adminRole: { fontFamily: 'Inter', fontSize: 11, color: '#64748B' },
   adminContactDetails: {
     backgroundColor: '#F8FAFC',
     borderRadius: 10,
@@ -500,7 +500,7 @@ export const styles = StyleSheet.create({
     gap: 4,
   },
   contactItemRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  contactItemText: { fontSize: 12, color: '#334155' },
+  contactItemText: { fontFamily: 'Inter', fontSize: 12, color: '#334155' },
   adminCardActionsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -520,7 +520,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 5,
   },
-  adminSmallActionText: { fontSize: 11, fontWeight: '700', color: '#0F766E' },
+  adminSmallActionText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700', color: '#1D7C72' },
   btnDanger: { borderColor: '#FECACA', backgroundColor: '#FEF2F2' },
   textDanger: { color: '#DC2626' },
   btnSuccess: { borderColor: '#A7F3D0', backgroundColor: '#ECFDF5' },
@@ -541,14 +541,14 @@ export const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
-  avatarInitialLarge: { color: '#FFFFFF', fontWeight: '800', fontSize: 22 },
-  adminNameLarge: { fontSize: 17, fontWeight: '800', color: '#0F172A' },
-  adminRoleLarge: { fontSize: 12, color: '#64748B' },
+  avatarInitialLarge: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '800', fontSize: 22 },
+  adminNameLarge: { fontFamily: 'Inter', fontSize: 17, fontWeight: '800', color: '#0F172A' },
+  adminRoleLarge: { fontFamily: 'Inter', fontSize: 12, color: '#64748B' },
 
   // Picker Modal
   pickerSearchWrap: {
@@ -561,7 +561,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginTop: 10,
   },
-  pickerSearchInput: { flex: 1, height: 38, paddingHorizontal: 8, fontSize: 13, color: '#0F172A' },
+  pickerSearchInput: { fontFamily: 'Inter', flex: 1, height: 38, paddingHorizontal: 8, fontSize: 13, color: '#0F172A' },
   pickerItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -572,8 +572,8 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
   },
   pickerItemSelected: { backgroundColor: '#F0FDFA' },
-  pickerItemText: { fontSize: 14, color: '#0F172A' },
-  pickerItemTextSelected: { fontWeight: '700', color: '#0D9488' },
+  pickerItemText: { fontFamily: 'Inter', fontSize: 14, color: '#0F172A' },
+  pickerItemTextSelected: { fontWeight: '700', color: '#27A599' },
   emptyPickerWrap: { padding: 30, alignItems: 'center' },
-  emptyPickerText: { color: '#94A3B8', fontSize: 13 },
+  emptyPickerText: { fontFamily: 'Inter', color: '#94A3B8', fontSize: 13 },
 });

@@ -24,6 +24,7 @@ export interface ClinicItem {
 
 export interface ClinicFormState {
   logo_url?: string;
+  subscription_plan?: string;
   id?: string | number;
   name: string;
   email: string;
@@ -40,6 +41,7 @@ export interface ClinicFormState {
 }
 
 export const DEFAULT_CLINIC_FORM: ClinicFormState = {
+  subscription_plan: 'basic',
   name: '',
   email: '',
   phone: '',

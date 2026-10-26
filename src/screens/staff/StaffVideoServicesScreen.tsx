@@ -17,7 +17,6 @@ import {
 import { styles } from './styles/StaffVideoServices.styles';
 import {
   CalendarClock,
-  DollarSign,
   Download,
   PhoneCall,
   Printer,
@@ -682,7 +681,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
               style={styles.secondaryButton}
               onPress={() => setSelectedBill(bill)}
             >
-              <Receipt size={15} color="#0f766e" />
+              <Receipt size={15} color="#1d7c72" />
               <Text style={styles.secondaryText}>View Bill</Text>
             </TouchableOpacity>
           )}
@@ -754,13 +753,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
           <Text style={styles.eyebrow}>Video Workflow</Text>
           <View style={styles.heroTitleRow}>
             <View style={styles.videoIconBox}>
-              <Receipt size={24} color="#0D9488" strokeWidth={1.7} />
-              <DollarSign
-                size={11}
-                color="#0D9488"
-                strokeWidth={2}
-                style={styles.videoIconCurrency}
-              />
+              <Video size={28} color="#27A598" strokeWidth={1.8} />
             </View>
             <Text style={styles.title}>Video Services</Text>
           </View>
@@ -795,24 +788,16 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
         </View>
         <View style={styles.statsContainer}>
           <View style={styles.statsRow}>
-            <View style={styles.statCol}>
-              <Stat
-                label="Today's Video Appointments"
-                value={todayCount}
-                description="All video consultations scheduled for today."
-                style={styles.statHalf}
-                isHalf
-              />
-            </View>
-            <View style={styles.statCol}>
-              <Stat
-                label="Waiting to Call"
-                value={waitingCount}
-                description="Appointments still ready for staff or doctor action."
-                style={styles.statHalf}
-                isHalf
-              />
-            </View>
+            <Stat
+              label="Today's Video Appointments"
+              value={todayCount}
+              description="All video consultations scheduled for today."
+            />
+            <Stat
+              label="Waiting to Call"
+              value={waitingCount}
+              description="Appointments still ready for staff or doctor action."
+            />
           </View>
           <Stat
             label="Video Revenue Collected"
@@ -878,7 +863,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
         {loading ? (
           <ActivityIndicator
             style={styles.loadingIndicator}
-            color="#0f766e"
+            color="#1d7c72"
             size="large"
           />
         ) : null}
@@ -909,7 +894,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
             : paginatedRecords.map(renderBillingAppointment))}
         {!loading && !error && !activeRecords.length ? (
           <View style={styles.empty}>
-            <Video size={30} color="#0f766e" />
+            <Video size={30} color="#1d7c72" />
             <Text style={styles.emptyTitle}>
               {tab === 'calls'
                 ? 'No active video calls in queue.'
@@ -983,7 +968,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
           </View>
         ) : null}
         <TouchableOpacity onPress={refresh} style={styles.refresh}>
-          <RefreshCw size={15} color="#0f766e" />
+          <RefreshCw size={15} color="#1d7c72" />
           <Text style={styles.refreshText}>Refresh records</Text>
         </TouchableOpacity>
       </ScrollView>

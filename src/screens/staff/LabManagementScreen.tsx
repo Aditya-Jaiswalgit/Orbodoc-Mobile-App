@@ -200,8 +200,8 @@ export const LabManagementScreen: React.FC<Props> = ({
   initialReportId,
   patientMode = false,
 }) => {
-  const { width: screenWidth, fontScale } = useWindowDimensions();
-  const compactReportActions = screenWidth < 350 || fontScale > 1.2;
+  const { width: screenWidth } = useWindowDimensions();
+  const compactReportTable = screenWidth < 600;
   const {
     token,
     user,
@@ -796,7 +796,7 @@ export const LabManagementScreen: React.FC<Props> = ({
           <Text style={styles.reportRemarks}>{report.remarks}</Text>
         )}
         <TouchableOpacity style={styles.downloadButton} disabled={printingReport} onPress={() => void printSingleLabReport(report)}>
-          {printingReport ? <ActivityIndicator size="small" color="#0f766e" /> : <Printer size={16} color="#0f766e" />}
+          {printingReport ? <ActivityIndicator size="small" color="#1d7c72" /> : <Printer size={16} color="#1d7c72" />}
           <Text style={styles.downloadText}>{printingReport ? 'Opening print dialog…' : 'Print Report'}</Text>
         </TouchableOpacity>
         {report.report_file_url ? (
@@ -804,7 +804,7 @@ export const LabManagementScreen: React.FC<Props> = ({
             style={styles.downloadButton}
             onPress={() => openReportFile(report.report_file_url)}
           >
-            <Download size={16} color="#0f766e" />
+            <Download size={16} color="#1d7c72" />
             <Text style={styles.downloadText}>Open report file</Text>
           </TouchableOpacity>
         ) : null}
@@ -825,7 +825,7 @@ export const LabManagementScreen: React.FC<Props> = ({
       >
         <View style={styles.pageHeading}>
           <View style={styles.headingIcon}>
-            <TestTube size={24} color="#0D9488" strokeWidth={2.4} />
+            <TestTube size={24} color="#27A599" strokeWidth={2.4} />
           </View>
           <View style={styles.flex}>
             <Text style={styles.pageTitle}>Lab Tests</Text>
@@ -840,7 +840,7 @@ export const LabManagementScreen: React.FC<Props> = ({
           disabled={refreshing}
           onPress={refresh}
         >
-          {refreshing ? <ActivityIndicator size="small" color="#0f766e" /> : <RefreshCw size={16} color="#0f172a" />}
+          {refreshing ? <ActivityIndicator size="small" color="#1d7c72" /> : <RefreshCw size={16} color="#0f172a" />}
           <Text style={styles.refreshButtonText}>{refreshing ? 'Refreshing' : 'Refresh'}</Text>
         </TouchableOpacity>
         {lastRefreshed ? (
@@ -920,7 +920,7 @@ export const LabManagementScreen: React.FC<Props> = ({
                   style={styles.masterButton}
                   onPress={() => openMasterTests()}
                 >
-                  <FlaskConical size={16} color="#0f766e" />
+                  <FlaskConical size={16} color="#1d7c72" />
                   <Text style={styles.secondaryText}>Browse Master Tests</Text>
                 </TouchableOpacity>
               </>
@@ -940,7 +940,7 @@ export const LabManagementScreen: React.FC<Props> = ({
           <ActivityIndicator
             style={styles.loading}
             size="large"
-            color="#0f766e"
+            color="#1d7c72"
           />
         ) : null}
         {!canView ? (
@@ -1031,12 +1031,12 @@ export const LabManagementScreen: React.FC<Props> = ({
                       </View>
                       <View style={styles.testDetails}>
                         <Detail
-                          icon={<Stethoscope size={15} color="#0f766e" />}
+                          icon={<Stethoscope size={15} color="#1d7c72" />}
                           label="Doctor"
                           value={test.doctor_name || '—'}
                         />
                         <Detail
-                          icon={<TestTube2 size={15} color="#0f766e" />}
+                          icon={<TestTube2 size={15} color="#1d7c72" />}
                           label="Type"
                           value={
                             test.test_type ||
@@ -1045,7 +1045,7 @@ export const LabManagementScreen: React.FC<Props> = ({
                           }
                         />
                         <Detail
-                          icon={<FileText size={15} color="#0f766e" />}
+                          icon={<FileText size={15} color="#1d7c72" />}
                           label="Report"
                           value={report ? 'Ready' : 'Pending'}
                         />
@@ -1064,7 +1064,7 @@ export const LabManagementScreen: React.FC<Props> = ({
                               setStatusValue(normalizeStatus(test.status));
                             }}
                           >
-                            <RefreshCw size={15} color="#0f766e" />
+                            <RefreshCw size={15} color="#1d7c72" />
                             <Text style={styles.secondaryText}>
                               Update Status
                             </Text>
@@ -1075,7 +1075,7 @@ export const LabManagementScreen: React.FC<Props> = ({
                             style={styles.secondaryButton}
                             onPress={() => openReportEditor(test, report)}
                           >
-                            <FileText size={15} color="#0f766e" />
+                            <FileText size={15} color="#1d7c72" />
                             <Text style={styles.secondaryText}>
                               Edit Report
                             </Text>
@@ -1085,7 +1085,7 @@ export const LabManagementScreen: React.FC<Props> = ({
                             style={styles.secondaryButton}
                             onPress={() => openReportEditor(test)}
                           >
-                            <Plus size={15} color="#0f766e" />
+                            <Plus size={15} color="#1d7c72" />
                             <Text style={styles.secondaryText}>Add Report</Text>
                           </TouchableOpacity>
                         ) : null}
@@ -1166,7 +1166,7 @@ export const LabManagementScreen: React.FC<Props> = ({
                     style={[styles.secondaryButton, styles.inventoryEditButton]}
                     onPress={() => openCatalogEditor(item)}
                   >
-                    <FileText size={15} color="#0f766e" />
+                    <FileText size={15} color="#1d7c72" />
                     <Text style={styles.secondaryText}>Edit Test</Text>
                   </TouchableOpacity>
                 ) : null}
@@ -1175,10 +1175,12 @@ export const LabManagementScreen: React.FC<Props> = ({
           })}
         {!loading && !error && canView && pageItems.length === 0 ? (
           <View style={styles.emptyCard}>
-            <TestTube2 size={28} color="#94a3b8" />
+            <View style={styles.emptyStateIconWrap}>
+              <TestTube size={34} color="#94A3B8" strokeWidth={2.4} />
+            </View>
             <Text style={styles.emptyText}>
               {tab === 'orders'
-                ? 'No lab tests found for this clinic.'
+                ? 'No lab reports created yet'
                 : tab === 'reports'
                 ? 'No lab reports have been uploaded yet.'
                 : 'No clinic tests are configured yet.'}
@@ -1289,7 +1291,7 @@ export const LabManagementScreen: React.FC<Props> = ({
                     onChangeText={setMasterSearch}
                   />
                   {loadingMasterTests ? (
-                    <ActivityIndicator style={styles.loading} color="#0f766e" />
+                    <ActivityIndicator style={styles.loading} color="#1d7c72" />
                   ) : (
                     masterTests
                       .filter(
@@ -1320,7 +1322,7 @@ export const LabManagementScreen: React.FC<Props> = ({
                                 'Standard lab test'}
                             </Text>
                           </View>
-                          <Plus size={17} color="#0f766e" />
+                          <Plus size={17} color="#1d7c72" />
                         </TouchableOpacity>
                       ))
                   )}
@@ -1663,7 +1665,7 @@ export const LabManagementScreen: React.FC<Props> = ({
                 <View style={styles.reportPaper}>
                   <View style={styles.reportPaperHeader}>
                     <View style={styles.reportBrand}>
-                      <View style={styles.reportPaperIcon}><TestTube size={18} color="#0f766e" /></View>
+                      <View style={styles.reportPaperIcon}><TestTube size={18} color="#1d7c72" /></View>
                       <View style={styles.flex}>
                         <Text style={styles.reportClinicName}>{clinicName}</Text>
                         <Text style={styles.reportClinicCaption}>DIAGNOSTIC & LABORATORY SERVICES</Text>
@@ -1687,6 +1689,38 @@ export const LabManagementScreen: React.FC<Props> = ({
                   </View>
                   <Text style={styles.reportSectionTitle}>Test Results</Text>
                   <View style={styles.reportTableFrame}>
+                    {compactReportTable ? (
+                      <View>
+                        {selectedPatientGroup.tests.map(test => {
+                          const report = selectedGroupReports.find(item => Number(item.lab_test_id) === Number(test.id));
+                          const rows = report ? reportRowsFrom(report.report_data).filter(row => row.parameter || row.value || row.unit || row.reference_range) : [];
+                          const displayRows = rows.length ? rows : [{ parameter: report ? '—' : 'Awaiting report', value: '—', unit: '—', reference_range: '—' }];
+                          return (
+                            <View key={test.id} style={styles.reportCompactCard}>
+                              <View style={styles.reportCompactCardHeader}>
+                                <Text style={styles.reportCompactTest}>{test.test_name}</Text>
+                                <Text style={styles.reportCompactPrice}>Rs {getClinicPrice(test).toFixed(2)}</Text>
+                              </View>
+                              {displayRows.map((row, index) => (
+                                <View key={`${test.id}-compact-${index}`} style={styles.reportCompactResult}>
+                                  <Text style={styles.reportCompactParameter}>{row.parameter || 'Parameter'}</Text>
+                                  <View style={styles.reportCompactMetricGrid}>
+                                    <View style={styles.reportCompactMetric}><Text style={styles.reportCompactMetricLabel}>Result</Text><Text style={styles.reportCompactMetricValue}>{row.value || '—'}</Text></View>
+                                    <View style={styles.reportCompactMetric}><Text style={styles.reportCompactMetricLabel}>Unit</Text><Text style={styles.reportCompactMetricValue}>{row.unit || '—'}</Text></View>
+                                    <View style={styles.reportCompactMetric}><Text style={styles.reportCompactMetricLabel}>Reference</Text><Text style={styles.reportCompactMetricValue}>{row.reference_range || '—'}</Text></View>
+                                  </View>
+                                  {index === 0 ? (
+                                    <View style={[styles.reportStatusBadge, report ? (Number(report.is_abnormal) ? styles.reportAbnormal : styles.reportNormal) : styles.reportPending]}>
+                                      <Text style={styles.reportStatusText}>{report ? (Number(report.is_abnormal) ? 'Abnormal' : 'Normal') : 'Pending'}</Text>
+                                    </View>
+                                  ) : null}
+                                </View>
+                              ))}
+                            </View>
+                          );
+                        })}
+                      </View>
+                    ) : (
                     <ScrollView horizontal showsHorizontalScrollIndicator>
                       <View>
                         <View style={styles.reportTableHeader}>
@@ -1720,12 +1754,13 @@ export const LabManagementScreen: React.FC<Props> = ({
                             </View>
                           ));
                         })}
-                        <View style={[styles.reportTableRow, styles.reportTableTotal]}>
-                          <Text style={[styles.reportTableCell, styles.reportTableTotalLabel, styles.reportTableTotalLabelWidth]}>Total</Text>
-                          <Text style={[styles.reportTableCell, styles.reportTablePrice, styles.reportColPrice]}>Rs {selectedPatientGroup.tests.reduce((sum, test) => sum + getClinicPrice(test), 0).toFixed(2)}</Text>
-                        </View>
                       </View>
                     </ScrollView>
+                    )}
+                  </View>
+                  <View style={styles.reportTotalRow}>
+                    <Text style={styles.reportCompactMetricLabel}>Total</Text>
+                    <Text style={styles.reportCompactPrice}>Rs {selectedPatientGroup.tests.reduce((sum, test) => sum + getClinicPrice(test), 0).toFixed(2)}</Text>
                   </View>
                   <View style={styles.reportRemarksBlock}>
                     <Text style={styles.reportOverline}>Remarks</Text>
@@ -1738,16 +1773,16 @@ export const LabManagementScreen: React.FC<Props> = ({
               </ScrollView>
             ) : null}
             <View style={styles.patientReportFooter}>
-              <View style={[styles.patientReportActionsRow, compactReportActions && styles.patientReportActionsRowCompact]}>
-              <TouchableOpacity style={[styles.reportCancelButton, styles.patientReportCloseAction, compactReportActions && styles.patientReportActionCompact]} onPress={() => setSelectedPatientGroup(null)}>
+              <View style={styles.patientReportActionsRow}>
+              <TouchableOpacity style={[styles.reportCancelButton, styles.patientReportCloseAction]} onPress={() => setSelectedPatientGroup(null)}>
                 <X size={15} color="#334155" />
                 <Text maxFontSizeMultiplier={1.15} numberOfLines={1} adjustsFontSizeToFit style={styles.cancelText}>Close</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.reportSubmitButton, styles.patientReportDownloadAction, compactReportActions && styles.patientReportActionCompact]} disabled={downloadingReport} onPress={() => downloadPatientReport()}>
+              <TouchableOpacity style={[styles.reportSubmitButton, styles.patientReportDownloadAction]} disabled={downloadingReport} onPress={() => downloadPatientReport()}>
                 {downloadingReport ? <ActivityIndicator size="small" color="#fff" /> : <Download size={16} color="#fff" />}
-                <Text maxFontSizeMultiplier={1.15} numberOfLines={1} adjustsFontSizeToFit style={styles.primaryText}>{downloadingReport ? 'Preparing PDF…' : 'Download Report'}</Text>
+                <Text maxFontSizeMultiplier={1.15} numberOfLines={1} adjustsFontSizeToFit style={styles.primaryText}>{downloadingReport ? 'Preparing PDF…' : 'Download PDF'}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.reportSubmitButton, styles.patientReportPrintAction, compactReportActions && styles.patientReportActionCompact]} disabled={printingReport} onPress={() => void printPatientReport()}>
+              <TouchableOpacity style={[styles.reportSubmitButton, styles.patientReportPrintAction]} disabled={printingReport} onPress={() => void printPatientReport()}>
                 {printingReport ? <ActivityIndicator size="small" color="#fff" /> : <Printer size={16} color="#fff" />}
                 <Text maxFontSizeMultiplier={1.15} numberOfLines={1} adjustsFontSizeToFit style={styles.primaryText}>{printingReport ? 'Opening…' : 'Print Report'}</Text>
               </TouchableOpacity>

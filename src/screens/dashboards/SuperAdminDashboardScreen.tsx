@@ -57,7 +57,7 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
           <Text style={styles.greetingTitle}>{greeting}{adminName ? `, ${adminName}` : ''}!</Text>
           <Text style={styles.greetingSubtitle}>Here's what's happening across your platform today.</Text>
           <View style={styles.todayDateCard}>
-            <View style={styles.todayIconBox}><CalendarDays size={22} color="#0D9488" strokeWidth={2.2} /></View>
+            <View style={styles.todayIconBox}><CalendarDays size={22} color="#27A599" strokeWidth={2.2} /></View>
             <View style={styles.todayTextCol}>
               <View style={styles.todayBadgeRow}><View style={styles.greenDot} /><Text style={styles.todayBadgeText}>TODAY</Text></View>
               <Text style={styles.todayDateText}>{todayLabel}</Text>
@@ -156,18 +156,18 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
   content: { padding: 16, paddingBottom: 80 },
   greetingSection: { marginBottom: 18 },
-  greetingTitle: { color: '#0f172a', fontSize: 21, fontWeight: '800' },
-  greetingSubtitle: { color: '#64748b', fontSize: 13, marginTop: 4 },
+  greetingTitle: { fontFamily: 'Inter', color: '#0f172a', fontSize: 21, fontWeight: '800' },
+  greetingSubtitle: { fontFamily: 'Inter', color: '#64748b', fontSize: 13, marginTop: 4 },
   todayDateCard: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, marginTop: 16, borderRadius: 16, borderWidth: 1, borderColor: '#99f6e4', backgroundColor: '#f0fdfa' },
   todayIconBox: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#ccfbf1', alignItems: 'center', justifyContent: 'center' },
   todayTextCol: { flex: 1 },
   todayBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 },
-  greenDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#0d9488' },
-  todayBadgeText: { color: '#0d9488', fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
-  todayDateText: { color: '#0f172a', fontSize: 14, fontWeight: '700' },
+  greenDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#27a599' },
+  todayBadgeText: { fontFamily: 'Inter', color: '#27a599', fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
+  todayDateText: { fontFamily: 'Inter', color: '#0f172a', fontSize: 14, fontWeight: '700' },
   heroCard: {
     backgroundColor: '#0f172a',
     borderRadius: 16,
@@ -175,9 +175,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   heroTextCol: { flex: 1 },
-  heroBadge: { color: '#38bdf8', fontSize: 10, fontWeight: '900', letterSpacing: 1, marginBottom: 4 },
-  heroTitle: { color: '#ffffff', fontSize: 20, fontWeight: '800', marginBottom: 6 },
-  heroSub: { color: '#94a3b8', fontSize: 13, lineHeight: 18 },
+  heroBadge: { fontFamily: 'Inter', color: '#38bdf8', fontSize: 10, fontWeight: '900', letterSpacing: 1, marginBottom: 4 },
+  heroTitle: { fontFamily: 'Inter', color: '#ffffff', fontSize: 20, fontWeight: '800', marginBottom: 6 },
+  heroSub: { fontFamily: 'Inter', color: '#94a3b8', fontSize: 13, lineHeight: 18 },
   kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
   kpiCard: {
     width: '48%',
@@ -185,15 +185,15 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
   },
-  kpiIcon: { fontSize: 22, marginBottom: 6 },
-  kpiValue: { fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 2 },
-  kpiLabel: { fontSize: 13, fontWeight: '700', color: '#334155' },
-  kpiSub: { fontSize: 11, color: '#64748b', marginTop: 2 },
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginBottom: 12 },
+  kpiIcon: { fontFamily: 'Inter', fontSize: 22, marginBottom: 6 },
+  kpiValue: { fontFamily: 'Inter', fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 2 },
+  kpiLabel: { fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: '#334155' },
+  kpiSub: { fontFamily: 'Inter', fontSize: 11, color: '#64748b', marginTop: 2 },
+  sectionTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '800', color: '#0f172a', marginBottom: 12 },
   actionsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
   actionBtn: {
     flex: 1,
-    backgroundColor: '#0d9488',
+    backgroundColor: '#27a599',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -201,8 +201,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
   },
-  actionIcon: { fontSize: 16 },
-  actionText: { color: '#ffffff', fontWeight: '700', fontSize: 13 },
+  actionIcon: { fontFamily: 'Inter', fontSize: 16 },
+  actionText: { fontFamily: 'Inter', color: '#ffffff', fontWeight: '700', fontSize: 13 },
   actionBtnAlt: {
     flex: 1,
     backgroundColor: '#ffffff',
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
   },
-  actionTextAlt: { color: '#0f172a', fontWeight: '700', fontSize: 13 },
+  actionTextAlt: { fontFamily: 'Inter', color: '#0f172a', fontWeight: '700', fontSize: 13 },
   clinicList: { gap: 10 },
   clinicRow: {
     backgroundColor: '#ffffff',
@@ -235,12 +235,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  clinicIcon: { fontSize: 20 },
+  clinicIcon: { fontFamily: 'Inter', fontSize: 20 },
   clinicInfo: { flex: 1 },
-  clinicName: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
-  clinicMeta: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  clinicName: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: '#0f172a' },
+  clinicMeta: { fontFamily: 'Inter', fontSize: 12, color: '#64748b', marginTop: 2 },
   planBadge: { backgroundColor: '#e0f2fe', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-  planText: { color: '#0369a1', fontSize: 11, fontWeight: '800' },
+  planText: { fontFamily: 'Inter', color: '#0369a1', fontSize: 11, fontWeight: '800' },
 });
 
 export default SuperAdminDashboardScreen;

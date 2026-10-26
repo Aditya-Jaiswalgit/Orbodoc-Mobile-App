@@ -411,8 +411,8 @@ test('deactivate uses saved status even when the dropdown has an unsaved change'
   await act(async () => button('Deactivate User').props.onPress());
   expect(staffUpdates()).toHaveLength(0);
   expect(fetchMock.mock.calls.filter(([, options]) => options?.method === 'DELETE')).toHaveLength(0);
-  const confirmation = jest.mocked(Alert.alert).mock.calls.at(-1)![2]!.find(item => item.style === 'destructive')!;
-  await act(async () => confirmation.onPress!());
+  const confirmDeactivate = screen.root.findAllByType(TouchableOpacity).find(node => node.props.accessibilityLabel === 'Confirm deactivate user')!;
+  await act(async () => confirmDeactivate.props.onPress!());
   expect(fetchMock).toHaveBeenCalledWith('/staff/25', { method: 'DELETE' });
   expect(screen.root.findAllByType(Modal).some(node => node.props.visible)).toBe(false);
 });
@@ -663,17 +663,17 @@ test('deactivation needs delete permission and cannot fall back to a status PUT'
   await openUserEdit();
   expect(button('Deactivate User').props.disabled).toBe(true);
   await act(async () => button('Deactivate User').props.onPress());
-  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(screen.root.findAllByType(TouchableOpacity).some(node => node.props.accessibilityLabel === 'Confirm deactivate user')).toBe(false);
   expect(fetchMock.mock.calls.filter(([, opts]) => ['PUT', 'DELETE'].includes(opts?.method || ''))).toHaveLength(0);
 });
 
 test('deactivation confirmation rechecks revoked permissions', async () => {
   await openUserEdit();
   await act(async () => button('Deactivate User').props.onPress());
-  const confirmation = jest.mocked(Alert.alert).mock.calls.at(-1)![2]!.find(item => item.style === 'destructive')!;
+  const confirmDeactivate = screen.root.findAllByType(TouchableOpacity).find(node => node.props.accessibilityLabel === 'Confirm deactivate user')!;
   mockCanDelete = false;
   await act(async () => screen.update(<UserManagement />));
-  await act(async () => confirmation.onPress!());
+  await act(async () => confirmDeactivate.props.onPress!());
   expect(fetchMock.mock.calls.filter(([, options]) => options?.method === 'DELETE')).toHaveLength(0);
 });
 

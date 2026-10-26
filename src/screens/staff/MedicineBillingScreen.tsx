@@ -76,7 +76,7 @@ const PRESCRIPTION_PAGE_SIZE = 5;
 
 export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDate, initialDateFrom, initialDateTo, initialBillId, patientMode = false }) => {
   const { width } = useWindowDimensions();
-  const isMobile = width < 768;
+  const isMobile = width < 640;
   const {
     token,
     activeClinicId,
@@ -764,7 +764,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
       <td>${escapeHtml(money(item.total_price))}</td></tr>`).join('');
     const clinicName = activeClinicName || (bill as any).clinic_name || 'Clinic';
     const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1" /><style>
-      *{box-sizing:border-box}body{font:14px Arial,sans-serif;color:#0f172a;margin:0;padding:34px}h1{font-size:22px;margin:0 0 5px}h2{font-size:17px;margin:0 0 5px}p{margin:4px 0;color:#475569}.top{display:flex;justify-content:space-between;border-bottom:2px solid #0d9488;padding-bottom:18px}.meta{margin:22px 0;display:flex;justify-content:space-between}.label{font-size:11px;color:#64748b;text-transform:uppercase;margin-bottom:5px}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{text-align:left;padding:10px 7px;border-bottom:1px solid #e2e8f0}th{font-size:11px;color:#64748b;text-transform:uppercase;background:#f8fafc}.totals{width:270px;margin-left:auto}.total{display:flex;justify-content:space-between;padding:6px 0}.grand{border-top:1px solid #cbd5e1;font-size:17px;font-weight:bold;padding-top:11px}.notes{margin-top:24px;padding:12px;background:#f8fafc;border-radius:8px}.foot{margin-top:30px;text-align:center;color:#64748b;font-size:11px}
+      *{box-sizing:border-box}body{font:14px Arial,sans-serif;color:#0f172a;margin:0;padding:34px}h1{font-size:22px;margin:0 0 5px}h2{font-size:17px;margin:0 0 5px}p{margin:4px 0;color:#475569}.top{display:flex;justify-content:space-between;border-bottom:2px solid #27a599;padding-bottom:18px}.meta{margin:22px 0;display:flex;justify-content:space-between}.label{font-size:11px;color:#64748b;text-transform:uppercase;margin-bottom:5px}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{text-align:left;padding:10px 7px;border-bottom:1px solid #e2e8f0}th{font-size:11px;color:#64748b;text-transform:uppercase;background:#f8fafc}.totals{width:270px;margin-left:auto}.total{display:flex;justify-content:space-between;padding:6px 0}.grand{border-top:1px solid #cbd5e1;font-size:17px;font-weight:bold;padding-top:11px}.notes{margin-top:24px;padding:12px;background:#f8fafc;border-radius:8px}.foot{margin-top:30px;text-align:center;color:#64748b;font-size:11px}
       </style></head><body><div class="top"><div><h1>${escapeHtml(clinicName)}</h1><p>Medicine Invoice</p></div><div style="text-align:right"><h2>${escapeHtml(bill.bill_number || `Bill #${bill.id}`)}</h2><p>${escapeHtml(dateLabel(bill.created_at))}</p></div></div>
       <div class="meta"><div><div class="label">Billed to</div><strong>${escapeHtml(bill.patient_name || 'Patient')}</strong><p>${escapeHtml((bill as any).patient_code || '')}</p><p>${escapeHtml((bill as any).patient_phone || '')}</p></div><div style="text-align:right"><div class="label">Status</div><strong>${escapeHtml(statusOf(bill))}</strong><p>Payment: ${escapeHtml(bill.payment_method || 'Not recorded')}</p></div></div>
       <table><thead><tr><th>Medicine</th><th>Qty</th><th>Rate</th><th>Discount</th><th>Amount</th></tr></thead><tbody>${lineRows}</tbody></table>
@@ -886,7 +886,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
       {patientMode ? <PatientHeader onOpenDrawer={onOpenDrawer} /> : <StaffHeader onOpenDrawer={onOpenDrawer} title="Medicine Billing" />}
       {!canView ? (
         <View style={styles.center}>
-          <FileText size={30} color="#0D9488" />
+          <FileText size={30} color="#27A599" />
           <Text style={styles.title}>Medicine billing access required</Text>
           <Text style={styles.muted}>
             Your role does not have permission to view medicine bills.
@@ -900,7 +900,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
           <View style={[styles.bannerRow, isMobile && styles.billingBannerMobile]}>
             <View style={styles.bannerTitleBlock}>
               <View style={[styles.iconBox, isMobile && styles.pageIconMobile]}>
-                <Receipt color="#0D9488" size={24} />
+                <Receipt color="#27A599" size={24} />
               </View>
               <View style={styles.bannerCopy}>
                 <Text style={[styles.bannerTitle, isMobile && styles.bannerTitleMobile]}>Medicine Bills</Text>
@@ -997,7 +997,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
 
           {loading ? (
             <View style={styles.center}>
-              <ActivityIndicator color="#0D9488" />
+              <ActivityIndicator color="#27A599" />
               <Text style={styles.muted}>Loading bills...</Text>
             </View>
           ) : bills.length === 0 ? (
@@ -1059,7 +1059,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                       : billStatus === 'partial'
                       ? '#B45309'
                       : billStatus === 'cancelled'
-                      ? '#B91C1C'
+                      ? '#374151'
                       : '#DC2626';
                   return (
                     <View key={bill.id} style={styles.billCard}>
@@ -1113,6 +1113,12 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                         ) : null}
                       </View>
                       <View style={styles.cardGrid}>
+                        {columns.subtotal ? (
+                          <BillMetric label="Subtotal" value={money(bill.subtotal)} />
+                        ) : null}
+                        {columns.tax_amount ? (
+                          <BillMetric label="Tax" value={money(bill.tax_amount)} />
+                        ) : null}
                         {columns.total_amount ? (
                           <BillMetric
                             label="Total"
@@ -1139,6 +1145,9 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                             valueColor="#DC2626"
                           />
                         ) : null}
+                        {columns.pharmacist_name ? (
+                          <BillMetric label="Pharmacist" value={bill.pharmacist_name || '—'} />
+                        ) : null}
                       </View>
                       <View style={styles.cardBottom}>
                         <View style={styles.cardMeta}>
@@ -1163,18 +1172,18 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                             </Text>
                           ) : null}
                         </View>
-                        <View style={styles.cardActions}>
+                        {columns.actions && <View style={styles.cardActions}>
                           <TouchableOpacity
                             style={styles.viewAction}
                             onPress={() => openView(bill)}
                           >
-                            <Eye size={17} color="#0D9488" />
+                            <Eye size={17} color="#27A599" />
                           </TouchableOpacity>
                           {canEdit || canDelete ? <TouchableOpacity
                             style={styles.moreAction}
                             onPress={() => setActionMenuBill(current => current?.id === bill.id ? null : bill)}
                           ><MoreVertical size={17} color="#475569" /></TouchableOpacity> : null}
-                        </View>
+                        </View>}
                       </View>
                       {actionMenuBill?.id === bill.id ? (
                         <View style={styles.actionMenu}>
@@ -1276,7 +1285,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
               >
                 <View style={styles.createSection}>
                   <View style={styles.createSectionHeader}>
-                    <View style={styles.createSectionIcon}><UserRound size={15} color="#0D9488" /></View>
+                    <View style={styles.createSectionIcon}><UserRound size={15} color="#27A599" /></View>
                     <View>
                       <Text style={styles.createSectionTitle}>Bill Information</Text>
                       <Text style={styles.createSectionSubtitle}>Select the patient and an optional completed appointment.</Text>
@@ -1384,13 +1393,13 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                 <View style={styles.createSectionTint}>
                   <View style={styles.lineHeader}>
                     <View style={styles.createSectionHeaderCompact}>
-                      <FileText size={15} color="#0D9488" />
+                      <FileText size={15} color="#27A599" />
                       <Text style={styles.createSectionTitle}>Prescription History</Text>
                     </View>
                     {prescriptionTotal > 0 ? <Text style={styles.prescriptionCountBadge}>{prescriptionTotal} {prescriptionTotal === 1 ? 'record' : 'records'}</Text> : null}
                   </View>
                   {!selectedPatient ? <Text style={styles.createSectionSubtitleIndented}>Select patient to view prescription history.</Text> : null}
-                  {prescriptionLoading ? <ActivityIndicator color="#0D9488" /> : null}
+                  {prescriptionLoading ? <ActivityIndicator color="#27A599" /> : null}
                   {selectedPatient && !prescriptionLoading && prescriptionOptions.length === 0 ? (
                     <Text style={styles.muted}>No prescription history found.</Text>
                   ) : null}
@@ -1448,7 +1457,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                   onLayout={event => { medicineItemsSectionY.current = event.nativeEvent.layout.y; }}
                 >
                   <View style={styles.createSectionHeader}>
-                    <View style={styles.createSectionIcon}><Pill size={15} color="#0D9488" /></View>
+                    <View style={styles.createSectionIcon}><Pill size={15} color="#27A599" /></View>
                     <View style={styles.flex}>
                       <Text style={styles.createSectionTitle}>Medicine Bill Items</Text>
                       <Text style={styles.createSectionSubtitle}>Add medicines manually or apply a prescription.</Text>

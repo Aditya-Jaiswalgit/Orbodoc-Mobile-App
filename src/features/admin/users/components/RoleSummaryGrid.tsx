@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   selectedCard: {
-    borderColor: '#0D9488',
+    borderColor: '#27A599',
     borderWidth: 2,
     backgroundColor: '#F0FDFA',
   },
@@ -96,13 +96,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   countText: {
-    fontSize: 18,
+    fontFamily: 'Inter', fontSize: 18,
     fontWeight: '700',
     color: '#0F172A',
     marginBottom: 2,
   },
   labelText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#64748B',
     textAlign: 'center',

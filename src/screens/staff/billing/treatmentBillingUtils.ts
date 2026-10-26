@@ -18,6 +18,7 @@ export const PAYMENT_METHODS = [
 ];
 
 export type BillColumn =
+  | 'bill_id'
   | 'bill_number'
   | 'patient_name'
   | 'phone'
@@ -29,9 +30,12 @@ export type BillColumn =
   | 'payment_method'
   | 'created_at'
   | 'doctor_name'
-  | 'appointment_id';
+  | 'accountant_name'
+  | 'appointment_id'
+  | 'actions';
 
 export const TREATMENT_BILL_COLUMNS: Array<ColumnOption<BillColumn>> = [
+  { key: 'bill_id', label: 'Bill ID', defaultVisible: false },
   { key: 'bill_number', label: 'Bill Number', defaultVisible: true },
   { key: 'patient_name', label: 'Patient Name', defaultVisible: true },
   { key: 'phone', label: 'Patient Phone', defaultVisible: true },
@@ -43,10 +47,13 @@ export const TREATMENT_BILL_COLUMNS: Array<ColumnOption<BillColumn>> = [
   { key: 'created_at', label: 'Date', defaultVisible: true },
   { key: 'patient_code', label: 'Patient Code', defaultVisible: false },
   { key: 'doctor_name', label: 'Doctor', defaultVisible: false },
+  { key: 'accountant_name', label: 'Accountant', defaultVisible: false },
   { key: 'appointment_id', label: 'Appointment ID', defaultVisible: false },
+  { key: 'actions', label: 'Actions', defaultVisible: true },
 ];
 
 export const DEFAULT_TREATMENT_BILL_COLUMNS: Record<BillColumn, boolean> = {
+  bill_id: false,
   bill_number: true,
   patient_name: true,
   phone: true,
@@ -58,7 +65,9 @@ export const DEFAULT_TREATMENT_BILL_COLUMNS: Record<BillColumn, boolean> = {
   payment_method: true,
   created_at: true,
   doctor_name: false,
+  accountant_name: false,
   appointment_id: false,
+  actions: true,
 };
 
 export function formatCurrency(amount: number | string | undefined): string {

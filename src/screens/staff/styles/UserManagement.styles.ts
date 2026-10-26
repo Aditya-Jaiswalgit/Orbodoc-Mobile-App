@@ -6,13 +6,13 @@ export const styles = StyleSheet.create({
     minHeight: 44, paddingVertical: 6,
   },
   columnOptionLabel: {
-    flex: 1, marginRight: 16, fontSize: 12, fontWeight: '600', color: '#334155',
+    fontFamily: 'Inter', flex: 1, marginRight: 16, fontSize: 12, fontWeight: '600', color: '#334155',
   },
   createErrorBox: {
     width: '100%', padding: 10, marginBottom: 10, borderRadius: 8,
     backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA',
   },
-  createErrorText: { color: '#B91C1C', fontSize: 13 },
+  createErrorText: { fontFamily: 'Inter', color: '#B91C1C', fontSize: 13 },
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   mainScrollView: { flex: 1, padding: 12 },
 
@@ -24,8 +24,8 @@ export const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     marginBottom: 12,
   },
-  outerTitle: { fontSize: 22, fontWeight: '700', color: '#0F172A' },
-  outerSubtitle: { fontSize: 13, color: '#64748B', marginTop: 2 },
+  outerTitle: { fontFamily: 'Inter', fontSize: 22, fontWeight: '700', color: '#0F172A' },
+  outerSubtitle: { fontFamily: 'Inter', fontSize: 13, color: '#64748B', marginTop: 2 },
 
   mainCardBorder: {
     backgroundColor: '#FFFFFF',
@@ -40,9 +40,9 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  cardTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  cardSubtitle: { fontSize: 13, color: '#64748B', marginTop: 2 },
-  timestampText: { fontSize: 11, color: '#94A3B8', marginTop: 6 },
+  cardTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  cardSubtitle: { fontFamily: 'Inter', fontSize: 13, color: '#64748B', marginTop: 2 },
+  timestampText: { fontFamily: 'Inter', fontSize: 11, color: '#94A3B8', marginTop: 6 },
 
   topButtonsRow: {
     flexDirection: 'row',
@@ -66,18 +66,18 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     width: '100%',
   },
-  outlineBtnText: { fontSize: 13, fontWeight: '600', color: '#0F172A' },
+  outlineBtnText: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: '#0F172A' },
   tealCreateBtn: {
     height: 40,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     paddingHorizontal: 6,
     borderRadius: 8,
     width: '100%',
   },
-  tealCreateBtnText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
+  tealCreateBtnText: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
 
   filtersRow: {
     marginTop: 16,
@@ -96,7 +96,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
     height: 40,
   },
-  searchInput: { flex: 1, fontSize: 13, color: '#0F172A' },
+  searchInput: { fontFamily: 'Inter', flex: 1, fontSize: 13, color: '#0F172A' },
   dropdownsWrapper: {
     flex: 3,
     flexDirection: 'row',
@@ -114,7 +114,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     height: 40,
   },
-  dropdownTriggerText: { fontSize: 12, color: '#475569', fontWeight: '500' },
+  dropdownTriggerText: { fontFamily: 'Inter', fontSize: 12, color: '#475569', fontWeight: '500' },
   dropdownMenuBox: {
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
@@ -125,8 +125,8 @@ export const styles = StyleSheet.create({
     elevation: 4,
   },
   dropdownMenuItem: { paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6 },
-  dropdownMenuItemText: { fontSize: 13, color: '#334155' },
-  dropdownMenuItemTextActive: { color: '#0D9488', fontWeight: '700' },
+  dropdownMenuItemText: { fontFamily: 'Inter', fontSize: 13, color: '#334155' },
+  dropdownMenuItemTextActive: { color: '#27A599', fontWeight: '700' },
 
   loadingBox: {
     padding: 40,
@@ -134,7 +134,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loadingText: {
-    marginTop: 10,
+    fontFamily: 'Inter', marginTop: 10,
     color: '#64748B',
     fontSize: 13,
   },
@@ -155,7 +155,7 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#E2E8F0',
     alignItems: 'center',
   },
-  thText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
+  thText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#64748B' },
   tableBodyRow: {
     flexDirection: 'row',
     paddingVertical: 12,
@@ -164,7 +164,7 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
     alignItems: 'center',
   },
-  tdText: { fontSize: 13, color: '#334155' },
+  tdText: { fontFamily: 'Inter', fontSize: 13, color: '#334155' },
   userCell: { flexDirection: 'row', alignItems: 'center' },
   circleAvatar: {
     width: 28,
@@ -175,8 +175,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 8,
   },
-  circleAvatarText: { fontSize: 11, fontWeight: '700', color: '#0D9488' },
-  userNameText: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
+  circleAvatarText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700', color: '#27A599' },
+  userNameText: { fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: '#0F172A' },
   rolePillBadge: {
     backgroundColor: '#F1F5F9',
     paddingHorizontal: 8,
@@ -184,7 +184,7 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     alignSelf: 'flex-start',
   },
-  rolePillText: { fontSize: 11, fontWeight: '600', color: '#334155' },
+  rolePillText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '600', color: '#334155' },
   statusPillBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -193,14 +193,14 @@ export const styles = StyleSheet.create({
   },
   statusActiveBg: { backgroundColor: '#DCFCE7' },
   statusInactiveBg: { backgroundColor: '#FEE2E2' },
-  statusPillText: { fontSize: 11, fontWeight: '700' },
+  statusPillText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700' },
   statusActiveText: { color: '#166534' },
   statusInactiveText: { color: '#991B1B' },
   actionsCell: { alignItems: 'flex-end', justifyContent: 'center' },
   actionIconBtn: { padding: 4 },
 
   emptyBox: { padding: 24, alignItems: 'center' },
-  emptyText: { color: '#94A3B8', fontSize: 13 },
+  emptyText: { fontFamily: 'Inter', color: '#94A3B8', fontSize: 13 },
 
   modalOverlay: {
     flex: 1,
@@ -236,27 +236,27 @@ export const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  viewAvatarText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
-  viewModalName: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  viewModalEmail: { fontSize: 13, color: '#64748B', marginTop: 1 },
+  viewAvatarText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
+  viewModalName: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  viewModalEmail: { fontFamily: 'Inter', fontSize: 13, color: '#64748B', marginTop: 1 },
   viewRoleBadge: {
     backgroundColor: '#CCFBF1',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
   },
-  viewRoleBadgeText: { fontSize: 11, fontWeight: '600', color: '#0D9488' },
+  viewRoleBadgeText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '600', color: '#27A599' },
   viewActiveBadge: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
   },
-  viewActiveBadgeText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+  viewActiveBadgeText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
   closeHeaderBtn: { padding: 4 },
 
   viewSectionCard: {
@@ -266,7 +266,7 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
   },
-  viewSectionTitle: { fontSize: 14, fontWeight: '700', color: '#0F172A', marginBottom: 10 },
+  viewSectionTitle: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: '#0F172A', marginBottom: 10 },
   viewGrid2Col: { flexDirection: 'row', gap: 10 },
   viewGrid3Col: { flexDirection: 'row', gap: 8 },
   viewInfoBox: {
@@ -286,9 +286,9 @@ export const styles = StyleSheet.create({
     padding: 8,
   },
   viewInfoLabelRow: { flexDirection: 'row', alignItems: 'center' },
-  viewInfoLabel: { fontSize: 11, color: '#64748B', fontWeight: '500' },
-  viewInfoVal: { fontSize: 13, fontWeight: '700', color: '#0F172A', marginTop: 4 },
-  viewInfoValSmall: { fontSize: 12, fontWeight: '700', color: '#0F172A', marginTop: 4 },
+  viewInfoLabel: { fontFamily: 'Inter', fontSize: 11, color: '#64748B', fontWeight: '500' },
+  viewInfoVal: { fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: '#0F172A', marginTop: 4 },
+  viewInfoValSmall: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#0F172A', marginTop: 4 },
   viewModalFooter: {
     padding: 14,
     borderTopWidth: 1,
@@ -308,7 +308,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
-  modalCloseFooterBtnText: { fontSize: 13, fontWeight: '600', color: '#334155' },
+  modalCloseFooterBtnText: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: '#334155' },
 
   // Edit Modal Styling
   editModalCard: {
@@ -337,12 +337,12 @@ export const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  editModalTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  editModalSubtitle: { fontSize: 12, color: '#64748B', marginTop: 1 },
+  editModalTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  editModalSubtitle: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginTop: 1 },
 
   editSectionCard: {
     backgroundColor: '#FFFFFF',
@@ -351,12 +351,12 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
   },
-  editSectionTitle: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
-  editSectionSub: { fontSize: 12, color: '#64748B', marginBottom: 12 },
+  editSectionTitle: { fontFamily: 'Inter', fontSize: 15, fontWeight: '700', color: '#0F172A' },
+  editSectionSub: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginBottom: 12 },
 
-  formLabel: { fontSize: 12, fontWeight: '600', color: '#334155', marginTop: 10, marginBottom: 4 },
+  formLabel: { fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#334155', marginTop: 10, marginBottom: 4 },
   formInput: {
-    borderWidth: 1,
+    fontFamily: 'Inter', borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -366,7 +366,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   formInputFocused: {
-    borderColor: '#0D9488',
+    borderColor: '#27A599',
     borderWidth: 1.5,
     backgroundColor: '#F0FDFA',
   },
@@ -379,8 +379,8 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     paddingRight: 10,
   },
-  disabledInput: { flex: 1, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: '#64748B' },
-  helperText: { fontSize: 11, color: '#64748B', marginTop: 3 },
+  disabledInput: { fontFamily: 'Inter', flex: 1, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: '#64748B' },
+  helperText: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginTop: 3 },
 
   selectInputTrigger: {
     flexDirection: 'row',
@@ -393,7 +393,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#FFFFFF',
   },
-  selectInputText: { fontSize: 13, color: '#0F172A', fontWeight: '500' },
+  selectInputText: { fontFamily: 'Inter', fontSize: 13, color: '#0F172A', fontWeight: '500' },
   editDropdownList: {
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -405,8 +405,8 @@ export const styles = StyleSheet.create({
   },
   editDropdownItem: { paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6 },
   editDropdownItemActive: { backgroundColor: '#E6F4F1' },
-  editDropdownItemText: { fontSize: 13, color: '#334155' },
-  editDropdownItemTextActive: { color: '#0D9488', fontWeight: '700' },
+  editDropdownItemText: { fontFamily: 'Inter', fontSize: 13, color: '#334155' },
+  editDropdownItemTextActive: { color: '#27A599', fontWeight: '700' },
 
   formGrid2Col: { flexDirection: 'row', gap: 10 },
 
@@ -428,7 +428,7 @@ export const styles = StyleSheet.create({
   editActionText: { textAlign: 'center', flexShrink: 1 },
   disabledAction: { opacity: 0.5 },
   invalidInput: { borderColor: '#DC2626' },
-  fieldError: { color: '#B91C1C', fontSize: 12, marginTop: 4, marginBottom: 4 },
+  fieldError: { fontFamily: 'Inter', color: '#B91C1C', fontSize: 12, marginTop: 4, marginBottom: 4 },
 
   // Dynamic Status Button: Red for Deactivate, Green for Activate
   deactivateBtn: {
@@ -440,9 +440,9 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activateBtnBg: {
-    backgroundColor: '#16A34A', // Green for Activate User
+    backgroundColor: '#2EB877', // Green for Activate User
   },
-  deactivateBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  deactivateBtnText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
 
   modalSecondaryBtn: {
     borderWidth: 1,
@@ -454,16 +454,16 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalSecondaryBtnText: { fontSize: 13, fontWeight: '600', color: '#334155' },
+  modalSecondaryBtnText: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: '#334155' },
   tealSaveBtn: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tealSaveBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  tealSaveBtnText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
 
   // Reset Password Modal Styling (Exact Match to Screenshot)
   resetFormScroll: { flexShrink: 1 },
@@ -492,15 +492,15 @@ export const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  resetTitle: { fontSize: 20, fontWeight: '700', color: '#0F172A' },
-  resetSubtitle: { fontSize: 13, color: '#64748B', marginTop: 3 },
+  resetTitle: { fontFamily: 'Inter', fontSize: 20, fontWeight: '700', color: '#0F172A' },
+  resetSubtitle: { fontFamily: 'Inter', fontSize: 13, color: '#64748B', marginTop: 3 },
 
   resetFormBody: { padding: 18 },
-  resetFieldLabel: { fontSize: 13, fontWeight: '600', color: '#334155', marginBottom: 6 },
+  resetFieldLabel: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: '#334155', marginBottom: 6 },
 
   passwordInputContainer: {
     flexDirection: 'row',
@@ -516,13 +516,13 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#0D9488',
+    borderColor: '#27A599',
     borderRadius: 10,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
     height: 46,
   },
-  passwordInputText: { flex: 1, fontSize: 14, color: '#0F172A' },
+  passwordInputText: { fontFamily: 'Inter', flex: 1, fontSize: 14, color: '#0F172A' },
 
   resetFooterRow: {
     flexDirection: 'row',
@@ -544,16 +544,16 @@ export const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
   },
-  resetCancelBtnText: { color: '#334155', fontSize: 14, fontWeight: '600' },
+  resetCancelBtnText: { fontFamily: 'Inter', color: '#334155', fontSize: 14, fontWeight: '600' },
   resetSubmitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 10,
   },
-  resetSubmitBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  resetSubmitBtnText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
 
   mobileUserCard: {
     backgroundColor: '#FFFFFF',
@@ -574,11 +574,11 @@ export const styles = StyleSheet.create({
     paddingTop: 0,
   },
   mobileMetaText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#475569',
   },
   mobileEmailText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#64748B',
   },
   mobileCardFooter: {

@@ -395,7 +395,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
         <PatientPageHeading
           title="Find Lab Tests"
           subtitle="Search tests by name, symptom or disease, compare nearby clinics and book a slot."
-          icon={<FlaskConical size={21} color="#0D9488" />}
+          icon={<FlaskConical size={21} color="#27A599" />}
         />
 
         <View style={styles.historySection}>
@@ -406,14 +406,14 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
               disabled={historyLoading}
             >
               {historyLoading ? (
-                <ActivityIndicator size="small" color="#0f766e" />
+                <ActivityIndicator size="small" color="#1d7c72" />
               ) : (
                 <Text style={styles.historyRefresh}>Refresh</Text>
               )}
             </TouchableOpacity>
           </View>
           {historyLoading ? (
-            <ActivityIndicator style={styles.historyLoader} color="#0f766e" />
+            <ActivityIndicator style={styles.historyLoader} color="#1d7c72" />
           ) : myReports.length ? (
             myReports.map(item => (
               <View
@@ -450,7 +450,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
                           : `${BASE_URL.replace(/\/api\/?$/, '')}/${String(item.report_file_url).replace(/^\/+/, '')}`;
                         Linking.openURL(url).catch(() => showErrorToast('Could not open report', 'Try again later.'));
                       }}>
-                      <Printer size={16} color="#0f766e" />
+                      <Printer size={16} color="#1d7c72" />
                     </TouchableOpacity>
                     <TouchableOpacity
                       accessibilityRole="button"
@@ -462,7 +462,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
                           : `${BASE_URL.replace(/\/api\/?$/, '')}/${String(item.report_file_url).replace(/^\/+/, '')}`;
                         Linking.openURL(url).catch(() => showErrorToast('Could not open report', 'Try again later.'));
                       }}>
-                      <Download size={16} color="#0f766e" />
+                      <Download size={16} color="#1d7c72" />
                     </TouchableOpacity>
                   </View>
                 ) : null}
@@ -583,7 +583,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
                       <View key={clinic.clinic_id} style={styles.clinicCard}>
                         <View style={styles.clinicHeading}>
                           <View style={styles.locationIcon}>
-                            <MapPin size={17} color="#0D9488" />
+                            <MapPin size={17} color="#27A599" />
                           </View>
                           <View style={styles.flex}>
                             <Text style={styles.clinicTitle}>
@@ -732,7 +732,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
               />
               <Text style={styles.fieldLabel}>Available time slots</Text>
               {slotsLoading ? (
-                <ActivityIndicator color="#0f766e" />
+                <ActivityIndicator color="#1d7c72" />
               ) : slots.length ? (
                 <View style={styles.slotGrid}>
                   {slots.map(slot => (
@@ -919,9 +919,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#EEF2F6',
   },
-  historyRefresh: { color: '#0F766E', fontSize: 11, fontWeight: '700' },
+  historyRefresh: { fontFamily: 'Inter', color: '#1D7C72', fontSize: 11, fontWeight: '700' },
   historyLoader: { marginVertical: 12 },
-  historyRemarks: { color: '#475569', fontSize: 11, marginTop: 4 },
+  historyRemarks: { fontFamily: 'Inter', color: '#475569', fontSize: 11, marginTop: 4 },
   historyDownload: {
     width: 36,
     height: 36,
@@ -932,9 +932,9 @@ const styles = StyleSheet.create({
     borderRadius: 9,
   },
   historyReportActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  historyEmpty: { color: '#64748B', fontSize: 12, paddingVertical: 5 },
-  title: { color: '#0F172A', fontSize: 20, fontWeight: '800' },
-  subtitle: { color: '#64748B', fontSize: 12, lineHeight: 18, marginTop: 3 },
+  historyEmpty: { fontFamily: 'Inter', color: '#64748B', fontSize: 12, paddingVertical: 5 },
+  title: { fontFamily: 'Inter', color: '#0F172A', fontSize: 20, fontWeight: '800' },
+  subtitle: { fontFamily: 'Inter', color: '#64748B', fontSize: 14, lineHeight: 18, marginTop: 3 },
   searchCard: {
     padding: 14,
     borderWidth: 1,
@@ -954,7 +954,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
   },
   input: {
-    minHeight: 44,
+    fontFamily: 'Inter', minHeight: 44,
     paddingHorizontal: 11,
     paddingVertical: 9,
     marginTop: 8,
@@ -975,17 +975,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
     borderRadius: 10,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
   },
-  searchButtonText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  searchButtonText: { fontFamily: 'Inter', color: '#fff', fontSize: 13, fontWeight: '700' },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     marginTop: 4,
   },
-  sectionTitle: { flex: 1, color: '#0F172A', fontSize: 16, fontWeight: '800' },
-  count: { color: '#0F766E', fontSize: 11, fontWeight: '700' },
+  sectionTitle: { fontFamily: 'Inter', flex: 1, color: '#0F172A', fontSize: 18, fontWeight: '800' },
+  count: { fontFamily: 'Inter', color: '#1D7C72', fontSize: 11, fontWeight: '700' },
   testChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   testChip: {
     paddingHorizontal: 12,
@@ -995,10 +995,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#fff',
   },
-  testChipActive: { borderColor: '#0F766E', backgroundColor: '#0F766E' },
-  testChipText: { color: '#17313A', fontSize: 12, fontWeight: '700' },
+  testChipActive: { borderColor: '#1D7C72', backgroundColor: '#1D7C72' },
+  testChipText: { fontFamily: 'Inter', color: '#17313A', fontSize: 12, fontWeight: '700' },
   testChipTextActive: { color: '#fff' },
-  testPrice: { color: '#64748B', fontSize: 10, marginTop: 4 },
+  testPrice: { fontFamily: 'Inter', color: '#64748B', fontSize: 10, marginTop: 4 },
   clinicCard: {
     padding: 14,
     borderWidth: 1,
@@ -1015,9 +1015,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#F0FDFA',
   },
-  clinicTitle: { color: '#0F172A', fontSize: 14, fontWeight: '800' },
+  clinicTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 14, fontWeight: '800' },
   clinicAddress: {
-    color: '#64748B',
+    fontFamily: 'Inter', color: '#64748B',
     fontSize: 11,
     lineHeight: 16,
     marginTop: 3,
@@ -1032,20 +1032,20 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#EEF2F6',
   },
-  priceLabel: { color: '#64748B', fontSize: 10 },
+  priceLabel: { fontFamily: 'Inter', color: '#64748B', fontSize: 10 },
   priceValue: {
-    color: '#0F172A',
+    fontFamily: 'Inter', color: '#0F172A',
     fontSize: 18,
     fontWeight: '800',
     marginTop: 3,
   },
   oldPrice: {
-    color: '#94A3B8',
+    fontFamily: 'Inter', color: '#94A3B8',
     fontSize: 10,
     textDecorationLine: 'line-through',
   },
   collectionText: {
-    color: '#0F766E',
+    fontFamily: 'Inter', color: '#1D7C72',
     fontSize: 10,
     fontWeight: '700',
     textAlign: 'right',
@@ -1058,9 +1058,9 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
   },
-  bookButtonText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  bookButtonText: { fontFamily: 'Inter', color: '#fff', fontSize: 12, fontWeight: '700' },
   empty: {
     minHeight: 105,
     alignItems: 'center',
@@ -1073,7 +1073,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#fff',
   },
-  emptyText: { color: '#64748B', fontSize: 12, textAlign: 'center' },
+  emptyText: { fontFamily: 'Inter', color: '#64748B', fontSize: 12, textAlign: 'center' },
   modalBackdrop: {
     flex: 1,
     justifyContent: 'center',
@@ -1093,9 +1093,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#fff',
   },
-  modalTitle: { color: '#0F172A', fontSize: 18, fontWeight: '800' },
+  modalTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 20, fontWeight: '800' },
   modalSubtitle: {
-    color: '#64748B',
+    fontFamily: 'Inter', color: '#64748B',
     fontSize: 12,
     lineHeight: 18,
     marginTop: 4,
@@ -1110,13 +1110,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 8,
     borderRadius: 9,
-    backgroundColor: '#0F766E',
+    backgroundColor: '#1D7C72',
   },
-  lookupText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  lookupHint: { color: '#64748B', fontSize: 11, marginTop: 7 },
+  lookupText: { fontFamily: 'Inter', color: '#fff', fontSize: 12, fontWeight: '700' },
+  lookupHint: { fontFamily: 'Inter', color: '#64748B', fontSize: 11, marginTop: 7 },
   fieldLabel: {
-    color: '#334155',
-    fontSize: 12,
+    fontFamily: 'Inter', color: '#334155',
+    fontSize: 14,
     fontWeight: '700',
     marginTop: 12,
   },
@@ -1131,11 +1131,11 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: '#fff',
   },
-  choiceActive: { borderColor: '#0D9488', backgroundColor: '#F0FDFA' },
-  choiceText: { color: '#475569', fontSize: 11, fontWeight: '600' },
-  choiceTextActive: { color: '#0F766E' },
+  choiceActive: { borderColor: '#27A599', backgroundColor: '#F0FDFA' },
+  choiceText: { fontFamily: 'Inter', color: '#475569', fontSize: 11, fontWeight: '600' },
+  choiceTextActive: { color: '#1D7C72' },
   multiline: { minHeight: 65, textAlignVertical: 'top' },
-  coverageHint: { fontSize: 11, lineHeight: 16, marginTop: 7 },
+  coverageHint: { fontFamily: 'Inter', fontSize: 11, lineHeight: 16, marginTop: 7 },
   coverageGood: { color: '#047857' },
   coverageBad: { color: '#B91C1C' },
   modalActions: {
@@ -1152,7 +1152,7 @@ const styles = StyleSheet.create({
     borderColor: '#CBD5E1',
     borderRadius: 9,
   },
-  cancelText: { color: '#475569', fontSize: 12, fontWeight: '700' },
+  cancelText: { fontFamily: 'Inter', color: '#475569', fontSize: 12, fontWeight: '700' },
 });
 
 export default LabTestsScreen;

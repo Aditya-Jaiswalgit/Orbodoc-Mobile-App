@@ -27,10 +27,10 @@ export const styles = StyleSheet.create({
   },
   createClinicHeaderBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, backgroundColor: '#0D9488', borderRadius: 8,
+    gap: 6, backgroundColor: '#27A599', borderRadius: 8,
     paddingHorizontal: 12, paddingVertical: 9,
   },
-  createClinicHeaderText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  createClinicHeaderText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
   buildingIconBox: {
     width: 44,
     height: 44,
@@ -39,13 +39,13 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bannerTitle: { fontSize: 24, fontWeight: '700', color: '#0F172A' },
-  bannerSubtitle: { fontSize: 14, color: '#64748B', marginTop: 2 },
+  bannerTitle: { fontFamily: 'Inter', fontSize: 24, fontWeight: '700', color: '#0F172A' },
+  bannerSubtitle: { fontFamily: 'Inter', fontSize: 14, color: '#64748B', marginTop: 2 },
 
   upgradeLinkBtn: { paddingVertical: 4 },
-  upgradeLinkText: { color: '#64748B', fontSize: 13, fontWeight: '500' },
+  upgradeLinkText: { fontFamily: 'Inter', color: '#64748B', fontSize: 13, fontWeight: '500' },
   upgradeLinkHighlight: {
-    color: '#0D9488',
+    fontFamily: 'Inter', color: '#27A599',
     fontSize: 13,
     fontWeight: '600',
     textDecorationLine: 'underline',
@@ -99,15 +99,15 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  webDateTriggerText: { color: '#0F172A', fontSize: 14, fontWeight: '500' },
+  webDateTriggerText: { fontFamily: 'Inter', color: '#0F172A', fontSize: 14, fontWeight: '500' },
   performanceDateLabel: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#0F172A',
     marginBottom: 6,
   },
   controlLabel: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '700',
     color: '#64748B',
     marginBottom: 6,
@@ -126,7 +126,7 @@ export const styles = StyleSheet.create({
     height: 44,
     backgroundColor: '#FFFFFF',
   },
-  controlSelectBtnText: { color: '#0F172A', fontSize: 14, fontWeight: '500' },
+  controlSelectBtnText: { fontFamily: 'Inter', color: '#0F172A', fontSize: 14, fontWeight: '500' },
 
   controlDropdownMenu: {
     position: 'absolute',
@@ -151,7 +151,7 @@ export const styles = StyleSheet.create({
     elevation: 2,
   },
   controlDropdownItem: { paddingHorizontal: 12, paddingVertical: 8 },
-  controlDropdownItemText: { fontSize: 13, color: '#334155' },
+  controlDropdownItemText: { fontFamily: 'Inter', fontSize: 13, color: '#334155' },
 
   refreshCol: { flex: 1, alignItems: 'flex-end', justifyContent: 'center' },
   refreshColMobile: {
@@ -169,12 +169,12 @@ export const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
-  refreshDashBtnText: { color: '#334155', fontSize: 13, fontWeight: '600' },
-  lastRefreshedText: { fontSize: 11, color: '#94A3B8', marginTop: 4 },
+  refreshDashBtnText: { fontFamily: 'Inter', color: '#334155', fontSize: 13, fontWeight: '600' },
+  lastRefreshedText: { fontFamily: 'Inter', fontSize: 11, color: '#94A3B8', marginTop: 4 },
 
   sectionHeaderRow: { marginTop: 14, marginBottom: 12 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
-  sectionSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
+  sectionTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  sectionSubtitle: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginTop: 2 },
 
   // KPI Grid 4
   kpiGrid4: {
@@ -213,9 +213,9 @@ export const styles = StyleSheet.create({
     padding: 15,
     alignItems: 'flex-start',
   },
-  dailyKpiLabelMobile: { fontSize: 14, fontWeight: '600' },
-  dailyKpiValueMobile: { fontSize: 23, marginTop: 3 },
-  dailyKpiSubMobile: { fontSize: 11, marginTop: 12 },
+  dailyKpiLabelMobile: { fontFamily: 'Inter', fontSize: 14, fontWeight: '600' },
+  dailyKpiValueMobile: { fontFamily: 'Inter', fontSize: 23, marginTop: 3 },
+  dailyKpiSubMobile: { fontFamily: 'Inter', fontSize: 11, marginTop: 12 },
   dailyKpiIconMobile: { width: 40, height: 40, borderRadius: 12 },
   appointmentsIconMobile: { backgroundColor: '#E0F7FA' },
   completedIconMobile: { backgroundColor: '#E5F7F0' },
@@ -225,8 +225,8 @@ export const styles = StyleSheet.create({
   snapshotIconMobile: { width: 40, height: 40, borderRadius: 12 },
   labIconMobile: { backgroundColor: '#FFF4DE' },
   medicineIconMobile: { backgroundColor: '#FFF0E6' },
-  snapshotValueMobile: { fontSize: 20 },
-  snapshotLabelMobile: { fontSize: 12 },
+  snapshotValueMobile: { fontFamily: 'Inter', fontSize: 20 },
+  snapshotLabelMobile: { fontFamily: 'Inter', fontSize: 12 },
   summaryGridMobile: {
     flexDirection: 'column',
     flexWrap: 'nowrap',
@@ -237,12 +237,12 @@ export const styles = StyleSheet.create({
   summaryIconMobile: { width: 36, height: 36 },
   adminSummaryIconMobile: { backgroundColor: '#FFF4DE' },
   inactiveSummaryIconMobile: { backgroundColor: '#FDE8E8' },
-  summaryValueMobile: { fontSize: 23 },
-  summaryLabelMobile: { fontSize: 13 },
+  summaryValueMobile: { fontFamily: 'Inter', fontSize: 23 },
+  summaryLabelMobile: { fontFamily: 'Inter', fontSize: 13 },
 
-  kpiLabel: { fontSize: 13, fontWeight: '600', color: '#64748B' },
-  kpiValue: { fontSize: 20, fontWeight: '800', color: '#0F172A', marginTop: 2 },
-  kpiSub: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
+  kpiLabel: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: '#64748B' },
+  kpiValue: { fontFamily: 'Inter', fontSize: 20, fontWeight: '800', color: '#0F172A', marginTop: 2 },
+  kpiSub: { fontFamily: 'Inter', fontSize: 11, color: '#94A3B8', marginTop: 2 },
 
   kpiIconBox: {
     width: 38,
@@ -262,9 +262,9 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
     backgroundColor: '#F8FAFC',
   },
-  snapshotValue: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
+  snapshotValue: { fontFamily: 'Inter', fontSize: 18, fontWeight: '800', color: '#0F172A' },
   snapshotLabel: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
     marginTop: 1,
     fontWeight: '600',
@@ -294,8 +294,8 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  metricValue: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
-  metricLabel: { fontSize: 12, color: '#64748B', fontWeight: '600' },
+  metricValue: { fontFamily: 'Inter', fontSize: 18, fontWeight: '800', color: '#0F172A' },
+  metricLabel: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', fontWeight: '600' },
 
   // Search and Filter Bar
   searchFilterRow: {
@@ -326,7 +326,7 @@ export const styles = StyleSheet.create({
     height: 42,
   },
   filterFieldFocused: { borderColor: '#14B8A6', borderWidth: 1.5 },
-  searchInput: { flex: 1, fontSize: 13, color: '#0F172A' },
+  searchInput: { fontFamily: 'Inter', flex: 1, fontSize: 13, color: '#0F172A' },
 
   statusTriggerBtn: {
     flexDirection: 'row',
@@ -341,7 +341,7 @@ export const styles = StyleSheet.create({
     minWidth: 120,
   },
   statusTriggerBtnMobile: { width: '100%' },
-  statusTriggerBtnText: { fontSize: 13, color: '#334155', fontWeight: '600' },
+  statusTriggerBtnText: { fontFamily: 'Inter', fontSize: 13, color: '#334155', fontWeight: '600' },
   statusDropdownMenu: {
     position: 'absolute',
     top: 46,
@@ -356,7 +356,7 @@ export const styles = StyleSheet.create({
     zIndex: 99,
   },
   statusDropdownItem: { paddingHorizontal: 12, paddingVertical: 8 },
-  statusDropdownItemText: { fontSize: 13, color: '#334155' },
+  statusDropdownItemText: { fontFamily: 'Inter', fontSize: 13, color: '#334155' },
 
   // Table Card
   tableCardContainer: {
@@ -375,8 +375,8 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-  tableTitleText: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
-  tableTitleMobile: { fontSize: 14, fontWeight: '500' },
+  tableTitleText: { fontFamily: 'Inter', fontSize: 16, fontWeight: '700', color: '#0F172A' },
+  tableTitleMobile: { fontFamily: 'Inter', fontSize: 14, fontWeight: '500' },
   columnsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -396,16 +396,17 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderRadius: 10,
   },
-  columnsBtnText: { fontSize: 12, fontWeight: '600', color: '#334155' },
+  columnsBtnText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '600', color: '#334155' },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    minHeight: 38,
+    paddingVertical: 8,
     borderRadius: 8,
   },
-  addBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 12 },
+  addBtnText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '600', fontSize: 14 },
 
   // Table Structure
   tableHeaderRow: {
@@ -416,7 +417,7 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
-  thCell: { fontSize: 12, fontWeight: '700', color: '#64748B' },
+  thCell: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#64748B' },
 
   tableBodyRow: {
     flexDirection: 'row',
@@ -436,9 +437,9 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
-  clinicTitleText: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
-  codeText: { fontSize: 11, color: '#64748B', marginTop: 1 },
-  tdText: { fontSize: 12, color: '#334155' },
+  clinicTitleText: { fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: '#0F172A' },
+  codeText: { fontFamily: 'Inter', fontSize: 11, color: '#64748B', marginTop: 1 },
+  tdText: { fontFamily: 'Inter', fontSize: 12, color: '#334155' },
 
   statusPillBadge: {
     paddingHorizontal: 8,
@@ -447,7 +448,7 @@ export const styles = StyleSheet.create({
   },
   statusActiveBg: { backgroundColor: '#DCFCE7' },
   statusInactiveBg: { backgroundColor: '#FEE2E2' },
-  statusPillText: { fontSize: 11, fontWeight: '700' },
+  statusPillText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700' },
   statusActiveText: { color: '#166534' },
   statusInactiveText: { color: '#991B1B' },
 
@@ -466,7 +467,7 @@ export const styles = StyleSheet.create({
     borderTopColor: '#F1F5F9',
   },
   mobileMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  metaText: { fontSize: 12, color: '#475569' },
+  metaText: { fontFamily: 'Inter', fontSize: 12, color: '#475569' },
 
   // Modal
   modalBg: {
@@ -491,16 +492,16 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  modalTitle: { fontFamily: 'Inter', fontSize: 20, fontWeight: '700', color: '#0F172A' },
   label: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#334155',
     marginTop: 10,
     marginBottom: 4,
   },
   input: {
-    borderWidth: 1,
+    fontFamily: 'Inter', borderWidth: 1,
     borderColor: '#CBD5E1',
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -523,14 +524,14 @@ export const styles = StyleSheet.create({
     borderColor: '#CBD5E1',
     borderRadius: 8,
   },
-  cancelText: { color: '#475569', fontWeight: '600', fontSize: 13 },
+  cancelText: { fontFamily: 'Inter', color: '#475569', fontWeight: '600', fontSize: 13 },
   saveBtn: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 8,
   },
-  saveText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  saveText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
 
   // Action Popover Menu (Screenshot 2 Match)
   actionPopoverMenu: {
@@ -573,7 +574,7 @@ export const styles = StyleSheet.create({
     borderRadius: 6,
   },
   popoverItemText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '500',
     color: '#334155',
   },
@@ -607,8 +608,8 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  viewClinicTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  viewClinicSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
+  viewClinicTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  viewClinicSubtitle: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginTop: 2 },
   viewClinicStatusTag: {
     backgroundColor: '#DCFCE7',
     paddingHorizontal: 8,
@@ -617,7 +618,7 @@ export const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: 4,
   },
-  viewClinicStatusText: { fontSize: 11, fontWeight: '700', color: '#166534' },
+  viewClinicStatusText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700', color: '#166534' },
 
   viewSectionCard: {
     backgroundColor: '#F8FAFC',
@@ -635,12 +636,12 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  viewSectionCardTitle: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  viewSectionCardTitle: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: '#0F172A' },
   grid2ColRow: { flexDirection: 'row', gap: 16 },
   grid3ColRow: { flexDirection: 'row', gap: 12 },
-  infoBoxLabel: { fontSize: 11, color: '#64748B', fontWeight: '500' },
+  infoBoxLabel: { fontFamily: 'Inter', fontSize: 11, color: '#64748B', fontWeight: '500' },
   infoBoxVal: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '700',
     color: '#0F172A',
     marginTop: 3,
@@ -654,12 +655,12 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   viewClinicCloseBtn: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     paddingHorizontal: 22,
     paddingVertical: 9,
     borderRadius: 8,
   },
-  viewClinicCloseBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  viewClinicCloseBtnText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
 
   // View Admins Modal Styles (Screenshot 4 Match)
   viewAdminsCard: {
@@ -684,12 +685,12 @@ export const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 10,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  viewAdminsTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  viewAdminsSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
+  viewAdminsTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  viewAdminsSubtitle: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginTop: 2 },
   viewAdminsSubHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -699,12 +700,12 @@ export const styles = StyleSheet.create({
   addNewAdminBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
   },
-  addNewAdminBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  addNewAdminBtnText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
 
   adminsTableContainer: {
     backgroundColor: '#FFFFFF',
@@ -722,7 +723,7 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
-  adminsTh: { fontSize: 12, fontWeight: '600', color: '#64748B' },
+  adminsTh: { fontFamily: 'Inter', fontSize: 12, fontWeight: '600', color: '#64748B' },
   adminsTableBodyRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -740,14 +741,14 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 8,
   },
-  adminNameText: { fontSize: 13, fontWeight: '600', color: '#0F172A' },
-  adminTdText: { fontSize: 12, color: '#475569' },
+  adminNameText: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: '#0F172A' },
+  adminTdText: { fontFamily: 'Inter', fontSize: 12, color: '#475569' },
   adminStatusPill: {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
   },
-  adminStatusText: { fontSize: 11, fontWeight: '700' },
+  adminStatusText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700' },
 
   // Add Admin Modal Styles (Screenshot 5 Match)
   addAdminCard: {
@@ -776,38 +777,39 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addAdminTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  addAdminTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#0F172A' },
   addAdminSubtitle: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
     marginTop: 2,
     lineHeight: 16,
   },
   formGroupHeader: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '700',
     color: '#0F172A',
     marginBottom: 12,
   },
   formLabelText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#334155',
-    marginTop: 10,
-    marginBottom: 4,
+    marginTop: 8,
+    marginBottom: 6,
   },
   formInputBox: {
-    borderWidth: 1,
+    fontFamily: 'Inter', borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 9,
-    fontSize: 13,
+    minHeight: 40,
+    fontSize: 16,
     color: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   formInputFocused: {
-    borderColor: '#0D9488',
+    borderColor: '#27A599',
     borderWidth: 1.5,
     backgroundColor: '#FFFFFF',
   },
@@ -822,12 +824,12 @@ export const styles = StyleSheet.create({
     marginBottom: 6,
   },
   assignedClinicHeaderLabel: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '600',
     color: '#64748B',
   },
-  assignedClinicName: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
-  assignedClinicAddress: { fontSize: 12, color: '#64748B' },
+  assignedClinicName: { fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: '#0F172A' },
+  assignedClinicAddress: { fontFamily: 'Inter', fontSize: 12, color: '#64748B' },
 
   addAdminFooterRow: {
     flexDirection: 'row',
@@ -847,16 +849,27 @@ export const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 8,
   },
-  addAdminCancelText: { fontSize: 13, fontWeight: '600', color: '#334155' },
+  addAdminCancelText: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: '#334155' },
   addAdminSubmitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     paddingHorizontal: 18,
     paddingVertical: 9,
     borderRadius: 8,
   },
-  addAdminSubmitText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  addAdminSubmitText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+
+  createClinicFooterRow: { justifyContent: 'flex-end', paddingHorizontal: 0, paddingTop: 16 },
+  createClinicFooterRowMobile: { justifyContent: 'space-between', paddingHorizontal: 0, paddingVertical: 12 },
+  createClinicCancelBtn: { flex: 1, minHeight: 40, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  createClinicSubmitBtn: { flex: 1, minHeight: 40, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  createClinicCancelText: { fontFamily: 'Inter', color: '#334155', fontSize: 14, fontWeight: '500' },
+  createClinicLogoUploadBox: { width: '100%', maxWidth: 320, borderRadius: 8, backgroundColor: '#F8FAFC', paddingHorizontal: 16, paddingVertical: 12, marginVertical: 8 },
+  createClinicLogoIcon: { width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: '#94A3B8', borderStyle: 'dashed' },
+  createClinicLogoImage: { width: 80, height: 80, borderRadius: 40 },
+  createClinicHeaderIconBox: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#EAF7F5' },
+  createSubscriptionField: { marginTop: 10 },
 
   // Edit / Add Clinic Modal Specific Styles
   editClinicModalCard: {
@@ -869,6 +882,8 @@ export const styles = StyleSheet.create({
     elevation: 10,
     alignSelf: 'center',
   },
+  createClinicModalCard: { width: '96%', maxHeight: '96%', borderRadius: 12, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 0 },
+  createClinicFormScroll: { paddingHorizontal: 0, paddingTop: 12, paddingBottom: 12 },
   clinicLogoUploadBox: {
     alignSelf: 'center',
     width: 220,
@@ -908,13 +923,14 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 9,
-    backgroundColor: '#F8FAFC',
+    minHeight: 40,
+    backgroundColor: '#FFFFFF',
   },
   formDropdownText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 16,
     color: '#0F172A',
   },
   formDropdownList: {
@@ -934,7 +950,7 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
   },
   formDropdownItemText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 14,
     color: '#334155',
   },
   formInputBoxWithIcon: {
@@ -947,7 +963,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   formInputBoxBare: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     paddingVertical: 8,
     fontSize: 13,
     color: '#0F172A',
@@ -969,17 +985,17 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   editClinicModalTitle: {
-    fontSize: 16,
+    fontFamily: 'Inter', fontSize: 20,
     fontWeight: '700',
     color: '#0F172A',
   },
   editClinicModalSubtitle: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 14,
     color: '#64748B',
     marginTop: 2,
   },
   logoBoxLabel: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#334155',
     marginBottom: 8,
@@ -991,20 +1007,20 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 10,
   },
-  emptyClinicsText: { fontSize: 13, color: '#64748B', textAlign: 'center' },
-  clearClinicFiltersText: { fontSize: 13, color: '#0D9488', fontWeight: '600' },
+  emptyClinicsText: { fontFamily: 'Inter', fontSize: 13, color: '#64748B', textAlign: 'center' },
+  clearClinicFiltersText: { fontFamily: 'Inter', fontSize: 13, color: '#27A599', fontWeight: '600' },
   changeLogoLink: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '600',
-    color: '#0D9488',
+    color: '#27A599',
   },
   logoHelperText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#94A3B8',
     marginTop: 4,
   },
   apiTimeHelperText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#64748B',
     marginTop: 4,
   },
@@ -1031,12 +1047,12 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   adminStatusCardTitle: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '600',
     color: '#0F172A',
   },
   adminStatusCardSubtitle: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#64748B',
     marginTop: 2,
   },
@@ -1053,7 +1069,7 @@ export const styles = StyleSheet.create({
     minWidth: 96,
   },
   adminStatusDropdownText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '500',
     color: '#0F172A',
   },
@@ -1084,11 +1100,11 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F0FDFA',
   },
   adminStatusOptionText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#334155',
   },
   adminStatusOptionTextActive: {
-    color: '#0D9488',
+    color: '#27A599',
     fontWeight: '600',
   },
 
@@ -1102,12 +1118,12 @@ export const styles = StyleSheet.create({
     marginTop: 14,
   },
   adminResetPasswordTitle: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#0F172A',
   },
   adminResetPasswordSubtitle: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
     marginTop: 3,
     marginBottom: 12,
@@ -1124,9 +1140,9 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   adminResetPasswordBtnText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '600',
-    color: '#0D9488',
+    color: '#27A599',
   },
 
   // Password Input Field with Eye Icon
@@ -1141,7 +1157,7 @@ export const styles = StyleSheet.create({
     marginTop: 4,
   },
   passwordInputField: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     paddingVertical: 9,
     fontSize: 13,
     color: '#0F172A',
@@ -1154,7 +1170,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   fieldErrorText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#EF4444',
     marginTop: 4,
     fontWeight: '500',
@@ -1167,16 +1183,16 @@ export const styles = StyleSheet.create({
   extractedInline5: { flex: 1.5, minWidth: 240, zIndex: 40 },
   extractedInline6: { alignItems: 'flex-start', marginTop: 10 },
   extractedInline7: { marginRight: 6 },
-  extractedInline8: { fontSize: 11 },
-  extractedInline9: { fontSize: 17 },
-  extractedInline10: { fontSize: 10 },
+  extractedInline8: { fontFamily: 'Inter', fontSize: 11 },
+  extractedInline9: { fontFamily: 'Inter', fontSize: 17 },
+  extractedInline10: { fontFamily: 'Inter', fontSize: 10 },
   extractedInline11: { width: 32, height: 32 },
   extractedInline12: { backgroundColor: '#E6F4F1' },
   extractedInline13: { backgroundColor: '#DCFCE7' },
   extractedInline14: { backgroundColor: '#FEE2E2' },
   extractedInline15: { backgroundColor: '#F3E8FF' },
   extractedInline16: { marginTop: 18 },
-  extractedInline17: { fontSize: 16 },
+  extractedInline17: { fontFamily: 'Inter', fontSize: 16 },
   extractedInline18: { backgroundColor: '#FFEDD5' },
   extractedInline19: { backgroundColor: '#CCFBF1' },
   extractedInline20: { flexDirection: 'column', alignItems: 'stretch' },
@@ -1291,14 +1307,14 @@ export const styles = StyleSheet.create({
   },
   extractedInline71: { marginTop: 14 },
   extractedInline72: { marginTop: 14, marginBottom: 10 },
-  extractedInline73: { color: '#0D9488' },
+  extractedInline73: { color: '#27A599' },
   extractedInline74: { paddingHorizontal: 16, paddingBottom: 16 },
   extractedInline75: {
     paddingVertical: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  extractedInline76: { marginTop: 8, fontSize: 12, color: '#64748B' },
+  extractedInline76: { fontFamily: 'Inter', marginTop: 8, fontSize: 12, color: '#64748B' },
   extractedInline77: {
     paddingVertical: 36,
     alignItems: 'center',
@@ -1311,7 +1327,7 @@ export const styles = StyleSheet.create({
     marginVertical: 8,
   },
   extractedInline78: {
-    marginTop: 8,
+    fontFamily: 'Inter', marginTop: 8,
     fontSize: 13,
     color: '#64748B',
     fontWeight: '500',
@@ -1349,7 +1365,7 @@ export const styles = StyleSheet.create({
   },
   extractedInline85: { marginRight: 5 },
   extractedInline86: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '600',
     color: '#0F172A',
   },
@@ -1364,7 +1380,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
   },
   extractedInline88: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '600',
     color: '#DC2626',
   },
@@ -1405,5 +1421,5 @@ export const styles = StyleSheet.create({
   detailsValueCell: { flex: 1 },
   detailsValueCellMobile: { marginLeft: 6 },
   activeActionText: { color: '#DC2626' },
-  inactiveActionText: { color: '#16A34A' },
+  inactiveActionText: { color: '#2EB877' },
 });

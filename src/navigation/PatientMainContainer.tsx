@@ -324,6 +324,7 @@ export const PatientMainContainer = () => {
         visible={drawerOpen}
         animationType="fade"
         transparent={true}
+        statusBarTranslucent={Platform.OS === 'android'}
         onRequestClose={() => setDrawerOpen(false)}>
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback onPress={() => setDrawerOpen(false)}>
@@ -334,7 +335,7 @@ export const PatientMainContainer = () => {
             <SafeAreaView style={styles.drawerSafeArea}>
                 <View style={styles.drawerHeader}>
                   <View style={styles.brandingContainer}>
-                    <View style={styles.logoBadge}><Building2 color="#0D9488" size={22} /></View>
+                    <View style={styles.logoBadge}><Building2 color="#27A599" size={22} /></View>
                     <View style={styles.patientNameCol}>
                       <Text style={styles.patientNameText} numberOfLines={1}>{patientName}</Text>
                       <Text style={styles.patientSubText}>Patient Account</Text>
@@ -430,7 +431,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#0d9488',
+    backgroundColor: '#27a599',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -446,7 +447,9 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     position: 'absolute',
-    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 36) + 10 : 20,
+    // A translucent Android modal fills the screen, so offset the drawer by the
+    // status bar height. This keeps the header below system icons on edge-to-edge devices.
+    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 20,
     left: 0,
     right: 0,
     bottom: 0,
@@ -563,7 +566,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   menuIconContainerActive: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
   },
   menuItemEmoji: {
     fontSize: 16,
@@ -579,7 +582,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   itemBadge: {
-    backgroundColor: '#0d9488',
+    backgroundColor: '#27a599',
     borderRadius: 10,
     paddingHorizontal: 7,
     paddingVertical: 2,

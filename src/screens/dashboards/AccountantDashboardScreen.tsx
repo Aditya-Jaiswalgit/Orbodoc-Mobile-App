@@ -196,15 +196,15 @@ function BillingMix({ treatment, medicine, pending }: { treatment: number; medic
         <View style={styles.donutWrap}>
           <Svg width={112} height={112} viewBox="0 0 100 100">
             <Circle cx="50" cy="50" r="38" fill="none" stroke="#E2E8F0" strokeWidth="13" />
-            <Circle cx="50" cy="50" r="38" fill="none" stroke="#0D9488" strokeWidth="13" strokeDasharray={`${treatmentArc} ${circumference}`} rotation="-90" origin="50, 50" />
-            <Circle cx="50" cy="50" r="38" fill="none" stroke="#16A34A" strokeWidth="13" strokeDasharray={`${medicineArc} ${circumference}`} strokeDashoffset={-treatmentArc} rotation="-90" origin="50, 50" />
-            <Circle cx="50" cy="50" r="38" fill="none" stroke="#F59E0B" strokeWidth="13" strokeDasharray={`${pendingArc} ${circumference}`} strokeDashoffset={-(treatmentArc + medicineArc)} rotation="-90" origin="50, 50" />
+            <Circle cx="50" cy="50" r="38" fill="none" stroke="#27A599" strokeWidth="13" strokeDasharray={`${treatmentArc} ${circumference}`} rotation="-90" origin="50, 50" />
+            <Circle cx="50" cy="50" r="38" fill="none" stroke="#2EB877" strokeWidth="13" strokeDasharray={`${medicineArc} ${circumference}`} strokeDashoffset={-treatmentArc} rotation="-90" origin="50, 50" />
+            <Circle cx="50" cy="50" r="38" fill="none" stroke="#F9A91F" strokeWidth="13" strokeDasharray={`${pendingArc} ${circumference}`} strokeDashoffset={-(treatmentArc + medicineArc)} rotation="-90" origin="50, 50" />
           </Svg>
         </View>
         <View style={styles.legend}>
-          <Legend color="#0D9488" label="Treatment" value={money(treatment)} />
-          <Legend color="#16A34A" label="Medicine" value={money(medicine)} />
-          <Legend color="#F59E0B" label="Pending" value={String(pending)} />
+          <Legend color="#27A599" label="Treatment" value={money(treatment)} />
+          <Legend color="#2EB877" label="Medicine" value={money(medicine)} />
+          <Legend color="#F9A91F" label="Pending" value={String(pending)} />
         </View>
       </View>
     </View>
@@ -276,8 +276,8 @@ export const AccountantDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
   const medicineRatio = breakdownTotal ? data.medicineRevenue / breakdownTotal : 0;
 
   const revenueBars = [
-    { label: 'Today', value: data.todayRevenue, color: '#0D9488' },
-    { label: 'Week', value: data.weekRevenue, color: '#16A34A' },
+    { label: 'Today', value: data.todayRevenue, color: '#27A599' },
+    { label: 'Week', value: data.weekRevenue, color: '#2EB877' },
     { label: 'Month', value: data.monthRevenue, color: '#D97706' },
   ];
 
@@ -287,7 +287,7 @@ export const AccountantDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#0D9488" colors={['#0D9488']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#27A599" colors={['#27A599']} />}
       >
         {/* ── 1. GREETING & TODAY CARD ── */}
         <View style={styles.welcomeBlock}>
@@ -302,7 +302,7 @@ export const AccountantDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
         {/* Today Date Card */}
         <View style={styles.todayCard}>
           <View style={styles.todayIcon}>
-            <CalendarDays size={22} color="#0D9488" strokeWidth={2.2} />
+            <CalendarDays size={22} color="#27A599" strokeWidth={2.2} />
           </View>
           <View style={styles.todayCopy}>
             <View style={styles.todayEyebrow}>
@@ -315,7 +315,7 @@ export const AccountantDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
 
         {loading ? (
           <View style={styles.loading}>
-            <ActivityIndicator color="#0D9488" />
+            <ActivityIndicator color="#27A599" />
             <Text style={styles.muted}>Loading accounts dashboard…</Text>
           </View>
         ) : null}
@@ -333,7 +333,7 @@ export const AccountantDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
               <MetricCard
                 title="Today's Revenue"
                 value={money(data.todayRevenue)}
-                color="#0D9488"
+                color="#27A599"
                 background="#E6FFFA"
                 icon={IndianRupee}
                 onPress={() => onNavigateScreen(todayPath)}
@@ -341,7 +341,7 @@ export const AccountantDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
               <MetricCard
                 title="Week Revenue"
                 value={money(data.weekRevenue)}
-                color="#16A34A"
+                color="#2EB877"
                 background="#DCFCE7"
                 icon={TrendingUp}
                 onPress={() => onNavigateScreen(weekPath)}
@@ -391,12 +391,12 @@ export const AccountantDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
             <View style={styles.detailGrid}>
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Revenue Breakdown</Text>
-                <Breakdown label="Treatment Revenue" value={data.treatmentRevenue} ratio={treatmentRatio} color="#0D9488" />
-                <Breakdown label="Medicine Revenue" value={data.medicineRevenue} ratio={medicineRatio} color="#16A34A" />
+                <Breakdown label="Treatment Revenue" value={data.treatmentRevenue} ratio={treatmentRatio} color="#27A599" />
+                <Breakdown label="Medicine Revenue" value={data.medicineRevenue} ratio={medicineRatio} color="#2EB877" />
               </View>
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Bills Status</Text>
-                <StatusTile icon={<FileText size={22} color="#0D9488" />} label="Bills Generated" value={String(data.billsGenerated)} />
+                <StatusTile icon={<FileText size={22} color="#27A599" />} label="Bills Generated" value={String(data.billsGenerated)} />
                 <StatusTile icon={<AlertCircle size={22} color="#D97706" />} label="Pending Payments" value={String(data.pendingPayments)} warning />
               </View>
             </View>
@@ -411,8 +411,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F8FAFC' },
   content: { padding: 16, paddingBottom: 40, gap: 14 },
   welcomeBlock: { gap: 4, marginBottom: 2 },
-  greetingTitle: { color: '#0F172A', fontSize: 18, fontWeight: '800' },
-  greetingSubtitle: { color: '#64748B', fontSize: 13 },
+  greetingTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 18, fontWeight: '800' },
+  greetingSubtitle: { fontFamily: 'Inter', color: '#64748B', fontSize: 13 },
   todayCard: {
     minHeight: 68,
     flexDirection: 'row',
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#99F6E4',
     backgroundColor: '#FFFFFF',
-    shadowColor: '#0D9488',
+    shadowColor: '#27A599',
     shadowOpacity: 0.1,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
@@ -441,9 +441,9 @@ const styles = StyleSheet.create({
   },
   todayCopy: { flex: 1, gap: 3 },
   todayEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  todayDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#0D9488' },
-  todayLabel: { color: '#0D9488', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
-  todayDate: { color: '#0F172A', fontSize: 15, fontWeight: '700' },
+  todayDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#27A599' },
+  todayLabel: { fontFamily: 'Inter', color: '#27A599', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
+  todayDate: { fontFamily: 'Inter', color: '#0F172A', fontSize: 15, fontWeight: '700' },
 
   // KPI Grid
   kpiGrid: {
@@ -475,13 +475,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   kpiCardValue: {
-    fontSize: 20,
+    fontFamily: 'Inter', fontSize: 20,
     fontWeight: '800',
     color: '#0F172A',
     marginBottom: 4,
   },
   kpiCardLabel: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '500',
     color: '#64748B',
     minHeight: 32,
@@ -490,9 +490,9 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   kpiActionLink: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '700',
-    color: '#0D9488',
+    color: '#27A599',
   },
 
   chartGrid: { gap: 14 },
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  cardTitle: { color: '#0F172A', fontSize: 16, fontWeight: '700', marginBottom: 14 },
+  cardTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 18, fontWeight: '700', marginBottom: 14 },
   chartSvgWrap: { alignItems: 'center', justifyContent: 'center' },
 
   mixContent: { flexDirection: 'row', alignItems: 'center', gap: 14 },
@@ -516,32 +516,32 @@ const styles = StyleSheet.create({
   legend: { flex: 1, gap: 11 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   legendDot: { width: 9, height: 9, borderRadius: 5 },
-  legendLabel: { flex: 1, color: '#64748B', fontSize: 12 },
-  legendValue: { color: '#0F172A', fontSize: 12, fontWeight: '700' },
+  legendLabel: { fontFamily: 'Inter', flex: 1, color: '#64748B', fontSize: 12 },
+  legendValue: { fontFamily: 'Inter', color: '#0F172A', fontSize: 12, fontWeight: '700' },
 
   overviewRow: { flexDirection: 'row', gap: 8 },
   overview: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: 11, padding: 10, alignItems: 'center' },
-  overviewAmount: { color: '#0F172A', fontWeight: '800', fontSize: 14 },
-  overviewLabel: { color: '#64748B', fontSize: 10, marginTop: 4, textAlign: 'center' },
+  overviewAmount: { fontFamily: 'Inter', color: '#0F172A', fontWeight: '800', fontSize: 14 },
+  overviewLabel: { fontFamily: 'Inter', color: '#64748B', fontSize: 10, marginTop: 4, textAlign: 'center' },
 
   detailGrid: { gap: 14 },
   breakdown: { padding: 12, backgroundColor: '#F8FAFC', borderRadius: 11, marginBottom: 10 },
   breakdownHead: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 9 },
-  breakdownLabel: { color: '#64748B', fontSize: 12 },
-  breakdownValue: { color: '#0F172A', fontWeight: '700', fontSize: 13 },
+  breakdownLabel: { fontFamily: 'Inter', color: '#64748B', fontSize: 12 },
+  breakdownValue: { fontFamily: 'Inter', color: '#0F172A', fontWeight: '700', fontSize: 13 },
   progressTrack: { height: 8, borderRadius: 5, backgroundColor: '#E2E8F0', overflow: 'hidden' },
   progress: { height: '100%', borderRadius: 5 },
 
   statusTile: { padding: 12, backgroundColor: '#F8FAFC', borderRadius: 11, marginBottom: 10 },
   statusHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  statusLabel: { color: '#64748B', fontSize: 12 },
-  statusValue: { color: '#0F172A', fontSize: 24, fontWeight: '800', marginTop: 7 },
+  statusLabel: { fontFamily: 'Inter', color: '#64748B', fontSize: 12 },
+  statusValue: { fontFamily: 'Inter', color: '#0F172A', fontSize: 24, fontWeight: '800', marginTop: 7 },
   warning: { color: '#D97706' },
 
   loading: { padding: 28, borderRadius: 14, alignItems: 'center', gap: 9, backgroundColor: '#FFFFFF' },
-  muted: { color: '#64748B', fontSize: 13 },
+  muted: { fontFamily: 'Inter', color: '#64748B', fontSize: 13 },
   error: { backgroundColor: '#FEF2F2', padding: 12, borderRadius: 10 },
-  errorText: { color: '#B91C1C', fontSize: 12 },
+  errorText: { fontFamily: 'Inter', color: '#B91C1C', fontSize: 12 },
 });
 
 export default AccountantDashboardScreen;

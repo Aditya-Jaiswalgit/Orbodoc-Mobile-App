@@ -78,7 +78,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
   patientMode = false,
 }) => {
   const { width } = useWindowDimensions();
-  const isMobile = width < 768;
+  const isMobile = width < 640;
 
   const {
     token,
@@ -209,6 +209,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
   // Table Min Width calculation for Desktop view
   const tableMinWidth = useMemo(() => {
     let w = 0;
+    if (visibleColumns.bill_id) w += 120;
     if (visibleColumns.bill_number) w += 180;
     if (visibleColumns.patient_name) w += 180;
     if (visibleColumns.phone) w += 140;
@@ -220,8 +221,9 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
     if (visibleColumns.payment_method) w += 120;
     if (visibleColumns.created_at) w += 120;
     if (visibleColumns.doctor_name) w += 140;
+    if (visibleColumns.accountant_name) w += 140;
     if (visibleColumns.appointment_id) w += 120;
-    w += 90; // actions
+    if (visibleColumns.actions) w += 90;
     return Math.max(width - 40, w);
   }, [visibleColumns, width]);
 
@@ -562,7 +564,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => loadBills(true)}
-            colors={['#0D9488']}
+            colors={['#27A599']}
           />
         }
       >
@@ -570,7 +572,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
         <View style={[styles.bannerRow, isMobile && styles.billingBannerMobile]}>
           <View style={styles.bannerTitleBlock}>
             <View style={[styles.iconBox, isMobile && styles.pageIconMobile]}>
-              <Receipt color="#0D9488" size={isMobile ? 24 : 24} />
+              <Receipt color="#27A599" size={isMobile ? 24 : 24} />
             </View>
             <View style={styles.extractedInline2}>
               <Text style={[styles.bannerTitle, isMobile && styles.bannerTitleMobile]}>Treatment Bills</Text>
@@ -635,19 +637,6 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                 <Text style={styles.refreshBtnText}>Refresh</Text>
               </TouchableOpacity>
 
-              {/* Columns Selector Button */}
-              {!isMobile && <TouchableOpacity
-                style={styles.columnsBtn}
-                onPress={() => setShowColumnModal(true)}
-                activeOpacity={0.7}
-              >
-                <Columns
-                  color="#334155"
-                  size={13}
-                  style={styles.extractedInline1}
-                />
-                <Text style={styles.columnsBtnText}>Columns</Text>
-              </TouchableOpacity>}
             </View>
           </View>
 
@@ -724,22 +713,20 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
               </View>
             )}
           </View>
-          {isMobile && (
-            <TouchableOpacity
-              style={[styles.columnsBtn, styles.columnsBtnMobile]}
+          <TouchableOpacity
+              style={[styles.columnsBtn, isMobile && styles.columnsBtnMobile]}
               onPress={() => setShowColumnModal(true)}
               activeOpacity={0.7}
             >
               <Columns color="#334155" size={15} />
               <Text style={styles.columnsBtnText}>Columns</Text>
             </TouchableOpacity>
-          )}
         </View>
 
           {/* TABLE / CARD CONTENT */}
           {loading && !refreshing ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#0D9488" />
+              <ActivityIndicator size="large" color="#27A599" />
               <Text style={styles.loadingText}>Loading bills...</Text>
             </View>
           ) : bills.length === 0 ? (
@@ -752,7 +739,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                   : 'There are no bills under this status.'}
               </Text>
             </View>
-          ) : isMobile ? (
+          ) : width < 1280 ? (
             /* -- MOBILE CARD VIEW (Exact layout as shown in user's Screenshot 2) -- */
             <View style={styles.extractedInline15}>
               {bills.map(bill => {
@@ -767,6 +754,9 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                     {/* Top Row: Bill Number & Patient Name | Status Badge */}
                     <View style={styles.cardHeaderRow}>
                       <View style={styles.billNumberBlock}>
+                        {visibleColumns.bill_id && (
+                          <Text style={styles.patientNameText}>Bill ID: {bill.id}</Text>
+                        )}
                         {visibleColumns.bill_number && (
                           <Text style={styles.billNumberText}>
                             {bill.bill_number ||
@@ -812,6 +802,33 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                             numberOfLines={1}
                           >
                             {bill.patient_phone || bill.phone || '—'}
+                          </Text>
+                        </View>
+                      )}
+
+                      {visibleColumns.patient_code && (
+                        <View style={styles.gridCol}>
+                          <Text style={styles.gridColLabel}>PATIENT CODE</Text>
+                          <Text style={styles.gridColValPhone} numberOfLines={1}>
+                            {bill.patient_code || '—'}
+                          </Text>
+                        </View>
+                      )}
+
+                      {visibleColumns.accountant_name && (
+                        <View style={styles.gridCol}>
+                          <Text style={styles.gridColLabel}>ACCOUNTANT</Text>
+                          <Text style={styles.gridColValPhone} numberOfLines={1}>
+                            {bill.accountant_name || bill.created_by_name || '—'}
+                          </Text>
+                        </View>
+                      )}
+
+                      {visibleColumns.appointment_id && (
+                        <View style={styles.gridCol}>
+                          <Text style={styles.gridColLabel}>APPOINTMENT ID</Text>
+                          <Text style={styles.gridColValPhone} numberOfLines={1}>
+                            {bill.appointment_id || '—'}
                           </Text>
                         </View>
                       )}
@@ -867,13 +884,13 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                       </View>
 
                       {/* Right Action Buttons (Teal Eye + Gray 3-Dots) */}
-                      <View style={styles.actionsBlock}>
+                      {visibleColumns.actions && <View style={styles.actionsBlock}>
                         <TouchableOpacity
                           style={styles.eyeActionBtn}
                           onPress={() => handleViewInvoice(bill)}
                           activeOpacity={0.7}
                         >
-                          <Eye size={16} color="#0D9488" />
+                          <Eye size={16} color="#27A599" />
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -883,7 +900,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                         >
                           <MoreVertical size={16} color="#475569" />
                         </TouchableOpacity>
-                      </View>
+                      </View>}
                     </View>
                   </View>
                 );
@@ -900,6 +917,9 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
             >
               <View style={{ minWidth: tableMinWidth }}>
                 <View style={styles.tableHeaderRow}>
+                  {visibleColumns.bill_id && (
+                    <Text style={[styles.thCell, styles.extractedInline20]}>Bill ID</Text>
+                  )}
                   {visibleColumns.bill_number && (
                     <Text style={[styles.thCell, styles.extractedInline18]}>
                       Bill Number
@@ -909,6 +929,9 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                     <Text style={[styles.thCell, styles.extractedInline18]}>
                       Patient Name
                     </Text>
+                  )}
+                  {visibleColumns.accountant_name && (
+                    <Text style={[styles.thCell, styles.extractedInline20]}>Accountant</Text>
                   )}
                   {visibleColumns.phone && (
                     <Text style={[styles.thCell, styles.extractedInline19]}>
@@ -950,9 +973,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                       Date
                     </Text>
                   )}
-                  <Text style={[styles.thCell, styles.extractedInline23]}>
-                    Actions
-                  </Text>
+                  {visibleColumns.actions && <Text style={[styles.thCell, styles.extractedInline23]}>Actions</Text>}
                 </View>
 
                 {bills.map(bill => {
@@ -964,6 +985,11 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
 
                   return (
                     <View key={String(bill.id)} style={styles.tableBodyRow}>
+                      {visibleColumns.bill_id && (
+                        <View style={styles.extractedInline26}>
+                          <Text style={styles.tdText}>{bill.id}</Text>
+                        </View>
+                      )}
                       {visibleColumns.bill_number && (
                         <View style={styles.extractedInline24}>
                           <Text
@@ -984,6 +1010,11 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                           >
                             {bill.patient_name || 'Patient'}
                           </Text>
+                        </View>
+                      )}
+                      {visibleColumns.accountant_name && (
+                        <View style={styles.extractedInline26}>
+                          <Text style={styles.tdText}>{bill.accountant_name || bill.created_by_name || '—'}</Text>
                         </View>
                       )}
 
@@ -1069,13 +1100,13 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                         </View>
                       )}
 
-                      <View style={styles.extractedInline31}>
+                      {visibleColumns.actions && <View style={styles.extractedInline31}>
                         <TouchableOpacity
                           style={styles.eyeActionBtn}
                           onPress={() => handleViewInvoice(bill)}
                           activeOpacity={0.7}
                         >
-                          <Eye size={15} color="#0D9488" />
+                          <Eye size={15} color="#27A599" />
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -1085,7 +1116,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                         >
                           <MoreVertical size={15} color="#475569" />
                         </TouchableOpacity>
-                      </View>
+                      </View>}
                     </View>
                   );
                 })}
@@ -1161,7 +1192,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                 >
                   <MessageCircle
                     size={16}
-                    color="#16A34A"
+                    color="#2EB877"
                     style={styles.actionMenuIcon}
                   />
                   <Text style={styles.actionMenuText}>Share on WhatsApp</Text>
@@ -1312,7 +1343,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
 
             {billDetailsLoading ? (
               <View style={styles.extractedInline33}>
-                <ActivityIndicator size="large" color="#0D9488" />
+                <ActivityIndicator size="large" color="#27A599" />
                 <Text style={styles.extractedInline34}>
                   Loading invoice details...
                 </Text>

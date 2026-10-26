@@ -809,7 +809,7 @@ export const CreateTreatmentBillModal: React.FC<
             <View style={styles.formSection}>
               <View style={styles.sectionHeaderRow}>
                 <View style={[styles.sectionIconBox, styles.extractedInline5]}>
-                  <FileText size={16} color="#0D9488" />
+                  <FileText size={16} color="#27A599" />
                 </View>
                 <View style={styles.extractedInline6}>
                   <Text style={styles.sectionTitle}>Bill Information</Text>
@@ -864,7 +864,7 @@ export const CreateTreatmentBillModal: React.FC<
                     {patientSearching ? (
                       <ActivityIndicator
                         size="small"
-                        color="#0D9488"
+                        color="#27A599"
                         style={styles.extractedInline10}
                       />
                     ) : selectedPatient || patientSearchTerm ? (
@@ -1026,7 +1026,7 @@ export const CreateTreatmentBillModal: React.FC<
                   <View style={styles.dropdownMenu}>
                     {appointmentsLoading ? (
                       <View style={styles.extractedInline16}>
-                        <ActivityIndicator size="small" color="#0D9488" />
+                        <ActivityIndicator size="small" color="#27A599" />
                       </View>
                     ) : appointmentOptions.length > 0 ? (
                       appointmentOptions.map(a => (
@@ -1081,7 +1081,7 @@ export const CreateTreatmentBillModal: React.FC<
             <View style={styles.formSection}>
               <View style={styles.sectionHeaderRow}>
                 <View style={[styles.sectionIconBox, styles.extractedInline5]}>
-                  <FileText size={16} color="#0D9488" />
+                  <FileText size={16} color="#27A599" />
                 </View>
                 <View style={styles.extractedInline19}>
                   <Text style={styles.sectionTitle}>Prescription History</Text>
@@ -1106,7 +1106,7 @@ export const CreateTreatmentBillModal: React.FC<
 
               {selectedPatient && prescriptionLoading && (
                 <View style={styles.extractedInline20}>
-                  <ActivityIndicator size="small" color="#0D9488" />
+                  <ActivityIndicator size="small" color="#27A599" />
                   <Text style={styles.rxNoticeText}>
                     Loading prescription history...
                   </Text>
@@ -1343,7 +1343,7 @@ export const CreateTreatmentBillModal: React.FC<
                   <View
                     style={[styles.sectionIconBox, styles.extractedInline5]}
                   >
-                    <Receipt size={16} color="#0D9488" />
+                    <Receipt size={16} color="#27A599" />
                   </View>
                   <View style={styles.extractedInline6}>
                     <Text style={styles.sectionTitle}>Charges & Services</Text>
@@ -1426,7 +1426,7 @@ export const CreateTreatmentBillModal: React.FC<
               {showServiceForm && (
                 <View style={styles.serviceFormBox}>
                   <View style={styles.serviceFormHeader}>
-                    <Plus size={15} color="#0F766E" strokeWidth={2.5} />
+                    <Plus size={15} color="#1D7C72" strokeWidth={2.5} />
                     <Text style={styles.serviceFormTitle}>
                       New Service Item
                     </Text>
@@ -1739,12 +1739,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   modalTitle: {
-    fontSize: 16,
+    fontFamily: 'Inter', fontSize: 20,
     fontWeight: '800',
     color: '#0F172A',
   },
   modalSubtitle: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
     marginTop: 2,
   },
@@ -1762,7 +1762,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   draftBadgeText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '700',
     color: '#B45309',
   },
@@ -1785,12 +1785,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sectionTitle: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
   },
   sectionSubtitle: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
     marginTop: 1,
   },
@@ -1800,7 +1800,7 @@ const styles = StyleSheet.create({
     marginVertical: 14,
   },
   fieldLabel: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '700',
     color: '#1E293B',
     marginBottom: 6,
@@ -1810,12 +1810,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: '#0D9488',
+    borderColor: '#27A599',
     borderRadius: 9,
     paddingHorizontal: 12,
   },
   searchInputField: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     paddingVertical: 10,
     fontSize: 13,
     color: '#0F172A',
@@ -1840,13 +1840,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   selectedPatientName: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '700',
     color: '#0F172A',
   },
   selectedPatientSub: {
-    fontSize: 11,
-    color: '#0D9488',
+    fontFamily: 'Inter', fontSize: 11,
+    color: '#27A599',
     marginTop: 2,
     fontWeight: '500',
   },
@@ -1860,7 +1860,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   clearPatientBtnText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '700',
     color: '#DC2626',
   },
@@ -1885,12 +1885,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
   },
   suggestionName: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '700',
     color: '#1E293B',
   },
   suggestionPhone: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#64748B',
     marginTop: 2,
   },
@@ -1903,7 +1903,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   selectedPatientMeta: {
-    marginTop: 3,
+    fontFamily: 'Inter', marginTop: 3,
     fontSize: 11,
     color: '#475569',
   },
@@ -1912,12 +1912,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   patientDetailText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#334155',
   },
   patientDetailLabel: {
     fontWeight: '600',
-    color: '#0F766E',
+    color: '#1D7C72',
   },
   selectBox: {
     flexDirection: 'row',
@@ -1931,14 +1931,14 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   selectValue: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#0F172A',
     fontWeight: '500',
     flex: 1,
     marginRight: 6,
   },
   helperText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
     marginTop: 5,
   },
@@ -1966,7 +1966,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDFA',
   },
   dropdownItemText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#334155',
   },
   inlineError: {
@@ -1976,7 +1976,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   inlineErrorText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#EF4444',
     fontWeight: '500',
   },
@@ -1987,12 +1987,12 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   rxBadgeText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '600',
     color: '#475569',
   },
   rxNoticeText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
     marginTop: 6,
   },
@@ -2005,9 +2005,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   rxCardTitle: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '700',
-    color: '#0D9488',
+    color: '#27A599',
   },
   rxCardMetaRow: {
     flexDirection: 'row',
@@ -2017,7 +2017,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   rxCardMetaText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#64748B',
   },
   rxCardMetaBold: {
@@ -2025,7 +2025,7 @@ const styles = StyleSheet.create({
     color: '#334155',
   },
   rxDetailText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#334155',
     marginTop: 3,
   },
@@ -2042,11 +2042,11 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   rxPillText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '600',
   },
   textarea: {
-    backgroundColor: '#FFFFFF',
+    fontFamily: 'Inter', backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#CBD5E1',
     borderRadius: 8,
@@ -2069,12 +2069,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   addServiceBtnText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '700',
     color: '#0F172A',
   },
   inputField: {
-    backgroundColor: '#FFFFFF',
+    fontFamily: 'Inter', backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#CBD5E1',
     borderRadius: 8,
@@ -2097,18 +2097,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   serviceFormTitle: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '700',
     color: '#0F172A',
   },
   serviceFormInputLabel: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '600',
     color: '#475569',
     marginBottom: 4,
   },
   serviceFormInput: {
-    backgroundColor: '#FFFFFF',
+    fontFamily: 'Inter', backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#CBD5E1',
     borderRadius: 6,
@@ -2126,7 +2126,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     borderRadius: 6,
     paddingVertical: 9,
     paddingHorizontal: 16,
@@ -2134,12 +2134,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   serviceAddBtnText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   itemsListTitle: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '700',
     color: '#0F172A',
   },
@@ -2156,12 +2156,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   addedItemTitle: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '700',
     color: '#0F172A',
   },
   addedItemSubtitle: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#64748B',
     marginTop: 1,
   },
@@ -2181,19 +2181,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   addedItemColLabel: {
-    fontSize: 10,
+    fontFamily: 'Inter', fontSize: 10,
     color: '#64748B',
     fontWeight: '500',
   },
   addedItemColVal: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#0F172A',
     fontWeight: '600',
     marginTop: 2,
   },
   addedItemColTotal: {
-    fontSize: 13,
-    color: '#0D9488',
+    fontFamily: 'Inter', fontSize: 13,
+    color: '#27A599',
     fontWeight: '700',
     marginTop: 2,
   },
@@ -2209,7 +2209,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   emptyServiceText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#64748B',
     fontWeight: '500',
   },
@@ -2222,12 +2222,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   summaryLabel: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
     fontWeight: '500',
   },
   summaryValue: {
-    fontSize: 15,
+    fontFamily: 'Inter', fontSize: 15,
     fontWeight: '800',
     color: '#0F172A',
     marginTop: 2,
@@ -2247,13 +2247,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   amountDueLabel: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '700',
     color: '#64748B',
     letterSpacing: 0.5,
   },
   amountDueValue: {
-    fontSize: 18,
+    fontFamily: 'Inter', fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
   },
@@ -2272,7 +2272,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelBtnText: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#0F172A',
   },
@@ -2280,19 +2280,19 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 42,
     borderRadius: 8,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     alignItems: 'center',
     justifyContent: 'center',
   },
   createBillBtnText: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
   },
 
   extractedInline1: { flexDirection: 'row', alignItems: 'center' },
   extractedInline2: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     width: 34,
     height: 34,
     borderRadius: 8,
@@ -2308,7 +2308,7 @@ const styles = StyleSheet.create({
   extractedInline11: { padding: 6 },
   extractedInline12: { padding: 12 },
   extractedInline13: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#94A3B8',
     textAlign: 'center',
   },
@@ -2319,11 +2319,11 @@ const styles = StyleSheet.create({
   extractedInline15: { color: '#94A3B8' },
   extractedInline16: { padding: 12, alignItems: 'center' },
   extractedInline17: {
-    color: '#0D9488',
+    color: '#27A599',
     fontWeight: '700',
   },
   extractedInline18: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748B',
     textAlign: 'center',
   },
@@ -2343,7 +2343,7 @@ const styles = StyleSheet.create({
   extractedInline21: { fontWeight: '700', marginTop: 6 },
   extractedInline22: { backgroundColor: '#EFF6FF' },
   extractedInline23: {
-    color: '#0D9488',
+    color: '#27A599',
     fontWeight: '700',
   },
   extractedInline24: { justifyContent: 'space-between' },
@@ -2366,7 +2366,7 @@ const styles = StyleSheet.create({
   extractedInline34: { alignItems: 'flex-end' },
   extractedInline35: { flexDirection: 'row', gap: 16 },
   extractedInline36: { flex: 1, gap: 12 },
-  extractedInline37: { color: '#0D9488' },
+  extractedInline37: { color: '#27A599' },
   modalBodyContent: { paddingBottom: 28 },
   pendingAmountDanger: { color: '#DC2626' },
   pendingAmountNormal: { color: '#64748B' },

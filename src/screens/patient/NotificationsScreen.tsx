@@ -176,7 +176,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
     if (text.includes('bill') || text.includes('payment')) return <CreditCard size={18} color="#059669" />;
     if (text.includes('lab') || text.includes('test') || text.includes('report')) return <TestTube size={18} color="#7c3aed" />;
     if (text.includes('video') || text.includes('call')) return <Video size={18} color="#ea580c" />;
-    return <Bell size={18} color="#0d9488" />;
+    return <Bell size={18} color="#27a599" />;
   };
 
   return (
@@ -185,12 +185,12 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0d9488']} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#27a599']} />}>
         {/* Header Title with RefreshButton */}
         <PatientPageHeading
           title="Notifications"
           subtitle="Appointment reminders, billing alerts and other updates"
-          icon={<Bell size={20} color="#0d9488" />}
+          icon={<Bell size={20} color="#27a599" />}
           action={<RefreshButton onRefresh={loadData} loading={refreshing} />}
           compact
         />
@@ -205,7 +205,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
               style={styles.actionBtn}
               disabled={saving || !unreadCount}
               onPress={handleMarkAllRead}>
-              <CheckCircle2 size={15} color="#0d9488" style={{ marginRight: 5 }} />
+              <CheckCircle2 size={15} color="#27a599" style={{ marginRight: 5 }} />
               <Text style={styles.actionBtnText}>Mark All Read</Text>
             </TouchableOpacity>
 
@@ -256,7 +256,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
         {/* Notification List */}
         {loading ? (
           <View style={styles.loaderBox}>
-            <ActivityIndicator size="large" color="#0d9488" />
+            <ActivityIndicator size="large" color="#27a599" />
             <Text style={styles.loadingText}>Loading notifications...</Text>
           </View>
         ) : (
@@ -302,7 +302,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
   scrollContent: { padding: 16, paddingBottom: 28 },
 
   headerBox: { marginBottom: 14 },
@@ -312,8 +312,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 14,
   },
-  title: { fontSize: 24, fontWeight: '900', color: '#0f172a', letterSpacing: -0.5 },
-  subtitle: { fontSize: 13, color: '#64748b', marginTop: 4 },
+  title: { fontFamily: 'Inter', fontSize: 20, fontWeight: '900', color: '#0f172a', letterSpacing: -0.5 },
+  subtitle: { fontFamily: 'Inter', fontSize: 14, color: '#64748b', marginTop: 4 },
 
   cardHeader: {
     flexDirection: 'row',
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
-  unreadBadgeText: { fontSize: 12, fontWeight: '700', color: '#475569' },
+  unreadBadgeText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#475569' },
   actionBtnRow: { flexDirection: 'row', gap: 8 },
   actionBtn: {
     flexDirection: 'row',
@@ -341,9 +341,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
   },
-  actionBtnText: { fontSize: 12, fontWeight: '700', color: '#0f172a' },
+  actionBtnText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#0f172a' },
   clearBtn: { borderColor: '#fecaca', backgroundColor: '#fff5f5' },
-  clearBtnText: { fontSize: 12, fontWeight: '700', color: '#dc2626' },
+  clearBtnText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#dc2626' },
   disabledBtn: { opacity: 0.5 },
 
   searchBar: {
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 10,
   },
-  searchInput: { flex: 1, height: 40, fontSize: 13, color: '#0f172a' },
+  searchInput: { fontFamily: 'Inter', flex: 1, height: 40, fontSize: 13, color: '#0f172a' },
 
   filterChipRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   filterChip: {
@@ -367,12 +367,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#cbd5e1',
   },
-  filterChipActive: { backgroundColor: '#0d9488', borderColor: '#0d9488' },
-  filterChipText: { fontSize: 12, fontWeight: '700', color: '#475569' },
+  filterChipActive: { backgroundColor: '#27a599', borderColor: '#27a599' },
+  filterChipText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#475569' },
   filterChipTextActive: { color: '#ffffff', fontWeight: '800' },
 
   loaderBox: { paddingVertical: 40, alignItems: 'center' },
-  loadingText: { marginTop: 10, fontSize: 13, color: '#64748b' },
+  loadingText: { fontFamily: 'Inter', marginTop: 10, fontSize: 13, color: '#64748b' },
 
   list: { gap: 10 },
   card: {
@@ -397,16 +397,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
-  categoryName: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
-  timeText: { fontSize: 11, color: '#64748b', marginTop: 1 },
+  categoryName: { fontFamily: 'Inter', fontSize: 14, fontWeight: '800', color: '#0f172a' },
+  timeText: { fontFamily: 'Inter', fontSize: 11, color: '#64748b', marginTop: 1 },
   badgePill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  badgePillText: { fontSize: 10, fontWeight: '700', color: '#475569' },
+  badgePillText: { fontFamily: 'Inter', fontSize: 10, fontWeight: '700', color: '#475569' },
   badgeRead: { backgroundColor: '#f1f5f9' },
-  badgeReadText: { fontSize: 10, fontWeight: '700', color: '#64748b' },
+  badgeReadText: { fontFamily: 'Inter', fontSize: 10, fontWeight: '700', color: '#64748b' },
   badgeUnread: { backgroundColor: '#cffafe', borderWidth: 1, borderColor: '#67e8f9' },
-  badgeUnreadText: { fontSize: 10, fontWeight: '800', color: '#0e7490' },
+  badgeUnreadText: { fontFamily: 'Inter', fontSize: 10, fontWeight: '800', color: '#0e7490' },
 
-  msgText: { fontSize: 13, color: '#334155', lineHeight: 18, marginTop: 4 },
+  msgText: { fontFamily: 'Inter', fontSize: 13, color: '#334155', lineHeight: 18, marginTop: 4 },
 
   emptyBox: {
     paddingVertical: 50,
@@ -418,8 +418,8 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     borderStyle: 'dashed',
   },
-  emptyTitle: { fontSize: 15, fontWeight: '800', color: '#0f172a' },
-  emptySubtitle: { fontSize: 12, color: '#64748b', marginTop: 4 },
+  emptyTitle: { fontFamily: 'Inter', fontSize: 15, fontWeight: '800', color: '#0f172a' },
+  emptySubtitle: { fontFamily: 'Inter', fontSize: 12, color: '#64748b', marginTop: 4 },
 });
 
 export default NotificationsScreen;

@@ -47,6 +47,8 @@ export type MedicineBillColumn =
   | 'patient_name'
   | 'phone'
   | 'patient_code'
+  | 'subtotal'
+  | 'tax_amount'
   | 'total_amount'
   | 'paid_amount'
   | 'pending_amount'
@@ -54,7 +56,9 @@ export type MedicineBillColumn =
   | 'payment_method'
   | 'created_at'
   | 'doctor_name'
-  | 'appointment_id';
+  | 'pharmacist_name'
+  | 'appointment_id'
+  | 'actions';
 
 export const PAGE_SIZE = 10;
 export const MEDICINE_BILL_COLUMNS: ColumnOption<MedicineBillColumn>[] = [
@@ -62,6 +66,8 @@ export const MEDICINE_BILL_COLUMNS: ColumnOption<MedicineBillColumn>[] = [
   { key: 'patient_name', label: 'Patient Name', defaultVisible: true },
   { key: 'phone', label: 'Patient Phone', defaultVisible: true },
   { key: 'patient_code', label: 'Patient Code', defaultVisible: false },
+  { key: 'subtotal', label: 'Subtotal', defaultVisible: false },
+  { key: 'tax_amount', label: 'Tax', defaultVisible: false },
   { key: 'total_amount', label: 'Total Amount', defaultVisible: true },
   { key: 'paid_amount', label: 'Paid Amount', defaultVisible: false },
   { key: 'pending_amount', label: 'Balance Due', defaultVisible: false },
@@ -69,7 +75,9 @@ export const MEDICINE_BILL_COLUMNS: ColumnOption<MedicineBillColumn>[] = [
   { key: 'payment_method', label: 'Payment Method', defaultVisible: true },
   { key: 'created_at', label: 'Date', defaultVisible: true },
   { key: 'doctor_name', label: 'Doctor', defaultVisible: false },
+  { key: 'pharmacist_name', label: 'Pharmacist', defaultVisible: false },
   { key: 'appointment_id', label: 'Appointment ID', defaultVisible: false },
+  { key: 'actions', label: 'Actions', defaultVisible: true },
 ];
 export const DEFAULT_MEDICINE_BILL_COLUMNS = Object.fromEntries(
   MEDICINE_BILL_COLUMNS.map(column => [column.key, column.defaultVisible]),

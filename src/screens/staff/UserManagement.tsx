@@ -2,6 +2,7 @@
 import { styles } from './styles/UserManagement.styles';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { AppModal } from '../../components/common/AppModal';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform, StatusBar, ActivityIndicator, Alert, useWindowDimensions, RefreshControl, TouchableWithoutFeedback, KeyboardAvoidingView, Keyboard, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -136,6 +137,8 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
   const [viewUserModal, setViewUserModal] = useState<UserItem | null>(null);
   const [editUserModal, setEditUserModal] = useState<UserItem | null>(null);
   const [createUserModalOpen, setCreateUserModalOpen] = useState(false);
+  const [deactivateConfirmVisible, setDeactivateConfirmVisible] = useState(false);
+  const [deactivatingUser, setDeactivatingUser] = useState(false);
 
   // Reset Password Modal State (Matching Screenshot)
   const [resetPasswordModalUser, setResetPasswordModalUser] = useState<UserItem | null>(null);
@@ -424,20 +427,27 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
       return;
     }
     if (!canDelete) return;
-    const target = editForm.id;
-    Alert.alert('Deactivate User', 'Are you sure you want to deactivate this user?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Deactivate User', style: 'destructive', onPress: () => {
-        if (scopeRef.current !== scope || !accessRef.current.canDelete || !accessRef.current.canEdit || accessRef.current.editUserId !== target) return;
-        void mutate(() => deactivateStaffApi(target), () => {
-          showSuccessToast('Status Updated', 'User deactivated successfully.');
-          setEditUserModal(null); setEditForm(null);
-        }, setEditSaveError);
-      } },
-    ]);
+
+    setDeactivateConfirmVisible(true);
   };
+
+  const handleConfirmDeactivate = async () => {
+    if (busyRef.current || !canDelete || !editForm) return;
+    const target = editForm.id;
+    if (scopeRef.current !== scope || !accessRef.current.canDelete || !accessRef.current.canEdit || accessRef.current.editUserId !== target) return;
+    setDeactivatingUser(true);
+    await mutate(() => deactivateStaffApi(target), () => {
+      showSuccessToast('Status Updated', 'User deactivated successfully.');
+      setDeactivateConfirmVisible(false);
+      setEditUserModal(null);
+      setEditForm(null);
+    }, setEditSaveError);
+    setDeactivatingUser(false);
+  };
+
   const closeEditForm = () => {
     if (busyRef.current) return;
+    setDeactivateConfirmVisible(false);
     setEditUserModal(null); setEditForm(null); setEditSaveError(''); setEditErrors({});
   };
   const closeResetPassword = () => {
@@ -585,7 +595,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
         keyboardShouldPersistTaps="handled"
         decelerationRate="normal"
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={['#0D9488']} />
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={['#27A599']} />
         }>
         {/* --- PAGE HEADER BANNER --- */}
         <View style={styles.outerHeaderCard}>
@@ -616,6 +626,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                 label="Refresh"
                 refreshingLabel="Refreshing..."
                 size="sm"
+                timestampOnSecondLine
               />
             </View>
 
@@ -771,7 +782,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
           {/* --- RESPONSIVE LIST / TABLE VIEW --- */}
           {loading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="large" color="#0D9488" />
+              <ActivityIndicator size="large" color="#27A599" />
               <Text style={styles.loadingText}>Loading users from database...</Text>
             </View>
           ) : filteredUsers.length === 0 ? (
@@ -1210,7 +1221,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                             disabled={!canEdit || isRefreshing}
                             onValueChange={value => { if (!canEdit || busyRef.current) return; setEditErrors({}); setEditForm({ ...editForm, is_doctor: value,
                               ...(value ? {} : { department: '', specialization: '', qualification: '', registration_number: '', experience: '', consultation_fee: '', available_days: '' }) }); }}
-                            trackColor={{ false: '#E2E8F0', true: '#99F6E4' }} thumbColor={editForm.is_doctor ? '#0D9488' : '#F1F5F9'} />
+                            trackColor={{ false: '#E2E8F0', true: '#99F6E4' }} thumbColor={editForm.is_doctor ? '#27A599' : '#F1F5F9'} />
                         </View>
                       )}
                       {(hasDoctorEditProfile || isNurseEditRole) && <>
@@ -1323,6 +1334,24 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
         onSubmit={handleConfirmResetPassword}
       />
 
+      {/*  DEACTIVATE CONFIRMATION DIALOG (WEB-STYLED REUSABLE POPUP)            */}
+      <ConfirmDialog
+        visible={deactivateConfirmVisible}
+        title="Deactivate User"
+        message="Are you sure you want to deactivate this user? They will no longer be able to log in or access the clinic system."
+        detail={editForm ? `${editForm.full_name} (${editForm.email || 'No email'})` : undefined}
+        confirmText="Deactivate User"
+        cancelText="Cancel"
+        variant="danger"
+        loading={deactivatingUser || isRefreshing}
+        onConfirm={handleConfirmDeactivate}
+        onCancel={() => {
+          if (!deactivatingUser) setDeactivateConfirmVisible(false);
+        }}
+        confirmAccessibilityLabel="Confirm deactivate user"
+        cancelAccessibilityLabel="Cancel deactivation"
+      />
+
       {/*  CREATE USER MODAL                                                       */}
       
       <AppModal visible={createUserModalOpen} animationType="fade" transparent onRequestClose={closeCreateForm}>
@@ -1398,7 +1427,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                   </Text>
                   <View style={[styles.formInput, { flexDirection: 'row', alignItems: 'center' }]}>
                     <TextInput
-                      style={{ flex: 1, padding: 0, color: '#0F172A', fontSize: 13 }}
+                      style={{ fontFamily: 'Inter', flex: 1, padding: 0, color: '#0F172A', fontSize: 13 }}
                       accessibilityLabel="Temporary password"
                       placeholder="Minimum 8 characters"
                       placeholderTextColor="#94A3B8"

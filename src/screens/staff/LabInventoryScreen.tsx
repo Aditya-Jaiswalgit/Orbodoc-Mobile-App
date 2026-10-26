@@ -366,17 +366,17 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
         refreshControl={<RefreshControl refreshing={catalogLoading} onRefresh={() => { refreshCatalog().catch(cause => showErrorToast('Refresh failed', cause instanceof Error ? cause.message : undefined)); }} />}
       >
         <View style={styles.heading}>
-          <View style={styles.headingIcon}><TestTube size={24} color="#0D9488" /></View>
+          <View style={styles.headingIcon}><TestTube size={24} color="#27A599" /></View>
           <View style={styles.headingText}>
             <Text style={styles.title}>Lab Inventory</Text>
             <Text style={styles.subtitle}>Search master tests, set Test Price, and manage lab availability</Text>
           </View>
         </View>
         <View style={styles.statsGrid}>
-          <StatCard label="Mapped Tests" value={catalogStats.mapped} icon={<TestTube2 size={20} color="#0D9488" />} tint="#E8F7F5" />
-          <StatCard label="Available Today" value={catalogStats.available} icon={<CircleCheck size={18} color="#0D9488" />} tint="#E8F7F5" />
-          <StatCard label="Home Collection" value={catalogStats.homeCollection} icon={<ShieldCheck size={18} color="#0D9488" />} tint="#E8F7F5" />
-          <StatCard label="Discounted" value={catalogStats.discounted} icon={<IndianRupee size={18} color="#0D9488" />} tint="#E8F7F5" />
+          <StatCard label="Mapped Tests" value={catalogStats.mapped} icon={<TestTube2 size={20} color="#27A599" />} tint="#E8F7F5" />
+          <StatCard label="Available Today" value={catalogStats.available} icon={<CircleCheck size={18} color="#27A599" />} tint="#E8F7F5" />
+          <StatCard label="Home Collection" value={catalogStats.homeCollection} icon={<ShieldCheck size={18} color="#27A599" />} tint="#E8F7F5" />
+          <StatCard label="Discounted" value={catalogStats.discounted} icon={<IndianRupee size={18} color="#27A599" />} tint="#E8F7F5" />
         </View>
 
         <View style={styles.panel}>
@@ -385,7 +385,7 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
             <Text style={styles.panelSub}>Search the master catalog, map tests to {clinicName}, and maintain clinic pricing.</Text>
           </View>
           <TouchableOpacity style={[styles.refreshButton, styles.panelControl]} disabled={catalogLoading} onPress={() => { refreshCatalog().catch(cause => showErrorToast('Refresh failed', cause instanceof Error ? cause.message : undefined)); }}>
-            {catalogLoading ? <ActivityIndicator size="small" color="#0F766E" /> : <RefreshCw size={15} color="#334155" />}
+            {catalogLoading ? <ActivityIndicator size="small" color="#1D7C72" /> : <RefreshCw size={15} color="#334155" />}
             <Text style={styles.refreshText}>{catalogLoading ? 'Refreshing' : 'Refresh'}</Text>
           </TouchableOpacity>
           {!!lastRefreshed && <Text style={[styles.refreshed, styles.panelControl]}>Last refreshed: {lastRefreshed}</Text>}
@@ -416,7 +416,7 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
             <Columns3 size={16} color="#334155" /><Text style={styles.refreshText}>Columns</Text>
           </TouchableOpacity>
           {error ? <View style={[styles.errorBox, styles.errorInset]}><Text style={styles.errorText}>{error}</Text><TouchableOpacity onPress={() => { refreshCatalog().catch(() => undefined); }}><Text style={styles.retry}>Retry</Text></TouchableOpacity></View> : null}
-          {catalogLoading && catalogItems.length === 0 ? <ActivityIndicator style={styles.loadingInset} color="#0F766E" /> : null}
+          {catalogLoading && catalogItems.length === 0 ? <ActivityIndicator style={styles.loadingInset} color="#1D7C72" /> : null}
           {!catalogLoading && !error && catalogItems.length === 0 ? (
             <View style={styles.empty}>
               <FlaskConical size={28} color="#94A3B8" />
@@ -472,7 +472,7 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
                 <TouchableOpacity style={styles.closeIconButton} accessibilityLabel="Close master tests" onPress={() => { setSelectedMasterTest(null); setMasterModalOpen(false); }}><X size={18} color="#64748B" /></TouchableOpacity>
               </View>
               {canAdd ? (
-                <TouchableOpacity style={styles.createCustomButton} onPress={openCustomFromMaster}><Plus size={16} color="#0F766E" /><Text style={styles.createCustomText}>Create custom test</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.createCustomButton} onPress={openCustomFromMaster}><Plus size={16} color="#1D7C72" /><Text style={styles.createCustomText}>Create custom test</Text></TouchableOpacity>
               ) : null}
             </View>
             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator style={styles.masterModalScroll} contentContainerStyle={styles.masterModalScrollContent}>
@@ -485,7 +485,7 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
                   </TouchableOpacity>
                   {masterFilterOpen ? <View style={styles.filterOptions}>{(['all', 'unmapped', 'mapped'] as MappingFilter[]).map(filter => <TouchableOpacity key={filter} style={[styles.filterOption, masterFilter === filter && styles.filterOptionActive]} onPress={() => { setMasterFilter(filter); setMasterPage(1); setMasterFilterOpen(false); }}><Text style={styles.filterOptionText}>{filter === 'all' ? 'All master tests' : filter === 'unmapped' ? 'Ready to map' : 'Already mapped'}</Text></TouchableOpacity>)}</View> : null}
                   <TouchableOpacity style={styles.masterRefreshButton} disabled={masterLoading} onPress={() => { loadMasterTests({ page: masterPage, limit: masterPageSize, search: masterSearch, mapped: masterFilter, forceRefresh: true }).catch(cause => showErrorToast('Refresh failed', cause instanceof Error ? cause.message : undefined)); }}>
-                    {masterLoading ? <ActivityIndicator size="small" color="#0F766E" /> : <RefreshCw size={15} color="#334155" />}<Text style={styles.refreshText}>{masterLoading ? 'Refreshing' : 'Refresh'}</Text>
+                    {masterLoading ? <ActivityIndicator size="small" color="#1D7C72" /> : <RefreshCw size={15} color="#334155" />}<Text style={styles.refreshText}>{masterLoading ? 'Refreshing' : 'Refresh'}</Text>
                   </TouchableOpacity>
                   {!!masterLastRefreshed && <Text style={styles.masterRefreshTime}>Last refreshed: {masterLastRefreshed}</Text>}
                   <View style={styles.masterSummary}>
@@ -497,7 +497,7 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
                   </View>
                 </View>
                 {!!error && <Text style={[styles.errorText, styles.masterErrorInset]}>{error}</Text>}
-                {masterLoading ? <ActivityIndicator style={styles.masterLoadingInset} color="#0F766E" /> : (
+                {masterLoading ? <ActivityIndicator style={styles.masterLoadingInset} color="#1D7C72" /> : (
                   <View style={styles.masterCardList}>
                     {masterTests.map(test => <View key={test.id} style={[styles.masterCard, isOn(test.is_mapped_for_clinic) && styles.masterCardMapped]}>
                       <View style={styles.cardTop}><View style={styles.flexFill}><Text style={styles.cardName}>{test.test_name}</Text><Text style={styles.cardCode}>{test.test_code || 'No code'}</Text></View><View style={[styles.badge, isOn(test.status) ? styles.badgeActive : styles.badgeMuted]}><Text style={[styles.badgeText, isOn(test.status) ? styles.badgeActiveText : styles.badgeMutedText]}>{isOn(test.status) ? 'Active' : 'Inactive'}</Text></View></View>

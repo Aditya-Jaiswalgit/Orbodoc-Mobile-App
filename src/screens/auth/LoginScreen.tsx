@@ -225,8 +225,9 @@ export const LoginScreen = () => {
                 </Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter your registered mobile number"
+                  placeholder="Enter 10-digit mobile number"
                   placeholderTextColor="#94a3b8"
+                  numberOfLines={1}
                   value={phone}
                   onChangeText={text => {
                     setPhone(text);
@@ -295,7 +296,7 @@ export const LoginScreen = () => {
           </TouchableOpacity>
           </> : <>
             <TouchableOpacity style={styles.backToLogin} onPress={() => setRegistrationKind('login')} activeOpacity={0.8}>
-              <ArrowLeft size={18} color="#0d9488" /><Text style={styles.backToLoginText}>Back to sign in</Text>
+              <ArrowLeft size={18} color="#27a599" /><Text style={styles.backToLoginText}>Back to sign in</Text>
             </TouchableOpacity>
             {registrationKind === 'choose' ? <View style={styles.registrationChoices}>
               <Text style={styles.choiceTitle}>Want to Join?</Text>
@@ -364,7 +365,7 @@ export const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#F8FAFC',
     paddingTop: 50,
   },
   keyboardView: {
@@ -407,10 +408,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   toggleButtonActive: {
-    backgroundColor: '#059669',
+    backgroundColor: '#27A599',
   },
   toggleText: {
-    fontSize: 15,
+    fontFamily: 'Inter', fontSize: 15,
     fontWeight: '600',
     color: '#64748b',
   },
@@ -419,31 +420,31 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   signupLink: { flexDirection: 'row', justifyContent: 'center', paddingVertical: 20 },
-  signupPrompt: { color: '#64748b', fontSize: 14 },
-  signupLinkText: { color: '#059669', fontSize: 14, fontWeight: '800' },
+  signupPrompt: { fontFamily: 'Inter', color: '#64748b', fontSize: 14 },
+  signupLinkText: { fontFamily: 'Inter', color: '#1D7C72', fontSize: 14, fontWeight: '800' },
   backToLogin: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 7, paddingVertical: 8, marginBottom: 14 },
-  backToLoginText: { color: '#0d9488', fontSize: 14, fontWeight: '700' },
+  backToLoginText: { fontFamily: 'Inter', color: '#27a599', fontSize: 14, fontWeight: '700' },
   registrationChoices: { backgroundColor: '#fff', borderRadius: 22, borderWidth: 1, borderColor: '#e2e8f0', padding: 20, marginTop: 8 },
-  choiceTitle: { color: '#0f172a', fontSize: 23, fontWeight: '800' },
-  choiceSubtitle: { color: '#64748b', fontSize: 14, marginTop: 5, marginBottom: 20 },
+  choiceTitle: { fontFamily: 'Inter', color: '#0f172a', fontSize: 23, fontWeight: '800' },
+  choiceSubtitle: { fontFamily: 'Inter', color: '#64748b', fontSize: 14, marginTop: 5, marginBottom: 20 },
   choiceCard: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 76, padding: 13, borderWidth: 1, borderColor: '#dbe7e5', borderRadius: 15, marginBottom: 12, backgroundColor: '#fbfefd' },
   choiceIcon: { width: 42, height: 42, borderRadius: 13, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center' },
   choiceText: { flex: 1 },
-  choiceLabel: { color: '#0f172a', fontSize: 15, fontWeight: '800' },
-  choiceDescription: { color: '#64748b', fontSize: 12, marginTop: 3 },
-  choiceArrow: { color: '#0d9488', fontSize: 26, fontWeight: '600' },
+  choiceLabel: { fontFamily: 'Inter', color: '#0f172a', fontSize: 15, fontWeight: '800' },
+  choiceDescription: { fontFamily: 'Inter', color: '#64748b', fontSize: 12, marginTop: 3 },
+  choiceArrow: { fontFamily: 'Inter', color: '#27a599', fontSize: 26, fontWeight: '600' },
   headingContainer: {
     marginBottom: 20,
   },
   title: {
-    fontSize: 28,
+    fontFamily: 'Inter', fontSize: 20,
     fontWeight: '800',
     color: '#0f172a',
     marginBottom: 6,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     color: '#64748b',
     lineHeight: 20,
   },
@@ -471,7 +472,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorBannerText: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     color: '#dc2626',
     fontSize: 13,
     fontWeight: '600',
@@ -480,7 +481,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   label: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#334155',
     marginBottom: 8,
@@ -489,7 +490,7 @@ const styles = StyleSheet.create({
     color: '#ef4444',
   },
   input: {
-    backgroundColor: '#ffffff',
+    fontFamily: 'Inter', backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#cbd5e1',
     borderRadius: 12,
@@ -507,7 +508,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   passwordInput: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 13,
     fontSize: 15,
@@ -518,24 +519,24 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   eyeIcon: {
-    fontSize: 18,
+    fontFamily: 'Inter', fontSize: 18,
   },
   forgotPasswordContainer: {
     alignSelf: 'flex-end',
     marginBottom: 24,
   },
   forgotPasswordText: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
-    color: '#059669',
+    color: '#1D7C72',
   },
   signInButton: {
-    backgroundColor: '#059669',
+    backgroundColor: '#27A599',
     borderRadius: 12,
     paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#059669',
+    shadowColor: '#27A599',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -545,7 +546,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   signInButtonText: {
-    color: '#ffffff',
+    fontFamily: 'Inter', color: '#ffffff',
     fontSize: 16,
     fontWeight: '700',
   },

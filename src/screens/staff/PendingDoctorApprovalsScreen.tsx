@@ -129,7 +129,7 @@ export default function PendingDoctorApprovalsScreen({ onOpenDrawer }: Props) {
               <TouchableOpacity style={[styles.tabButton, tab === 'approved' && styles.tabButtonActive]} onPress={() => setTab('approved')}><Text style={[styles.tabText, tab === 'approved' && styles.tabTextActive]}>Approved ({approvedDoctors.length})</Text></TouchableOpacity>
             </View>
 
-            {loading ? <View style={styles.loading}><ActivityIndicator color="#0D9488" /><Text style={styles.mutedText}>Loading doctor approvals...</Text></View> : error ? <View style={styles.errorCard}><Text style={styles.errorText}>{error}</Text><TouchableOpacity style={styles.outlineButton} onPress={() => loadDoctors().catch(() => undefined)}><Text style={styles.outlineButtonText}>Retry</Text></TouchableOpacity></View> : visibleDoctors.length === 0 ? (
+            {loading ? <View style={styles.loading}><ActivityIndicator color="#27A599" /><Text style={styles.mutedText}>Loading doctor approvals...</Text></View> : error ? <View style={styles.errorCard}><Text style={styles.errorText}>{error}</Text><TouchableOpacity style={styles.outlineButton} onPress={() => loadDoctors().catch(() => undefined)}><Text style={styles.outlineButtonText}>Retry</Text></TouchableOpacity></View> : visibleDoctors.length === 0 ? (
               <View style={styles.emptyCard}><ShieldCheck size={36} color="#CBD5E1" /><Text style={styles.cardTitle}>{tab === 'pending' ? 'No pending approvals' : 'No approved doctors'}</Text><Text style={styles.mutedText}>{tab === 'pending' ? 'All doctor registrations are already reviewed.' : 'Approved teleconsultation doctors will appear here.'}</Text></View>
             ) : <View style={styles.listGap}>
               {visibleDoctors.map(doctor => {

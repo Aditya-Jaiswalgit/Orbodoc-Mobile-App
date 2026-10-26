@@ -138,7 +138,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenAll, o
     if (text.includes('appointment')) return <Calendar size={18} color="#2563eb" />;
     if (text.includes('patient') || text.includes('user')) return <User size={18} color="#059669" />;
     if (text.includes('report') || text.includes('lab')) return <FileText size={18} color="#7c3aed" />;
-    if (text.includes('success') || text.includes('paid')) return <CheckCircle size={18} color="#0d9488" />;
+    if (text.includes('success') || text.includes('paid')) return <CheckCircle size={18} color="#27a599" />;
     return <AlertCircle size={18} color="#d97706" />;
   };
 
@@ -175,7 +175,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenAll, o
             ))}
           </ScrollView>
           <TouchableOpacity style={styles.footer} onPress={() => { setOpen(false); onOpenAll(); }}>
-            <Text style={styles.footerText}>View all notifications</Text><ArrowRight size={16} color="#0d9488" />
+            <Text style={styles.footerText}>View all notifications</Text><ArrowRight size={16} color="#27a599" />
           </TouchableOpacity>
         </View>
       </View>
@@ -186,28 +186,28 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenAll, o
 const styles = StyleSheet.create({
   bell: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', right: -4, top: -3, minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 4, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
-  badgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
+  badgeText: { fontFamily: 'Inter', color: '#fff', fontSize: 9, fontWeight: '800' },
   overlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.35)', justifyContent: 'flex-start', alignItems: 'flex-end', padding: 16, paddingTop: 56 },
   card: { width: '100%', maxWidth: 420, maxHeight: '80%', backgroundColor: '#fff', borderRadius: 14, padding: 16, elevation: 8 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   headerText: { flex: 1 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { color: '#0f172a', fontSize: 17, fontWeight: '800' },
-  count: { color: '#0f766e', fontSize: 11, fontWeight: '700' },
-  subtitle: { marginTop: 3, color: '#64748b', fontSize: 12 },
+  title: { fontFamily: 'Inter', color: '#0f172a', fontSize: 20, fontWeight: '800' },
+  count: { fontFamily: 'Inter', color: '#1d7c72', fontSize: 11, fontWeight: '700' },
+  subtitle: { fontFamily: 'Inter', marginTop: 3, color: '#64748b', fontSize: 14 },
   actions: { flexDirection: 'row', gap: 4 },
   action: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   list: { marginTop: 12, maxHeight: 380 },
   emptyState: { minHeight: 190, alignItems: 'center', justifyContent: 'center' },
-  empty: { paddingVertical: 28, textAlign: 'center', color: '#64748b', fontSize: 13 },
-  emptyHint: { marginTop: -20, color: '#64748b', fontSize: 11, textAlign: 'center' },
+  empty: { fontFamily: 'Inter', paddingVertical: 28, textAlign: 'center', color: '#64748b', fontSize: 13 },
+  emptyHint: { fontFamily: 'Inter', marginTop: -20, color: '#64748b', fontSize: 11, textAlign: 'center' },
   item: { flexDirection: 'row', gap: 10, paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   icon: { width: 34, height: 34, borderRadius: 8, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
   content: { flex: 1 },
-  itemTitle: { flex: 1, color: '#0f172a', fontSize: 13, fontWeight: '700' },
+  itemTitle: { fontFamily: 'Inter', flex: 1, color: '#0f172a', fontSize: 13, fontWeight: '700' },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#14b8a6' },
-  message: { marginTop: 3, color: '#475569', fontSize: 12, lineHeight: 17 },
-  time: { marginTop: 4, color: '#94a3b8', fontSize: 10 },
+  message: { fontFamily: 'Inter', marginTop: 3, color: '#475569', fontSize: 12, lineHeight: 17 },
+  time: { fontFamily: 'Inter', marginTop: 4, color: '#94a3b8', fontSize: 10 },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderTopWidth: 1, borderTopColor: '#e2e8f0', marginTop: 8, paddingTop: 12 },
-  footerText: { color: '#0d9488', fontSize: 13, fontWeight: '700' },
+  footerText: { fontFamily: 'Inter', color: '#27a599', fontSize: 13, fontWeight: '700' },
 });

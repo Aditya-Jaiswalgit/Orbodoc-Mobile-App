@@ -86,7 +86,7 @@ const SnapshotChart = ({ values, width }: { values: Array<{ name: string; value:
         const x = 28 + slot * index + (slot - barWidth) / 2;
         const height = Math.max(item.value ? 4 : 0, (item.value / max) * (plotHeight - 12));
         const y = top + plotHeight - height;
-        const color = ['#0d9488', '#22c55e', '#f59e0b', '#6366f1'][index % 4];
+        const color = ['#27a599', '#22c55e', '#f9a91f', '#6366f1'][index % 4];
         return (
           <React.Fragment key={item.name}>
             <Rect x={x} y={y} width={barWidth} height={height} rx={6} fill={color} />
@@ -105,7 +105,7 @@ const WorkloadChart = ({ values }: { values: Array<{ name: string; value: number
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const total = values.reduce((sum, item) => sum + item.value, 0);
-  const colors = ['#0d9488', '#f59e0b', '#38bdf8'];
+  const colors = ['#27a599', '#f9a91f', '#38bdf8'];
   let offset = 0;
 
   return (
@@ -172,29 +172,29 @@ export const DoctorDashboardScreen: React.FC<Props> = ({
       <StaffHeader onOpenDrawer={onOpenDrawer} onOpenNotifications={onOpenNotifications} title="Doctor Dashboard" />
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#0d9488" colors={['#0d9488']} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#27a599" colors={['#27a599']} />}
       >
         <View style={styles.welcomeBlock}>
           <Text style={styles.greetingTitle}>{greeting}, {doctorName}!</Text>
           <Text style={styles.greetingSubtitle}>Here's what's happening at your clinic today.</Text>
         </View>
         <View style={styles.todayCard}>
-          <View style={styles.todayIcon}><CalendarDays size={22} color="#0d9488" strokeWidth={2.2} /></View>
+          <View style={styles.todayIcon}><CalendarDays size={22} color="#27a599" strokeWidth={2.2} /></View>
           <View style={styles.todayCopy}>
             <View style={styles.todayEyebrow}><View style={styles.todayDot} /><Text style={styles.todayLabel}>TODAY</Text></View>
             <Text style={styles.todayDate}>{todayLabel}</Text>
           </View>
         </View>
         {loading && !data ? (
-          <View style={styles.stateCard}><ActivityIndicator size="large" color="#0d9488" /><Text style={styles.stateText}>Loading doctor dashboard…</Text></View>
+          <View style={styles.stateCard}><ActivityIndicator size="large" color="#27a599" /><Text style={styles.stateText}>Loading doctor dashboard…</Text></View>
         ) : error && !data ? (
           <View style={styles.stateCard}><Text style={styles.stateTitle}>Dashboard unavailable</Text><Text style={styles.stateText}>{error}</Text><TouchableOpacity style={styles.retryButton} onPress={refresh}><RefreshCw size={16} color="#fff" /><Text style={styles.retryText}>Retry</Text></TouchableOpacity></View>
         ) : data ? (
           <>
             {error ? <TouchableOpacity style={styles.warningBanner} onPress={refresh}><Text style={styles.warningText}>Some dashboard data could not be loaded. Tap to retry.</Text></TouchableOpacity> : null}
             <View style={styles.metricGrid}>
-              <MetricTile title="Today's Appointments" value={String(data.todayAppointments)} icon={Calendar} color="#0d9488" background="#ccfbf1" onPress={() => onNavigateScreen(`/appointments?date=${today}`)} />
-              <MetricTile title="Upcoming Appointments" value={String(data.upcomingAppointments)} icon={Clock3} color="#16a34a" background="#dcfce7" onPress={() => onNavigateScreen(`/appointments?date_from=${tomorrow}`)} />
+              <MetricTile title="Today's Appointments" value={String(data.todayAppointments)} icon={Calendar} color="#27a599" background="#ccfbf1" onPress={() => onNavigateScreen(`/appointments?date=${today}`)} />
+              <MetricTile title="Upcoming Appointments" value={String(data.upcomingAppointments)} icon={Clock3} color="#2eb877" background="#dcfce7" onPress={() => onNavigateScreen(`/appointments?date_from=${tomorrow}`)} />
               <MetricTile title="Pending Requests" value={String(data.pendingRequests)} icon={AlertCircle} color="#d97706" background="#fef3c7" onPress={() => onNavigateScreen('/appointments?status=pending')} />
               <MetricTile
                 title={data.isIndependentDoctor ? 'Wallet Balance' : 'Total Visits'}
@@ -220,7 +220,7 @@ export const DoctorDashboardScreen: React.FC<Props> = ({
               <Text style={styles.sectionTitle}>Quick Overview</Text>
               <View style={styles.overviewTile}>
                 <View><Text style={styles.overviewLabel}>Appointments Today</Text><Text style={styles.overviewValue}>{data.todayAppointments}</Text></View>
-                <Calendar size={34} color="#0d9488" />
+                <Calendar size={34} color="#27a599" />
               </View>
               <View style={styles.overviewTile}>
                 <View>
@@ -238,18 +238,18 @@ export const DoctorDashboardScreen: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#f8fafc' },
+  screen: { flex: 1, backgroundColor: '#F8FAFC' },
   content: { padding: 16, paddingBottom: 40, gap: 16 },
   welcomeBlock: { gap: 4 },
-  greetingTitle: { color: '#1e293b', fontSize: 18, fontWeight: '800' },
-  greetingSubtitle: { color: '#718096', fontSize: 13 },
-  todayCard: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, borderWidth: 1, borderColor: '#99f6e4', backgroundColor: '#fff', shadowColor: '#0d9488', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
+  greetingTitle: { fontFamily: 'Inter', color: '#1e293b', fontSize: 18, fontWeight: '800' },
+  greetingSubtitle: { fontFamily: 'Inter', color: '#718096', fontSize: 13 },
+  todayCard: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, borderWidth: 1, borderColor: '#99f6e4', backgroundColor: '#fff', shadowColor: '#27a599', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
   todayIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ccfbf1' },
   todayCopy: { gap: 2 },
   todayEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   todayDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#14b8a6' },
-  todayLabel: { color: '#0f766e', fontSize: 10, fontWeight: '800', letterSpacing: 1.6 },
-  todayDate: { color: '#1e293b', fontSize: 13, fontWeight: '600' },
+  todayLabel: { fontFamily: 'Inter', color: '#1d7c72', fontSize: 10, fontWeight: '800', letterSpacing: 1.6 },
+  todayDate: { fontFamily: 'Inter', color: '#1e293b', fontSize: 13, fontWeight: '600' },
   metricGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -279,52 +279,52 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   metricValue: {
-    fontSize: 24,
+    fontFamily: 'Inter', fontSize: 24,
     fontWeight: '800',
     color: '#0F172A',
     marginBottom: 4,
   },
   metricValueSmall: {
-    fontSize: 18,
+    fontFamily: 'Inter', fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
     marginBottom: 4,
   },
   metricTitle: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '500',
     color: '#64748B',
     minHeight: 32,
     lineHeight: 16,
   },
   metricAction: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '700',
-    color: '#0D9488',
+    color: '#27A599',
   },
   chartCard: { backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0', padding: 16, overflow: 'hidden' },
-  sectionTitle: { color: '#0f172a', fontSize: 17, fontWeight: '700', marginBottom: 14 },
+  sectionTitle: { fontFamily: 'Inter', color: '#0f172a', fontSize: 18, fontWeight: '700', marginBottom: 14 },
   workloadWrap: { alignItems: 'center', gap: 14 },
   donutWrap: { width: 190, height: 190, alignItems: 'center', justifyContent: 'center' },
   donutCenter: { position: 'absolute', alignItems: 'center' },
-  donutTotal: { color: '#0f172a', fontSize: 27, fontWeight: '800' },
-  donutCaption: { color: '#64748b', fontSize: 11 },
+  donutTotal: { fontFamily: 'Inter', color: '#0f172a', fontSize: 27, fontWeight: '800' },
+  donutCaption: { fontFamily: 'Inter', color: '#64748b', fontSize: 11 },
   legendList: { width: '100%', gap: 8 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 8, backgroundColor: '#f8fafc' },
   legendDot: { width: 9, height: 9, borderRadius: 5 },
-  legendName: { color: '#64748b', fontSize: 12, flex: 1 },
-  legendValue: { color: '#0f172a', fontWeight: '700', fontSize: 12 },
+  legendName: { fontFamily: 'Inter', color: '#64748b', fontSize: 12, flex: 1 },
+  legendValue: { fontFamily: 'Inter', color: '#0f172a', fontWeight: '700', fontSize: 12 },
   overviewCard: { backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0', padding: 16, gap: 10 },
   overviewTile: { backgroundColor: '#f8fafc', borderRadius: 10, padding: 14, minHeight: 82, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  overviewLabel: { color: '#64748b', fontSize: 13 },
-  overviewValue: { color: '#0f172a', fontSize: 25, fontWeight: '800', marginTop: 4 },
+  overviewLabel: { fontFamily: 'Inter', color: '#64748b', fontSize: 13 },
+  overviewValue: { fontFamily: 'Inter', color: '#0f172a', fontSize: 25, fontWeight: '800', marginTop: 4 },
   stateCard: { backgroundColor: '#fff', padding: 24, minHeight: 180, gap: 12, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0' },
-  stateTitle: { fontSize: 17, fontWeight: '700', color: '#0f172a' },
-  stateText: { color: '#64748b', fontSize: 13, textAlign: 'center' },
-  retryButton: { minHeight: 42, paddingHorizontal: 18, borderRadius: 9, backgroundColor: '#0d9488', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  stateTitle: { fontFamily: 'Inter', fontSize: 17, fontWeight: '700', color: '#0f172a' },
+  stateText: { fontFamily: 'Inter', color: '#64748b', fontSize: 13, textAlign: 'center' },
+  retryButton: { minHeight: 42, paddingHorizontal: 18, borderRadius: 9, backgroundColor: '#27a599', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   retryText: { color: '#fff', fontWeight: '700' },
   warningBanner: { padding: 12, borderRadius: 10, backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fed7aa' },
-  warningText: { color: '#9a3412', fontSize: 12 },
+  warningText: { fontFamily: 'Inter', color: '#9a3412', fontSize: 12 },
 });
 
 export default DoctorDashboardScreen;

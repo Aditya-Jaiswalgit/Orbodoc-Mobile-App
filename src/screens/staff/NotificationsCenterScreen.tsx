@@ -478,7 +478,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#0d9488']} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#27a599']} />}>
         {/* 1. Page Header (Exact Screenshot Match) */}
         <View style={styles.pageHeader}>
           <Text style={styles.pageTitle}>Notification Management</Text>
@@ -521,7 +521,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
 
         {loading ? (
           <View style={styles.loaderBox}>
-            <ActivityIndicator size="large" color="#0d9488" />
+            <ActivityIndicator size="large" color="#27a599" />
             <Text style={styles.loadingText}>Loading notification data...</Text>
           </View>
         ) : (

@@ -72,18 +72,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   valueText: {
-    color: '#0f172a',
+    fontFamily: 'Inter', color: '#0f172a',
     fontSize: 20,
     fontWeight: '800',
   },
   titleText: {
-    color: '#475569',
+    fontFamily: 'Inter', color: '#475569',
     fontSize: 13,
     fontWeight: '600',
     marginTop: 2,
   },
   subtitleText: {
-    color: '#94a3b8',
+    fontFamily: 'Inter', color: '#94a3b8',
     fontSize: 11,
     marginTop: 1,
   },

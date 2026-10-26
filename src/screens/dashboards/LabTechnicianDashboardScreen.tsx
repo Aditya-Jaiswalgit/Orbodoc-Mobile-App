@@ -230,7 +230,7 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({ onOpenDrawer, on
       <StaffHeader onOpenDrawer={onOpenDrawer} onOpenNotifications={onOpenNotifications} title="Lab Dashboard" />
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#0D9488" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#27A599" />}
       >
         {/* ── 1. GREETING & TODAY CARD ── */}
         <View style={styles.greetingSection}>
@@ -244,7 +244,7 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({ onOpenDrawer, on
           {/* Today Date Card */}
           <View style={styles.todayDateCard}>
             <View style={styles.todayIconBox}>
-              <CalendarDays size={22} color="#0D9488" strokeWidth={2.2} />
+              <CalendarDays size={22} color="#27A599" strokeWidth={2.2} />
             </View>
             <View style={styles.todayTextCol}>
               <View style={styles.todayBadgeRow}>
@@ -258,7 +258,7 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({ onOpenDrawer, on
 
         {loading ? (
           <View style={styles.loading}>
-            <ActivityIndicator color="#0D9488" />
+            <ActivityIndicator color="#27A599" />
             <Text style={styles.muted}>Loading lab dashboard…</Text>
           </View>
         ) : null}
@@ -275,14 +275,14 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({ onOpenDrawer, on
               <MetricCard
                 title="Pending Tests"
                 value={String(data.pendingTests)}
-                icon={<Clock3 size={20} color="#0D9488" strokeWidth={2.2} />}
+                icon={<Clock3 size={20} color="#27A599" strokeWidth={2.2} />}
                 iconBg="#CCFBF1"
                 onPress={() => onNavigateScreen('/lab/tests?status=pending')}
               />
               <MetricCard
                 title="Completed Today"
                 value={String(data.completedToday)}
-                icon={<CheckCircle2 size={20} color="#16A34A" strokeWidth={2.2} />}
+                icon={<CheckCircle2 size={20} color="#2EB877" strokeWidth={2.2} />}
                 iconBg="#DCFCE7"
                 onPress={() => onNavigateScreen(dayRange)}
               />
@@ -296,7 +296,7 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({ onOpenDrawer, on
               <MetricCard
                 title="Weekly Revenue"
                 value={money(data.weeklyRevenue)}
-                icon={<IndianRupee size={20} color="#0D9488" strokeWidth={2.2} />}
+                icon={<IndianRupee size={20} color="#27A599" strokeWidth={2.2} />}
                 iconBg="#CCFBF1"
                 onPress={() => onNavigateScreen(weekRange)}
               />
@@ -329,8 +329,8 @@ const styles = StyleSheet.create({
 
   // Greeting & Date Card
   greetingSection: { marginBottom: 4 },
-  greetingTitle: { fontSize: 22, fontWeight: '800', color: '#0F172A' },
-  greetingSubtitle: { fontSize: 14, color: '#64748B', marginTop: 4 },
+  greetingTitle: { fontFamily: 'Inter', fontSize: 22, fontWeight: '800', color: '#0F172A' },
+  greetingSubtitle: { fontFamily: 'Inter', fontSize: 14, color: '#64748B', marginTop: 4 },
   todayDateCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginTop: 16,
     gap: 12,
-    shadowColor: '#0D9488',
+    shadowColor: '#27A599',
     shadowOpacity: 0.08,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
@@ -357,9 +357,9 @@ const styles = StyleSheet.create({
   },
   todayTextCol: { flex: 1 },
   todayBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  greenDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#0D9488' },
-  todayBadgeText: { fontSize: 11, fontWeight: '800', color: '#0D9488', letterSpacing: 1.4 },
-  todayDateText: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
+  greenDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#27A599' },
+  todayBadgeText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '800', color: '#27A599', letterSpacing: 1.4 },
+  todayDateText: { fontFamily: 'Inter', fontSize: 15, fontWeight: '700', color: '#0F172A' },
 
   // Metric Cards
   metricGrid: {
@@ -404,13 +404,13 @@ const styles = StyleSheet.create({
     paddingRight: 6,
   },
   metricTitle: {
-    color: '#64748B',
+    fontFamily: 'Inter', color: '#64748B',
     fontSize: 12,
     fontWeight: '600',
     lineHeight: 16,
   },
   metricValue: {
-    color: '#0F172A',
+    fontFamily: 'Inter', color: '#0F172A',
     fontSize: 22,
     fontWeight: '800',
     marginTop: 4,
@@ -419,9 +419,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   metricActionText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '700',
-    color: '#0D9488',
+    color: '#27A599',
   },
   metricIconBox: {
     width: 38,
@@ -444,8 +444,8 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   sectionTitle: {
-    color: '#0F172A',
-    fontSize: 16,
+    fontFamily: 'Inter', color: '#0F172A',
+    fontSize: 18,
     fontWeight: '700',
     marginBottom: 12,
   },
@@ -455,9 +455,9 @@ const styles = StyleSheet.create({
   },
 
   loading: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20, alignItems: 'center', gap: 8 },
-  muted: { color: '#64748B', fontSize: 13 },
+  muted: { fontFamily: 'Inter', color: '#64748B', fontSize: 13 },
   errorBox: { backgroundColor: '#FEF2F2', borderRadius: 12, padding: 12 },
-  errorText: { color: '#B91C1C', fontSize: 13 },
+  errorText: { fontFamily: 'Inter', color: '#B91C1C', fontSize: 13 },
 });
 
 export default LabTechnicianDashboardScreen;

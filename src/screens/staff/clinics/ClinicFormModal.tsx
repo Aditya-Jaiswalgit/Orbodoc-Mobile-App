@@ -54,27 +54,28 @@ export function ClinicFormModal(props: Props) {
                 style={[
                   styles.editClinicModalCard,
                   isMobile && styles.extractedInline57,
+                  !editingClinicId && styles.createClinicModalCard,
                 ]}
               >
                 {/* Header */}
                 <View style={styles.editClinicModalHeader}>
-                  <View style={styles.editHeaderIconBox}>
+                  <View style={[styles.editHeaderIconBox, !editingClinicId && styles.createClinicHeaderIconBox]}>
                     {editingClinicId ? (
                       <Edit color="#0F172A" size={18} />
                     ) : (
-                      <Plus color="#0F172A" size={18} />
+                      <Plus color="#1D7C72" size={20} />
                     )}
                   </View>
                   <View style={styles.extractedInline29}>
                     <Text style={styles.editClinicModalTitle}>
                       {editingClinicId
                         ? `Edit Clinic: ${clinicForm.name}`
-                        : 'Register New Clinic'}
+                        : 'Create Clinic'}
                     </Text>
                     <Text style={styles.editClinicModalSubtitle}>
                       {editingClinicId
                         ? 'Update clinic information.'
-                        : 'Register a new clinic into the system.'}
+                        : 'Add a new clinic.'}
                     </Text>
                   </View>
                   <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -84,7 +85,7 @@ export function ClinicFormModal(props: Props) {
 
                 {/* Form Body */}
                 <ScrollView
-                  style={styles.extractedInline58}
+                  style={[styles.extractedInline58, !editingClinicId && styles.createClinicFormScroll]}
                   showsVerticalScrollIndicator={true}
                   nestedScrollEnabled={true}
                   scrollEventThrottle={16}
@@ -92,19 +93,19 @@ export function ClinicFormModal(props: Props) {
                   decelerationRate="normal"
                 >
                   {/* Clinic Logo Upload Box */}
-                  <View style={styles.clinicLogoUploadBox}>
+                  <View style={[styles.clinicLogoUploadBox, !editingClinicId && styles.createClinicLogoUploadBox]}>
                     <Text style={styles.logoBoxLabel}>Clinic Logo</Text>
-                    <View style={styles.cameraIconCircleBadge}>
+                    <View style={[styles.cameraIconCircleBadge, !editingClinicId && styles.createClinicLogoIcon]}>
                       {clinicForm.logo_url && !logoFailed ? (
                         <Image
                           source={{ uri: profilePhotoUrl(clinicForm.logo_url) }}
                           onError={() => setLogoFailed(true)}
-                          style={styles.extractedInline59}
+                          style={[styles.extractedInline59, !editingClinicId && styles.createClinicLogoImage]}
                         />
                       ) : (
                         <Camera size={22} color="#64748B" />
                       )}
-                      <TouchableOpacity
+                      {clinicForm.logo_url ? <TouchableOpacity
                         style={styles.smallCloseBadge}
                         disabled={logoUploading || clinicSaving}
                         onPress={() =>
@@ -112,14 +113,14 @@ export function ClinicFormModal(props: Props) {
                         }
                       >
                         <X size={10} color="#64748B" />
-                      </TouchableOpacity>
+                      </TouchableOpacity> : null}
                     </View>
                     <TouchableOpacity
                       style={styles.extractedInline60}
                       disabled={logoUploading || clinicSaving}
                       onPress={handleChooseLogo}
                     >
-                      <Text style={styles.changeLogoLink}>Change logo</Text>
+                      <Text style={styles.changeLogoLink}>{clinicForm.logo_url ? 'Change logo' : 'Upload logo'}</Text>
                     </TouchableOpacity>
                     <Text style={styles.logoHelperText}>
                       PNG/JPG only, max 2MB
@@ -135,12 +136,12 @@ export function ClinicFormModal(props: Props) {
                   >
                     <View style={styles.extractedInline30}>
                       <Text style={styles.formLabelText}>
-                        Clinic Name{' '}
+                        {editingClinicId ? 'Clinic Name' : 'Name'}{' '}
                         <Text style={styles.extractedInline62}>*</Text>
                       </Text>
                       <TextInput
                         style={styles.formInputBox}
-                        placeholder="Aarogya Care Clinic"
+                        placeholder={editingClinicId ? 'Aarogya Care Clinic' : ''}
                         placeholderTextColor="#94A3B8"
                         value={clinicForm.name}
                         onChangeText={v =>
@@ -151,12 +152,12 @@ export function ClinicFormModal(props: Props) {
 
                     <View style={styles.extractedInline30}>
                       <Text style={styles.formLabelText}>
-                        Email Address{' '}
+                        {editingClinicId ? 'Email Address' : 'Email'}{' '}
                         <Text style={styles.extractedInline62}>*</Text>
                       </Text>
                       <TextInput
                         style={styles.formInputBox}
-                        placeholder="contact@aarogyacare.com"
+                        placeholder={editingClinicId ? 'contact@aarogyacare.com' : ''}
                         placeholderTextColor="#94A3B8"
                         keyboardType="email-address"
                         value={clinicForm.email}
@@ -176,13 +177,13 @@ export function ClinicFormModal(props: Props) {
                     ]}
                   >
                     <View style={styles.extractedInline30}>
-                      <Text style={styles.formLabelText}>
-                        Phone Number{' '}
+                        <Text style={styles.formLabelText}>
+                          {editingClinicId ? 'Phone Number' : 'Phone'}{' '}
                         <Text style={styles.extractedInline62}>*</Text>
                       </Text>
                       <TextInput
                         style={styles.formInputBox}
-                        placeholder="9876543210"
+                        placeholder={editingClinicId ? '9876543210' : ''}
                         placeholderTextColor="#94A3B8"
                         keyboardType="phone-pad"
                         value={clinicForm.phone}
@@ -192,7 +193,7 @@ export function ClinicFormModal(props: Props) {
                       />
                     </View>
 
-                    <View style={styles.extractedInline30}>
+                    {editingClinicId && <View style={styles.extractedInline30}>
                       <Text style={styles.formLabelText}>
                         Address <Text style={styles.extractedInline62}>*</Text>
                       </Text>
@@ -205,7 +206,7 @@ export function ClinicFormModal(props: Props) {
                           setClinicForm({ ...clinicForm, address: v })
                         }
                       />
-                    </View>
+                    </View>}
                   </View>
 
                   {/* Row 3: State & City Dropdowns */}
@@ -310,6 +311,7 @@ export function ClinicFormModal(props: Props) {
                     </View>
                   </View>
 
+                  {editingClinicId ? <>
                   {/* Row 4: Country & Website */}
                   <View
                     style={[
@@ -464,19 +466,28 @@ export function ClinicFormModal(props: Props) {
                       </Text>
                     </View>
                   </View>
+                  </> : <View style={styles.createSubscriptionField}>
+                    <Text style={styles.formLabelText}>Subscription Plan <Text style={styles.extractedInline62}>*</Text></Text>
+                    <TextInput
+                      style={styles.formInputBox}
+                      value={clinicForm.subscription_plan || 'basic'}
+                      onChangeText={value => setClinicForm(form => ({ ...form, subscription_plan: value }))}
+                      autoCapitalize="none"
+                    />
+                  </View>}
                 </ScrollView>
 
                 {/* Footer Buttons */}
-                <View style={styles.addAdminFooterRow}>
+                <View style={[styles.addAdminFooterRow, !editingClinicId && styles.createClinicFooterRow, !editingClinicId && isMobile && styles.createClinicFooterRowMobile]}>
                   <TouchableOpacity
-                    style={styles.addAdminCancelBtn}
+                    style={[styles.addAdminCancelBtn, !editingClinicId && styles.createClinicCancelBtn]}
                     onPress={() => setModalVisible(false)}
                   >
-                    <Text style={styles.addAdminCancelText}>Cancel</Text>
+                    <Text style={[styles.addAdminCancelText, !editingClinicId && styles.createClinicCancelText]}>Cancel</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.addAdminSubmitBtn}
+                    style={[styles.addAdminSubmitBtn, !editingClinicId && styles.createClinicSubmitBtn]}
                     onPress={handleSaveClinic}
                     disabled={
                       logoUploading ||
@@ -506,7 +517,7 @@ export function ClinicFormModal(props: Props) {
                         <Text style={styles.addAdminSubmitText}>
                           {editingClinicId
                             ? 'Update Clinic'
-                            : 'Register Clinic'}
+                            : 'Create'}
                         </Text>
                       </>
                     )}

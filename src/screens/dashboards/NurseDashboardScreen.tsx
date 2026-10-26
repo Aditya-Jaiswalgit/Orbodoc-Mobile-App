@@ -178,7 +178,7 @@ export const NurseDashboardScreen: React.FC<Props> = ({
         {/* Today Date Card */}
         <View style={styles.todayCard}>
           <View style={styles.todayIcon}>
-            <CalendarDays size={22} color="#0D9488" strokeWidth={2.2} />
+            <CalendarDays size={22} color="#27A599" strokeWidth={2.2} />
           </View>
           <View style={styles.todayCopy}>
             <View style={styles.todayEyebrow}>
@@ -221,7 +221,7 @@ export const NurseDashboardScreen: React.FC<Props> = ({
                 >
                   <View style={styles.cardHeaderRow}>
                     <View style={styles.moduleIconCircle}>
-                      <IconComp size={22} color="#0D9488" />
+                      <IconComp size={22} color="#27A599" />
                     </View>
                     <ArrowRight size={18} color="#64748B" />
                   </View>
@@ -235,7 +235,7 @@ export const NurseDashboardScreen: React.FC<Props> = ({
           /* Empty Access State */
           <View style={styles.emptyCard}>
             <View style={styles.lockCircle}>
-              <Lock size={32} color="#0D9488" />
+              <Lock size={32} color="#27A599" />
             </View>
             <Text style={styles.emptyBadge}>ACCESS NOT CONFIGURED</Text>
             <Text style={styles.emptyTitle}>No modules are available yet</Text>
@@ -244,7 +244,7 @@ export const NurseDashboardScreen: React.FC<Props> = ({
               clinic administrator to request the access you need.
             </Text>
             <View style={styles.emptyNoticeBox}>
-              <CheckCircle2 size={16} color="#0D9488" style={{ marginTop: 2 }} />
+              <CheckCircle2 size={16} color="#27A599" style={{ marginTop: 2 }} />
               <Text style={styles.emptyNoticeText}>
                 Ask your administrator to enable the required{' '}
                 <Text style={{ fontWeight: '700' }}>View</Text> permissions from Role Permissions.
@@ -272,12 +272,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   greetingTitle: {
-    color: '#0F172A',
+    fontFamily: 'Inter', color: '#0F172A',
     fontSize: 18,
     fontWeight: '800',
   },
   greetingSubtitle: {
-    color: '#64748B',
+    fontFamily: 'Inter', color: '#64748B',
     fontSize: 13,
   },
   todayCard: {
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#99F6E4',
     backgroundColor: '#FFFFFF',
-    shadowColor: '#0D9488',
+    shadowColor: '#27A599',
     shadowOpacity: 0.1,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
@@ -320,16 +320,16 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
   },
   todayLabel: {
-    color: '#0D9488',
+    fontFamily: 'Inter', color: '#27A599',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.2,
   },
   todayDate: {
-    color: '#0F172A',
+    fontFamily: 'Inter', color: '#0F172A',
     fontSize: 15,
     fontWeight: '700',
   },
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     padding: 18,
     borderWidth: 1,
     borderColor: '#CCFBF1',
-    shadowColor: '#0D9488',
+    shadowColor: '#27A599',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 10,
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#0D9488',
+    backgroundColor: '#27A599',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -375,19 +375,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   badgeText: {
-    fontSize: 10.5,
+    fontFamily: 'Inter', fontSize: 10.5,
     fontWeight: '800',
-    color: '#0F766E',
+    color: '#1D7C72',
     letterSpacing: 0.8,
   },
   heroTitle: {
-    fontSize: 18,
+    fontFamily: 'Inter', fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
     marginBottom: 6,
   },
   heroSubtitle: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#64748B',
     lineHeight: 19,
   },
@@ -422,14 +422,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardTitle: {
-    fontSize: 16,
+    fontFamily: 'Inter', fontSize: 18,
     fontWeight: '700',
     color: '#0F172A',
     marginTop: 12,
     marginBottom: 4,
   },
   cardSubtitle: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#64748B',
     lineHeight: 18,
   },
@@ -456,21 +456,21 @@ const styles = StyleSheet.create({
     borderColor: '#CCFBF1',
   },
   emptyBadge: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '800',
-    color: '#0F766E',
+    color: '#1D7C72',
     letterSpacing: 1,
     marginBottom: 6,
   },
   emptyTitle: {
-    fontSize: 17,
+    fontFamily: 'Inter', fontSize: 17,
     fontWeight: '800',
     color: '#0F172A',
     marginBottom: 8,
     textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#64748B',
     textAlign: 'center',
     lineHeight: 18,
@@ -488,9 +488,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyNoticeText: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     fontSize: 12,
-    color: '#0F766E',
+    color: '#1D7C72',
     lineHeight: 17,
   },
 });

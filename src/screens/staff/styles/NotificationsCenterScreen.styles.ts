@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#F8FAFC',
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -16,13 +16,13 @@ export const styles = StyleSheet.create({
     marginBottom: 16,
   },
   pageTitle: {
-    fontSize: 27,
+    fontFamily: 'Inter', fontSize: 24,
     fontWeight: '900',
     color: '#0f172a',
     letterSpacing: -0.6,
   },
   pageSubtitle: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#64748b',
     marginTop: 6,
     lineHeight: 18,
@@ -51,7 +51,7 @@ export const styles = StyleSheet.create({
     elevation: 2,
   },
   tabItemText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '500',
     color: '#475569',
     textAlign: 'center',
@@ -75,7 +75,7 @@ export const styles = StyleSheet.create({
     elevation: 1,
   },
   cardHeaderTitle: {
-    fontSize: 24,
+    fontFamily: 'Inter', fontSize: 24,
     fontWeight: '800',
     color: '#0f172a',
     marginBottom: 12,
@@ -90,7 +90,7 @@ export const styles = StyleSheet.create({
     marginBottom: 12,
   },
   unreadStripText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '600',
     color: '#0f172a',
   },
@@ -109,7 +109,7 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
   markAllReadText: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#0f172a',
   },
@@ -128,7 +128,7 @@ export const styles = StyleSheet.create({
     marginBottom: 14,
   },
   clearHistoryText: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#ef4444',
   },
@@ -147,7 +147,7 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
   searchInput: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     height: 44,
     fontSize: 14,
     color: '#0f172a',
@@ -168,7 +168,7 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
   selectTriggerText: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '500',
     color: '#334155',
   },
@@ -200,12 +200,12 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   notifCardTitle: {
-    fontSize: 16,
+    fontFamily: 'Inter', fontSize: 16,
     fontWeight: '700',
     color: '#0f172a',
   },
   notifCardDate: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748b',
     marginTop: 3,
   },
@@ -219,7 +219,7 @@ export const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   notifPillBadgeText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '600',
     color: '#0f172a',
   },
@@ -231,7 +231,7 @@ export const styles = StyleSheet.create({
     color: '#475569',
   },
   notifCardMessage: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     color: '#334155',
     lineHeight: 21,
     marginTop: 12,
@@ -247,7 +247,7 @@ export const styles = StyleSheet.create({
     borderTopColor: 'rgba(226, 232, 240, 0.9)',
   },
   notifToLabel: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748b',
   },
   notifToName: {
@@ -263,7 +263,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   notifRolePillText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '500',
     color: '#334155',
   },
@@ -274,7 +274,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 10,
+    fontFamily: 'Inter', marginTop: 10,
     fontSize: 13,
     color: '#64748b',
   },
@@ -288,7 +288,7 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
   },
   emptyText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#94a3b8',
   },
   disabledButton: {
@@ -313,7 +313,7 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
   categoryLine: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     color: '#334155',
     lineHeight: 20,
   },
@@ -336,12 +336,12 @@ export const styles = StyleSheet.create({
     marginBottom: 12,
   },
   subUserName: {
-    fontSize: 16,
+    fontFamily: 'Inter', fontSize: 16,
     fontWeight: '700',
     color: '#0f172a',
   },
   subUserClinic: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#64748b',
     marginTop: 4,
   },
@@ -352,13 +352,13 @@ export const styles = StyleSheet.create({
     borderTopColor: '#f1f5f9',
   },
   subCatLabel: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '700',
     color: '#64748b',
     letterSpacing: 0.5,
   },
   subCatText: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     color: '#334155',
     marginTop: 4,
     lineHeight: 20,
@@ -370,7 +370,7 @@ export const styles = StyleSheet.create({
     borderRadius: 9999,
   },
   systemPillText: {
-    color: '#ffffff',
+    fontFamily: 'Inter', color: '#ffffff',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -385,7 +385,7 @@ export const styles = StyleSheet.create({
     borderRadius: 9999,
   },
   activePillText: {
-    color: '#047857',
+    fontFamily: 'Inter', color: '#047857',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -400,7 +400,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   manageSubButtonText: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#0f172a',
   },
@@ -414,7 +414,7 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   paginationLabel: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748b',
   },
   pageNavBtn: {
@@ -426,12 +426,12 @@ export const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   pageNavBtnText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '600',
     color: '#334155',
   },
   pageNavText: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '600',
     color: '#0f172a',
   },
@@ -452,11 +452,11 @@ export const styles = StyleSheet.create({
     borderTopColor: '#f1f5f9',
   },
   logMetaLabel: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748b',
   },
   logMetaVal: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#1e293b',
     marginTop: 2,
@@ -486,12 +486,12 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#f1f5f9',
   },
   dialogTitle: {
-    fontSize: 17,
+    fontFamily: 'Inter', fontSize: 20,
     fontWeight: '800',
     color: '#0f172a',
   },
   dialogSubtitle: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748b',
     marginTop: 2,
   },
@@ -503,7 +503,7 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   categoryGroupTitle: {
-    backgroundColor: '#f1f5f9',
+    fontFamily: 'Inter', backgroundColor: '#f1f5f9',
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 13,
@@ -520,7 +520,7 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#f8fafc',
   },
   toggleText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#334155',
     flex: 1,
     marginRight: 10,
@@ -551,7 +551,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   dialogCancelBtnText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '600',
     color: '#334155',
   },
@@ -564,7 +564,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#0f172a',
   },
   dialogSaveBtnText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '700',
     color: '#ffffff',
   },
@@ -587,7 +587,7 @@ export const styles = StyleSheet.create({
     elevation: 10,
   },
   pickerHeaderTitle: {
-    fontSize: 16,
+    fontFamily: 'Inter', fontSize: 16,
     fontWeight: '800',
     color: '#0f172a',
     marginBottom: 12,
@@ -601,7 +601,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#f0fdf4',
   },
   pickerItemText: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     color: '#334155',
     fontWeight: '600',
   },

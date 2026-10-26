@@ -172,7 +172,7 @@ export function FormModal({
                   >
                     <Pill
                       size={18}
-                      color={isMedicine ? '#FFFFFF' : '#0D9488'}
+                      color={isMedicine ? '#FFFFFF' : '#27A599'}
                     />
                   </View>
                   <View style={styles.modalHeaderCopy}>

@@ -21,20 +21,23 @@ interface RefreshButtonProps {
   buttonStyle?: ViewStyle;
   textStyle?: TextStyle;
   size?: 'sm' | 'default';
+  timestampOnSecondLine?: boolean;
 }
 
-const formatRefreshTime = (date: Date) => {
+const formatRefreshTime = (date: Date, compact = false) => {
   const day = date.getDate();
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const month = months[date.getMonth()];
   const year = date.getFullYear();
   let hours = date.getHours();
   const minutes = date.getMinutes().toString().padStart(2, '0');
-  const seconds = date.getSeconds().toString().padStart(2, '0');
   const ampm = hours >= 12 ? 'pm' : 'am';
   hours = hours % 12;
   hours = hours ? hours : 12;
-  return `${day} ${month} ${year}, ${hours}:${minutes}:${seconds} ${ampm}`;
+  const time = compact
+    ? `${hours}:${minutes} ${ampm}`
+    : `${hours}:${minutes}:${date.getSeconds().toString().padStart(2, '0')} ${ampm}`;
+  return `${day} ${month} ${year}, ${time}`;
 };
 
 export const RefreshButton: React.FC<RefreshButtonProps> = ({
@@ -47,6 +50,7 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
   buttonStyle,
   textStyle,
   size = 'default',
+  timestampOnSecondLine = false,
 }) => {
   const [internalLoading, setInternalLoading] = useState(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState(() => new Date());
@@ -110,8 +114,10 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
           {isLoading ? refreshingLabel : label}
         </Text>
       </TouchableOpacity>
-      <Text style={styles.lastUpdatedText}>
-        Last refreshed: {formatRefreshTime(lastRefreshedAt)}
+      <Text style={[styles.lastUpdatedText, timestampOnSecondLine && styles.lastUpdatedTextTwoLine]}>
+        {timestampOnSecondLine
+          ? `Last refreshed:\n${formatRefreshTime(lastRefreshedAt, true)}`
+          : `Last refreshed: ${formatRefreshTime(lastRefreshedAt)}`}
       </Text>
     </View>
   );
@@ -145,19 +151,24 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     fontWeight: '600',
     color: '#0f172a',
   },
   buttonTextSm: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '600',
   },
   lastUpdatedText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     color: '#64748b',
     marginTop: 2,
     paddingLeft: 2,
+  },
+  lastUpdatedTextTwoLine: {
+    fontFamily: 'Inter', width: 190,
+    fontSize: 10,
+    lineHeight: 14,
   },
 });
 

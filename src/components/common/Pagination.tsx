@@ -184,7 +184,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#F8FAFC',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
     paddingHorizontal: 16,
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   infoText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     color: '#64748b',
   },
   boldText: {
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   pageSizeLabel: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     color: '#64748b',
     fontWeight: '500',
   },
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     borderColor: '#0284c7',
   },
   pageSizeText: {
-    fontSize: 11,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '600',
     color: '#475569',
   },
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     borderColor: '#0284c7',
   },
   pageBtnText: {
-    fontSize: 13,
+    fontFamily: 'Inter', fontSize: 13,
     fontWeight: '600',
     color: '#334155',
   },
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   ellipsis: {
-    fontSize: 14,
+    fontFamily: 'Inter', fontSize: 14,
     color: '#94a3b8',
     paddingHorizontal: 4,
   },

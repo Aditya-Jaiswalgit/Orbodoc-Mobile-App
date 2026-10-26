@@ -36,7 +36,7 @@ import {
 } from '../../../api/patientApi';
 
 const COLORS = {
-  teal: '#0D9488',
+  teal: '#27A599',
   ink: '#0F172A',
   muted: '#64748B',
   line: '#E2E8F0',
@@ -118,7 +118,8 @@ export function PatientStatsCards({
 }) {
   const { width: screenWidth } = useWindowDimensions();
   const { focusedCard, focusCard } = usePatientCardFocus();
-  const wideLayout = screenWidth >= 720;
+  const tabletLayout = screenWidth >= 640;
+  const wideLayout = screenWidth >= 1024;
   const selectStat = (
     selection: 'total' | 'active' | 'inactive' | 'today' | 'week',
   ) => {
@@ -155,7 +156,7 @@ export function PatientStatsCards({
       label: 'New This Week',
       value: thisWeek,
       tint: '#FFF4E5',
-      color: '#F59E0B',
+      color: '#F9A91F',
       icon: UserPlus,
     },
   ];
@@ -174,7 +175,7 @@ export function PatientStatsCards({
         const cardContent = (
           <>
             <View style={[styles.statIcon, { backgroundColor: tint }]}>
-              <Icon size={17} color={color} />
+              <Icon size={20} color={color} />
             </View>
             {key === 'active' ? (
               <View style={styles.activeStats}>
@@ -184,10 +185,10 @@ export function PatientStatsCards({
                   accessibilityRole="button"
                   accessibilityLabel={`Show ${active} active patients`}
                 >
-                  <Text style={[styles.statValue, styles.activeStatValue]}>
+                  <Text style={[styles.statValue, tabletLayout && styles.statValueTablet, styles.activeStatValue]}>
                     {active}
                   </Text>
-                  <Text style={styles.statLabel}>Active</Text>
+                  <Text style={[styles.statLabel, tabletLayout && styles.statLabelTablet]}>Active</Text>
                 </TouchableOpacity>
                 <View style={styles.statDivider} />
                 <TouchableOpacity
@@ -196,18 +197,18 @@ export function PatientStatsCards({
                   accessibilityRole="button"
                   accessibilityLabel={`Show ${inactive} inactive patients`}
                 >
-                  <Text style={[styles.statValue, styles.inactiveStatValue]}>
+                  <Text style={[styles.statValue, tabletLayout && styles.statValueTablet, styles.inactiveStatValue]}>
                     {inactive}
                   </Text>
-                  <Text style={styles.statLabel}>Inactive</Text>
+                  <Text style={[styles.statLabel, tabletLayout && styles.statLabelTablet]}>Inactive</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.statCopy}>
-                <Text style={styles.statValue} numberOfLines={1}>
+                <Text style={[styles.statValue, tabletLayout && styles.statValueTablet]} numberOfLines={1}>
                   {value}
                 </Text>
-                <Text style={styles.statLabel} numberOfLines={1}>
+                <Text style={[styles.statLabel, tabletLayout && styles.statLabelTablet]} numberOfLines={1}>
                   {label}
                 </Text>
               </View>
@@ -284,11 +285,11 @@ function FilterDropdown({
     <>
       <TouchableOpacity
         ref={triggerRef}
-        style={[styles.filterDropdown, style]}
+        style={[styles.filterDropdown, screenWidth >= 640 && styles.filterDropdownTablet, style]}
         onPress={showMenu}
         activeOpacity={0.75}
       >
-        <Text style={styles.filterDropdownText} numberOfLines={1}>
+        <Text style={[styles.filterDropdownText, screenWidth >= 640 && styles.filterDropdownTextTablet]} numberOfLines={1}>
           {selected?.label || placeholder}
         </Text>
         <ChevronDown size={15} color="#64748B" />
@@ -332,6 +333,7 @@ function FilterDropdown({
                   <Text
                     style={[
                       styles.filterDropdownOptionText,
+                      screenWidth >= 640 && styles.filterDropdownOptionTextTablet,
                       option.value === value &&
                         styles.filterDropdownOptionTextSelected,
                     ]}
@@ -377,6 +379,7 @@ export function PatientFilterPanel({
   const { focusedCard, focusCard } = usePatientCardFocus();
   const { width: screenWidth } = useWindowDimensions();
   const compactFilters = screenWidth < 355;
+  const tabletFilters = screenWidth >= 640;
   return (
     <View
       style={[
@@ -459,8 +462,8 @@ export function PatientFilterPanel({
               dateFrom ? new Date(`${dateFrom}T00:00:00`) : undefined
             }
             placeholder="Registration Date"
-            triggerStyle={styles.registrationDateTrigger}
-            triggerTextStyle={styles.registrationDateText}
+            triggerStyle={[styles.registrationDateTrigger, tabletFilters && styles.registrationDateTriggerTablet]}
+            triggerTextStyle={[styles.registrationDateText, tabletFilters && styles.registrationDateTextTablet]}
             iconColor="#64748B"
             onOpen={() => focusCard('filters')}
             onDateChange={date => {
@@ -477,7 +480,7 @@ export function PatientFilterPanel({
       </View>
       <View style={styles.filterToolsRow}>
         <TouchableOpacity
-          style={styles.clearFiltersIconButton}
+          style={[styles.clearFiltersIconButton, tabletFilters && styles.clearFiltersIconButtonTablet]}
           onPress={() => {
             focusCard('filters');
             onClearFilters();
@@ -487,14 +490,14 @@ export function PatientFilterPanel({
           <FilterX size={16} color="#94A3B8" />
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.columnsButton}
+          style={[styles.columnsButton, tabletFilters && styles.columnsButtonTablet]}
           onPress={() => {
             focusCard('filters');
             onOpenColumns();
           }}
         >
           <Columns3 size={15} color="#334155" />
-          <Text style={styles.columnsButtonText}>Columns</Text>
+          <Text style={[styles.columnsButtonText, tabletFilters && styles.columnsButtonTextTablet]}>Columns</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -1646,7 +1649,7 @@ function DetailSection({
     <View style={styles.detailSection}>
       <View style={styles.detailSectionHeader}>
         <View style={styles.detailSectionIcon}>
-          <Icon size={16} color="#0D9488" />
+          <Icon size={16} color="#27A599" />
         </View>
         <Text style={styles.detailSectionTitle}>{title}</Text>
       </View>
@@ -1702,14 +1705,15 @@ const styles = StyleSheet.create({
   statCardWide: { width: '23%' },
   statCardNarrow: { width: '48.5%' },
   statIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   statCopy: { flex: 1, minWidth: 0 },
-  statValue: { fontSize: 16, fontWeight: '800', color: COLORS.ink },
+  statValue: { fontFamily: 'Inter', fontSize: 20, fontWeight: '700', color: '#1C2830' },
+  statValueTablet: { fontSize: 24 },
   activeStats: {
     flex: 1,
     flexDirection: 'row',
@@ -1718,14 +1722,15 @@ const styles = StyleSheet.create({
   },
   activeStatColumn: { flex: 1, alignItems: 'center' },
   statDivider: { width: 1, height: 30, backgroundColor: '#E2E8F0' },
-  activeStatValue: { color: '#16A36A' },
-  inactiveStatValue: { color: '#75839A' },
+  activeStatValue: { color: '#2EB87F' },
+  inactiveStatValue: { color: '#6C7C93' },
   statLabel: {
-    fontSize: 8,
+    fontFamily: 'Inter', fontSize: 11,
     fontWeight: '500',
-    color: COLORS.muted,
+    color: '#6C7C93',
     marginTop: 1,
   },
+  statLabelTablet: { fontSize: 12 },
   filterCard: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
@@ -1753,7 +1758,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#F8FAFC',
   },
-  filterDropdownText: { flex: 1, color: '#263445', fontSize: 11 },
+  filterDropdownTablet: { height: 40 },
+  filterDropdownText: { fontFamily: 'Inter', flex: 1, color: '#1C2830', fontSize: 14 },
+  filterDropdownTextTablet: { fontSize: 16 },
   filterDropdownOverlay: {
     flex: 1,
     backgroundColor: 'transparent',
@@ -1781,7 +1788,8 @@ const styles = StyleSheet.create({
     borderRadius: 7,
   },
   filterDropdownCheckSpacer: { width: 15, height: 15 },
-  filterDropdownOptionText: { flex: 1, color: '#334155', fontSize: 12 },
+  filterDropdownOptionText: { fontFamily: 'Inter', flex: 1, color: '#1C2830', fontSize: 14 },
+  filterDropdownOptionTextTablet: { fontSize: 16 },
   filterDropdownOptionSelected: { backgroundColor: '#E6F4F1' },
   filterDropdownOptionTextSelected: { color: COLORS.teal, fontWeight: '700' },
   registrationDateField: { flex: 1.35, minWidth: 0 },
@@ -1794,12 +1802,14 @@ const styles = StyleSheet.create({
     borderColor: COLORS.line,
     borderRadius: 10,
   },
+  registrationDateTriggerTablet: { height: 40 },
   registrationDateText: {
-    flex: 1,
-    color: '#718096',
-    fontSize: 11,
+    fontFamily: 'Inter', flex: 1,
+    color: '#6C7C93',
+    fontSize: 14,
     fontWeight: '400',
   },
+  registrationDateTextTablet: { fontSize: 16 },
   clearFiltersIconButton: {
     width: 36,
     height: 36,
@@ -1810,6 +1820,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#F8FAFC',
   },
+  clearFiltersIconButtonTablet: { width: 40, height: 40 },
   filterToolsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1827,7 +1838,9 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: '#F8FAFC',
   },
-  columnsButtonText: { color: '#334155', fontSize: 11, fontWeight: '700' },
+  columnsButtonTablet: { minHeight: 40, paddingHorizontal: 16 },
+  columnsButtonText: { fontFamily: 'Inter', color: '#1C2830', fontSize: 14, fontWeight: '500' },
+  columnsButtonTextTablet: { fontSize: 16 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.60)',
@@ -1876,8 +1889,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalHeaderText: { flex: 1, minWidth: 0 },
-  modalTitle: { fontSize: 17, fontWeight: '800', color: COLORS.ink },
-  modalSubtitle: { fontSize: 11, color: COLORS.muted, marginTop: 2 },
+  modalTitle: { fontFamily: 'Inter', fontSize: 20, fontWeight: '800', color: COLORS.ink },
+  modalSubtitle: { fontFamily: 'Inter', fontSize: 11, color: COLORS.muted, marginTop: 2 },
   closeButton: { padding: 7 },
   patientFormHeader: {
     minHeight: 58,
@@ -1895,14 +1908,14 @@ const styles = StyleSheet.create({
   formContent: { padding: 14, gap: 18, paddingBottom: 20 },
   formSection: { gap: 15 },
   sectionHeading: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.8,
     color: COLORS.teal,
     marginTop: 5,
   },
   patientFormSectionHeading: {
-    fontSize: 12,
+    fontFamily: 'Inter', fontSize: 12,
     fontWeight: '500',
     color: '#718096',
   },
@@ -1915,10 +1928,10 @@ const styles = StyleSheet.create({
     borderColor: COLORS.line,
   },
   formField: { gap: 6 },
-  fieldLabel: { fontSize: 12, fontWeight: '500', color: '#334155' },
+  fieldLabel: { fontFamily: 'Inter', fontSize: 14, fontWeight: '500', color: '#334155' },
   requiredMark: { color: '#EF4444', fontWeight: '600' },
   formInput: {
-    minHeight: 39,
+    fontFamily: 'Inter', minHeight: 39,
     paddingHorizontal: 11,
     paddingVertical: 8,
     borderWidth: 1,
@@ -1940,7 +1953,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   dateTextInput: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     minWidth: 0,
     height: 37,
     paddingHorizontal: 11,
@@ -1990,7 +2003,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: COLORS.teal,
   },
-  genderRadioText: { color: '#334155', fontSize: 12 },
+  genderRadioText: { fontFamily: 'Inter', color: '#334155', fontSize: 12 },
   formSelect: {
     minHeight: 39,
     flexDirection: 'row',
@@ -2003,7 +2016,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#F8FAFC',
   },
-  formSelectText: { flex: 1, color: '#334155', fontSize: 13 },
+  formSelectText: { fontFamily: 'Inter', flex: 1, color: '#334155', fontSize: 13 },
   formPlaceholder: { color: '#718096' },
   pickerBackdrop: {
     flex: 1,
@@ -2024,13 +2037,13 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   pickerTitle: {
-    marginBottom: 12,
+    fontFamily: 'Inter', marginBottom: 12,
     color: COLORS.ink,
     fontSize: 16,
     fontWeight: '700',
   },
   pickerSearch: {
-    minHeight: 40,
+    fontFamily: 'Inter', minHeight: 40,
     marginBottom: 8,
     paddingHorizontal: 10,
     borderWidth: 1,
@@ -2051,11 +2064,11 @@ const styles = StyleSheet.create({
   },
   pickerOptionSelected: { backgroundColor: '#E6F4F1' },
   pickerCheckSpacer: { width: 16, height: 16 },
-  pickerOptionText: { flex: 1, color: '#334155', fontSize: 13 },
+  pickerOptionText: { fontFamily: 'Inter', flex: 1, color: '#334155', fontSize: 13 },
   pickerOptionTextSelected: { color: COLORS.teal, fontWeight: '700' },
   pickerLoading: { paddingVertical: 20 },
   pickerEmpty: {
-    padding: 14,
+    fontFamily: 'Inter', padding: 14,
     color: COLORS.muted,
     fontSize: 12,
     textAlign: 'center',
@@ -2081,9 +2094,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.teal,
     backgroundColor: '#E6F4F1',
   },
-  genderOptionText: { fontSize: 10, fontWeight: '800', color: COLORS.muted },
+  genderOptionText: { fontFamily: 'Inter', fontSize: 10, fontWeight: '800', color: COLORS.muted },
   genderOptionTextSelected: { color: COLORS.teal },
-  errorText: { color: '#DC2626', fontSize: 12, fontWeight: '600' },
+  errorText: { fontFamily: 'Inter', color: '#DC2626', fontSize: 12, fontWeight: '600' },
   modalFooter: {
     flexDirection: 'row',
     gap: 10,
@@ -2102,7 +2115,7 @@ const styles = StyleSheet.create({
     borderRadius: 9,
   },
   patientFormActionButton: { minHeight: 42, flex: 1 },
-  cancelButtonText: { color: COLORS.ink, fontSize: 13, fontWeight: '700' },
+  cancelButtonText: { fontFamily: 'Inter', color: COLORS.ink, fontSize: 14, fontWeight: '700' },
   primaryButton: {
     minHeight: 44,
     flex: 1.2,
@@ -2111,7 +2124,7 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: COLORS.teal,
   },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  primaryButtonText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
   closePrimaryButton: { flex: 1 },
   disabledButton: { opacity: 0.65 },
   loadingBox: {
@@ -2120,10 +2133,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
   },
-  loadingText: { color: COLORS.muted, fontSize: 13 },
+  loadingText: { fontFamily: 'Inter', color: COLORS.muted, fontSize: 13 },
   detailsContent: { padding: 14, gap: 12, backgroundColor: '#F0F2F3' },
   patientDetailsAvatarText: {
-    color: '#159E96',
+    fontFamily: 'Inter', color: '#159E96',
     fontSize: 22,
     fontWeight: '800',
   },
@@ -2160,7 +2173,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#F8FAFC',
   },
-  editInformationText: { color: '#1F2937', fontSize: 12, fontWeight: '600' },
+  editInformationText: { fontFamily: 'Inter', color: '#1F2937', fontSize: 12, fontWeight: '600' },
   profileHero: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2179,10 +2192,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  profileAvatarText: { color: '#FFFFFF', fontSize: 21, fontWeight: '900' },
+  profileAvatarText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 21, fontWeight: '900' },
   profileHeroCopy: { flex: 1, minWidth: 0 },
-  profileName: { fontSize: 16, fontWeight: '900', color: COLORS.ink },
-  profileCode: { fontSize: 11, color: COLORS.muted, marginTop: 2 },
+  profileName: { fontFamily: 'Inter', fontSize: 16, fontWeight: '900', color: COLORS.ink },
+  profileCode: { fontFamily: 'Inter', fontSize: 11, color: COLORS.muted, marginTop: 2 },
   statusPill: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
@@ -2192,7 +2205,7 @@ const styles = StyleSheet.create({
   },
   activePill: { backgroundColor: '#DCFCE7' },
   inactivePill: { backgroundColor: '#E2E8F0' },
-  statusPillText: { fontSize: 9, fontWeight: '900' },
+  statusPillText: { fontFamily: 'Inter', fontSize: 9, fontWeight: '900' },
   activeText: { color: '#15803D' },
   inactiveText: { color: '#475569' },
   editIconButton: {
@@ -2203,7 +2216,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
   },
-  editIconText: { fontSize: 11, fontWeight: '800', color: COLORS.teal },
+  editIconText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '800', color: COLORS.teal },
   detailSection: {
     borderRadius: 13,
     overflow: 'hidden',
@@ -2234,7 +2247,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#DDF0EE',
   },
-  detailSectionTitle: { color: '#1F2937', fontSize: 12, fontWeight: '800' },
+  detailSectionTitle: { fontFamily: 'Inter', color: '#1F2937', fontSize: 12, fontWeight: '800' },
   detailSectionContent: { gap: 7, padding: 12 },
   detailRow: {
     flexDirection: 'row',
@@ -2253,9 +2266,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  detailLabel: { flex: 1, fontSize: 11, color: COLORS.muted },
+  detailLabel: { fontFamily: 'Inter', flex: 1, fontSize: 11, color: COLORS.muted },
   detailValue: {
-    flex: 1.2,
+    fontFamily: 'Inter', flex: 1.2,
     textAlign: 'right',
     fontSize: 11,
     fontWeight: '700',
@@ -2276,20 +2289,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   consultationDoctor: {
-    flex: 1,
+    fontFamily: 'Inter', flex: 1,
     color: COLORS.ink,
     fontSize: 11,
     fontWeight: '800',
   },
   consultationStatus: {
-    color: COLORS.teal,
+    fontFamily: 'Inter', color: COLORS.teal,
     fontSize: 9,
     fontWeight: '800',
     textTransform: 'capitalize',
   },
-  consultationMeta: { color: COLORS.muted, fontSize: 10 },
-  consultationText: { color: '#334155', fontSize: 10, marginTop: 2 },
-  emptyConsultations: { padding: 12, color: COLORS.muted, fontSize: 11 },
+  consultationMeta: { fontFamily: 'Inter', color: COLORS.muted, fontSize: 10 },
+  consultationText: { fontFamily: 'Inter', color: '#334155', fontSize: 10, marginTop: 2 },
+  emptyConsultations: { fontFamily: 'Inter', padding: 12, color: COLORS.muted, fontSize: 11 },
   actionSection: { gap: 8 },
   actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   actionButton: {
@@ -2305,7 +2318,7 @@ const styles = StyleSheet.create({
     borderRadius: 9,
   },
   actionButtonDisabled: { opacity: 0.5 },
-  actionButtonText: { color: COLORS.teal, fontSize: 10, fontWeight: '800' },
+  actionButtonText: { fontFamily: 'Inter', color: COLORS.teal, fontSize: 14, fontWeight: '800' },
   statusAction: {
     minHeight: 43,
     borderRadius: 9,
@@ -2314,5 +2327,5 @@ const styles = StyleSheet.create({
   },
   deactivateAction: { backgroundColor: '#FEF2F2' },
   activateAction: { backgroundColor: '#DCFCE7' },
-  statusActionText: { fontSize: 12, fontWeight: '800', color: '#334155' },
+  statusActionText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '800', color: '#334155' },
 });

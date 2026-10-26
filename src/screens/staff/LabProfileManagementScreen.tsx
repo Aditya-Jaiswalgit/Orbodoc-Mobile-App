@@ -283,11 +283,11 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
 
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} tintColor="#0D9488" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} tintColor="#27A599" />}
       >
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#0D9488" />
+            <ActivityIndicator size="large" color="#27A599" />
             <Text style={styles.loadingText}>Loading Lab Management...</Text>
           </View>
         ) : (
@@ -318,7 +318,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
             <View style={styles.statsRow}>
               <View style={styles.statCard}>
                 <View style={[styles.statIconBox, { backgroundColor: '#CCFBF1' }]}>
-                  <Building2 size={20} color="#0F766E" />
+                  <Building2 size={20} color="#1D7C72" />
                 </View>
                 <Text style={styles.statLabel}>Registered Lab</Text>
                 <Text style={styles.statValue} numberOfLines={1}>
@@ -391,7 +391,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
                     {savedLab.logo_url ? (
                       <Image source={{ uri: profilePhotoUrl(savedLab.logo_url) }} style={styles.overviewLogo} />
                     ) : (
-                      <Building2 size={22} color="#0D9488" />
+                      <Building2 size={22} color="#27A599" />
                     )}
                   </View>
                   <View style={styles.overviewTextWrap}>
@@ -432,19 +432,19 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
 
                 <View style={styles.actionButtonsGrid}>
                   <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => setProfileViewOpen(true)}>
-                    <Eye size={15} color="#0F766E" />
+                    <Eye size={15} color="#1D7C72" />
                     <Text style={styles.actionBtnSecondaryText}>View Profile</Text>
                   </TouchableOpacity>
 
                   {canEdit ? (
                     <TouchableOpacity style={styles.actionBtnSecondary} onPress={openEditProfile}>
-                      <Edit3 size={15} color="#0F766E" />
+                      <Edit3 size={15} color="#1D7C72" />
                       <Text style={styles.actionBtnSecondaryText}>Edit Profile</Text>
                     </TouchableOpacity>
                   ) : null}
 
                   <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => setAdminsListOpen(true)}>
-                    <UsersRound size={15} color="#0F766E" />
+                    <UsersRound size={15} color="#1D7C72" />
                     <Text style={styles.actionBtnSecondaryText}>View Admins</Text>
                   </TouchableOpacity>
 
@@ -459,7 +459,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
             </View>
 
             <View style={styles.hoursBox}>
-              <Clock3 size={16} color="#0D9488" />
+              <Clock3 size={16} color="#27A599" />
               <Text style={styles.hoursText}>
                 {savedLab.available_days || 'Availability not configured'} · {savedLab.available_from || '—'} –{' '}
                 {savedLab.available_to || '—'}
@@ -538,7 +538,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
               <Text style={styles.sectionHeading}>Availability</Text>
               <View style={styles.availabilityCard}>
                 <View style={styles.availHeader}>
-                  <CalendarDays size={16} color="#0D9488" />
+                  <CalendarDays size={16} color="#27A599" />
                   <Text style={styles.availTitle}>Operating Schedule</Text>
                 </View>
                 <View style={styles.availGrid}>
@@ -613,7 +613,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
           <View style={styles.modalSheet}>
             <View style={styles.modalSheetHeader}>
               <View style={styles.modalHeaderTitleRow}>
-                <View style={[styles.modalHeaderIconBox, { backgroundColor: '#0D9488' }]}>
+                <View style={[styles.modalHeaderIconBox, { backgroundColor: '#27A599' }]}>
                   <Edit3 size={18} color="#fff" />
                 </View>
                 <View style={styles.flex}>
@@ -635,11 +635,11 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
                     disabled={uploadingLogo}
                   >
                     {uploadingLogo ? (
-                      <ActivityIndicator size="small" color="#0D9488" />
+                      <ActivityIndicator size="small" color="#27A599" />
                     ) : lab.logo_url ? (
                       <Image source={{ uri: profilePhotoUrl(lab.logo_url) }} style={styles.logoSquareImg} />
                     ) : (
-                      <Camera size={24} color="#0D9488" />
+                      <Camera size={24} color="#27A599" />
                     )}
                   </TouchableOpacity>
                   <View style={styles.logoTextWrap}>
@@ -651,7 +651,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
                         onPress={handleUploadLogo}
                         disabled={uploadingLogo}
                       >
-                        <Camera size={13} color="#0F766E" />
+                        <Camera size={13} color="#1D7C72" />
                         <Text style={styles.uploadSmallBtnText}>{lab.logo_url ? 'Change' : 'Upload'}</Text>
                       </TouchableOpacity>
                       {lab.logo_url ? (
@@ -886,7 +886,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
                     setAdminOpen(true);
                   }}
                 >
-                  <Plus size={16} color="#0D9488" />
+                  <Plus size={16} color="#27A599" />
                   <Text style={styles.addAdminBannerText}>Add New Administrator</Text>
                 </TouchableOpacity>
               ) : null}
@@ -942,7 +942,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
                           openAdminDetails(admin, 'view');
                         }}
                       >
-                        <Eye size={13} color="#0F766E" />
+                        <Eye size={13} color="#1D7C72" />
                         <Text style={styles.adminSmallActionText}>View</Text>
                       </TouchableOpacity>
 
@@ -954,7 +954,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
                             openAdminDetails(admin, 'edit');
                           }}
                         >
-                          <Edit3 size={13} color="#0F766E" />
+                          <Edit3 size={13} color="#1D7C72" />
                           <Text style={styles.adminSmallActionText}>Edit</Text>
                         </TouchableOpacity>
                       ) : null}
@@ -967,7 +967,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
                             openResetPassword(admin);
                           }}
                         >
-                          <KeyRound size={13} color="#0F766E" />
+                          <KeyRound size={13} color="#1D7C72" />
                           <Text style={styles.adminSmallActionText}>Password</Text>
                         </TouchableOpacity>
                       ) : null}
@@ -1005,7 +1005,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
           <View style={styles.modalSheet}>
             <View style={styles.modalSheetHeader}>
               <View style={styles.modalHeaderTitleRow}>
-                <View style={[styles.modalHeaderIconBox, { backgroundColor: '#0D9488' }]}>
+                <View style={[styles.modalHeaderIconBox, { backgroundColor: '#27A599' }]}>
                   <UserCog size={18} color="#fff" />
                 </View>
                 <View style={styles.flex}>
@@ -1132,7 +1132,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
           <View style={styles.modalSheet}>
             <View style={styles.modalSheetHeader}>
               <View style={styles.modalHeaderTitleRow}>
-                <View style={[styles.modalHeaderIconBox, { backgroundColor: '#0D9488' }]}>
+                <View style={[styles.modalHeaderIconBox, { backgroundColor: '#27A599' }]}>
                   {adminDetailsMode === 'view' ? <Eye size={18} color="#fff" /> : <Edit3 size={18} color="#fff" />}
                 </View>
                 <View style={styles.flex}>
@@ -1266,7 +1266,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
           <View style={[styles.modalSheet, { maxHeight: 420 }]}>
             <View style={styles.modalSheetHeader}>
               <View style={styles.modalHeaderTitleRow}>
-                <View style={[styles.modalHeaderIconBox, { backgroundColor: '#0D9488' }]}>
+                <View style={[styles.modalHeaderIconBox, { backgroundColor: '#27A599' }]}>
                   <KeyRound size={18} color="#fff" />
                 </View>
                 <View style={styles.flex}>
@@ -1341,7 +1341,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
           <View style={[styles.modalSheet, { maxHeight: '80%' }]}>
             <View style={styles.modalSheetHeader}>
               <View style={styles.modalHeaderTitleRow}>
-                <MapPin size={20} color="#0D9488" />
+                <MapPin size={20} color="#27A599" />
                 <Text style={[styles.modalSheetTitle, { marginLeft: 8 }]}>
                   Select {pickerType === 'state' ? 'State' : 'City'}
                 </Text>
@@ -1377,7 +1377,7 @@ export default function LabProfileManagementScreen({ onOpenDrawer }: { onOpenDra
                     <Text style={[styles.pickerItemText, selected && styles.pickerItemTextSelected]}>
                       {item.name}
                     </Text>
-                    {selected ? <Check size={16} color="#0D9488" /> : null}
+                    {selected ? <Check size={16} color="#27A599" /> : null}
                   </TouchableOpacity>
                 );
               }}
