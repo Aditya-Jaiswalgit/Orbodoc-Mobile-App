@@ -1,11 +1,12 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 // src/screens/staff/ChangePasswordScreen.tsx
 import React, { useState, useMemo } from 'react';
+import { useLiquidBorderScrollHandlers } from '../../components/common/LiquidBorderFocusContext';
 import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,6 +14,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import {
   Key,
   Lock,
@@ -27,6 +29,7 @@ import {
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { PatientHeader } from '../../components/common/PatientHeader';
+import { LiquidBorderSurface } from '../../components/common/LiquidBorderSurface';
 import { useAuthContext } from '../../context/AuthContext';
 import { changePasswordApi } from '../../api/authApi';
 import { showSuccessToast, showErrorToast } from '../../utils/toast';
@@ -40,6 +43,7 @@ interface Props {
 type PasswordField = 'currentPassword' | 'newPassword' | 'confirmPassword';
 
 export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScreen, patientMode = false }) => {
+  const borderScrollHandlers = useLiquidBorderScrollHandlers();
   const { logout } = useAuthContext();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -100,11 +104,11 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
 
   // Password strength meter matching Web
   const passwordStrength = useMemo(() => {
-    if (metCount === 0 || !newPassword) return { score: 0, label: 'Very Weak', color: '#EF4444' };
-    if (metCount <= 2) return { score: 25, label: 'Weak', color: '#EF4444' };
-    if (metCount <= 3) return { score: 50, label: 'Fair', color: '#F9A91F' };
-    if (metCount <= 4) return { score: 75, label: 'Good', color: '#27A599' };
-    return { score: 100, label: 'Strong', color: '#10B981' };
+    if (metCount === 0 || !newPassword) return { score: 0, label: 'Very Weak', color: colors.destructive };
+    if (metCount <= 2) return { score: 25, label: 'Weak', color: colors.destructive };
+    if (metCount <= 3) return { score: 50, label: 'Fair', color: colors.warning };
+    if (metCount <= 4) return { score: 75, label: 'Good', color: colors.primary };
+    return { score: 100, label: 'Strong', color: colors.success };
   }, [metCount, newPassword]);
 
   const passwordsMatch =
@@ -233,7 +237,8 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
+        <LiquidBorderScrollView
+          {...borderScrollHandlers}
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled={true}
@@ -242,12 +247,12 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
           {/* ── TOP BANNER: ACCOUNT SECURITY ────────────────────────────────────── */}
           <View style={styles.topBannerCard}>
             <View style={styles.bannerIconSquare}>
-              <Key size={22} color="#FFFFFF" />
+              <Key size={22} color={colors.surface} />
             </View>
 
             <View style={styles.bannerTextCol}>
               <View style={styles.securityBadgeRow}>
-                <Sparkles size={12} color="#27A599" style={{ marginRight: 4 }} />
+                <Sparkles size={12} color={colors.primary} style={{ marginRight: spacing.xs }} />
                 <Text style={styles.securityBadgeText}>ACCOUNT SECURITY</Text>
               </View>
               <Text style={styles.bannerTitleText}>Change Password</Text>
@@ -260,7 +265,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
           {/* General API Error Banner */}
           {generalApiError ? (
             <View style={styles.generalErrorBanner}>
-              <AlertCircle size={18} color="#EF4444" style={{ marginRight: 8, marginTop: 1 }} />
+              <AlertCircle size={18} color={colors.destructive} style={{ marginRight: spacing.sm, marginTop: 1 }} />
               <Text style={styles.generalErrorText}>{generalApiError}</Text>
             </View>
           ) : null}
@@ -268,12 +273,12 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
           {/* ── MAIN 2-COLUMN GRID (UPDATE PASSWORD FORM & CHECKLIST) ───────────── */}
           <View style={[styles.mainGridRow, isMobile && styles.mainGridRowMobile]}>
             {/* ── LEFT CARD: UPDATE PASSWORD FORM ─────────────────────────────── */}
-            <View style={[styles.formCard, isMobile ? { width: '100%' } : { flex: 1.4 }]}>
+            <LiquidBorderSurface style={[styles.formCard, isMobile ? { width: '100%' } : { flex: 1.4 }]} radius={20}>
               {/* Top accent teal bar */}
               <View style={styles.formCardTopBar} />
 
               <View style={styles.formCardHeader}>
-                <Lock size={20} color="#27A599" style={{ marginRight: 8 }} />
+                <Lock size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
                 <Text style={styles.formCardTitleText}>Update password</Text>
               </View>
               <Text style={styles.formCardSubtitleText}>
@@ -283,7 +288,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
               {/* Field 1: Current Password */}
               <View style={styles.fieldGroup}>
                 <Text style={styles.fieldLabelText}>
-                  Current password <Text style={{ color: '#EF4444' }}>*</Text>
+                  Current password <Text style={{ color: colors.destructive }}>*</Text>
                 </Text>
                 <View
                   style={[
@@ -301,7 +306,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
                     onBlur={() => setTouched((p) => ({ ...p, currentPassword: true }))}
                     secureTextEntry={!showCurrentPassword}
                     placeholder="Enter your current password"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.subtle}
                     autoCapitalize="none"
                   />
                   <TouchableOpacity
@@ -309,15 +314,15 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
                     onPress={() => setShowCurrentPassword(!showCurrentPassword)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     {showCurrentPassword ? (
-                      <EyeOff size={16} color="#64748B" />
+                      <EyeOff size={16} color={colors.muted} />
                     ) : (
-                      <Eye size={16} color="#64748B" />
+                      <Eye size={16} color={colors.muted} />
                     )}
                   </TouchableOpacity>
                 </View>
                 {isFieldInvalid('currentPassword') ? (
                   <View style={styles.inlineErrorRow}>
-                    <AlertCircle size={13} color="#EF4444" style={{ marginRight: 4 }} />
+                    <AlertCircle size={13} color={colors.destructive} style={{ marginRight: spacing.xs }} />
                     <Text style={styles.inlineErrorText}>{fieldErrors.currentPassword}</Text>
                   </View>
                 ) : null}
@@ -326,7 +331,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
               {/* Field 2: New Password */}
               <View style={styles.fieldGroup}>
                 <Text style={styles.fieldLabelText}>
-                  New password <Text style={{ color: '#EF4444' }}>*</Text>
+                  New password <Text style={{ color: colors.destructive }}>*</Text>
                 </Text>
                 <View
                   style={[
@@ -340,7 +345,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
                     onBlur={() => setTouched((p) => ({ ...p, newPassword: true }))}
                     secureTextEntry={!showNewPassword}
                     placeholder="Create a strong new password"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.subtle}
                     autoCapitalize="none"
                   />
                   <TouchableOpacity
@@ -348,9 +353,9 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
                     onPress={() => setShowNewPassword(!showNewPassword)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     {showNewPassword ? (
-                      <EyeOff size={16} color="#64748B" />
+                      <EyeOff size={16} color={colors.muted} />
                     ) : (
-                      <Eye size={16} color="#64748B" />
+                      <Eye size={16} color={colors.muted} />
                     )}
                   </TouchableOpacity>
                 </View>
@@ -380,7 +385,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
 
                 {isFieldInvalid('newPassword') ? (
                   <View style={styles.inlineErrorRow}>
-                    <AlertCircle size={13} color="#EF4444" style={{ marginRight: 4 }} />
+                    <AlertCircle size={13} color={colors.destructive} style={{ marginRight: spacing.xs }} />
                     <Text style={styles.inlineErrorText}>{fieldErrors.newPassword}</Text>
                   </View>
                 ) : null}
@@ -389,7 +394,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
               {/* Field 3: Confirm New Password */}
               <View style={styles.fieldGroup}>
                 <Text style={styles.fieldLabelText}>
-                  Confirm new password <Text style={{ color: '#EF4444' }}>*</Text>
+                  Confirm new password <Text style={{ color: colors.destructive }}>*</Text>
                 </Text>
                 <View
                   style={[
@@ -403,7 +408,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
                     onBlur={() => setTouched((p) => ({ ...p, confirmPassword: true }))}
                     secureTextEntry={!showConfirmPassword}
                     placeholder="Re-enter your new password"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.subtle}
                     autoCapitalize="none"
                   />
                   <TouchableOpacity
@@ -411,20 +416,20 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
                     onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     {showConfirmPassword ? (
-                      <EyeOff size={16} color="#64748B" />
+                      <EyeOff size={16} color={colors.muted} />
                     ) : (
-                      <Eye size={16} color="#64748B" />
+                      <Eye size={16} color={colors.muted} />
                     )}
                   </TouchableOpacity>
                 </View>
                 {isFieldInvalid('confirmPassword') ? (
                   <View style={styles.inlineErrorRow}>
-                    <AlertCircle size={13} color="#EF4444" style={{ marginRight: 4 }} />
+                    <AlertCircle size={13} color={colors.destructive} style={{ marginRight: spacing.xs }} />
                     <Text style={styles.inlineErrorText}>{fieldErrors.confirmPassword}</Text>
                   </View>
                 ) : passwordsMatch ? (
                   <View style={styles.inlineSuccessRow}>
-                    <CheckCircle2 size={13} color="#10B981" style={{ marginRight: 4 }} />
+                    <CheckCircle2 size={13} color={colors.success} style={{ marginRight: spacing.xs }} />
                     <Text style={styles.inlineSuccessText}>Passwords match</Text>
                   </View>
                 ) : null}
@@ -437,20 +442,20 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
                 disabled={loading}
                 activeOpacity={0.85}>
                 {loading ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={colors.surface} />
                 ) : (
                   <>
-                    <Key size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+                    <Key size={16} color={colors.surface} style={{ marginRight: spacing.sm }} />
                     <Text style={styles.changePasswordSubmitText}>Change Password</Text>
                   </>
                 )}
               </TouchableOpacity>
-            </View>
+            </LiquidBorderSurface>
 
             {/* ── RIGHT CARD: PASSWORD CHECKLIST ──────────────────────────────── */}
-            <View style={[styles.checklistCard, isMobile ? { width: '100%' } : { flex: 1 }]}>
+            <LiquidBorderSurface style={[styles.checklistCard, isMobile ? { width: '100%' } : { flex: 1 }]} radius={20}>
               <View style={styles.checklistHeaderRow}>
-                <Shield size={18} color="#27A599" style={{ marginRight: 8 }} />
+                <Shield size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
                 <Text style={styles.checklistTitleText}>Password checklist</Text>
               </View>
               <Text style={styles.checklistSubtitleText}>Complete at least four requirements.</Text>
@@ -465,9 +470,9 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
                         req.met ? styles.reqIconBadgeMet : styles.reqIconBadgeUnmet,
                       ]}>
                       {req.met ? (
-                        <Check size={12} color="#27A599" />
+                        <Check size={12} color={colors.primary} />
                       ) : (
-                        <X size={12} color="#94A3B8" />
+                        <X size={12} color={colors.subtle} />
                       )}
                     </View>
                     <Text
@@ -486,9 +491,9 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
               <Text style={styles.checklistFooterNoteText}>
                 Never reuse passwords or share them with anyone. A password manager can help keep credentials secure.
               </Text>
-            </View>
+            </LiquidBorderSurface>
           </View>
-        </ScrollView>
+        </LiquidBorderScrollView>
       </KeyboardAvoidingView>
     </View>
   );
@@ -497,7 +502,7 @@ export const ChangePasswordScreen: React.FC<Props> = ({ onOpenDrawer, onNavigate
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -511,21 +516,21 @@ const styles = StyleSheet.create({
   topBannerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.mint,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    borderColor: colors.mintBorder,
+    borderRadius: radii.xl,
+    padding: spacing.xl,
+    marginBottom: spacing.lg,
   },
   bannerIconSquare: {
     width: 48,
     height: 48,
-    borderRadius: 12,
-    backgroundColor: '#27A599',
+    borderRadius: radii.lg,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: spacing.lg,
     elevation: 2,
   },
   bannerTextCol: {
@@ -537,57 +542,57 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   securityBadgeText: {
-    fontFamily: 'Inter', fontSize: 11,
-    fontWeight: '700',
-    color: '#27A599',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    fontWeight: typography.weight.bold,
+    color: colors.primary,
     letterSpacing: 0.8,
   },
   bannerTitleText: {
-    fontFamily: 'Inter', fontSize: 22,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.heading,
+    fontWeight: typography.weight.bold,
+    color: colors.text,
   },
   bannerSubtitleText: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.muted,
     marginTop: 2,
   },
 
   generalErrorBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.destructiveSoft,
     borderWidth: 1,
     borderColor: '#FCA5A5',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
   },
   generalErrorText: {
-    fontFamily: 'Inter', flex: 1,
-    fontSize: 13,
-    color: '#B91C1C',
+    fontFamily: typography.family, flex: 1,
+    fontSize: typography.size.caption,
+    color: colors.destructiveDark,
     lineHeight: 18,
   },
 
   // ── MAIN GRID ─────────────────────────────────────────────────────────
   mainGridRow: {
     flexDirection: 'row',
-    gap: 20,
+    gap: spacing.xl,
     alignItems: 'flex-start',
   },
   mainGridRowMobile: {
     flexDirection: 'column',
-    gap: 16,
+    gap: spacing.lg,
   },
 
   // ── FORM CARD ──────────────────────────────────────────────────────────
   formCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 16,
-    padding: 24,
+    borderColor: colors.border,
+    borderRadius: radii.xl,
+    padding: spacing.xxl,
     position: 'relative',
     overflow: 'hidden',
     elevation: 2,
@@ -598,55 +603,55 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 4,
-    backgroundColor: '#27A599',
+    backgroundColor: colors.primary,
   },
   formCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
-    marginTop: 4,
+    marginBottom: spacing.xs,
+    marginTop: spacing.xs,
   },
   formCardTitleText: {
-    fontFamily: 'Inter', fontSize: 18,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.text,
   },
   formCardSubtitleText: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#64748B',
-    marginBottom: 16,
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.muted,
+    marginBottom: spacing.lg,
   },
 
   fieldGroup: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   fieldLabelText: {
-    fontFamily: 'Inter', fontSize: 12,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 6,
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.foreground,
+    marginBottom: spacing.tiny,
   },
   passwordInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 12,
+    borderColor: colors.input,
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.md,
   },
   inputErrorBorder: {
-    borderColor: '#EF4444',
-    backgroundColor: '#FEF2F2',
+    borderColor: colors.destructive,
+    backgroundColor: colors.destructiveSoft,
   },
   passwordInputBare: {
-    fontFamily: 'Inter', flex: 1,
+    fontFamily: typography.family, flex: 1,
     paddingVertical: 11,
-    fontSize: 13,
-    color: '#0F172A',
+    fontSize: typography.size.caption,
+    color: colors.text,
   },
   eyeToggleBtn: {
-    padding: 6,
+    padding: spacing.tiny,
   },
 
   inlineErrorRow: {
@@ -655,9 +660,9 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   inlineErrorText: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#EF4444',
-    fontWeight: '500',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.destructive,
+    fontWeight: typography.weight.medium,
   },
   inlineSuccessRow: {
     flexDirection: 'row',
@@ -665,17 +670,17 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   inlineSuccessText: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#10B981',
-    fontWeight: '500',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.success,
+    fontWeight: typography.weight.medium,
   },
 
   // Strength Meter
   strengthBox: {
-    marginTop: 8,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
-    padding: 8,
+    marginTop: spacing.sm,
+    backgroundColor: colors.secondary,
+    borderRadius: radii.md,
+    padding: spacing.sm,
   },
   strengthHeader: {
     flexDirection: 'row',
@@ -683,16 +688,16 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   strengthLabelText: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.muted,
   },
   strengthValueText: {
-    fontFamily: 'Inter', fontSize: 11,
-    fontWeight: '700',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    fontWeight: typography.weight.bold,
   },
   strengthBarTrack: {
     height: 4,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: colors.border,
     borderRadius: 2,
     overflow: 'hidden',
   },
@@ -705,8 +710,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#27A599',
-    borderRadius: 10,
+    backgroundColor: colors.primary,
+    borderRadius: radii.md,
     paddingVertical: 13,
     marginTop: 10,
     elevation: 2,
@@ -715,37 +720,37 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   changePasswordSubmitText: {
-    fontFamily: 'Inter', color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 14,
+    fontFamily: typography.family, color: colors.surface,
+    fontWeight: typography.weight.bold,
+    fontSize: typography.size.body,
   },
 
   // ── CHECKLIST CARD ─────────────────────────────────────────────────────
   checklistCard: {
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.mint,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
-    borderRadius: 16,
-    padding: 20,
+    borderColor: colors.mintBorder,
+    borderRadius: radii.xl,
+    padding: spacing.xl,
   },
   checklistHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   checklistTitleText: {
-    fontFamily: 'Inter', fontSize: 16,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.subtitle,
+    fontWeight: typography.weight.bold,
+    color: colors.text,
   },
   checklistSubtitleText: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#64748B',
-    marginBottom: 16,
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.muted,
+    marginBottom: spacing.lg,
   },
 
   requirementsList: {
-    gap: 12,
+    gap: spacing.md,
   },
   requirementRowItem: {
     flexDirection: 'row',
@@ -762,32 +767,32 @@ const styles = StyleSheet.create({
   reqIconBadgeMet: {
     backgroundColor: '#E6F4F1',
     borderWidth: 1,
-    borderColor: '#99F6E4',
+    borderColor: colors.mintBorder,
   },
   reqIconBadgeUnmet: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.secondary,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
   reqLabelText: {
-    fontFamily: 'Inter', fontSize: 13,
+    fontFamily: typography.family, fontSize: typography.size.caption,
   },
   reqLabelTextMet: {
-    color: '#0F172A',
-    fontWeight: '500',
+    color: colors.text,
+    fontWeight: typography.weight.medium,
   },
   reqLabelTextUnmet: {
-    color: '#94A3B8',
+    color: colors.subtle,
   },
 
   checklistDivider: {
     height: 1,
-    backgroundColor: '#CCFBF1',
+    backgroundColor: colors.mintBorder,
     marginVertical: 18,
   },
   checklistFooterNoteText: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.muted,
     lineHeight: 16,
   },
 });

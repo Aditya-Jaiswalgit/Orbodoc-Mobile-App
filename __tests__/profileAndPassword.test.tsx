@@ -20,7 +20,7 @@ jest.mock('../src/api/staffHeaderApi', () => ({ updateVideoAvailability: jest.fn
 jest.mock('../src/api/profilePhotoApi', () => ({ chooseAndUploadProfilePhoto: jest.fn(), profilePhotoUrl: (s: string) => s }));
 jest.mock('../src/utils/toast', () => ({ showSuccessToast: jest.fn(), showErrorToast: jest.fn() }));
 jest.mock('../src/components/common/StaffHeader', () => ({ StaffHeader: () => null }));
-jest.mock('lucide-react-native', () => Object.fromEntries(['Key', 'Lock', 'Shield', 'Eye', 'EyeOff', 'Check', 'X', 'Sparkles'].map(k => [k, k])));
+jest.mock('lucide-react-native', () => Object.fromEntries(['Key', 'Lock', 'Shield', 'Eye', 'EyeOff', 'Check', 'X', 'Sparkles', 'AlertCircle', 'CheckCircle2'].map(k => [k, k])));
 let screen: Renderer.ReactTestRenderer;
 let state: ReturnType<typeof useStaffProfile>;
 let stored: Record<string, any>;

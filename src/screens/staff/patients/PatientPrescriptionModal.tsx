@@ -1,8 +1,10 @@
+import { colors, radii, spacing, typography } from '../../../theme/tokens';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AppModal } from '../../../components/common/AppModal';
 import { Activity, CalendarClock, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronRight as OpenDetails, ClipboardList, Clock3, FileText, Lightbulb, Pill, RotateCcw, Search, SlidersHorizontal, Stethoscope, TestTube2, UserRound, X, } from 'lucide-react-native';
 import {
-  ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+  ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { LiquidBorderScrollView } from '../../../components/common/LiquidBorderScrollView';
 import {
   getPrescriptionByIdApi,
   getPrescriptionsApi,
@@ -159,7 +161,7 @@ function ClinicalDetail({
   return (
     <View style={styles.clinicalDetail}>
       <View style={styles.eyebrowRow}>
-        <Icon size={13} color="#27A599" />
+        <Icon size={13} color={colors.primary} />
         <Text style={styles.eyebrow}>{title}</Text>
       </View>
       <Text style={styles.clinicalValue}>{value || 'Not recorded'}</Text>
@@ -334,7 +336,7 @@ export function PatientPrescriptionModal({
           kind === 'date' && styles.dropdownMenuRight,
         ]}
       >
-        <ScrollView
+        <LiquidBorderScrollView
           nestedScrollEnabled
           keyboardShouldPersistTaps="handled"
           style={{ maxHeight: 180 }}
@@ -363,7 +365,7 @@ export function PatientPrescriptionModal({
               </Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </LiquidBorderScrollView>
       </View>
     );
   };
@@ -394,7 +396,7 @@ export function PatientPrescriptionModal({
               onPress={onClose}
               style={styles.closeIcon}
             >
-              <X size={19} color="#FFFFFF" />
+              <X size={19} color={colors.surface} />
             </TouchableOpacity>
           </View>
 
@@ -405,7 +407,7 @@ export function PatientPrescriptionModal({
             >
               <ClipboardList
                 size={14}
-                color={view === 'history' ? '#FFFFFF' : '#64748B'}
+                color={view === 'history' ? colors.surface : colors.muted}
               />
               <Text
                 style={[
@@ -430,7 +432,7 @@ export function PatientPrescriptionModal({
             >
               <FileText
                 size={14}
-                color={view === 'details' ? '#FFFFFF' : '#64748B'}
+                color={view === 'details' ? colors.surface : colors.muted}
               />
               <Text
                 style={[
@@ -457,12 +459,12 @@ export function PatientPrescriptionModal({
               {!loading && prescriptions.length > 0 ? (
                 <View style={styles.filters}>
                   <View style={styles.searchBox}>
-                    <Search size={15} color="#94A3B8" />
+                    <Search size={15} color={colors.subtle} />
                     <TextInput
                       value={search}
                       onChangeText={setSearch}
                       placeholder="Search prescriptions..."
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                       style={styles.searchInput}
                       returnKeyType="search"
                     />
@@ -478,7 +480,7 @@ export function PatientPrescriptionModal({
                         <Text style={styles.filterText} numberOfLines={1}>
                           {statusLabel(statusFilter)}
                         </Text>
-                        <ChevronDown size={14} color="#64748B" />
+                        <ChevronDown size={14} color={colors.muted} />
                       </TouchableOpacity>
                       {menu === 'status' ? renderPicker('status') : null}
                     </View>
@@ -494,7 +496,7 @@ export function PatientPrescriptionModal({
                             )?.label
                           }
                         </Text>
-                        <ChevronDown size={14} color="#64748B" />
+                        <ChevronDown size={14} color={colors.muted} />
                       </TouchableOpacity>
                       {menu === 'date' ? renderPicker('date') : null}
                     </View>
@@ -508,13 +510,13 @@ export function PatientPrescriptionModal({
                         style={styles.resetAction}
                         onPress={resetFilters}
                       >
-                        <RotateCcw size={11} color="#27A599" />
+                        <RotateCcw size={11} color={colors.primary} />
                         <Text style={styles.resetText}>Reset</Text>
                       </TouchableOpacity>
                     </View>
                   ) : (
                     <View style={styles.helperRow}>
-                      <SlidersHorizontal size={11} color="#94A3B8" />
+                      <SlidersHorizontal size={11} color={colors.subtle} />
                       <Text style={styles.helperText}>
                         Filter by status or date
                       </Text>
@@ -522,7 +524,7 @@ export function PatientPrescriptionModal({
                   )}
                 </View>
               ) : null}
-              <ScrollView
+              <LiquidBorderScrollView
                 style={styles.historyList}
                 contentContainerStyle={styles.historyListContent}
                 keyboardShouldPersistTaps="handled"
@@ -530,7 +532,7 @@ export function PatientPrescriptionModal({
               >
                 {loading ? (
                   <View style={styles.emptyState}>
-                    <ActivityIndicator color="#27A599" size="large" />
+                    <ActivityIndicator color={colors.primary} size="large" />
                     <Text style={styles.emptyTitle}>
                       Loading prescriptions...
                     </Text>
@@ -548,7 +550,7 @@ export function PatientPrescriptionModal({
                 ) : prescriptions.length === 0 ? (
                   <View style={styles.emptyState}>
                     <View style={styles.emptyIcon}>
-                      <Pill size={24} color="#94A3B8" />
+                      <Pill size={24} color={colors.subtle} />
                     </View>
                     <Text style={styles.emptyTitle}>
                       No prescriptions found
@@ -560,7 +562,7 @@ export function PatientPrescriptionModal({
                 ) : filtered.length === 0 ? (
                   <View style={styles.emptyState}>
                     <View style={styles.emptyIcon}>
-                      <Search size={23} color="#94A3B8" />
+                      <Search size={23} color={colors.subtle} />
                     </View>
                     <Text style={styles.emptyTitle}>
                       No matching prescriptions
@@ -572,7 +574,7 @@ export function PatientPrescriptionModal({
                       style={styles.clearFilters}
                       onPress={resetFilters}
                     >
-                      <RotateCcw size={13} color="#27A599" />
+                      <RotateCcw size={13} color={colors.primary} />
                       <Text style={styles.clearFiltersText}>Clear filters</Text>
                     </TouchableOpacity>
                   </View>
@@ -591,7 +593,7 @@ export function PatientPrescriptionModal({
                       >
                         <View style={styles.prescriptionTop}>
                           <View style={styles.rxTitleRow}>
-                            <FileText size={14} color="#27A599" />
+                            <FileText size={14} color={colors.primary} />
                             <Text style={styles.rxTitle}>Rx #{row.id}</Text>
                           </View>
                           <Text style={styles.finalBadge}>
@@ -599,7 +601,7 @@ export function PatientPrescriptionModal({
                           </Text>
                         </View>
                         <View style={styles.prescriptionDateRow}>
-                          <CalendarDays size={12} color="#64748B" />
+                          <CalendarDays size={12} color={colors.muted} />
                           <Text style={styles.prescriptionDate}>
                             {formatDate(row.created_at)}
                           </Text>
@@ -611,14 +613,14 @@ export function PatientPrescriptionModal({
                           >
                             {row.diagnosis || row.symptoms || 'No diagnosis'}
                           </Text>
-                          <OpenDetails size={16} color="#CBD5E1" />
+                          <OpenDetails size={16} color={colors.input} />
                         </View>
                         {Number(row.medicine_count || 0) > 0 ||
                         Number(row.test_count || 0) > 0 ? (
                           <View style={styles.countsRow}>
                             {Number(row.medicine_count || 0) > 0 ? (
                               <View style={styles.countItem}>
-                                <Pill size={11} color="#27A599" />
+                                <Pill size={11} color={colors.primary} />
                                 <Text style={styles.itemCount}>
                                   {Number(row.medicine_count)} medicines
                                 </Text>
@@ -653,7 +655,7 @@ export function PatientPrescriptionModal({
                       >
                         <ChevronLeft
                           size={15}
-                          color={page === 1 ? '#CBD5E1' : '#475569'}
+                          color={page === 1 ? colors.input : colors.muted}
                         />
                       </TouchableOpacity>
                       <Text style={styles.pageNumber}>
@@ -668,16 +670,16 @@ export function PatientPrescriptionModal({
                       >
                         <ChevronRight
                           size={15}
-                          color={page === totalPages ? '#CBD5E1' : '#475569'}
+                          color={page === totalPages ? colors.input : colors.muted}
                         />
                       </TouchableOpacity>
                     </View>
                   </View>
                 ) : null}
-              </ScrollView>
+              </LiquidBorderScrollView>
             </View>
           ) : (
-            <ScrollView
+            <LiquidBorderScrollView
               style={styles.detailsPanel}
               contentContainerStyle={styles.detailsContent}
               showsVerticalScrollIndicator
@@ -685,7 +687,7 @@ export function PatientPrescriptionModal({
             >
               {detailLoading ? (
                 <View style={styles.detailEmpty}>
-                  <ActivityIndicator size="large" color="#27A599" />
+                  <ActivityIndicator size="large" color={colors.primary} />
                   <Text style={styles.emptyTitle}>
                     Loading prescription details...
                   </Text>
@@ -693,7 +695,7 @@ export function PatientPrescriptionModal({
               ) : !detail ? (
                 <View style={styles.detailEmpty}>
                   <View style={styles.emptyIcon}>
-                    <ClipboardList size={25} color="#27A599" />
+                    <ClipboardList size={25} color={colors.primary} />
                   </View>
                   <Text style={styles.emptyTitle}>Select a prescription</Text>
                   <Text style={styles.emptyHint}>
@@ -704,7 +706,7 @@ export function PatientPrescriptionModal({
                     style={styles.backHistory}
                     onPress={() => setView('history')}
                   >
-                    <ClipboardList size={14} color="#27A599" />
+                    <ClipboardList size={14} color={colors.primary} />
                     <Text style={styles.backHistoryText}>
                       Prescription history
                     </Text>
@@ -715,7 +717,7 @@ export function PatientPrescriptionModal({
                   <View style={styles.detailCard}>
                     <View style={styles.prescriberHeader}>
                       <View style={styles.doctorIcon}>
-                        <UserRound size={19} color="#27A599" />
+                        <UserRound size={19} color={colors.primary} />
                       </View>
                       <View style={styles.prescriberCopy}>
                         <Text style={styles.eyebrow}>PRESCRIBED BY</Text>
@@ -723,7 +725,7 @@ export function PatientPrescriptionModal({
                           {detail.doctor_name || 'Doctor not recorded'}
                         </Text>
                         <View style={styles.prescribedDateRow}>
-                          <Clock3 size={11} color="#64748B" />
+                          <Clock3 size={11} color={colors.muted} />
                           <Text style={styles.prescribedDate}>
                             {formatDate(detail.created_at)}
                           </Text>
@@ -736,7 +738,7 @@ export function PatientPrescriptionModal({
                         {formatStatus(fallbackStatus(detail.status))}
                       </Text>
                       <View style={styles.followUp}>
-                        <CalendarClock size={14} color="#27A599" />
+                        <CalendarClock size={14} color={colors.primary} />
                         <Text style={styles.followUpText}>
                           Follow-up:{' '}
                           <Text style={styles.followUpStrong}>
@@ -770,7 +772,7 @@ export function PatientPrescriptionModal({
                   <View style={styles.detailCard}>
                     <View style={styles.sectionHeader}>
                       <View style={styles.sectionIcon}>
-                        <Pill size={15} color="#27A599" />
+                        <Pill size={15} color={colors.primary} />
                       </View>
                       <View>
                         <Text style={styles.sectionTitle}>
@@ -900,12 +902,12 @@ export function PatientPrescriptionModal({
                   </View>
                 </>
               )}
-            </ScrollView>
+            </LiquidBorderScrollView>
           )}
 
           <View style={styles.footer}>
             <TouchableOpacity style={styles.footerClose} onPress={onClose}>
-              <X size={15} color="#FFFFFF" />
+              <X size={15} color={colors.surface} />
               <Text style={styles.footerCloseText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -920,13 +922,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 12,
+    padding: spacing.md,
     backgroundColor: 'rgba(15,23,42,0.66)',
   },
   modal: {
     width: '100%',
     maxWidth: 570,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderRadius: 18,
     overflow: 'hidden',
     elevation: 20,
@@ -935,7 +937,7 @@ const styles = StyleSheet.create({
     minHeight: 82,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
     paddingHorizontal: 15,
     paddingVertical: 13,
     paddingRight: 58,
@@ -953,15 +955,15 @@ const styles = StyleSheet.create({
   },
   headerCopy: { flex: 1, minWidth: 0 },
   title: {
-    fontFamily: 'Inter', color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '800',
+    fontFamily: typography.family, color: colors.surface,
+    fontSize: typography.size.title,
+    fontWeight: typography.weight.extrabold,
     letterSpacing: -0.3,
   },
   patientName: {
-    fontFamily: 'Inter', color: '#CBD5E1',
-    fontSize: 10,
-    fontWeight: '600',
+    fontFamily: typography.family, color: colors.input,
+    fontSize: typography.size.micro,
+    fontWeight: typography.weight.semibold,
     marginTop: 3,
   },
   closeIcon: {
@@ -981,9 +983,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 3,
     padding: 5,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
   tab: {
     flex: 1,
@@ -995,23 +997,23 @@ const styles = StyleSheet.create({
     borderRadius: 11,
   },
   tabActive: { backgroundColor: '#101827' },
-  tabText: { fontFamily: 'Inter', color: '#64748B', fontSize: 12, fontWeight: '700' },
-  tabTextActive: { color: '#FFFFFF' },
+  tabText: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.sm, fontWeight: typography.weight.bold },
+  tabTextActive: { color: colors.surface },
   tabCount: {
-    fontFamily: 'Inter', overflow: 'hidden',
-    color: '#64748B',
-    backgroundColor: '#F1F5F9',
+    fontFamily: typography.family, overflow: 'hidden',
+    color: colors.muted,
+    backgroundColor: colors.secondary,
     fontSize: 9,
-    fontWeight: '700',
-    paddingHorizontal: 6,
+    fontWeight: typography.weight.bold,
+    paddingHorizontal: spacing.tiny,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: radii.md,
   },
   tabCountActive: {
-    color: '#FFFFFF',
+    color: colors.surface,
     backgroundColor: 'rgba(255,255,255,0.14)',
   },
-  historyPanel: { flex: 1, backgroundColor: '#FFFFFF' },
+  historyPanel: { flex: 1, backgroundColor: colors.surface },
   historyHeading: {
     minHeight: 64,
     flexDirection: 'row',
@@ -1020,44 +1022,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 11,
     borderBottomWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.secondary,
   },
-  historyTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 12, fontWeight: '800' },
-  historyHint: { fontFamily: 'Inter', color: '#64748B', fontSize: 10, marginTop: 2 },
+  historyTitle: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.sm, fontWeight: typography.weight.extrabold },
+  historyHint: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.micro, marginTop: 2 },
   countBadge: {
-    fontFamily: 'Inter', minWidth: 23,
+    fontFamily: typography.family, minWidth: 23,
     height: 23,
     textAlign: 'center',
     textAlignVertical: 'center',
     overflow: 'hidden',
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    color: '#64748B',
-    fontSize: 10,
-    fontWeight: '700',
-    paddingHorizontal: 6,
+    borderRadius: radii.lg,
+    backgroundColor: colors.secondary,
+    color: colors.muted,
+    fontSize: typography.size.micro,
+    fontWeight: typography.weight.bold,
+    paddingHorizontal: spacing.tiny,
     paddingTop: 5,
   },
   filters: {
     padding: 11,
     gap: 7,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     zIndex: 5,
   },
   searchBox: {
     minHeight: 35,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
   },
-  searchInput: { fontFamily: 'Inter', flex: 1, paddingVertical: 5, color: '#334155', fontSize: 11 },
+  searchInput: { fontFamily: typography.family, flex: 1, paddingVertical: 5, color: colors.foreground, fontSize: typography.size.xs },
   filterRow: { flexDirection: 'row', gap: 7 },
   filterCell: { position: 'relative', zIndex: 10, flex: 1 },
   filterButton: {
@@ -1065,24 +1067,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 4,
+    gap: spacing.xs,
     paddingHorizontal: 9,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
   },
-  filterText: { fontFamily: 'Inter', flex: 1, color: '#334155', fontSize: 10 },
+  filterText: { fontFamily: typography.family, flex: 1, color: colors.foreground, fontSize: typography.size.micro },
   dropdownMenu: {
     position: 'absolute',
     top: 38,
     left: 0,
     width: '100%',
-    padding: 4,
-    borderRadius: 10,
+    padding: spacing.xs,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     elevation: 9,
     zIndex: 25,
   },
@@ -1090,13 +1092,13 @@ const styles = StyleSheet.create({
   dropdownOption: {
     minHeight: 31,
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     borderRadius: 7,
   },
   dropdownOptionActive: { backgroundColor: '#DDF5F2' },
-  dropdownText: { fontFamily: 'Inter', color: '#334155', fontSize: 10 },
-  dropdownTextActive: { color: '#27A599', fontWeight: '700' },
-  helperText: { fontFamily: 'Inter', color: '#94A3B8', fontSize: 12 },
+  dropdownText: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.micro },
+  dropdownTextActive: { color: colors.primary, fontWeight: typography.weight.bold },
+  helperText: { fontFamily: typography.family, color: colors.subtle, fontSize: typography.size.sm },
   helperRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   filterHintRow: {
     flexDirection: 'row',
@@ -1106,72 +1108,72 @@ const styles = StyleSheet.create({
   resetAction: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
     paddingHorizontal: 2,
   },
-  resetText: { fontFamily: 'Inter', color: '#27A599', fontSize: 10, fontWeight: '700' },
+  resetText: { fontFamily: typography.family, color: colors.primary, fontSize: typography.size.micro, fontWeight: typography.weight.bold },
   historyList: { flex: 1 },
-  historyListContent: { padding: 11, gap: 8, flexGrow: 1 },
+  historyListContent: { padding: 11, gap: spacing.sm, flexGrow: 1 },
   prescriptionCard: {
-    padding: 12,
+    padding: spacing.md,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   prescriptionCardActive: {
     borderColor: '#5EEAD4',
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.mint,
   },
   prescriptionTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: spacing.sm,
   },
-  rxTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 12, fontWeight: '800' },
+  rxTitle: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.sm, fontWeight: typography.weight.extrabold },
   finalBadge: {
-    fontFamily: 'Inter', overflow: 'hidden',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    fontFamily: typography.family, overflow: 'hidden',
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     backgroundColor: '#ECFDF5',
-    color: '#059669',
+    color: colors.successDark,
     fontSize: 8,
-    fontWeight: '800',
+    fontWeight: typography.weight.extrabold,
     textTransform: 'uppercase',
   },
-  prescriptionDate: { fontFamily: 'Inter', color: '#64748B', fontSize: 9 },
+  prescriptionDate: { fontFamily: typography.family, color: colors.muted, fontSize: 9 },
   diagnosisRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
-    marginTop: 8,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
     paddingBottom: 2,
   },
   prescriptionDiagnosis: {
-    fontFamily: 'Inter', flex: 1,
-    color: '#0F172A',
-    fontSize: 11,
-    fontWeight: '600',
+    fontFamily: typography.family, flex: 1,
+    color: colors.text,
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
   },
   countsRow: {
     flexDirection: 'row',
     gap: 11,
-    marginTop: 8,
+    marginTop: spacing.sm,
     paddingTop: 7,
     borderTopWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
-  itemCount: { fontFamily: 'Inter', color: '#64748B', fontSize: 9 },
+  itemCount: { fontFamily: typography.family, color: colors.muted, fontSize: 9 },
   pagination: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 5,
   },
-  pageInfo: { fontFamily: 'Inter', color: '#64748B', fontSize: 10 },
+  pageInfo: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.micro },
   pageActions: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   pageButton: {
     width: 27,
@@ -1179,11 +1181,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
   },
-  pageNumber: { fontFamily: 'Inter', color: '#475569', fontSize: 10, fontWeight: '700' },
+  pageNumber: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.micro, fontWeight: typography.weight.bold },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
@@ -1196,19 +1198,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 17,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.secondary,
   },
   emptyTitle: {
-    fontFamily: 'Inter', marginTop: 11,
-    color: '#334155',
-    fontSize: 13,
-    fontWeight: '800',
+    fontFamily: typography.family, marginTop: 11,
+    color: colors.foreground,
+    fontSize: typography.size.caption,
+    fontWeight: typography.weight.extrabold,
     textAlign: 'center',
   },
   emptyHint: {
-    fontFamily: 'Inter', marginTop: 5,
-    color: '#64748B',
-    fontSize: 10,
+    fontFamily: typography.family, marginTop: 5,
+    color: colors.muted,
+    fontSize: typography.size.micro,
     textAlign: 'center',
     lineHeight: 15,
   },
@@ -1218,8 +1220,8 @@ const styles = StyleSheet.create({
     gap: 5,
     marginTop: 11,
   },
-  clearFiltersText: { fontFamily: 'Inter', color: '#27A599', fontSize: 10, fontWeight: '700' },
-  detailsPanel: { flex: 1, backgroundColor: '#F8FAFC' },
+  clearFiltersText: { fontFamily: typography.family, color: colors.primary, fontSize: typography.size.micro, fontWeight: typography.weight.bold },
+  detailsPanel: { flex: 1, backgroundColor: colors.background },
   detailsContent: { padding: 11, gap: 10, flexGrow: 1 },
   detailEmpty: {
     flex: 1,
@@ -1230,139 +1232,139 @@ const styles = StyleSheet.create({
   },
   detailCard: {
     overflow: 'hidden',
-    borderRadius: 14,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     elevation: 1,
   },
   prescriberHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    padding: 12,
-    backgroundColor: '#F0FDFA',
+    padding: spacing.md,
+    backgroundColor: colors.mint,
     borderBottomWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.secondary,
   },
   doctorIcon: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
+    borderColor: colors.mintBorder,
   },
   prescriberCopy: { flex: 1, minWidth: 0 },
   eyebrow: {
-    fontFamily: 'Inter', color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '800',
+    fontFamily: typography.family, color: colors.subtle,
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.extrabold,
     letterSpacing: 1,
   },
   prescriberName: {
-    fontFamily: 'Inter', marginTop: 2,
-    color: '#0F172A',
-    fontSize: 12,
-    fontWeight: '800',
+    fontFamily: typography.family, marginTop: 2,
+    color: colors.text,
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.extrabold,
   },
   prescribedDate: {
-    fontFamily: 'Inter', flexDirection: 'row',
+    fontFamily: typography.family, flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
     marginTop: 3,
-    color: '#64748B',
+    color: colors.muted,
     fontSize: 9,
   },
   prescriptionMeta: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingTop: 8,
+    gap: spacing.tiny,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
   },
   metaTag: {
-    fontFamily: 'Inter', overflow: 'hidden',
-    paddingHorizontal: 8,
+    fontFamily: typography.family, overflow: 'hidden',
+    paddingHorizontal: spacing.sm,
     paddingVertical: 5,
     borderRadius: 9,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-    color: '#475569',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    color: colors.muted,
     fontSize: 8,
-    fontWeight: '800',
+    fontWeight: typography.weight.extrabold,
   },
   followUp: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 5,
     borderRadius: 9,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.mintBorder,
+    backgroundColor: colors.surface,
   },
-  followUpText: { fontFamily: 'Inter', color: '#475569', fontSize: 9 },
-  followUpStrong: { color: '#0F172A', fontWeight: '800' },
-  clinicalGrid: { padding: 12, gap: 8 },
+  followUpText: { fontFamily: typography.family, color: colors.muted, fontSize: 9 },
+  followUpStrong: { color: colors.text, fontWeight: typography.weight.extrabold },
+  clinicalGrid: { padding: spacing.md, gap: spacing.sm },
   adviceCell: {},
   clinicalDetail: {
     minHeight: 66,
     padding: 11,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    borderRadius: 12,
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.secondary,
+    borderRadius: radii.lg,
+    backgroundColor: colors.background,
   },
   clinicalValue: {
-    fontFamily: 'Inter', marginTop: 7,
-    color: '#1E293B',
-    fontSize: 11,
-    fontWeight: '500',
+    fontFamily: typography.family, marginTop: 7,
+    color: colors.foreground,
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.medium,
     lineHeight: 16,
   },
   sectionHeader: {
     minHeight: 57,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
     paddingHorizontal: 11,
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.secondary,
   },
   sectionIcon: {
     width: 30,
     height: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
-    backgroundColor: '#F0FDFA',
+    borderRadius: radii.md,
+    backgroundColor: colors.mint,
   },
   testSectionIcon: {
     width: 30,
     height: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
+    borderRadius: radii.md,
     backgroundColor: '#F0F9FF',
   },
-  sectionTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 18, fontWeight: '800' },
-  sectionSubtitle: { fontFamily: 'Inter', marginTop: 2, color: '#64748B', fontSize: 8 },
+  sectionTitle: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.lg, fontWeight: typography.weight.extrabold },
+  sectionSubtitle: { fontFamily: typography.family, marginTop: 2, color: colors.muted, fontSize: 8 },
   testCount: {
-    fontFamily: 'Inter', marginLeft: 'auto',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
+    fontFamily: typography.family, marginLeft: 'auto',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.md,
     backgroundColor: '#F0F9FF',
     color: '#0284C7',
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: typography.weight.bold,
   },
   lineItem: {
     flexDirection: 'row',
@@ -1371,23 +1373,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.secondary,
   },
   itemIndex: {
-    fontFamily: 'Inter', minWidth: 23,
+    fontFamily: typography.family, minWidth: 23,
     height: 23,
     overflow: 'hidden',
     textAlign: 'center',
     textAlignVertical: 'center',
     borderRadius: 9,
-    backgroundColor: '#F1F5F9',
-    color: '#64748B',
+    backgroundColor: colors.secondary,
+    color: colors.muted,
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: typography.weight.extrabold,
     paddingTop: 5,
   },
   testIndex: {
-    fontFamily: 'Inter', minWidth: 23,
+    fontFamily: typography.family, minWidth: 23,
     height: 23,
     overflow: 'hidden',
     textAlign: 'center',
@@ -1396,65 +1398,65 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F9FF',
     color: '#0369A1',
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: typography.weight.extrabold,
     paddingTop: 5,
   },
   lineItemBody: { flex: 1, minWidth: 0 },
-  lineItemName: { fontFamily: 'Inter', color: '#0F172A', fontSize: 11, fontWeight: '800' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
+  lineItemName: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.xs, fontWeight: typography.weight.extrabold },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.tiny },
   metaChip: {
     flexDirection: 'row',
     gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.tiny,
+    paddingVertical: spacing.xs,
     borderRadius: 9,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.border,
+    backgroundColor: colors.background,
   },
-  metaLabel: { fontFamily: 'Inter', color: '#94A3B8', fontSize: 8 },
-  metaValue: { fontFamily: 'Inter', color: '#64748B', fontSize: 8, fontWeight: '700' },
+  metaLabel: { fontFamily: typography.family, color: colors.subtle, fontSize: 8 },
+  metaValue: { fontFamily: typography.family, color: colors.muted, fontSize: 8, fontWeight: typography.weight.bold },
   metaChipEmphasis: { borderColor: '#FDE68A', backgroundColor: '#FFFBEB' },
-  metaLabelEmphasis: { color: '#D97706' },
+  metaLabelEmphasis: { color: colors.warning },
   metaValueEmphasis: { color: '#92400E' },
-  testTitleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  testCode: { fontFamily: 'Inter', marginTop: 2, color: '#94A3B8', fontSize: 8 },
+  testTitleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.tiny },
+  testCode: { fontFamily: typography.family, marginTop: 2, color: colors.subtle, fontSize: 8 },
   testStatus: {
-    fontFamily: 'Inter', overflow: 'hidden',
+    fontFamily: typography.family, overflow: 'hidden',
     paddingHorizontal: 7,
-    paddingVertical: 4,
+    paddingVertical: spacing.xs,
     borderRadius: 9,
     fontSize: 8,
-    fontWeight: '800',
+    fontWeight: typography.weight.extrabold,
     textTransform: 'uppercase',
   },
   testStatusComplete: { backgroundColor: '#ECFDF5', color: '#047857' },
   testStatusDefault: { backgroundColor: '#F0F9FF', color: '#0369A1' },
   testDescription: {
-    fontFamily: 'Inter', marginTop: 6,
+    fontFamily: typography.family, marginTop: spacing.tiny,
     padding: 7,
-    borderRadius: 8,
-    backgroundColor: '#F8FAFC',
-    color: '#64748B',
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
+    color: colors.muted,
     fontSize: 9,
     lineHeight: 14,
   },
   emptySection: {
-    fontFamily: 'Inter', paddingHorizontal: 14,
-    paddingVertical: 20,
-    color: '#64748B',
-    fontSize: 10,
+    fontFamily: typography.family, paddingHorizontal: 14,
+    paddingVertical: spacing.xl,
+    color: colors.muted,
+    fontSize: typography.size.micro,
     textAlign: 'center',
   },
   backHistory: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.tiny,
     marginTop: 13,
   },
-  backHistoryText: { fontFamily: 'Inter', color: '#27A599', fontSize: 10, fontWeight: '700' },
+  backHistoryText: { fontFamily: typography.family, color: colors.primary, fontSize: typography.size.micro, fontWeight: typography.weight.bold },
   eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  rxTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  rxTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.tiny },
   prescriptionDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1464,18 +1466,18 @@ const styles = StyleSheet.create({
   prescribedDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
     marginTop: 3,
   },
-  countItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  countItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   footer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 9,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
   footerClose: {
     minWidth: 92,
@@ -1483,10 +1485,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
+    gap: spacing.tiny,
+    paddingHorizontal: spacing.md,
     borderRadius: 11,
     backgroundColor: '#101827',
   },
-  footerCloseText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  footerCloseText: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.xs, fontWeight: typography.weight.extrabold },
 });

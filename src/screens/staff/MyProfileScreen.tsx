@@ -1,10 +1,11 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 // src/screens/staff/MyProfileScreen.tsx
 import React from 'react';
+import { useLiquidBorderScrollHandlers } from '../../components/common/LiquidBorderFocusContext';
 import {
   ActivityIndicator,
   Image,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -13,6 +14,8 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
+
 import {
   User,
   Edit2,
@@ -39,6 +42,7 @@ import {
   Droplets,
   UserRound,
 } from 'lucide-react-native';
+import { LiquidBorderSurface } from '../../components/common/LiquidBorderSurface';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { PatientHeader } from '../../components/common/PatientHeader';
 import { useStaffProfile } from '../../hooks/useStaffProfile';
@@ -75,6 +79,7 @@ const formatPatientDateOfBirth = (value: string) => {
 };
 
 export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScreen, patientMode = false }) => {
+  const borderScrollHandlers = useLiquidBorderScrollHandlers();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
@@ -123,8 +128,9 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
         }}
       />}
 
-      <ScrollView
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadProfile} colors={['#27A599']} tintColor="#27A599" />}
+      <LiquidBorderScrollView
+        {...borderScrollHandlers}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadProfile} colors={[colors.primary]} tintColor={colors.primary} />}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
@@ -134,7 +140,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
         <View style={[styles.headerBannerRow, isMobile && styles.headerBannerRowMobile]}>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <User size={22} color="#0F172A" style={{ marginRight: 8 }} />
+              <User size={22} color={colors.text} style={{ marginRight: spacing.sm }} />
               <Text style={styles.headerTitleText}>My Profile</Text>
             </View>
             <Text style={styles.headerSubtitleText}>View and manage your personal information</Text>
@@ -148,7 +154,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
               onPress={() => setIsEditing(true)}
               activeOpacity={0.8}
             >
-              <Edit2 size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Edit2 size={16} color={colors.surface} style={{ marginRight: spacing.tiny }} />
               <Text style={styles.editProfileBtnText}>Edit Profile</Text>
             </TouchableOpacity>
           ) : (
@@ -160,10 +166,10 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                 activeOpacity={0.8}
               >
                 {saving ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={colors.surface} />
                 ) : (
                   <>
-                    <Save size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Save size={16} color={colors.surface} style={{ marginRight: spacing.tiny }} />
                     <Text style={styles.saveChangesBtnText}>Save Changes</Text>
                   </>
                 )}
@@ -175,7 +181,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                 onPress={handleCancelEdit}
                 activeOpacity={0.8}
               >
-                <X size={16} color="#334155" style={{ marginRight: 4 }} />
+                <X size={16} color={colors.foreground} style={{ marginRight: spacing.xs }} />
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
             </View>
@@ -187,7 +193,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
           /* ══════════════════════════════════════════════════════════════════════ */
           /* 1️⃣ VIEW PROFILE DESIGN                                                */
           /* ══════════════════════════════════════════════════════════════════════ */
-          <View style={styles.viewProfileSection}>
+          <LiquidBorderSurface style={styles.viewProfileSection} radius={radii.lg}>
             {/* Top Mint Container Card */}
             <View style={styles.profileMintCard}>
               <View style={[styles.profileTopRow, isMobile && styles.profileTopRowMobile]}>
@@ -203,7 +209,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                 </View>
 
                 {/* Middle: User Main Info */}
-                <View style={[styles.userMainInfoCol, isMobile && { width: '100%', marginLeft: 0, marginTop: 12, alignItems: 'center' }]}>
+                <View style={[styles.userMainInfoCol, isMobile && { width: '100%', marginLeft: 0, marginTop: spacing.md, alignItems: 'center' }]}>
                   <View style={[styles.profileNameRoleRow, isMobile && styles.profileNameRoleRowMobile]}>
                     <Text style={styles.userFullNameText}>{fullName}</Text>
                     <View style={styles.roleBadgePill}>
@@ -214,21 +220,21 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   <View style={[styles.metaBadgesRow, isMobile && styles.metaBadgesRowMobile]}>
                     {clinicName && clinicName !== '—' && clinicName !== 'â€”' ? (
                       <View style={[styles.metaBadgeItem, isMobile && styles.metaBadgeItemMobile]}>
-                        <Building2 size={14} color="#64748B" style={{ marginRight: 4 }} />
+                        <Building2 size={14} color={colors.muted} style={{ marginRight: spacing.xs }} />
                         <Text style={[styles.metaBadgeText, isMobile && styles.metaBadgeTextMobile]} numberOfLines={1}>{clinicName}</Text>
                       </View>
                     ) : null}
 
                     {department && department !== '—' ? (
                       <View style={[styles.metaBadgeItem, isMobile && styles.metaBadgeItemMobile]}>
-                        <Briefcase size={14} color="#64748B" style={{ marginRight: 4 }} />
+                        <Briefcase size={14} color={colors.muted} style={{ marginRight: spacing.xs }} />
                         <Text style={[styles.metaBadgeText, isMobile && styles.metaBadgeTextMobile]} numberOfLines={1}>{department}</Text>
                       </View>
                     ) : null}
 
                     {!isPatientRole ? (
                       <View style={[styles.metaBadgeItem, isMobile && styles.metaBadgeItemMobile]}>
-                        <Calendar size={14} color="#64748B" style={{ marginRight: 4 }} />
+                        <Calendar size={14} color={colors.muted} style={{ marginRight: spacing.xs }} />
                         <Text style={[styles.metaBadgeText, isMobile && styles.metaBadgeTextMobile]} numberOfLines={1}>Joined {joinedDate}</Text>
                       </View>
                     ) : null}
@@ -240,9 +246,9 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   <View style={[styles.videoCallingCardBox, isMobile && { marginTop: 14, alignSelf: 'center' }]}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <View style={styles.videoIconCircle}>
-                        <Video size={16} color="#27A599" />
+                        <Video size={16} color={colors.primary} />
                       </View>
-                      <View style={{ marginLeft: 8 }}>
+                      <View style={{ marginLeft: spacing.sm }}>
                         <Text style={styles.videoCallingTitle}>Video Calling</Text>
                         <Text style={styles.videoCallingSub}>{videoCallingEnabled ? 'Enabled' : 'Disabled'}</Text>
                       </View>
@@ -251,8 +257,8 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                       value={videoCallingEnabled}
                       disabled={videoBusy || saving || uploading}
                       onValueChange={handleToggleVideo}
-                      trackColor={{ false: '#E2E8F0', true: '#99F6E4' }}
-                      thumbColor={videoCallingEnabled ? '#27A599' : '#CBD5E1'}
+                      trackColor={{ false: colors.border, true: colors.mintBorder }}
+                      thumbColor={videoCallingEnabled ? colors.primary : colors.input}
                     />
                   </View>
                 ) : null}
@@ -265,21 +271,21 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
               <View style={[styles.contactBoxesGridRow, isMobile && styles.contactBoxesGridRowMobile]}>
                 {email ? (
                   <View style={[styles.contactInfoBox, isMobile && styles.contactInfoBoxMobile]}>
-                    <Mail size={16} color="#27A599" style={{ marginRight: 10 }} />
+                    <Mail size={16} color={colors.primary} style={{ marginRight: 10 }} />
                     <Text style={styles.contactInfoText} numberOfLines={1}>{email}</Text>
                   </View>
                 ) : null}
 
                 {phone ? (
                   <View style={[styles.contactInfoBox, isMobile && styles.contactInfoBoxMobile]}>
-                    <Phone size={16} color="#27A599" style={{ marginRight: 10 }} />
+                    <Phone size={16} color={colors.primary} style={{ marginRight: 10 }} />
                     <Text style={styles.contactInfoText} numberOfLines={1}>{phone}</Text>
                   </View>
                 ) : null}
 
                 {address ? (
                   <View style={[styles.contactInfoBox, isMobile && styles.contactInfoBoxMobile, isMobile && styles.contactInfoBoxFullWidth]}>
-                    <MapPin size={16} color="#27A599" style={{ marginRight: 10 }} />
+                    <MapPin size={16} color={colors.primary} style={{ marginRight: 10 }} />
                     <Text style={styles.contactInfoText} numberOfLines={1}>{address}</Text>
                   </View>
                 ) : null}
@@ -293,7 +299,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
               <View style={styles.professionalSectionCard}>
                 <View style={styles.sectionHeaderRow}>
                   <View style={styles.sectionHeaderIconBox}>
-                    <Stethoscope size={18} color="#27A599" />
+                    <Stethoscope size={18} color={colors.primary} />
                   </View>
                   <Text style={styles.sectionHeaderTitle}>Professional Information</Text>
                 </View>
@@ -302,7 +308,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   {/* Department */}
                   <View style={styles.infoCardItem}>
                     <View style={styles.infoCardLabelRow}>
-                      <Briefcase size={14} color="#27A599" style={{ marginRight: 6 }} />
+                      <Briefcase size={14} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.infoCardLabel}>Department</Text>
                     </View>
                     <Text style={styles.infoCardValue}>{department || 'Not provided'}</Text>
@@ -311,7 +317,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   {/* Specialization */}
                   <View style={styles.infoCardItem}>
                     <View style={styles.infoCardLabelRow}>
-                      <Stethoscope size={14} color="#27A599" style={{ marginRight: 6 }} />
+                      <Stethoscope size={14} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.infoCardLabel}>Specialization</Text>
                     </View>
                     <Text style={styles.infoCardValue}>{specialization || 'Not provided'}</Text>
@@ -320,7 +326,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   {/* Qualification */}
                   <View style={styles.infoCardItem}>
                     <View style={styles.infoCardLabelRow}>
-                      <Award size={14} color="#27A599" style={{ marginRight: 6 }} />
+                      <Award size={14} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.infoCardLabel}>Qualification</Text>
                     </View>
                     <Text style={styles.infoCardValue}>{qualification || 'Not provided'}</Text>
@@ -329,7 +335,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   {/* Registration No */}
                   <View style={styles.infoCardItem}>
                     <View style={styles.infoCardLabelRow}>
-                      <ShieldCheck size={14} color="#27A599" style={{ marginRight: 6 }} />
+                      <ShieldCheck size={14} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.infoCardLabel}>Registration No.</Text>
                     </View>
                     <Text style={styles.infoCardValue}>{registrationNumber || 'Not provided'}</Text>
@@ -338,7 +344,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   {/* Experience */}
                   <View style={styles.infoCardItem}>
                     <View style={styles.infoCardLabelRow}>
-                      <Clock size={14} color="#27A599" style={{ marginRight: 6 }} />
+                      <Clock size={14} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.infoCardLabel}>Experience</Text>
                     </View>
                     <Text style={styles.infoCardValue}>
@@ -350,7 +356,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   {isDoctorRole ? (
                     <View style={styles.infoCardItem}>
                       <View style={styles.infoCardLabelRow}>
-                        <IndianRupee size={14} color="#27A599" style={{ marginRight: 6 }} />
+                        <IndianRupee size={14} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                         <Text style={styles.infoCardLabel}>Consultation Fee</Text>
                       </View>
                       <Text style={styles.infoCardValue}>
@@ -362,7 +368,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   {videoRatePerMinute !== null && videoRatePerMinute !== undefined ? (
                     <View style={styles.infoCardItem}>
                       <View style={styles.infoCardLabelRow}>
-                        <Video size={14} color="#27A599" style={{ marginRight: 6 }} />
+                        <Video size={14} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                         <Text style={styles.infoCardLabel}>Video Rate / Minute</Text>
                       </View>
                       <Text style={styles.infoCardValue}>Rs {Number(videoRatePerMinute).toFixed(2)}</Text>
@@ -372,7 +378,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   {/* Practice Location */}
                   <View style={styles.infoCardItem}>
                     <View style={styles.infoCardLabelRow}>
-                      <MapPin size={14} color="#27A599" style={{ marginRight: 6 }} />
+                      <MapPin size={14} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.infoCardLabel}>Practice Location</Text>
                     </View>
                     <Text style={styles.infoCardValue} numberOfLines={2}>
@@ -383,7 +389,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   {/* Available Days */}
                   <View style={styles.infoCardItem}>
                     <View style={styles.infoCardLabelRow}>
-                      <Calendar size={14} color="#27A599" style={{ marginRight: 6 }} />
+                      <Calendar size={14} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.infoCardLabel}>Available Days</Text>
                     </View>
                     <Text style={styles.infoCardValue}>{availableDays || 'Not provided'}</Text>
@@ -392,7 +398,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   {/* Available Time */}
                   <View style={styles.infoCardItem}>
                     <View style={styles.infoCardLabelRow}>
-                      <Clock size={14} color="#27A599" style={{ marginRight: 6 }} />
+                      <Clock size={14} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.infoCardLabel}>Available Time</Text>
                     </View>
                     <Text style={styles.infoCardValue}>{availableTime}</Text>
@@ -401,7 +407,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   {marketplaceStatus ? (
                     <View style={styles.infoCardItem}>
                       <View style={styles.infoCardLabelRow}>
-                        <ShieldCheck size={14} color="#27A599" style={{ marginRight: 6 }} />
+                        <ShieldCheck size={14} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                         <Text style={styles.infoCardLabel}>Marketplace Status</Text>
                       </View>
                       <Text style={styles.infoCardValue}>{marketplaceStatus}</Text>
@@ -412,7 +418,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   {isDoctorRole ? (
                     <View style={styles.infoCardItem}>
                       <View style={styles.infoCardLabelRow}>
-                        <User size={14} color="#27A599" style={{ marginRight: 6 }} />
+                        <User size={14} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                         <Text style={styles.infoCardLabel}>Doctor Type</Text>
                       </View>
                       <Text style={styles.infoCardValue}>{doctorType}</Text>
@@ -428,24 +434,24 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
             {isPatientRole ? (
               <View style={styles.professionalSectionCard}>
                 <View style={styles.sectionHeaderRow}>
-                  <View style={[styles.sectionHeaderIconBox, { backgroundColor: '#CCFBF1' }]}>
-                    <HeartPulse size={16} color="#1D7C72" />
+                  <View style={[styles.sectionHeaderIconBox, { backgroundColor: colors.mintBorder }]}>
+                    <HeartPulse size={16} color={colors.primaryDark} />
                   </View>
                   <Text style={styles.sectionHeaderTitle}>Patient & Medical Information</Text>
                 </View>
 
                 <View style={styles.infoCardsGrid}>
-                  <PatientInfoCard icon={<UserRound size={16} color="#27A599" />} label="Gender" value={gender || 'Not provided'} />
-                  <PatientInfoCard icon={<Calendar size={16} color="#27A599" />} label="Date of Birth" value={formatPatientDateOfBirth(dateOfBirth)} />
-                  <PatientInfoCard icon={<Hash size={16} color="#27A599" />} label="Age" value={age || 'Not provided'} />
-                  <PatientInfoCard icon={<Droplets size={16} color="#27A599" />} label="Blood Group" value={bloodGroup || 'Not provided'} />
-                  <PatientInfoCard icon={<AlertTriangle size={16} color="#27A599" />} label="Allergies" value={allergies || 'None reported'} />
-                  <PatientInfoCard icon={<Activity size={16} color="#27A599" />} label="Chronic Conditions" value={chronicConditions || 'None reported'} />
-                  <PatientInfoCard icon={<HeartPulse size={16} color="#27A599" />} label="Medical History" value={medicalHistory || 'None reported'} />
-                  <PatientInfoCard icon={<Stethoscope size={16} color="#27A599" />} label="Current Medications" value={currentMedications || 'None reported'} />
-                  <PatientInfoCard icon={<UserRound size={16} color="#27A599" />} label="Emergency Contact" value={emergencyContactName || 'Not provided'} />
-                  <PatientInfoCard icon={<Phone size={16} color="#27A599" />} label="Emergency Phone" value={emergencyContactPhone || 'Not provided'} />
-                  <PatientInfoCard icon={<ShieldCheck size={16} color="#27A599" />} label="Relation" value={emergencyRelation || 'Not provided'} />
+                  <PatientInfoCard icon={<UserRound size={16} color={colors.primary} />} label="Gender" value={gender || 'Not provided'} />
+                  <PatientInfoCard icon={<Calendar size={16} color={colors.primary} />} label="Date of Birth" value={formatPatientDateOfBirth(dateOfBirth)} />
+                  <PatientInfoCard icon={<Hash size={16} color={colors.primary} />} label="Age" value={age || 'Not provided'} />
+                  <PatientInfoCard icon={<Droplets size={16} color={colors.primary} />} label="Blood Group" value={bloodGroup || 'Not provided'} />
+                  <PatientInfoCard icon={<AlertTriangle size={16} color={colors.primary} />} label="Allergies" value={allergies || 'None reported'} />
+                  <PatientInfoCard icon={<Activity size={16} color={colors.primary} />} label="Chronic Conditions" value={chronicConditions || 'None reported'} />
+                  <PatientInfoCard icon={<HeartPulse size={16} color={colors.primary} />} label="Medical History" value={medicalHistory || 'None reported'} />
+                  <PatientInfoCard icon={<Stethoscope size={16} color={colors.primary} />} label="Current Medications" value={currentMedications || 'None reported'} />
+                  <PatientInfoCard icon={<UserRound size={16} color={colors.primary} />} label="Emergency Contact" value={emergencyContactName || 'Not provided'} />
+                  <PatientInfoCard icon={<Phone size={16} color={colors.primary} />} label="Emergency Phone" value={emergencyContactPhone || 'Not provided'} />
+                  <PatientInfoCard icon={<ShieldCheck size={16} color={colors.primary} />} label="Relation" value={emergencyRelation || 'Not provided'} />
                 </View>
               </View>
             ) : null}
@@ -456,7 +462,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
             <View style={styles.accountInfoSectionCard}>
               <View style={styles.accountInfoHeaderRow}>
                 <View style={styles.accountHeaderIconBox}>
-                  <ShieldCheck size={16} color="#27A599" />
+                  <ShieldCheck size={16} color={colors.primary} />
                 </View>
                 <Text style={styles.accountInfoTitleText}>Account Information</Text>
               </View>
@@ -464,7 +470,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
               <View style={styles.accountDetailsGrid}>
                 <View style={styles.accountDetailCard}>
                   <View style={styles.accountDetailLabelRow}>
-                    <View style={styles.accountDetailIcon}><Building2 size={14} color="#27A599" strokeWidth={1.8} /></View>
+                    <View style={styles.accountDetailIcon}><Building2 size={14} color={colors.primary} strokeWidth={1.8} /></View>
                     <Text style={styles.accountDetailLabel}>Clinic</Text>
                   </View>
                   <Text style={styles.accountDetailValue}>{clinicName && clinicName !== '—' && clinicName !== 'â€”' ? clinicName : 'Not assigned'}</Text>
@@ -473,21 +479,21 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   <>
                     <View style={styles.accountDetailCard}>
                       <View style={styles.accountDetailLabelRow}>
-                        <View style={styles.accountDetailIcon}><BadgeCheck size={14} color="#27A599" strokeWidth={1.8} /></View>
+                        <View style={styles.accountDetailIcon}><BadgeCheck size={14} color={colors.primary} strokeWidth={1.8} /></View>
                         <Text style={styles.accountDetailLabel}>Verification</Text>
                       </View>
                       <Text style={styles.accountDetailValue}>{verificationStatus}</Text>
                     </View>
                     <View style={styles.accountDetailCard}>
                       <View style={styles.accountDetailLabelRow}>
-                        <View style={styles.accountDetailIcon}><Calendar size={14} color="#27A599" /></View>
+                        <View style={styles.accountDetailIcon}><Calendar size={14} color={colors.primary} /></View>
                         <Text style={styles.accountDetailLabel}>Joined On</Text>
                       </View>
                       <Text style={styles.accountDetailValue}>{joinedDateFormatted}</Text>
                     </View>
                     <View style={styles.accountDetailCard}>
                       <View style={styles.accountDetailLabelRow}>
-                        <View style={styles.accountDetailIcon}><Clock size={14} color="#27A599" /></View>
+                        <View style={styles.accountDetailIcon}><Clock size={14} color={colors.primary} /></View>
                         <Text style={styles.accountDetailLabel}>Last Login</Text>
                       </View>
                       <Text style={styles.accountDetailValue}>{lastLoginTime}</Text>
@@ -496,24 +502,24 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                 ) : null}
               </View>
             </View>
-          </View>
+          </LiquidBorderSurface>
         ) : (
           /* ══════════════════════════════════════════════════════════════════════ */
           /* 2️⃣ EDIT PROFILE DESIGN (DYNAMIC FOR ALL ROLES)                        */
           /* ══════════════════════════════════════════════════════════════════════ */
-          <View style={styles.editProfileCard}>
+          <LiquidBorderSurface style={styles.editProfileCard} radius={radii.xl}>
             <Text style={styles.editCardTitleText}>Personal Information</Text>
             <Text style={styles.editCardSubtitleText}>Your personal and contact details</Text>
 
             {/* Profile Photo Upload Box */}
-            <View style={[styles.photoUploadRow, isMobile && { flexDirection: 'column', alignItems: 'flex-start', gap: 12 }]}>
+            <View style={[styles.photoUploadRow, isMobile && { flexDirection: 'column', alignItems: 'flex-start', gap: spacing.md }]}>
               <View>
                 <Text style={styles.photoUploadTitle}>Profile Photo</Text>
                 <Text style={styles.photoUploadSub}>Upload JPG/PNG/WEBP (max 2MB)</Text>
               </View>
 
               <TouchableOpacity style={styles.choosePhotoBtn} activeOpacity={0.7} disabled={uploading || saving} onPress={handleChoosePhoto}>
-                <Upload size={14} color="#334155" style={{ marginRight: 6 }} />
+                <Upload size={14} color={colors.foreground} style={{ marginRight: spacing.tiny }} />
                 <Text style={styles.choosePhotoBtnText}>Choose Photo</Text>
               </TouchableOpacity>
             </View>
@@ -523,14 +529,14 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
               {/* Full Name * */}
               <View style={{ flex: 1 }}>
                 <Text style={styles.formInputLabel}>
-                  Full Name <Text style={{ color: '#EF4444' }}>*</Text>
+                  Full Name <Text style={{ color: colors.destructive }}>*</Text>
                 </Text>
                 <TextInput
                   style={styles.formTextInput}
                   value={fullName}
                   onChangeText={(v) => setFullName(v)}
                   placeholder="Enter full name"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.subtle}
                 />
               </View>
 
@@ -542,7 +548,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   value={email}
                   editable={false}
                   placeholder="email@example.com"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.subtle}
                 />
                 <Text style={styles.disabledHelperText}>Email address cannot be changed.</Text>
               </View>
@@ -550,7 +556,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
               {/* Phone Number * */}
               <View style={{ flex: 1 }}>
                 <Text style={styles.formInputLabel}>
-                  Phone Number <Text style={{ color: '#EF4444' }}>*</Text>
+                  Phone Number <Text style={{ color: colors.destructive }}>*</Text>
                 </Text>
                 <TextInput
                   style={styles.formTextInput}
@@ -558,7 +564,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                   onChangeText={(v) => setPhone(v.replace(/\D/g, '').slice(0, 10))}
                   keyboardType="phone-pad"
                   placeholder="Enter phone number"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.subtle}
                 />
               </View>
             </View>
@@ -573,18 +579,18 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                 multiline
                 numberOfLines={3}
                 placeholder="Enter your address"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.subtle}
                 textAlignVertical="top"
               />
             </View>
 
             {/* ── EDIT PROFESSIONAL INFORMATION (DOCTOR / NURSE) ── */}
             {isProfessionalRole ? (
-              <View style={{ marginTop: 22, borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 18 }}>
+              <View style={{ marginTop: 22, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 18 }}>
                 <Text style={styles.editCardTitleText}>Professional Information</Text>
                 <Text style={styles.editCardSubtitleText}>Your clinical practice and specialization details</Text>
 
-                <View style={[styles.form3ColGrid, { marginTop: 12 }, isMobile && { flexDirection: 'column', gap: 0 }]}>
+                <View style={[styles.form3ColGrid, { marginTop: spacing.md }, isMobile && { flexDirection: 'column', gap: 0 }]}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.formInputLabel}>Specialization</Text>
                     <TextInput
@@ -592,7 +598,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                       value={specialization}
                       onChangeText={setSpecialization}
                       placeholder="e.g. Cardiology"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                     />
                   </View>
 
@@ -603,7 +609,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                       value={qualification}
                       onChangeText={setQualification}
                       placeholder="e.g. MBBS, MD"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                     />
                   </View>
 
@@ -614,7 +620,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                       value={registrationNumber}
                       onChangeText={setRegistrationNumber}
                       placeholder="Medical registration no."
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                     />
                   </View>
                 </View>
@@ -628,7 +634,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                       onChangeText={(v) => setExperienceYears(v.replace(/\D/g, ''))}
                       keyboardType="numeric"
                       placeholder="e.g. 5"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                     />
                   </View>
 
@@ -641,7 +647,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                         onChangeText={setConsultationFee}
                         keyboardType="numeric"
                         placeholder="e.g. 300"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                       />
                     </View>
                   ) : null}
@@ -653,7 +659,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                       value={availableDays}
                       onChangeText={setAvailableDays}
                       placeholder="Mon,Tue,Wed,Thu,Fri"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                     />
                   </View>
                 </View>
@@ -662,14 +668,14 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
 
             {/* ── EDIT MEDICAL & EMERGENCY INFORMATION (PATIENT) ── */}
             {isPatientRole ? (
-              <View style={{ marginTop: 22, borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 18 }}>
+              <View style={{ marginTop: 22, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 18 }}>
                 <Text style={styles.editCardTitleText}>Medical & Emergency Information</Text>
                 <Text style={styles.editCardSubtitleText}>Essential details for your care team</Text>
 
-                <View style={[styles.form3ColGrid, { marginTop: 12 }, isMobile && { flexDirection: 'column', gap: 0 }]}>
+                <View style={[styles.form3ColGrid, { marginTop: spacing.md }, isMobile && { flexDirection: 'column', gap: 0 }]}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.formInputLabel}>Gender</Text>
-                    <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                    <View style={{ flexDirection: 'row', gap: spacing.tiny, marginTop: spacing.xs }}>
                       {(['male', 'female', 'other'] as const).map((g) => (
                         <TouchableOpacity
                           key={g}
@@ -691,7 +697,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                       value={dateOfBirth}
                       onChangeText={setDateOfBirth}
                       placeholder="1990-05-15"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                     />
                   </View>
 
@@ -702,7 +708,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                       value={bloodGroup}
                       onChangeText={setBloodGroup}
                       placeholder="e.g. O+, B+"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                     />
                   </View>
                 </View>
@@ -715,7 +721,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                       value={emergencyContactName}
                       onChangeText={setEmergencyContactName}
                       placeholder="Contact name"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                     />
                   </View>
 
@@ -727,7 +733,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                       onChangeText={(v) => setEmergencyContactPhone(v.replace(/\D/g, '').slice(0, 10))}
                       keyboardType="phone-pad"
                       placeholder="10-digit number"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                     />
                   </View>
 
@@ -738,7 +744,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                       value={emergencyRelation}
                       onChangeText={setEmergencyRelation}
                       placeholder="e.g. Parent, Spouse"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                     />
                   </View>
                 </View>
@@ -751,7 +757,7 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                     onChangeText={setAllergies}
                     multiline
                     placeholder="Medicine, food or other allergies"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.subtle}
                   />
                 </View>
 
@@ -763,108 +769,108 @@ export const MyProfileScreen: React.FC<Props> = ({ onOpenDrawer, onNavigateScree
                     onChangeText={setMedicalHistory}
                     multiline
                     placeholder="Previous diagnoses or surgeries"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.subtle}
                   />
                 </View>
               </View>
             ) : null}
-          </View>
+          </LiquidBorderSurface>
         )}
-      </ScrollView>
+      </LiquidBorderScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: colors.background },
   contentContainer: { padding: 18, paddingBottom: 60 },
-  headerBannerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  headerBannerRowMobile: { flexDirection: 'column', alignItems: 'flex-start', gap: 12 },
-  headerTitleText: { fontFamily: 'Inter', fontSize: 22, fontWeight: '700', color: '#0F172A' },
-  headerSubtitleText: { fontFamily: 'Inter', fontSize: 13, color: '#64748B', marginTop: 2 },
-  editProfileBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#27A599', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, elevation: 2 },
+  headerBannerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xl },
+  headerBannerRowMobile: { flexDirection: 'column', alignItems: 'flex-start', gap: spacing.md },
+  headerTitleText: { fontFamily: typography.family, fontSize: typography.size.heading, fontWeight: typography.weight.bold, color: colors.text },
+  headerSubtitleText: { fontFamily: typography.family, fontSize: typography.size.caption, color: colors.muted, marginTop: 2 },
+  editProfileBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, paddingHorizontal: spacing.lg, paddingVertical: 10, borderRadius: radii.md, elevation: 2 },
   editProfileBtnMobile: { width: '100%', minHeight: 38, alignSelf: 'stretch', justifyContent: 'center', borderRadius: 9, elevation: 0 },
-  editProfileBtnText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  editProfileBtnText: { fontFamily: typography.family, color: colors.surface, fontWeight: typography.weight.bold, fontSize: typography.size.caption },
   editActionsGroup: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  saveChangesBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#27A599', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, elevation: 2 },
-  saveChangesBtnText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
-  cancelBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CBD5E1', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
-  cancelBtnText: { fontFamily: 'Inter', color: '#334155', fontWeight: '600', fontSize: 13 },
-  viewProfileSection: { gap: 0, backgroundColor: '#F0FDFA', borderWidth: 1, borderColor: '#99F6E4', borderRadius: 14, padding: 14, elevation: 2, shadowColor: '#27A599', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 18 },
+  saveChangesBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, paddingHorizontal: spacing.lg, paddingVertical: 10, borderRadius: radii.md, elevation: 2 },
+  saveChangesBtnText: { fontFamily: typography.family, color: colors.surface, fontWeight: typography.weight.bold, fontSize: typography.size.caption },
+  cancelBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.input, paddingHorizontal: spacing.lg, paddingVertical: 10, borderRadius: radii.md },
+  cancelBtnText: { fontFamily: typography.family, color: colors.foreground, fontWeight: typography.weight.semibold, fontSize: typography.size.caption },
+  viewProfileSection: { gap: 0, backgroundColor: colors.mint, borderWidth: 1, borderColor: colors.mintBorder, borderRadius: radii.lg, padding: 14, elevation: 2, shadowColor: colors.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 18 },
   profileMintCard: { backgroundColor: 'transparent', borderWidth: 0, borderRadius: 0, padding: 0, elevation: 0 },
   profileTopRow: { flexDirection: 'row', alignItems: 'center' },
   profileTopRowMobile: { flexDirection: 'column', alignItems: 'center' },
-  profileNameRoleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+  profileNameRoleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm },
   profileNameRoleRowMobile: { flexDirection: 'column' },
-  avatarCircleOuterRing: { width: 96, height: 96, borderRadius: 48, borderWidth: 3, borderColor: '#99F6E4', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', elevation: 3 },
-  avatarCircleInner: { width: 86, height: 86, borderRadius: 43, backgroundColor: '#27A599', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  avatarInitialsText: { fontFamily: 'Inter', fontSize: 30, fontWeight: '800', color: '#FFFFFF' },
-  userMainInfoCol: { flex: 1, marginLeft: 16 },
-  userFullNameText: { fontFamily: 'Inter', fontSize: 18, fontWeight: '800', color: '#0F172A' },
-  roleBadgePill: { backgroundColor: '#20A99B', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  roleBadgePillText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
-  metaBadgesRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 6 },
-  metaBadgesRowMobile: { width: '100%', flexWrap: 'nowrap', justifyContent: 'space-between', gap: 4, marginTop: 8 },
+  avatarCircleOuterRing: { width: 96, height: 96, borderRadius: 48, borderWidth: 3, borderColor: colors.mintBorder, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', elevation: 3 },
+  avatarCircleInner: { width: 86, height: 86, borderRadius: 43, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarInitialsText: { fontFamily: typography.family, fontSize: 30, fontWeight: typography.weight.extrabold, color: colors.surface },
+  userMainInfoCol: { flex: 1, marginLeft: spacing.lg },
+  userFullNameText: { fontFamily: typography.family, fontSize: typography.size.lg, fontWeight: typography.weight.extrabold, color: colors.text },
+  roleBadgePill: { backgroundColor: '#20A99B', paddingHorizontal: 10, paddingVertical: spacing.xs, borderRadius: radii.lg },
+  roleBadgePillText: { fontFamily: typography.family, fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.surface },
+  metaBadgesRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.tiny },
+  metaBadgesRowMobile: { width: '100%', flexWrap: 'nowrap', justifyContent: 'space-between', gap: spacing.xs, marginTop: spacing.sm },
   metaBadgeItem: { flexDirection: 'row', alignItems: 'center' },
   metaBadgeItemMobile: { flex: 1, minWidth: 0, justifyContent: 'center' },
-  metaBadgeText: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', fontWeight: '500' },
-  metaBadgeTextMobile: { fontFamily: 'Inter', flexShrink: 1, fontSize: 9 },
-  videoCallingCardBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', elevation: 1 },
-  videoIconCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#CCFBF1', alignItems: 'center', justifyContent: 'center' },
-  videoCallingTitle: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#0F172A' },
-  videoCallingSub: { fontFamily: 'Inter', fontSize: 11, color: '#64748B' },
-  cardDividerLine: { height: 1, backgroundColor: '#CCFBF1', marginVertical: 16 },
+  metaBadgeText: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted, fontWeight: typography.weight.medium },
+  metaBadgeTextMobile: { fontFamily: typography.family, flexShrink: 1, fontSize: 9 },
+  videoCallingCardBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, paddingHorizontal: 14, paddingVertical: spacing.sm, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, elevation: 1 },
+  videoIconCircle: { width: 32, height: 32, borderRadius: radii.xl, backgroundColor: colors.mintBorder, alignItems: 'center', justifyContent: 'center' },
+  videoCallingTitle: { fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.text },
+  videoCallingSub: { fontFamily: typography.family, fontSize: typography.size.xs, color: colors.muted },
+  cardDividerLine: { height: 1, backgroundColor: colors.mintBorder, marginVertical: spacing.lg },
   contactBoxesGridRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  contactBoxesGridRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  contactInfoBox: { flex: 1, minWidth: 0, flexBasis: '45%', flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.8)', paddingHorizontal: 12, paddingVertical: 11, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  contactBoxesGridRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  contactInfoBox: { flex: 1, minWidth: 0, flexBasis: '45%', flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.8)', paddingHorizontal: spacing.md, paddingVertical: 11, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border },
   contactInfoBoxMobile: { flexGrow: 0, flexBasis: '48%' },
   contactInfoBoxFullWidth: { width: '100%', flexBasis: '100%' },
-  contactInfoText: { fontFamily: 'Inter', flex: 1, minWidth: 0, fontSize: 12, color: '#334155', fontWeight: '500' },
-  professionalSectionCard: { backgroundColor: 'transparent', borderRadius: 0, padding: 0, paddingTop: 17, marginTop: 17, borderTopWidth: 1, borderTopColor: '#E2E8F0', elevation: 0 },
+  contactInfoText: { fontFamily: typography.family, flex: 1, minWidth: 0, fontSize: typography.size.sm, color: colors.foreground, fontWeight: typography.weight.medium },
+  professionalSectionCard: { backgroundColor: 'transparent', borderRadius: 0, padding: 0, paddingTop: 17, marginTop: 17, borderTopWidth: 1, borderTopColor: colors.border, elevation: 0 },
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  sectionHeaderIconBox: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#CCFBF1', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  sectionHeaderTitle: { fontFamily: 'Inter', fontSize: 16, fontWeight: '800', color: '#0F172A' },
+  sectionHeaderIconBox: { width: 32, height: 32, borderRadius: radii.md, backgroundColor: colors.mintBorder, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  sectionHeaderTitle: { fontFamily: typography.family, fontSize: typography.size.subtitle, fontWeight: typography.weight.extrabold, color: colors.text },
   infoCardsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  infoCardItem: { width: '48%', backgroundColor: '#F8FAFC', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E2E8F0' },
-  patientInfoCard: { backgroundColor: '#FFFFFF', minHeight: 72, justifyContent: 'center' },
-  patientInfoIcon: { width: 28, height: 28, borderRadius: 8, backgroundColor: '#F0FDFA', alignItems: 'center', justifyContent: 'center', marginRight: 7 },
-  infoCardLabelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  infoCardLabel: { fontFamily: 'Inter', fontSize: 11, color: '#64748B', fontWeight: '600' },
-  infoCardValue: { fontFamily: 'Inter', fontSize: 13, color: '#0F172A', fontWeight: '700' },
-  accountInfoSectionCard: { backgroundColor: 'transparent', borderRadius: 0, padding: 0, paddingTop: 17, marginTop: 17, borderTopWidth: 1, borderTopColor: '#E2E8F0', elevation: 0 },
-  accountInfoHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
-  accountHeaderIconBox: { width: 32, height: 32, borderRadius: 9, backgroundColor: '#CCFBF1', alignItems: 'center', justifyContent: 'center' },
-  accountInfoTitleText: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: '#0F172A' },
+  infoCardItem: { width: '48%', backgroundColor: colors.background, borderRadius: radii.lg, padding: spacing.md, borderWidth: 1, borderColor: colors.border },
+  patientInfoCard: { backgroundColor: colors.surface, minHeight: 72, justifyContent: 'center' },
+  patientInfoIcon: { width: 28, height: 28, borderRadius: radii.md, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center', marginRight: 7 },
+  infoCardLabelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
+  infoCardLabel: { fontFamily: typography.family, fontSize: typography.size.xs, color: colors.muted, fontWeight: typography.weight.semibold },
+  infoCardValue: { fontFamily: typography.family, fontSize: typography.size.caption, color: colors.text, fontWeight: typography.weight.bold },
+  accountInfoSectionCard: { backgroundColor: 'transparent', borderRadius: 0, padding: 0, paddingTop: 17, marginTop: 17, borderTopWidth: 1, borderTopColor: colors.border, elevation: 0 },
+  accountInfoHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 14 },
+  accountHeaderIconBox: { width: 32, height: 32, borderRadius: 9, backgroundColor: colors.mintBorder, alignItems: 'center', justifyContent: 'center' },
+  accountInfoTitleText: { fontFamily: typography.family, fontSize: typography.size.body, fontWeight: typography.weight.bold, color: colors.text },
   kpiGrid4Cols: { flexDirection: 'row', gap: 10 },
   kpiGrid4ColsMobile: { flexDirection: 'column', gap: 10 },
-  kpiInfoCard: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0' },
-  kpiIconBoxTeal: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#CCFBF1', alignItems: 'center', justifyContent: 'center' },
-  kpiLabelText: { fontFamily: 'Inter', fontSize: 11, color: '#64748B', fontWeight: '600' },
-  kpiValueText: { fontFamily: 'Inter', fontSize: 12, color: '#0F172A', fontWeight: '700', marginTop: 1 },
+  kpiInfoCard: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, padding: spacing.md, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border },
+  kpiIconBoxTeal: { width: 32, height: 32, borderRadius: radii.md, backgroundColor: colors.mintBorder, alignItems: 'center', justifyContent: 'center' },
+  kpiLabelText: { fontFamily: typography.family, fontSize: typography.size.xs, color: colors.muted, fontWeight: typography.weight.semibold },
+  kpiValueText: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.text, fontWeight: typography.weight.bold, marginTop: 1 },
   accountDetailsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 8 },
-  accountDetailCard: { width: '48%', minHeight: 58, flexDirection: 'column', justifyContent: 'center', backgroundColor: '#FFFFFF', borderRadius: 12, paddingVertical: 9, paddingLeft: 48, paddingRight: 10, borderWidth: 1, borderColor: '#E5EEF1', elevation: 1 },
+  accountDetailCard: { width: '48%', minHeight: 58, flexDirection: 'column', justifyContent: 'center', backgroundColor: colors.surface, borderRadius: radii.lg, paddingVertical: 9, paddingLeft: 48, paddingRight: 10, borderWidth: 1, borderColor: '#E5EEF1', elevation: 1 },
   accountDetailLabelRow: { position: 'relative', justifyContent: 'center', minHeight: 16, marginBottom: 3 },
-  accountDetailIcon: { position: 'absolute', left: -34, top: -4, width: 24, height: 24, borderRadius: 8, backgroundColor: '#E8FBF7', alignItems: 'center', justifyContent: 'center' },
-  accountDetailLabel: { fontFamily: 'Inter', color: '#64748B', fontSize: 10, fontWeight: '500' },
-  accountDetailValue: { fontFamily: 'Inter', color: '#1E293B', fontSize: 12, fontWeight: '600' },
-  editProfileCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#E2E8F0', elevation: 1 },
-  editCardTitleText: { fontFamily: 'Inter', fontSize: 17, fontWeight: '800', color: '#0F172A' },
-  editCardSubtitleText: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginTop: 2, marginBottom: 14 },
-  photoUploadRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F8FAFC', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 16 },
-  photoUploadTitle: { fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: '#0F172A' },
-  photoUploadSub: { fontFamily: 'Inter', fontSize: 11, color: '#64748B', marginTop: 1 },
-  choosePhotoBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CBD5E1', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  choosePhotoBtnText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#334155' },
+  accountDetailIcon: { position: 'absolute', left: -34, top: -4, width: 24, height: 24, borderRadius: radii.md, backgroundColor: '#E8FBF7', alignItems: 'center', justifyContent: 'center' },
+  accountDetailLabel: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.micro, fontWeight: typography.weight.medium },
+  accountDetailValue: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.sm, fontWeight: typography.weight.semibold },
+  editProfileCard: { backgroundColor: colors.surface, borderRadius: radii.xl, padding: spacing.xl, borderWidth: 1, borderColor: colors.border, elevation: 1 },
+  editCardTitleText: { fontFamily: typography.family, fontSize: 17, fontWeight: typography.weight.extrabold, color: colors.text },
+  editCardSubtitleText: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted, marginTop: 2, marginBottom: 14 },
+  photoUploadRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.background, padding: 14, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, marginBottom: spacing.lg },
+  photoUploadTitle: { fontFamily: typography.family, fontSize: typography.size.caption, fontWeight: typography.weight.bold, color: colors.text },
+  photoUploadSub: { fontFamily: typography.family, fontSize: typography.size.xs, color: colors.muted, marginTop: 1 },
+  choosePhotoBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.input, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.md },
+  choosePhotoBtnText: { fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.foreground },
   form3ColGrid: { flexDirection: 'row', gap: 10 },
-  formInputLabel: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 4, marginTop: 8 },
-  formTextInput: { fontFamily: 'Inter', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: '#0F172A' },
-  formTextInputDisabled: { backgroundColor: '#F1F5F9', color: '#94A3B8' },
-  disabledHelperText: { fontFamily: 'Inter', fontSize: 10, color: '#94A3B8', marginTop: 2 },
+  formInputLabel: { fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.foreground, marginBottom: spacing.xs, marginTop: spacing.sm },
+  formTextInput: { fontFamily: typography.family, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.input, borderRadius: radii.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, fontSize: typography.size.caption, color: colors.text },
+  formTextInputDisabled: { backgroundColor: colors.secondary, color: colors.subtle },
+  disabledHelperText: { fontFamily: typography.family, fontSize: typography.size.micro, color: colors.subtle, marginTop: 2 },
   formAddressTextarea: { minHeight: 60 },
-  genderChip: { flex: 1, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#CBD5E1', alignItems: 'center', backgroundColor: '#FFFFFF' },
-  genderChipActive: { backgroundColor: '#27A599', borderColor: '#27A599' },
-  genderChipText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700', color: '#475569' },
-  genderChipTextActive: { color: '#FFFFFF' },
+  genderChip: { flex: 1, paddingVertical: spacing.sm, borderRadius: radii.md, borderWidth: 1, borderColor: colors.input, alignItems: 'center', backgroundColor: colors.surface },
+  genderChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  genderChipText: { fontFamily: typography.family, fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.muted },
+  genderChipTextActive: { color: colors.surface },
 });
 
 export default MyProfileScreen;

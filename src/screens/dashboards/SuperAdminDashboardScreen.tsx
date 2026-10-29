@@ -1,3 +1,4 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import React from 'react';
 import {
   ScrollView,
@@ -13,6 +14,7 @@ import { useRemoteData } from '../../hooks/useRemoteData';
 import { apiFetch } from '../../api/apiConfig';
 import { dashboardNumber, displayAmount } from '../../utils/dashboardValues';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { LiquidBorderTouchable, LiquidBorderSurface } from '../../components/common/LiquidBorderSurface';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -57,7 +59,7 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
           <Text style={styles.greetingTitle}>{greeting}{adminName ? `, ${adminName}` : ''}!</Text>
           <Text style={styles.greetingSubtitle}>Here's what's happening across your platform today.</Text>
           <View style={styles.todayDateCard}>
-            <View style={styles.todayIconBox}><CalendarDays size={22} color="#27A599" strokeWidth={2.2} /></View>
+            <View style={styles.todayIconBox}><CalendarDays size={22} color={colors.primary} strokeWidth={2.2} /></View>
             <View style={styles.todayTextCol}>
               <View style={styles.todayBadgeRow}><View style={styles.greenDot} /><Text style={styles.todayBadgeText}>TODAY</Text></View>
               <Text style={styles.todayDateText}>{todayLabel}</Text>
@@ -66,7 +68,7 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
         </View>
 
         {/* Banner */}
-        <View style={styles.heroCard}>
+        <LiquidBorderSurface style={styles.heroCard} radius={16}>
           <View style={styles.heroTextCol}>
             <Text style={styles.heroBadge}>SUPER ADMIN DASHBOARD</Text>
             <Text style={styles.heroTitle}>Multi-Tenant Platform Control</Text>
@@ -74,44 +76,44 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
               {resource.error ? 'Unable to load dashboard. Pull down to retry.' : 'Global overview of registered clinics and tenant performance.'}
             </Text>
           </View>
-        </View>
+        </LiquidBorderSurface>
 
         {/* KPI Cards */}
         <View style={styles.kpiGrid}>
-          <TouchableOpacity
+          <LiquidBorderTouchable
             style={[styles.kpiCard, { backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }]}
             onPress={() => onNavigateScreen('clinics')}>
             <Text style={styles.kpiIcon}>🏥</Text>
             <Text style={styles.kpiValue}>{metric('total_clinics') ?? '\u2014'}</Text>
             <Text style={styles.kpiLabel}>Total Clinics</Text>
             <Text style={styles.kpiSub}>{metric('active_clinics') ?? '\u2014'} Active</Text>
-          </TouchableOpacity>
+          </LiquidBorderTouchable>
 
-          <TouchableOpacity
+          <LiquidBorderTouchable
             style={[styles.kpiCard, { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}
             onPress={() => onNavigateScreen('staff')}>
             <Text style={styles.kpiIcon}>👨‍⚕️</Text>
             <Text style={styles.kpiValue}>{metric('active_staff') ?? '\u2014'}</Text>
             <Text style={styles.kpiLabel}>Active Staff</Text>
             <Text style={styles.kpiSub}>Across registered clinics</Text>
-          </TouchableOpacity>
+          </LiquidBorderTouchable>
 
-          <TouchableOpacity
+          <LiquidBorderTouchable
             style={[styles.kpiCard, { backgroundColor: '#faf5ff', borderColor: '#e9d5ff' }]}
             onPress={() => onNavigateScreen('patients')}>
             <Text style={styles.kpiIcon}>👥</Text>
             <Text style={styles.kpiValue}>{metric('active_patients') ?? '\u2014'}</Text>
             <Text style={styles.kpiLabel}>Active Patients</Text>
             <Text style={styles.kpiSub}>Across registered clinics</Text>
-          </TouchableOpacity>
+          </LiquidBorderTouchable>
 
-          <View
+          <LiquidBorderSurface
             style={[styles.kpiCard, { backgroundColor: '#fff7ed', borderColor: '#fed7aa' }]}>
             <Text style={styles.kpiIcon}>💰</Text>
             <Text style={styles.kpiValue}>{displayAmount(revenue)}</Text>
             <Text style={styles.kpiLabel}>Platform Revenue</Text>
             <Text style={styles.kpiSub}>Total treatment and medicine bills</Text>
-          </View>
+          </LiquidBorderSurface>
         </View>
 
         {/* Quick Actions */}
@@ -156,91 +158,91 @@ export const SuperAdminDashboardScreen: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  content: { padding: 16, paddingBottom: 80 },
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing.lg, paddingBottom: 80 },
   greetingSection: { marginBottom: 18 },
-  greetingTitle: { fontFamily: 'Inter', color: '#0f172a', fontSize: 21, fontWeight: '800' },
-  greetingSubtitle: { fontFamily: 'Inter', color: '#64748b', fontSize: 13, marginTop: 4 },
-  todayDateCard: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, marginTop: 16, borderRadius: 16, borderWidth: 1, borderColor: '#99f6e4', backgroundColor: '#f0fdfa' },
-  todayIconBox: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#ccfbf1', alignItems: 'center', justifyContent: 'center' },
+  greetingTitle: { fontFamily: typography.family, color: colors.text, fontSize: 21, fontWeight: typography.weight.extrabold },
+  greetingSubtitle: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.caption, marginTop: spacing.xs },
+  todayDateCard: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: 14, paddingVertical: 10, marginTop: spacing.lg, borderRadius: radii.xl, borderWidth: 1, borderColor: colors.mintBorder, backgroundColor: colors.surface, shadowColor: '#0d9488', shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
+  todayIconBox: { width: 42, height: 42, borderRadius: radii.lg, backgroundColor: colors.mintBorder, alignItems: 'center', justifyContent: 'center' },
   todayTextCol: { flex: 1 },
-  todayBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 },
-  greenDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#27a599' },
-  todayBadgeText: { fontFamily: 'Inter', color: '#27a599', fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
-  todayDateText: { fontFamily: 'Inter', color: '#0f172a', fontSize: 14, fontWeight: '700' },
+  todayBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.tiny, marginBottom: 3 },
+  greenDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.primary },
+  todayBadgeText: { fontFamily: typography.family, color: colors.primary, fontSize: typography.size.micro, fontWeight: typography.weight.extrabold, letterSpacing: 1.2 },
+  todayDateText: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.body, fontWeight: typography.weight.bold },
   heroCard: {
-    backgroundColor: '#0f172a',
-    borderRadius: 16,
+    backgroundColor: colors.text,
+    borderRadius: radii.xl,
     padding: 18,
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   heroTextCol: { flex: 1 },
-  heroBadge: { fontFamily: 'Inter', color: '#38bdf8', fontSize: 10, fontWeight: '900', letterSpacing: 1, marginBottom: 4 },
-  heroTitle: { fontFamily: 'Inter', color: '#ffffff', fontSize: 20, fontWeight: '800', marginBottom: 6 },
-  heroSub: { fontFamily: 'Inter', color: '#94a3b8', fontSize: 13, lineHeight: 18 },
-  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
+  heroBadge: { fontFamily: typography.family, color: '#38bdf8', fontSize: typography.size.micro, fontWeight: typography.weight.black, letterSpacing: 1, marginBottom: spacing.xs },
+  heroTitle: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.title, fontWeight: typography.weight.extrabold, marginBottom: spacing.tiny },
+  heroSub: { fontFamily: typography.family, color: colors.subtle, fontSize: typography.size.caption, lineHeight: 18 },
+  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.xxl },
   kpiCard: {
     width: '48%',
-    borderRadius: 14,
+    borderRadius: radii.lg,
     padding: 14,
     borderWidth: 1,
   },
-  kpiIcon: { fontFamily: 'Inter', fontSize: 22, marginBottom: 6 },
-  kpiValue: { fontFamily: 'Inter', fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 2 },
-  kpiLabel: { fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: '#334155' },
-  kpiSub: { fontFamily: 'Inter', fontSize: 11, color: '#64748b', marginTop: 2 },
-  sectionTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '800', color: '#0f172a', marginBottom: 12 },
-  actionsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
+  kpiIcon: { fontFamily: typography.family, fontSize: typography.size.heading, marginBottom: spacing.tiny },
+  kpiValue: { fontFamily: typography.family, fontSize: typography.size.heading, fontWeight: typography.weight.extrabold, color: colors.text, marginBottom: 2 },
+  kpiLabel: { fontFamily: typography.family, fontSize: typography.size.caption, fontWeight: typography.weight.bold, color: colors.foreground },
+  kpiSub: { fontFamily: typography.family, fontSize: typography.size.xs, color: colors.muted, marginTop: 2 },
+  sectionTitle: { fontFamily: typography.family, fontSize: typography.size.lg, fontWeight: typography.weight.extrabold, color: colors.text, marginBottom: spacing.md },
+  actionsRow: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xxl },
   actionBtn: {
     flex: 1,
-    backgroundColor: '#27a599',
+    backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
+    paddingVertical: spacing.md,
+    borderRadius: radii.lg,
+    gap: spacing.sm,
   },
-  actionIcon: { fontFamily: 'Inter', fontSize: 16 },
-  actionText: { fontFamily: 'Inter', color: '#ffffff', fontWeight: '700', fontSize: 13 },
+  actionIcon: { fontFamily: typography.family, fontSize: typography.size.subtitle },
+  actionText: { fontFamily: typography.family, color: colors.surface, fontWeight: typography.weight.bold, fontSize: typography.size.caption },
   actionBtnAlt: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: colors.input,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
+    paddingVertical: spacing.md,
+    borderRadius: radii.lg,
+    gap: spacing.sm,
   },
-  actionTextAlt: { fontFamily: 'Inter', color: '#0f172a', fontWeight: '700', fontSize: 13 },
+  actionTextAlt: { fontFamily: typography.family, color: colors.text, fontWeight: typography.weight.bold, fontSize: typography.size.caption },
   clinicList: { gap: 10 },
   clinicRow: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.border,
   },
   clinicIconBox: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: spacing.md,
   },
-  clinicIcon: { fontFamily: 'Inter', fontSize: 20 },
+  clinicIcon: { fontFamily: typography.family, fontSize: typography.size.title },
   clinicInfo: { flex: 1 },
-  clinicName: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: '#0f172a' },
-  clinicMeta: { fontFamily: 'Inter', fontSize: 12, color: '#64748b', marginTop: 2 },
-  planBadge: { backgroundColor: '#e0f2fe', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-  planText: { fontFamily: 'Inter', color: '#0369a1', fontSize: 11, fontWeight: '800' },
+  clinicName: { fontFamily: typography.family, fontSize: typography.size.body, fontWeight: typography.weight.bold, color: colors.text },
+  clinicMeta: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted, marginTop: 2 },
+  planBadge: { backgroundColor: '#e0f2fe', paddingHorizontal: 10, paddingVertical: spacing.xs, borderRadius: radii.md },
+  planText: { fontFamily: typography.family, color: '#0369a1', fontSize: typography.size.xs, fontWeight: typography.weight.extrabold },
 });
 
 export default SuperAdminDashboardScreen;

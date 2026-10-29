@@ -1,9 +1,10 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react-native';
 import { PatientHeader } from '../../components/common/PatientHeader';
 import { PatientPageHeading } from '../../components/common/PatientPageHeading';
+import { LiquidBorderTouchable } from '../../components/common/LiquidBorderSurface';
 import { RefreshButton } from '../../components/common/RefreshButton';
 import {
   clearMyNotifications,
@@ -173,24 +175,49 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
   const renderIcon = (item: NotificationInboxItem) => {
     const text = `${item.entity_type || ''} ${item.not_cat_name || ''} ${item.title || ''} ${item.message || ''}`.toLowerCase();
     if (text.includes('appointment')) return <Calendar size={18} color="#0284c7" />;
-    if (text.includes('bill') || text.includes('payment')) return <CreditCard size={18} color="#059669" />;
+    if (text.includes('bill') || text.includes('payment')) return <CreditCard size={18} color={colors.successDark} />;
     if (text.includes('lab') || text.includes('test') || text.includes('report')) return <TestTube size={18} color="#7c3aed" />;
     if (text.includes('video') || text.includes('call')) return <Video size={18} color="#ea580c" />;
-    return <Bell size={18} color="#27a599" />;
+    return <Bell size={18} color={colors.primary} />;
   };
 
   return (
     <View style={styles.container}>
       <PatientHeader onOpenDrawer={onOpenDrawer} unreadCount={unreadCount} />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#27a599']} />}>
+      <FlatList
+        data={loading ? [] : filteredHistory}
+        keyExtractor={item => `p-notif-${item.not_rec_id}`}
+        renderItem={({ item }) => {
+          const isRead = boolFromApi(item.is_read);
+          return (
+            <LiquidBorderTouchable
+              activeOpacity={0.8}
+              onPress={() => handleNotificationOpen(item)}
+              radius={12}
+              style={[styles.card, isRead ? styles.cardRead : styles.cardUnread]}>
+              <View style={styles.cardTop}>
+                <View style={styles.iconCircle}>{renderIcon(item)}</View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.categoryName}>{item.not_cat_name || 'Notification'}</Text>
+                  <Text style={styles.timeText}>{formatDateTime(item.sent_at || item.created_at)}</Text>
+                </View>
+                <View style={[styles.badgePill, isRead ? styles.badgeRead : styles.badgeUnread]}>
+                  <Text style={[styles.badgePillText, isRead ? styles.badgeReadText : styles.badgeUnreadText]}>
+                    {isRead ? 'Read' : 'New'}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.msgText}>{item.message || '-'}</Text>
+            </LiquidBorderTouchable>
+          );
+        }}
+        ListHeaderComponent={<View style={styles.listHeader}>
         {/* Header Title with RefreshButton */}
         <PatientPageHeading
           title="Notifications"
           subtitle="Appointment reminders, billing alerts and other updates"
-          icon={<Bell size={20} color="#27a599" />}
+          icon={<Bell size={20} color={colors.primary} />}
           action={<RefreshButton onRefresh={loadData} loading={refreshing} />}
           compact
         />
@@ -205,7 +232,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
               style={styles.actionBtn}
               disabled={saving || !unreadCount}
               onPress={handleMarkAllRead}>
-              <CheckCircle2 size={15} color="#27a599" style={{ marginRight: 5 }} />
+              <CheckCircle2 size={15} color={colors.primary} style={{ marginRight: 5 }} />
               <Text style={styles.actionBtnText}>Mark All Read</Text>
             </TouchableOpacity>
 
@@ -213,7 +240,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
               style={[styles.actionBtn, styles.clearBtn, history.length === 0 && styles.disabledBtn]}
               disabled={saving || history.length === 0}
               onPress={handleClearHistory}>
-              <Trash2 size={15} color="#dc2626" style={{ marginRight: 5 }} />
+              <Trash2 size={15} color={colors.destructive} style={{ marginRight: 5 }} />
               <Text style={styles.clearBtnText}>Clear</Text>
             </TouchableOpacity> : null}
           </View>
@@ -221,17 +248,17 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
 
         {/* Search Bar */}
         <View style={styles.searchBar}>
-          <Search size={16} color="#94a3b8" style={{ marginRight: 8 }} />
+          <Search size={16} color={colors.subtle} style={{ marginRight: spacing.sm }} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search notifications..."
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={colors.subtle}
             value={searchText}
             onChangeText={setSearchText}
           />
           {searchText.length > 0 && (
             <TouchableOpacity onPress={() => setSearchText('')}>
-              <X size={16} color="#94a3b8" />
+              <X size={16} color={colors.subtle} />
             </TouchableOpacity>
           )}
         </View>
@@ -253,57 +280,33 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({
           })}
         </View>
 
-        {/* Notification List */}
-        {loading ? (
+        </View>}
+        ListEmptyComponent={loading ? (
           <View style={styles.loaderBox}>
-            <ActivityIndicator size="large" color="#27a599" />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.loadingText}>Loading notifications...</Text>
           </View>
         ) : (
-          <View style={styles.list}>
-            {filteredHistory.map(item => {
-              const isRead = boolFromApi(item.is_read);
-              return (
-                <TouchableOpacity
-                  key={`p-notif-${item.not_rec_id}`}
-                  activeOpacity={0.8}
-                  onPress={() => handleNotificationOpen(item)}
-                  style={[styles.card, isRead ? styles.cardRead : styles.cardUnread]}>
-                  <View style={styles.cardTop}>
-                    <View style={styles.iconCircle}>{renderIcon(item)}</View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.categoryName}>{item.not_cat_name || 'Notification'}</Text>
-                      <Text style={styles.timeText}>{formatDateTime(item.sent_at || item.created_at)}</Text>
-                    </View>
-                    <View style={[styles.badgePill, isRead ? styles.badgeRead : styles.badgeUnread]}>
-                      <Text style={[styles.badgePillText, isRead ? styles.badgeReadText : styles.badgeUnreadText]}>
-                        {isRead ? 'Read' : 'New'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Text style={styles.msgText}>{item.message || '-'}</Text>
-                </TouchableOpacity>
-              );
-            })}
-
-            {filteredHistory.length === 0 && (
-              <View style={styles.emptyBox}>
-                <Bell size={40} color="#cbd5e1" style={{ marginBottom: 10 }} />
-                <Text style={styles.emptyTitle}>No notifications found</Text>
-                <Text style={styles.emptySubtitle}>You are all caught up with your updates.</Text>
-              </View>
-            )}
+          <View style={styles.emptyBox}>
+            <Bell size={40} color={colors.input} style={{ marginBottom: 10 }} />
+            <Text style={styles.emptyTitle}>No notifications found</Text>
+            <Text style={styles.emptySubtitle}>You are all caught up with your updates.</Text>
           </View>
         )}
-      </ScrollView>
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  scrollContent: { padding: 16, paddingBottom: 28 },
+  container: { flex: 1, backgroundColor: colors.background },
+  scrollContent: { padding: spacing.lg, paddingBottom: 28, gap: spacing.md },
+  listHeader: { gap: spacing.md },
 
   headerBox: { marginBottom: 14 },
   headerBoxRow: {
@@ -312,114 +315,114 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 14,
   },
-  title: { fontFamily: 'Inter', fontSize: 20, fontWeight: '900', color: '#0f172a', letterSpacing: -0.5 },
-  subtitle: { fontFamily: 'Inter', fontSize: 14, color: '#64748b', marginTop: 4 },
+  title: { fontFamily: typography.family, fontSize: typography.size.title, fontWeight: typography.weight.black, color: colors.text, letterSpacing: -0.5 },
+  subtitle: { fontFamily: typography.family, fontSize: typography.size.body, color: colors.muted, marginTop: spacing.xs },
 
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   unreadBadge: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: colors.secondary,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 12,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.border,
   },
-  unreadBadgeText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#475569' },
-  actionBtnRow: { flexDirection: 'row', gap: 8 },
+  unreadBadgeText: { fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.muted },
+  actionBtnRow: { flexDirection: 'row', gap: spacing.sm },
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#ffffff',
+    borderColor: colors.input,
+    backgroundColor: colors.surface,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: spacing.tiny,
+    borderRadius: radii.md,
   },
-  actionBtnText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#0f172a' },
-  clearBtn: { borderColor: '#fecaca', backgroundColor: '#fff5f5' },
-  clearBtnText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#dc2626' },
+  actionBtnText: { fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.text },
+  clearBtn: { borderColor: colors.destructiveSoft, backgroundColor: '#fff5f5' },
+  clearBtnText: { fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.destructive },
   disabledBtn: { opacity: 0.5 },
 
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
+    borderColor: colors.input,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
     marginBottom: 10,
   },
-  searchInput: { fontFamily: 'Inter', flex: 1, height: 40, fontSize: 13, color: '#0f172a' },
+  searchInput: { fontFamily: typography.family, flex: 1, height: 40, fontSize: typography.size.caption, color: colors.text },
 
-  filterChipRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  filterChipRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: 14 },
   filterChip: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
+    paddingVertical: spacing.tiny,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: colors.input,
   },
-  filterChipActive: { backgroundColor: '#27a599', borderColor: '#27a599' },
-  filterChipText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#475569' },
-  filterChipTextActive: { color: '#ffffff', fontWeight: '800' },
+  filterChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  filterChipText: { fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.muted },
+  filterChipTextActive: { color: colors.surface, fontWeight: typography.weight.extrabold },
 
   loaderBox: { paddingVertical: 40, alignItems: 'center' },
-  loadingText: { fontFamily: 'Inter', marginTop: 10, fontSize: 13, color: '#64748b' },
+  loadingText: { fontFamily: typography.family, marginTop: 10, fontSize: typography.size.caption, color: colors.muted },
 
   list: { gap: 10 },
   card: {
-    borderRadius: 12,
+    borderRadius: radii.lg,
     padding: 14,
     borderWidth: 1,
-    shadowColor: '#0f172a',
+    shadowColor: colors.text,
     shadowOpacity: 0.03,
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 2,
     elevation: 1,
   },
-  cardRead: { backgroundColor: '#ffffff', borderColor: '#e2e8f0' },
+  cardRead: { backgroundColor: colors.surface, borderColor: colors.border },
   cardUnread: { backgroundColor: '#ecfeff', borderColor: '#a5f3fc' },
-  cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
   },
-  categoryName: { fontFamily: 'Inter', fontSize: 14, fontWeight: '800', color: '#0f172a' },
-  timeText: { fontFamily: 'Inter', fontSize: 11, color: '#64748b', marginTop: 1 },
-  badgePill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  badgePillText: { fontFamily: 'Inter', fontSize: 10, fontWeight: '700', color: '#475569' },
-  badgeRead: { backgroundColor: '#f1f5f9' },
-  badgeReadText: { fontFamily: 'Inter', fontSize: 10, fontWeight: '700', color: '#64748b' },
-  badgeUnread: { backgroundColor: '#cffafe', borderWidth: 1, borderColor: '#67e8f9' },
-  badgeUnreadText: { fontFamily: 'Inter', fontSize: 10, fontWeight: '800', color: '#0e7490' },
+  categoryName: { fontFamily: typography.family, fontSize: typography.size.body, fontWeight: typography.weight.extrabold, color: colors.text },
+  timeText: { fontFamily: typography.family, fontSize: typography.size.xs, color: colors.muted, marginTop: 1 },
+  badgePill: { paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radii.md },
+  badgePillText: { fontFamily: typography.family, fontSize: typography.size.micro, fontWeight: typography.weight.bold, color: colors.muted },
+  badgeRead: { backgroundColor: colors.secondary },
+  badgeReadText: { fontFamily: typography.family, fontSize: typography.size.micro, fontWeight: typography.weight.bold, color: colors.muted },
+  badgeUnread: { backgroundColor: colors.infoSoft, borderWidth: 1, borderColor: '#67e8f9' },
+  badgeUnreadText: { fontFamily: typography.family, fontSize: typography.size.micro, fontWeight: typography.weight.extrabold, color: '#0e7490' },
 
-  msgText: { fontFamily: 'Inter', fontSize: 13, color: '#334155', lineHeight: 18, marginTop: 4 },
+  msgText: { fontFamily: typography.family, fontSize: typography.size.caption, color: colors.foreground, lineHeight: 18, marginTop: spacing.xs },
 
   emptyBox: {
     paddingVertical: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.border,
     borderStyle: 'dashed',
   },
-  emptyTitle: { fontFamily: 'Inter', fontSize: 15, fontWeight: '800', color: '#0f172a' },
-  emptySubtitle: { fontFamily: 'Inter', fontSize: 12, color: '#64748b', marginTop: 4 },
+  emptyTitle: { fontFamily: typography.family, fontSize: 15, fontWeight: typography.weight.extrabold, color: colors.text },
+  emptySubtitle: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted, marginTop: spacing.xs },
 });
 
 export default NotificationsScreen;

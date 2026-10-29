@@ -1,9 +1,13 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 // src/screens/staff/RolePermissions.tsx
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AppModal } from '../../components/common/AppModal';
-import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet, ActivityIndicator, BackHandler, useWindowDimensions, TextInput, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, TouchableOpacity, Switch, StyleSheet, ActivityIndicator, BackHandler, useWindowDimensions, TextInput, TouchableWithoutFeedback } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import { ShieldCheck, Check, Plus, Pencil, ChevronDown, X, Shield } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { LiquidBorderSurface } from '../../components/common/LiquidBorderSurface';
+import { useLiquidBorderScrollHandlers } from '../../components/common/LiquidBorderFocusContext';
 import { RefreshButton } from '../../components/common/RefreshButton';
 import { showSuccessToast, showErrorToast } from '../../utils/toast';
 import {
@@ -39,11 +43,14 @@ export interface ExtendedRoleItem extends UserRoleItem {
   description?: string;
 }
 
+const EMPTY_ROLE_PERMISSIONS: RolePermissionItem[] = [];
+
 function formatRoleTitle(value: string): string {
   return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissionsProps) {
+  const borderScrollHandlers = useLiquidBorderScrollHandlers();
   const { width, height } = useWindowDimensions();
   const isMobile = width < 768;
 
@@ -134,7 +141,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
     return Object.fromEntries(entries);
   }, Boolean(token && canView && managedClinicId && roles.length && activeTab === 'roles'));
   const systemObjects = resource.data?.objects ?? [];
-  const permissionsMatrix = resource.data?.permissions ?? [];
+  const permissionsMatrix = resource.data?.permissions ?? EMPTY_ROLE_PERMISSIONS;
   const permissionRoles = useMemo(() => buildPermissionRoleOptions(
     resource.data?.allRoles ?? [], currentRole, resource.data?.permissions ?? [], customRoleSetupId,
   ).map(row => ({ ...row, role_name: formatRoleTitle(row.role_name) })), [resource.data, currentRole, customRoleSetupId]);
@@ -154,6 +161,15 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
     if (!loading && !permissionRoles.some(r => String(r.id) === String(selectedRole))) setSelectedRole(permissionRoles[0]?.id ?? '');
   }, [permissionRoles, selectedRole, loading]);
   const permissionKey = (objectId: string | number) => selectedRole + ':' + objectId;
+  const permissionsByRoleObject = useMemo(() => {
+    const index = new Map<string, RolePermissionItem>();
+    permissionsMatrix.forEach(permission => {
+      const key = `${permission.role_id}:${permission.sys_obj_id}`;
+      // Keep the same first-match behavior as Array.find when legacy data has duplicates.
+      if (!index.has(key)) index.set(key, permission);
+    });
+    return index;
+  }, [permissionsMatrix]);
   const hasUnsavedPermissionChanges = Boolean(
     selectedRole && systemObjects.length && (
       String(selectedRole) === customRoleSetupId ||
@@ -164,8 +180,9 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
     canEditRole && !saving && !loading && !resource.error && selectedRole &&
     systemObjects.length && hasUnsavedPermissionChanges,
   );
-  const permissionRow = (objectId: string | number) => drafts[permissionKey(objectId)] || permissionsMatrix.find(p =>
-    String(p.role_id) === String(selectedRole) && String(p.sys_obj_id) === String(objectId));
+  const permissionRow = (objectId: string | number) =>
+    drafts[permissionKey(objectId)] ||
+    permissionsByRoleObject.get(`${selectedRole}:${objectId}`);
   const fields = { create: 'can_add', read: 'can_view', update: 'can_edit', delete: 'can_delete', execute: 'can_execute' } as const;
   const getPermission = (objectId: string | number, key: keyof typeof fields) => Number(permissionRow(objectId)?.[fields[key]]) === 1;
   const togglePermission = (objectId: string | number, key: keyof typeof fields) => {
@@ -327,7 +344,8 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
         />
       )}
 
-      <ScrollView
+      <LiquidBorderScrollView
+        {...borderScrollHandlers}
         testID="role-permissions-page"
         style={styles.body}
         scrollEnabled={!showRoleDropdown}
@@ -356,14 +374,14 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
         </View>
 
         {(!managedClinicId || !!resource.error) && (
-          <View style={{ marginBottom: 12 }}>
+          <View style={{ marginBottom: spacing.md }}>
             {!managedClinicId && (
-              <Text style={{ color: '#64748B', textAlign: 'center', marginVertical: 4 }}>
+              <Text style={{ color: colors.muted, textAlign: 'center', marginVertical: spacing.xs }}>
                 Select a clinic from the header to manage roles and permissions.
               </Text>
             )}
             {!!resource.error && (
-              <Text accessibilityRole="alert" style={{ color: '#EF4444', textAlign: 'center', marginVertical: 4 }}>
+              <Text accessibilityRole="alert" style={{ color: colors.destructive, textAlign: 'center', marginVertical: spacing.xs }}>
                 Unable to load roles and permissions. Use Refresh to retry.
               </Text>
             )}
@@ -371,9 +389,9 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
         )}
 
         {/* ── MAIN CARD CONTAINER WITH TEAL BORDER ────────────────────────── */}
-        <View style={styles.tealBorderCard}>
+        <LiquidBorderSurface style={styles.tealBorderCard} radius={12}>
           {/* Inner Card Header */}
-          <View style={{ marginBottom: 16 }}>
+          <View style={{ marginBottom: spacing.lg }}>
             <Text style={styles.innerCardTitle}>Roles & Permissions</Text>
             <Text style={styles.innerCardSubtitle}>
               Manage role definitions, permission settings, and access controls.
@@ -409,14 +427,14 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
               <View style={styles.rolesHeaderRow}>
                 <Text style={styles.sectionTitleText}>User Role List</Text>
                 <TouchableOpacity style={styles.addRoleButton} onPress={handleOpenAddRole} disabled={!canAddRole || loading || saving || !!resource.error || !managedClinicId}>
-                  <Plus color="#FFFFFF" size={16} style={{ marginRight: 4 }} />
+                  <Plus color={colors.surface} size={16} style={{ marginRight: spacing.xs }} />
                   <Text style={styles.addRoleButtonText}>Add Role</Text>
                 </TouchableOpacity>
               </View>
 
               {loading ? (
                 <View style={styles.loadingBox}>
-                  <ActivityIndicator size="large" color="#27A599" />
+                  <ActivityIndicator size="large" color={colors.primary} />
                   <Text style={styles.loadingText}>Loading role list...</Text>
                 </View>
               ) : (
@@ -424,11 +442,12 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                   {roles.map((role) => {
                     const isCustom = role.type === 'Custom';
                     return (
-                      <View
+                      <LiquidBorderSurface
                         key={String(role.id)}
+                        radius={8}
                         style={[styles.roleCard, isMobile ? styles.roleCardMobile : styles.roleCardDesktop]}
                       >
-                        <View style={{ flex: 1, paddingRight: 8 }}>
+                        <View style={{ flex: 1, paddingRight: spacing.sm }}>
                           <Text style={styles.roleCardName}>{role.role_name}</Text>
                           <Text style={styles.roleCardId}>Role ID: {role.id}</Text>
                           {!!role.description && (
@@ -466,10 +485,10 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                             onPress={() => handleOpenEditRole(role)}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                           >
-                            <Pencil color="#475569" size={16} />
+                            <Pencil color={colors.muted} size={16} />
                           </TouchableOpacity>
                         </View>
-                      </View>
+                      </LiquidBorderSurface>
                     );
                   })}
                 </View>
@@ -497,7 +516,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                     <Text style={styles.roleDropdownSelectorText}>
                       {selectedRoleObject ? selectedRoleObject.role_name : 'Select role'}
                     </Text>
-                    <ChevronDown color="#64748B" size={18} />
+                    <ChevronDown color={colors.muted} size={18} />
                   </TouchableOpacity>
                 </View>
 
@@ -508,9 +527,9 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                   disabled={!canEditRole || saving || loading || !!resource.error || !selectedRole || !systemObjects.length || !hasUnsavedPermissionChanges}
                 >
                   {saving ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.surface} />
                   ) : (
-                    <Shield color="#FFFFFF" size={16} style={{ marginRight: 6 }} />
+                    <Shield color={colors.surface} size={16} style={{ marginRight: spacing.tiny }} />
                   )}
                   <Text style={styles.saveChangesButtonText}>
                     {saving ? 'Saving...' : 'Save Changes'}
@@ -523,14 +542,14 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
               {/* MATRIX TABLE / LIST VIEW */}
               {loading ? (
                 <View style={styles.loadingBox}>
-                  <ActivityIndicator size="large" color="#27A599" />
+                  <ActivityIndicator size="large" color={colors.primary} />
                   <Text style={styles.loadingText}>Loading permissions matrix...</Text>
                 </View>
               ) : isMobile ? (
                 /* MOBILE VIEW: Per Object Permissions Card */
-                <View style={{ marginTop: 12 }}>
+                <View style={{ marginTop: spacing.md }}>
                   {systemObjects.map((obj) => (
-                    <View key={String(obj.id)} style={styles.mobilePermCard}>
+                    <LiquidBorderSurface key={String(obj.id)} style={styles.mobilePermCard} radius={8}>
                       <View style={{ marginBottom: 10 }}>
                         <Text style={styles.matrixObjName}>{obj.name}</Text>
                         {!!obj.subtext && <Text style={styles.matrixObjSub}>{obj.subtext}</Text>}
@@ -548,22 +567,22 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                                 disabled={!canEditRole || saving || loading || Boolean(resource.error) || !selectedRole}
                                 value={val}
                                 onValueChange={() => togglePermission(obj.id, key)}
-                                trackColor={{ false: '#E2E8F0', true: '#99F6E4' }}
-                                thumbColor={val ? '#27A599' : '#F1F5F9'}
+                                trackColor={{ false: colors.border, true: colors.mintBorder }}
+                                thumbColor={val ? colors.primary : colors.secondary}
                               />
                             </View>
                           );
                         })}
                       </View>
-                    </View>
+                    </LiquidBorderSurface>
                   ))}
                 </View>
               ) : (
                 /* DESKTOP / WIDE SCREEN VIEW: Full Matrix Table */
-                <ScrollView
+                <LiquidBorderScrollView
                   horizontal
                   showsHorizontalScrollIndicator={true}
-                  style={{ marginTop: 16 }}
+                  style={{ marginTop: spacing.lg }}
                   nestedScrollEnabled={true}
                   scrollEventThrottle={16}
                   decelerationRate="normal">
@@ -595,8 +614,8 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                                 disabled={!canEditRole || saving || loading || Boolean(resource.error) || !selectedRole}
                                 value={val}
                                 onValueChange={() => togglePermission(obj.id, key)}
-                                trackColor={{ false: '#E2E8F0', true: '#99F6E4' }}
-                                thumbColor={val ? '#27A599' : '#F1F5F9'}
+                                trackColor={{ false: colors.border, true: colors.mintBorder }}
+                                thumbColor={val ? colors.primary : colors.secondary}
                               />
                             </View>
                           );
@@ -604,12 +623,12 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                       </View>
                     ))}
                   </View>
-                </ScrollView>
+                </LiquidBorderScrollView>
               )}
             </View>
           )}
-        </View>
-      </ScrollView>
+        </LiquidBorderSurface>
+      </LiquidBorderScrollView>
 
       {/* Separate from the page scroll so the overlay receives native swipe gestures. */}
       {showRoleDropdown && roleMenuPosition && (
@@ -617,7 +636,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
           <TouchableOpacity accessibilityLabel="Close permission role list" activeOpacity={1}
             style={StyleSheet.absoluteFill} onPress={closeRoleDropdown} />
           <View testID="permission-role-menu" style={[styles.dropdownMenuCard, roleMenuPosition]}>
-            <ScrollView
+            <LiquidBorderScrollView
               testID="permission-role-options"
               style={styles.roleOptionsScroll}
               nestedScrollEnabled
@@ -642,7 +661,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                     }}
                   >
                     {isSelected ? (
-                      <Check color="#27A599" size={16} style={{ marginRight: 8 }} />
+                      <Check color={colors.primary} size={16} style={{ marginRight: spacing.sm }} />
                     ) : (
                       <View style={{ width: 24 }} />
                     )}
@@ -657,7 +676,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </LiquidBorderScrollView>
           </View>
         </View>
       )}
@@ -671,7 +690,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                 {/* Header Row */}
                 <View style={styles.roleModalHeader}>
                   <View style={styles.roleIconBox}>
-                    <ShieldCheck color="#FFFFFF" size={24} />
+                    <ShieldCheck color={colors.surface} size={24} />
                   </View>
                   <View style={{ flex: 1, marginLeft: 14 }}>
                     <Text style={styles.roleModalTitle}>
@@ -681,8 +700,8 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                       {editingRole ? 'Update the role name.' : 'Add a new user role.'}
                     </Text>
                   </View>
-                  <TouchableOpacity disabled={roleFormSaving} onPress={() => setIsAddRoleModalOpen(false)} style={{ padding: 4 }}>
-                    <X color="#64748B" size={18} />
+                  <TouchableOpacity disabled={roleFormSaving} onPress={() => setIsAddRoleModalOpen(false)} style={{ padding: spacing.xs }}>
+                    <X color={colors.muted} size={18} />
                   </TouchableOpacity>
                 </View>
 
@@ -694,7 +713,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                       placeholder="Role name"
                       accessibilityLabel="Role name"
                       editable={!roleFormSaving}
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                       value={roleFormName}
                       onChangeText={value => { setRoleFormName(value); setRoleFormError(''); }}
                       autoFocus
@@ -719,7 +738,7 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
                     disabled={roleFormSaving || (editingRole ? !canEditRole : !canAddRole) || loading || !!resource.error}
                   >
                     {roleFormSaving ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <ActivityIndicator size="small" color={colors.surface} />
                     ) : (
                       <Text style={styles.roleSaveBtnText}>Save Role</Text>
                     )}
@@ -735,24 +754,24 @@ export function RolePermissions({ onOpenDrawer, onNavigateScreen }: RolePermissi
 }
 
 const styles = StyleSheet.create({
-  roleFormError: { fontFamily: 'Inter', color: '#B91C1C', fontSize: 12, marginTop: 6 },
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  body: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
+  roleFormError: { fontFamily: typography.family, color: colors.destructiveDark, fontSize: typography.size.sm, marginTop: spacing.tiny },
+  container: { flex: 1, backgroundColor: colors.background },
+  body: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
 
   // Top Banner
   topBannerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   topBannerHeaderMobile: {
     flexDirection: 'column',
     alignItems: 'stretch',
-    gap: 12,
+    gap: spacing.md,
   },
-  headerTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 22, fontWeight: '700' },
-  headerSubtitle: { fontFamily: 'Inter', color: '#64748B', fontSize: 13, marginTop: 4 },
+  headerTitle: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.heading, fontWeight: typography.weight.bold },
+  headerSubtitle: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.caption, marginTop: spacing.xs },
 
   refreshContainer: { alignItems: 'flex-end' },
   refreshContainerMobile: {
@@ -764,73 +783,73 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
+    borderColor: colors.input,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
     paddingVertical: 7,
-    borderRadius: 8,
+    borderRadius: radii.md,
   },
-  refreshButtonText: { fontFamily: 'Inter', color: '#334155', fontSize: 13, fontWeight: '600' },
+  refreshButtonText: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.caption, fontWeight: typography.weight.semibold },
   // Main Card with Teal Border
   tealBorderCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     borderWidth: 1.5,
-    borderColor: '#27A599',
-    padding: 16,
-    marginBottom: 20,
+    borderColor: colors.primary,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
     elevation: 2,
-    shadowColor: '#0F172A',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
   },
-  innerCardTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 18, fontWeight: '700' },
-  innerCardSubtitle: { fontFamily: 'Inter', color: '#64748B', fontSize: 12, marginTop: 2 },
+  innerCardTitle: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.lg, fontWeight: typography.weight.bold },
+  innerCardSubtitle: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.sm, marginTop: 2 },
 
   // Segmented Tab Bar
   segmentedTabBar: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
-    padding: 4,
-    marginBottom: 16,
+    backgroundColor: colors.secondary,
+    borderRadius: radii.md,
+    padding: spacing.xs,
+    marginBottom: spacing.lg,
   },
   segmentTab: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 6,
+    borderRadius: radii.sm,
   },
   segmentTabActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 1,
   },
-  segmentTabText: { fontFamily: 'Inter', color: '#64748B', fontSize: 14, fontWeight: '600' },
-  segmentTabTextActive: { color: '#0F172A', fontWeight: '700' },
+  segmentTabText: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.body, fontWeight: typography.weight.semibold },
+  segmentTabTextActive: { color: colors.text, fontWeight: typography.weight.bold },
 
   // Roles Tab Layout
   rolesHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
-  sectionTitleText: { fontFamily: 'Inter', color: '#0F172A', fontSize: 15, fontWeight: '700' },
+  sectionTitleText: { fontFamily: typography.family, color: colors.text, fontSize: 15, fontWeight: typography.weight.bold },
   addRoleButton: {
-    backgroundColor: '#27A599',
+    backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
   },
-  addRoleButtonText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+  addRoleButtonText: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.caption, fontWeight: typography.weight.semibold },
 
   rolesGrid: {
     flexDirection: 'row',
@@ -845,11 +864,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
+    borderColor: colors.border,
+    borderRadius: radii.md,
     padding: 14,
-    marginBottom: 12,
-    backgroundColor: '#FFFFFF',
+    marginBottom: spacing.md,
+    backgroundColor: colors.surface,
   },
   roleCardDesktop: {
     width: '49%',
@@ -857,48 +876,48 @@ const styles = StyleSheet.create({
   roleCardMobile: {
     width: '100%',
   },
-  roleCardName: { fontFamily: 'Inter', color: '#0F172A', fontSize: 15, fontWeight: '700' },
-  roleCardId: { fontFamily: 'Inter', color: '#64748B', fontSize: 12, marginTop: 2 },
-  roleCardDesc: { fontFamily: 'Inter', color: '#94A3B8', fontSize: 11, marginTop: 4 },
+  roleCardName: { fontFamily: typography.family, color: colors.text, fontSize: 15, fontWeight: typography.weight.bold },
+  roleCardId: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.sm, marginTop: 2 },
+  roleCardDesc: { fontFamily: typography.family, color: colors.subtle, fontSize: typography.size.xs, marginTop: spacing.xs },
 
   roleCardRightCol: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   badgeTag: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.lg,
   },
-  badgeSystem: { backgroundColor: '#DCFCE7' },
+  badgeSystem: { backgroundColor: colors.successSoft },
   badgeCustom: { backgroundColor: '#E0F2FE' },
-  badgeTagText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700' },
+  badgeTagText: { fontFamily: typography.family, fontSize: typography.size.xs, fontWeight: typography.weight.bold },
   badgeSystemText: { color: '#15803D' },
   badgeCustomText: { color: '#0369A1' },
 
   usersCountPill: {
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.input,
+    backgroundColor: colors.surface,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.lg,
   },
-  usersCountText: { fontFamily: 'Inter', color: '#334155', fontSize: 11, fontWeight: '600' },
+  usersCountText: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
 
   editIconTouch: {
-    padding: 6,
-    borderRadius: 6,
+    padding: spacing.tiny,
+    borderRadius: radii.sm,
   },
 
   // Permissions Tab Controls
   permControlsBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 12,
-    marginBottom: 16,
+    gap: spacing.md,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
     zIndex: 10,
   },
   permControlsBarMobile: {
@@ -913,28 +932,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
+    borderColor: colors.input,
+    borderRadius: radii.md,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     minWidth: 160,
   },
-  roleDropdownSelectorText: { fontFamily: 'Inter', color: '#0F172A', fontSize: 14, fontWeight: '600' },
+  roleDropdownSelectorText: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.body, fontWeight: typography.weight.semibold },
 
   // Same floating card as before, positioned relative to the screen root.
   dropdownMenuCard: {
     position: 'absolute',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     elevation: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
-    paddingVertical: 6,
+    paddingVertical: spacing.tiny,
   },
   dropdownMenuItem: {
     flexDirection: 'row',
@@ -945,77 +964,77 @@ const styles = StyleSheet.create({
   dropdownMenuItemActive: {
     backgroundColor: '#E6F4F1',
   },
-  dropdownMenuText: { fontFamily: 'Inter', color: '#334155', fontSize: 14, flexShrink: 1 },
-  dropdownMenuTextActive: { color: '#27A599', fontWeight: '700' },
+  dropdownMenuText: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.body, flexShrink: 1 },
+  dropdownMenuTextActive: { color: colors.primary, fontWeight: typography.weight.bold },
 
   saveChangesButton: {
     backgroundColor: '#20A69A',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: radii.md,
   },
   saveChangesButtonDisabled: { backgroundColor: '#93D4CE' },
-  saveChangesButtonText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  saveChangesButtonText: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.body, fontWeight: typography.weight.bold },
 
   // Matrix Desktop View
   matrixHeaderRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border,
     paddingVertical: 10,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 6,
+    backgroundColor: colors.background,
+    borderRadius: radii.sm,
   },
-  matrixHeaderCell: { fontFamily: 'Inter', color: '#64748B', fontSize: 12, fontWeight: '700', paddingHorizontal: 8 },
+  matrixHeaderCell: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.sm, fontWeight: typography.weight.bold, paddingHorizontal: spacing.sm },
   matrixHeaderCellCenter: {
-    fontFamily: 'Inter', flex: 1,
-    color: '#64748B',
-    fontSize: 12,
-    fontWeight: '700',
+    fontFamily: typography.family, flex: 1,
+    color: colors.muted,
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.bold,
     textAlign: 'center',
   },
 
   matrixDataRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    paddingVertical: 12,
+    borderBottomColor: colors.secondary,
+    paddingVertical: spacing.md,
     alignItems: 'center',
   },
-  matrixObjName: { fontFamily: 'Inter', color: '#0F172A', fontSize: 14, fontWeight: '700' },
-  matrixObjSub: { fontFamily: 'Inter', color: '#94A3B8', fontSize: 11, marginTop: 2 },
+  matrixObjName: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.body, fontWeight: typography.weight.bold },
+  matrixObjSub: { fontFamily: typography.family, color: colors.subtle, fontSize: typography.size.xs, marginTop: 2 },
   matrixSwitchCell: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   // Mobile Perm Card
   mobilePermCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
+    borderColor: colors.border,
+    borderRadius: radii.md,
     padding: 14,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   mobileSwitchGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: spacing.sm,
   },
   mobileSwitchBox: {
     width: '30%',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginBottom: 6,
+    backgroundColor: colors.background,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+    marginBottom: spacing.tiny,
   },
-  mobileSwitchLabel: { fontFamily: 'Inter', color: '#64748B', fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  mobileSwitchLabel: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.xs, fontWeight: typography.weight.semibold, marginBottom: spacing.xs },
 
   loadingBox: { padding: 40, alignItems: 'center' },
-  loadingText: { fontFamily: 'Inter', marginTop: 10, color: '#64748B', fontSize: 13 },
+  loadingText: { fontFamily: typography.family, marginTop: 10, color: colors.muted, fontSize: typography.size.caption },
 
   // Modal Overlay
   modalOverlay: {
@@ -1023,15 +1042,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.xl,
   },
 
   // Role Modal Styling (Exact Match to Screenshots)
   roleModalCard: {
     width: '100%',
     maxWidth: 440,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
     overflow: 'hidden',
     elevation: 10,
     shadowColor: '#000',
@@ -1040,71 +1059,71 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
   },
   roleModalHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.secondary,
   },
   roleIconBox: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: '#27A599',
+    borderRadius: radii.lg,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  roleModalTitle: { fontFamily: 'Inter', fontSize: 20, fontWeight: '700', color: '#0F172A' },
-  roleModalSubtitle: { fontFamily: 'Inter', fontSize: 13, color: '#64748B', marginTop: 2 },
+  roleModalTitle: { fontFamily: typography.family, fontSize: typography.size.title, fontWeight: typography.weight.bold, color: colors.text },
+  roleModalSubtitle: { fontFamily: typography.family, fontSize: typography.size.caption, color: colors.muted, marginTop: 2 },
 
   roleModalBody: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
   },
   roleInputContainerActive: {
     borderWidth: 1.5,
-    borderColor: '#27A599',
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.primary,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
     paddingHorizontal: 14,
     height: 48,
     justifyContent: 'center',
   },
   roleInputText: {
-    fontFamily: 'Inter', fontSize: 15,
-    color: '#0F172A',
-    fontWeight: '500',
+    fontFamily: typography.family, fontSize: 15,
+    color: colors.text,
+    fontWeight: typography.weight.medium,
   },
 
   roleModalFooter: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 20,
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
+    borderTopColor: colors.secondary,
+    backgroundColor: colors.surface,
   },
   roleCancelBtn: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.border,
+    backgroundColor: colors.background,
     paddingHorizontal: 22,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: radii.md,
   },
-  roleCancelBtnText: { fontFamily: 'Inter', color: '#334155', fontSize: 14, fontWeight: '600' },
+  roleCancelBtnText: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.body, fontWeight: typography.weight.semibold },
   roleSaveBtn: {
-    backgroundColor: '#27A599',
+    backgroundColor: colors.primary,
     paddingHorizontal: 22,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: radii.md,
   },
-  roleSaveBtnText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  roleSaveBtnText: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.body, fontWeight: typography.weight.bold },
 });
 
 export default RolePermissions;

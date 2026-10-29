@@ -1,8 +1,11 @@
+import { colors } from '../../theme/tokens';
 import { AppModal } from '../../components/common/AppModal';
+import { useLiquidBorderScrollHandlers } from '../../components/common/LiquidBorderFocusContext';
 import { styles } from './styles/AppointmentsManager.styles';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator, Linking, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+  ActivityIndicator, Linking, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import {
   CalendarDays,
@@ -30,6 +33,7 @@ import { ColumnSelectorModal } from '../../components/common/ColumnSelectorModal
 import { RefreshButton } from '../../components/common/RefreshButton';
 import { CustomCalendarPicker } from '../../components/common/CustomCalendarPicker';
 import { PatientAppointmentModal } from './patients/PatientAppointmentModal';
+import { LiquidBorderSurface } from '../../components/common/LiquidBorderSurface';
 import { useAuthContext } from '../../context/AuthContext';
 import { Appointment, PatientModel } from '../../types/clinicTypes';
 import { fetchPatientsApi } from '../../api/patientApi';
@@ -66,6 +70,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
   initialFilters = {},
   patientMode = false,
 }) => {
+  const borderScrollHandlers = useLiquidBorderScrollHandlers();
   const {
     token,
     role,
@@ -341,7 +346,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
     label: string,
     action: () => void,
     icon?: React.ReactNode,
-    color = '#334155',
+    color = colors.foreground,
   ) => (
     <TouchableOpacity key={label} style={styles.menuItem} activeOpacity={0.65} onPress={action}>
       {icon ? <View style={styles.menuIconSlot}>{icon}</View> : null}
@@ -365,13 +370,14 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
         />
       ) : null}
       {patientMode ? <PatientHeader onOpenDrawer={onOpenDrawer} /> : <StaffHeader onOpenDrawer={onOpenDrawer} title="Appointments" />}
-      <ScrollView
+      <LiquidBorderScrollView
+        {...borderScrollHandlers}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.pageBanner}>
           <View style={styles.pageIconBox}>
-            <CalendarDays size={23} color="#27A599" />
+            <CalendarDays size={23} color={colors.primary} />
           </View>
           <View style={styles.headingCopy}>
             <Text style={styles.pageTitle}>Appointments</Text>
@@ -382,10 +388,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
         </View>
         <View style={styles.listPanel}>
           <View style={styles.panelHeading}>
-            <Text style={styles.panelTitle}>All Appointments</Text>
-            <Text style={styles.subtitle}>
-              Book and track appointments in one page
-            </Text>
+            <Text style={styles.panelTitle}>Filters</Text>
           </View>
 
           <RefreshButton
@@ -399,11 +402,11 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
             style={styles.columnsButton}
             onPress={() => setColumnsVisible(true)}
           >
-            <Columns3 size={15} color="#0F172A" />
+            <Columns3 size={15} color={colors.text} />
             <Text style={styles.columnsButtonText}>Columns</Text>
           </TouchableOpacity>
           <View style={styles.searchBox}>
-            <Search size={17} color="#64748B" />
+            <Search size={17} color={colors.muted} />
             <TextInput
               value={search}
               onChangeText={value => {
@@ -411,12 +414,12 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                 setCurrentPage(1);
               }}
               placeholder="Search by patient name, phone, doctor, or reason..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.subtle}
               style={styles.searchInput}
             />
             {search ? (
               <TouchableOpacity onPress={() => setSearch('')}>
-                <X size={16} color="#64748B" />
+                <X size={16} color={colors.muted} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -428,7 +431,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
               <Text numberOfLines={1} style={styles.selectText}>
                 {STATUS_OPTIONS.find(option => option.value === filter)?.label}
               </Text>
-              <ChevronDown size={15} color="#64748B" />
+              <ChevronDown size={15} color={colors.muted} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.filterSelect}
@@ -437,7 +440,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
               <Text numberOfLines={1} style={styles.selectText}>
                 {doctorFilter === 'all' ? 'All Doctors' : doctorFilter}
               </Text>
-              <ChevronDown size={15} color="#64748B" />
+              <ChevronDown size={15} color={colors.muted} />
             </TouchableOpacity>
           </View>
           <View style={styles.dateFilterRow}>
@@ -448,7 +451,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                 placeholder="Filter by date"
                 triggerStyle={styles.calendarFilterTrigger}
                 triggerTextStyle={styles.calendarFilterText}
-                iconColor="#64748B"
+                iconColor={colors.muted}
                 onOpen={() => setPicker(null)}
                 onDateChange={date => {
                   const selected = localDateOnly(date);
@@ -471,13 +474,13 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                 accessibilityRole="button"
                 accessibilityLabel="Clear date filter"
               >
-                <X size={16} color="#64748B" />
+                <X size={16} color={colors.muted} />
               </TouchableOpacity>
             ) : null}
           </View>
           {picker === 'status' ? (
             <View style={styles.inlineOptions}>
-              <ScrollView nestedScrollEnabled>
+              <LiquidBorderScrollView nestedScrollEnabled>
                 {STATUS_OPTIONS.map(option => (
                   <TouchableOpacity
                     key={option.value}
@@ -489,15 +492,15 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                     }}
                   >
                     <Text style={styles.optionText}>{option.label}</Text>
-                    {filter === option.value ? <Check size={17} color="#27A599" /> : null}
+                    {filter === option.value ? <Check size={17} color={colors.primary} /> : null}
                   </TouchableOpacity>
                 ))}
-              </ScrollView>
+              </LiquidBorderScrollView>
             </View>
           ) : null}
           {picker === 'doctor' ? (
             <View style={styles.inlineOptions}>
-              <ScrollView nestedScrollEnabled>
+              <LiquidBorderScrollView nestedScrollEnabled>
                 {[{ label: 'All Doctors', value: 'all' }, ...doctors.map(doctor => ({ label: doctor, value: doctor }))].map(option => (
                   <TouchableOpacity
                     key={option.value}
@@ -509,17 +512,20 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                     }}
                   >
                     <Text style={styles.optionText}>{option.label}</Text>
-                    {doctorFilter === option.value ? <Check size={17} color="#27A599" /> : null}
+                    {doctorFilter === option.value ? <Check size={17} color={colors.primary} /> : null}
                   </TouchableOpacity>
                 ))}
-              </ScrollView>
+              </LiquidBorderScrollView>
             </View>
           ) : null}
         </View>
+        <View style={styles.appointmentListPanel}>
+        <Text style={styles.appointmentListTitle}>Appointments List</Text>
         {loading ? (
-          <ActivityIndicator color="#27A599" style={styles.extractedInline1} />
+          <ActivityIndicator color={colors.primary} style={styles.extractedInline1} />
         ) : pageRows.length ? (
-          pageRows.map(item => {
+          <View style={styles.appointmentCards}>
+            {pageRows.map(item => {
             const isVideoAppointment = String(item.consultation_mode || '')
               .trim()
               .toLowerCase()
@@ -527,13 +533,13 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
             const statusTone =
               item.status === 'cancelled' || item.status === 'no_show'
                 ? styles.statusCancelled
-                : ['scheduled', 'in_progress', 'completed'].includes(item.status)
-                ? styles.statusActive
+                : ['completed', 'complete'].includes(item.status)
+                ? styles.statusComplete
                 : styles.statusScheduled;
             const statusTextTone =
               item.status === 'cancelled' || item.status === 'no_show'
                 ? styles.statusTextCancelled
-                : ['scheduled', 'in_progress', 'completed'].includes(item.status)
+                : ['completed', 'complete'].includes(item.status)
                 ? styles.statusTextActive
                 : null;
             const isCancelled = ['cancelled', 'cancel', 'canceled'].includes(
@@ -547,13 +553,14 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
               (canManageAppointmentActions && !isCancelled) ||
               (canStartAppointmentCall && !isCancelled && isVideoAppointment);
             return (
-              <View
+              <LiquidBorderSurface
                 key={item.id}
+                radius={8}
                 style={[styles.card, activeMenu?.id === item.id && styles.cardMenuOpen]}
               >
                 <View style={styles.cardTop}>
                   <View style={styles.patientMark}>
-                    <UserRound size={18} color="#27A599" />
+                    <UserRound size={18} color={colors.primary} />
                   </View>
                   <View style={styles.patientBlock}>
                     {columns.patient ? (
@@ -576,7 +583,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                     onPress={() => setActiveMenu(activeMenu?.id === item.id ? null : item)}
                     accessibilityLabel="Appointment actions"
                   >
-                    <MoreVertical size={19} color="#334155" />
+                    <MoreVertical size={19} color={colors.foreground} />
                   </TouchableOpacity> : null}
                 </View>
                 {activeMenu?.id === item.id ? (
@@ -601,7 +608,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                           () => {
                             void startVideoCall(item);
                           },
-                          <Video size={15} color="#334155" />,
+                          <Video size={15} color={colors.foreground} />,
                         )
                       : null}
                     {!hasPrescription && canAddPrescription && !isCancelled && !isCompleted
@@ -611,7 +618,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                             setActiveMenu(null);
                             onNavigateScreen?.(`/prescriptions?appointment_id=${item.id}&patient_id=${item.patient_id}&create=1`);
                           },
-                          <Receipt size={15} color="#334155" />,
+                          <Receipt size={15} color={colors.foreground} />,
                         )
                       : null}
                     {(hasPrescription || isCompleted) && (canEditPrescription || canAddPrescription) && !isCancelled
@@ -621,19 +628,19 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                             setActiveMenu(null);
                             onNavigateScreen?.(`/prescriptions?appointment_id=${item.id}&patient_id=${item.patient_id}${hasPrescription ? '' : '&create=1'}`);
                           },
-                          <Receipt size={15} color="#334155" />,
+                          <Receipt size={15} color={colors.foreground} />,
                         )
                       : null}
                     {hasPrescription && canViewPrescription ? <>
-                      {menuAction(prescriptionActionId === item.id ? 'Preparing PDF...' : 'Print Prescription', () => void handlePrescriptionPdf(item, true), prescriptionActionId === item.id ? <ActivityIndicator size="small" color="#334155" /> : <Printer size={15} color="#334155" />)}
-                      {menuAction('Download PDF', () => void handlePrescriptionPdf(item), <Download size={15} color="#334155" />)}
+                      {menuAction(prescriptionActionId === item.id ? 'Preparing PDF...' : 'Print Prescription', () => void handlePrescriptionPdf(item, true), prescriptionActionId === item.id ? <ActivityIndicator size="small" color={colors.foreground} /> : <Printer size={15} color={colors.foreground} />)}
+                      {menuAction('Download PDF', () => void handlePrescriptionPdf(item), <Download size={15} color={colors.foreground} />)}
                     </> : null}
                   </View>
                 ) : null}
                 <View style={styles.cardDetails}>
                   {columns.date ? (
                     <View style={styles.detailRow}>
-                      <CalendarDays size={15} color="#27A599" />
+                      <CalendarDays size={15} color={colors.primary} />
                       <Text style={styles.detailText}>
                         {prettyDate(item.appointment_date)}
                       </Text>
@@ -641,7 +648,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                   ) : null}
                   {columns.doctor ? (
                     <View style={styles.detailRow}>
-                      <Stethoscope size={15} color="#27A599" />
+                      <Stethoscope size={15} color={colors.primary} />
                       <Text style={styles.detailText}>
                         {item.doctor_name || 'Doctor'}
                         {item.doctor_specialization
@@ -661,10 +668,10 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                     </View>
                   ) : null}
                   {columns.notes ? <View style={styles.detailRow}><Text style={styles.reasonLabel}>Notes</Text><Text numberOfLines={2} style={styles.detailText}>{item.notes || '—'}</Text></View> : null}
-                  {columns.time ? <View style={styles.detailRow}><Clock3 size={15} color="#64748B" /><Text style={styles.detailText}>{item.appointment_time || item.time_slot || 'Time not set'}</Text></View> : null}
+                  {columns.time ? <View style={styles.detailRow}><Clock3 size={15} color={colors.muted} /><Text style={styles.detailText}>{item.appointment_time || item.time_slot || 'Time not set'}</Text></View> : null}
                   {columns.duration ? (
                     <View style={styles.detailRow}>
-                      <Clock3 size={15} color="#64748B" />
+                      <Clock3 size={15} color={colors.muted} />
                       <Text style={styles.detailText}>
                         {item.duration_minutes || 30} minutes
                       </Text>
@@ -696,7 +703,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                     style={styles.callButton}
                     onPress={() => startVideoCall(item)}
                   >
-                    <Phone size={15} color="#FFF" />
+                    <Phone size={15} color={colors.surface} />
                     <Text style={styles.callButtonText}>
                       {startingCallId === item.id ? 'Starting call...' : 'Start Video Call'}
                     </Text>
@@ -707,16 +714,17 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                     style={styles.callButton}
                     onPress={() => setActiveVideoCall({ appointment: item, roomId: String(item.video_room_id) })}
                   >
-                    <Video size={15} color="#FFF" />
+                    <Video size={15} color={colors.surface} />
                     <Text style={styles.callButtonText}>Join Video Consultation</Text>
                   </TouchableOpacity>
                 ) : null}
-              </View>
+              </LiquidBorderSurface>
             );
-          })
+            })}
+          </View>
         ) : (
           <View style={styles.empty}>
-            <CalendarDays size={30} color="#94A3B8" />
+            <CalendarDays size={30} color={colors.subtle} />
             <Text style={styles.emptyText}>
               {canView
                 ? 'No appointments found.'
@@ -738,7 +746,8 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
             }}
           />
         ) : null}
-      </ScrollView>
+        </View>
+      </LiquidBorderScrollView>
 
       <ColumnSelectorModal
         visible={columnsVisible}
@@ -764,7 +773,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
             <View style={styles.optionHeader}>
               <Text style={styles.optionTitle}>Appointment Details</Text>
               <TouchableOpacity onPress={() => setViewTarget(null)}>
-                <X size={18} color="#64748B" />
+                <X size={18} color={colors.muted} />
               </TouchableOpacity>
             </View>
             {viewTarget ? (
@@ -803,7 +812,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
             <View style={styles.optionHeader}>
               <Text style={styles.optionTitle}>Reschedule Appointment</Text>
               <TouchableOpacity onPress={() => setRescheduleTarget(null)}>
-                <X size={18} color="#64748B" />
+                <X size={18} color={colors.muted} />
               </TouchableOpacity>
             </View>
             <Text style={styles.fieldLabel}>Appointment date</Text>
@@ -846,10 +855,10 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
             <View style={styles.optionHeader}>
               <Text style={styles.optionTitle}>Select Patient</Text>
               <TouchableOpacity onPress={() => setPatientPickerVisible(false)}>
-                <X size={18} color="#64748B" />
+                <X size={18} color={colors.muted} />
               </TouchableOpacity>
             </View>
-            <ScrollView>
+            <LiquidBorderScrollView>
               {patients.map(patient => (
                 <TouchableOpacity
                   key={patient.id}
@@ -868,7 +877,7 @@ export const AppointmentsManagerScreen: React.FC<Props> = ({
                   </View>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </LiquidBorderScrollView>
           </View>
         </View>
       </AppModal>

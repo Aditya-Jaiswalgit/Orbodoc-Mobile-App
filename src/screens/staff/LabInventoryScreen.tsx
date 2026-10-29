@@ -1,13 +1,14 @@
+import { colors } from '../../theme/tokens';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import {
   ChevronDown,
   Columns3,
@@ -27,6 +28,7 @@ import { AppModal } from '../../components/common/AppModal';
 import { ColumnSelectorModal, ColumnOption } from '../../components/common/ColumnSelectorModal';
 import { Pagination } from '../../components/common/Pagination';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { LiquidBorderSurface } from '../../components/common/LiquidBorderSurface';
 import {
   createLabCatalogItemApi,
   mapMasterLabTestApi,
@@ -74,13 +76,13 @@ const isOn = (value: unknown) => Number(value) === 1;
 
 function StatCard({ label, value, icon, tint }: { label: string; value: number; icon: React.ReactNode; tint: string }) {
   return (
-    <View style={styles.statCard}>
+    <LiquidBorderSurface style={styles.statCard} radius={12}>
       <View>
         <Text style={styles.statLabel}>{label}</Text>
         <Text style={styles.statValue}>{value}</Text>
       </View>
       <View style={[styles.statIcon, { backgroundColor: tint }]}>{icon}</View>
-    </View>
+    </LiquidBorderSurface>
   );
 }
 
@@ -90,7 +92,7 @@ function ChoiceRow({ label, value, onPress }: { label: string; value: string; on
       <Text style={styles.inputLabel}>{label}</Text>
       <TouchableOpacity style={styles.choiceButton} onPress={onPress}>
         <Text style={styles.choiceText}>{value}</Text>
-        <ChevronDown size={15} color="#64748B" />
+        <ChevronDown size={15} color={colors.muted} />
       </TouchableOpacity>
     </View>
   );
@@ -103,7 +105,7 @@ function MappingChoiceRow({ label, value, options, onSelect }: { label: string; 
       <Text style={styles.inputLabel}>{label}</Text>
       <TouchableOpacity style={styles.choiceButton} onPress={() => setOpen(current => !current)} accessibilityRole="button" accessibilityState={{ expanded: open }}>
         <Text style={styles.choiceText}>{value}</Text>
-        <ChevronDown size={15} color="#64748B" />
+        <ChevronDown size={15} color={colors.muted} />
       </TouchableOpacity>
       {open ? <View style={styles.choiceOptions}>{options.map(option => <TouchableOpacity key={option} style={[styles.choiceOption, option === value && styles.choiceOptionActive]} onPress={() => { onSelect(option); setOpen(false); }}><Text style={styles.choiceText}>{option}</Text></TouchableOpacity>)}</View> : null}
     </View>
@@ -349,7 +351,7 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
       <View style={styles.root}>
         <StaffHeader onOpenDrawer={onOpenDrawer} title="Lab Inventory" />
         <View style={styles.empty}>
-          <FlaskConical size={28} color="#94A3B8" />
+          <FlaskConical size={28} color={colors.subtle} />
           <Text style={styles.emptyTitle}>You do not have permission to view lab inventory.</Text>
         </View>
       </View>
@@ -359,24 +361,24 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
   return (
     <View style={styles.root}>
       <StaffHeader onOpenDrawer={onOpenDrawer} title="Lab Inventory" />
-      <ScrollView
+      <LiquidBorderScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={catalogLoading} onRefresh={() => { refreshCatalog().catch(cause => showErrorToast('Refresh failed', cause instanceof Error ? cause.message : undefined)); }} />}
       >
         <View style={styles.heading}>
-          <View style={styles.headingIcon}><TestTube size={24} color="#27A599" /></View>
+          <View style={styles.headingIcon}><TestTube size={24} color={colors.primary} /></View>
           <View style={styles.headingText}>
             <Text style={styles.title}>Lab Inventory</Text>
             <Text style={styles.subtitle}>Search master tests, set Test Price, and manage lab availability</Text>
           </View>
         </View>
         <View style={styles.statsGrid}>
-          <StatCard label="Mapped Tests" value={catalogStats.mapped} icon={<TestTube2 size={20} color="#27A599" />} tint="#E8F7F5" />
-          <StatCard label="Available Today" value={catalogStats.available} icon={<CircleCheck size={18} color="#27A599" />} tint="#E8F7F5" />
-          <StatCard label="Home Collection" value={catalogStats.homeCollection} icon={<ShieldCheck size={18} color="#27A599" />} tint="#E8F7F5" />
-          <StatCard label="Discounted" value={catalogStats.discounted} icon={<IndianRupee size={18} color="#27A599" />} tint="#E8F7F5" />
+          <StatCard label="Mapped Tests" value={catalogStats.mapped} icon={<TestTube2 size={20} color={colors.primary} />} tint={colors.mint} />
+          <StatCard label="Available Today" value={catalogStats.available} icon={<CircleCheck size={18} color={colors.primary} />} tint={colors.mint} />
+          <StatCard label="Home Collection" value={catalogStats.homeCollection} icon={<ShieldCheck size={18} color={colors.primary} />} tint={colors.mint} />
+          <StatCard label="Discounted" value={catalogStats.discounted} icon={<IndianRupee size={18} color={colors.primary} />} tint={colors.mint} />
         </View>
 
         <View style={styles.panel}>
@@ -385,48 +387,48 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
             <Text style={styles.panelSub}>Search the master catalog, map tests to {clinicName}, and maintain clinic pricing.</Text>
           </View>
           <TouchableOpacity style={[styles.refreshButton, styles.panelControl]} disabled={catalogLoading} onPress={() => { refreshCatalog().catch(cause => showErrorToast('Refresh failed', cause instanceof Error ? cause.message : undefined)); }}>
-            {catalogLoading ? <ActivityIndicator size="small" color="#1D7C72" /> : <RefreshCw size={15} color="#334155" />}
+            {catalogLoading ? <ActivityIndicator size="small" color={colors.primaryDark} /> : <RefreshCw size={15} color={colors.foreground} />}
             <Text style={styles.refreshText}>{catalogLoading ? 'Refreshing' : 'Refresh'}</Text>
           </TouchableOpacity>
           {!!lastRefreshed && <Text style={[styles.refreshed, styles.panelControl]}>Last refreshed: {lastRefreshed}</Text>}
           {canAdd ? (
             <View style={styles.toolbar}>
               <TouchableOpacity style={styles.primaryButtonFull} onPress={openMasterTests}>
-                <Search size={15} color="#fff" /><Text style={styles.primaryButtonText}>Add From Master</Text>
+                <Search size={15} color={colors.surface} /><Text style={styles.primaryButtonText}>Add From Master</Text>
               </TouchableOpacity>
             </View>
           ) : null}
 
           <View style={styles.fieldInset}>
             <View style={styles.searchBox}>
-              <Search size={16} color="#64748B" />
+              <Search size={16} color={colors.muted} />
               <TextInput
                 value={catalogSearchInput}
                 onChangeText={setCatalogSearchInput}
                 onSubmitEditing={submitCatalogSearch}
                 returnKeyType="search"
                 placeholder="Search test name, code, or price"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.subtle}
                 style={styles.searchInput}
               />
-              {!!catalogSearchInput && <TouchableOpacity onPress={() => { setCatalogSearchInput(''); setCatalogSearch(''); setCatalogPage(1); }}><X size={16} color="#64748B" /></TouchableOpacity>}
+              {!!catalogSearchInput && <TouchableOpacity onPress={() => { setCatalogSearchInput(''); setCatalogSearch(''); setCatalogPage(1); }}><X size={16} color={colors.muted} /></TouchableOpacity>}
             </View>
           </View>
           <TouchableOpacity style={[styles.columnsButton, styles.panelControl]} onPress={() => setColumnModalOpen(true)} accessibilityLabel="Choose visible inventory fields">
-            <Columns3 size={16} color="#334155" /><Text style={styles.refreshText}>Columns</Text>
+            <Columns3 size={16} color={colors.foreground} /><Text style={styles.refreshText}>Columns</Text>
           </TouchableOpacity>
           {error ? <View style={[styles.errorBox, styles.errorInset]}><Text style={styles.errorText}>{error}</Text><TouchableOpacity onPress={() => { refreshCatalog().catch(() => undefined); }}><Text style={styles.retry}>Retry</Text></TouchableOpacity></View> : null}
-          {catalogLoading && catalogItems.length === 0 ? <ActivityIndicator style={styles.loadingInset} color="#1D7C72" /> : null}
+          {catalogLoading && catalogItems.length === 0 ? <ActivityIndicator style={styles.loadingInset} color={colors.primaryDark} /> : null}
           {!catalogLoading && !error && catalogItems.length === 0 ? (
             <View style={styles.empty}>
-              <FlaskConical size={28} color="#94A3B8" />
+              <FlaskConical size={28} color={colors.subtle} />
               <Text style={styles.emptyTitle}>No clinic lab mappings found</Text>
               <Text style={styles.emptyText}>Add tests from the master catalog or create a custom clinic test.</Text>
             </View>
           ) : null}
           <View style={styles.cardList}>
             {catalogItems.map(item => (
-              <View key={item.id} style={styles.card}>
+              <LiquidBorderSurface key={item.id} style={styles.card} radius={12}>
                 <View style={styles.cardTop}>
                   <View style={styles.flexFillMinWidth}>
                     {visibleColumns.test_name ? <Text style={styles.cardName}>{item.test_name}</Text> : null}
@@ -440,13 +442,13 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
                 </View>
                 {visibleColumns.home_collection_available ? <View style={[styles.homeCollectionBadge, !isOn(item.home_collection_available) && styles.badgeMuted]}><Text style={[styles.homeCollectionText, !isOn(item.home_collection_available) && styles.badgeMutedText]}>Home collection: {isOn(item.home_collection_available) ? 'Yes' : 'No'}</Text></View> : null}
                 {visibleColumns.description ? <Text style={styles.description}>{item.description || 'No description'}</Text> : null}
-                {visibleColumns.actions && canEdit ? <TouchableOpacity style={styles.editButton} onPress={() => openCatalogForm(item)}><Edit size={16} color="#334155" /><Text style={styles.editText}>Edit test</Text></TouchableOpacity> : null}
-              </View>
+                {visibleColumns.actions && canEdit ? <TouchableOpacity style={styles.editButton} onPress={() => openCatalogForm(item)}><Edit size={16} color={colors.foreground} /><Text style={styles.editText}>Edit test</Text></TouchableOpacity> : null}
+              </LiquidBorderSurface>
             ))}
           </View>
           {catalogTotal > 5 ? <Pagination currentPage={Math.min(catalogPage, catalogPages)} totalPages={catalogPages} totalItems={catalogTotal} pageSize={catalogPageSize} itemLabel="inventory items" pageSizeOptions={PAGE_SIZES} onPageChange={setCatalogPage} onPageSizeChange={size => { setCatalogPageSize(size); setCatalogPage(1); }} /> : null}
         </View>
-      </ScrollView>
+      </LiquidBorderScrollView>
 
       <ColumnSelectorModal
         visible={columnModalOpen}
@@ -464,28 +466,28 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
           <View style={styles.masterModalCard}>
             <View style={styles.masterModalHeader}>
               <View style={styles.masterHeaderTop}>
-                <View style={styles.masterHeaderIcon}><TestTube2 size={19} color="#fff" /></View>
+                <View style={styles.masterHeaderIcon}><TestTube2 size={19} color={colors.surface} /></View>
                 <View style={styles.masterHeaderText}>
                   <Text style={styles.masterModalTitle}>Add clinic lab tests</Text>
                   <Text style={styles.masterModalSubtitle}>Map a master test to {clinicName}, or create a clinic-only custom test.</Text>
                 </View>
-                <TouchableOpacity style={styles.closeIconButton} accessibilityLabel="Close master tests" onPress={() => { setSelectedMasterTest(null); setMasterModalOpen(false); }}><X size={18} color="#64748B" /></TouchableOpacity>
+                <TouchableOpacity style={styles.closeIconButton} accessibilityLabel="Close master tests" onPress={() => { setSelectedMasterTest(null); setMasterModalOpen(false); }}><X size={18} color={colors.muted} /></TouchableOpacity>
               </View>
               {canAdd ? (
-                <TouchableOpacity style={styles.createCustomButton} onPress={openCustomFromMaster}><Plus size={16} color="#1D7C72" /><Text style={styles.createCustomText}>Create custom test</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.createCustomButton} onPress={openCustomFromMaster}><Plus size={16} color={colors.primaryDark} /><Text style={styles.createCustomText}>Create custom test</Text></TouchableOpacity>
               ) : null}
             </View>
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator style={styles.masterModalScroll} contentContainerStyle={styles.masterModalScrollContent}>
+            <LiquidBorderScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator style={styles.masterModalScroll} contentContainerStyle={styles.masterModalScrollContent}>
                 <View style={styles.masterControls}>
-                  <View style={styles.masterSearchBox}><Search size={15} color="#64748B" /><TextInput value={masterSearchInput} onChangeText={value => { setMasterSearchInput(value); setMasterPage(1); }} onSubmitEditing={() => { setMasterPage(1); setMasterSearch(masterSearchInput.trim()); }} placeholder="Search by test name, code or description" style={styles.searchInput} />
-                    {!!masterSearchInput && <TouchableOpacity onPress={() => { setMasterSearchInput(''); setMasterSearch(''); setMasterPage(1); }}><X size={16} color="#64748B" /></TouchableOpacity>}
+                  <View style={styles.masterSearchBox}><Search size={15} color={colors.muted} /><TextInput value={masterSearchInput} onChangeText={value => { setMasterSearchInput(value); setMasterPage(1); }} onSubmitEditing={() => { setMasterPage(1); setMasterSearch(masterSearchInput.trim()); }} placeholder="Search by test name, code or description" style={styles.searchInput} />
+                    {!!masterSearchInput && <TouchableOpacity onPress={() => { setMasterSearchInput(''); setMasterSearch(''); setMasterPage(1); }}><X size={16} color={colors.muted} /></TouchableOpacity>}
                   </View>
                   <TouchableOpacity style={styles.filterSelect} onPress={() => setMasterFilterOpen(open => !open)}>
-                    <Text style={styles.filterSelectText}>{masterFilter === 'all' ? 'All master tests' : masterFilter === 'mapped' ? 'Already mapped' : 'Ready to map'}</Text><ChevronDown size={15} color="#64748B" />
+                    <Text style={styles.filterSelectText}>{masterFilter === 'all' ? 'All master tests' : masterFilter === 'mapped' ? 'Already mapped' : 'Ready to map'}</Text><ChevronDown size={15} color={colors.muted} />
                   </TouchableOpacity>
                   {masterFilterOpen ? <View style={styles.filterOptions}>{(['all', 'unmapped', 'mapped'] as MappingFilter[]).map(filter => <TouchableOpacity key={filter} style={[styles.filterOption, masterFilter === filter && styles.filterOptionActive]} onPress={() => { setMasterFilter(filter); setMasterPage(1); setMasterFilterOpen(false); }}><Text style={styles.filterOptionText}>{filter === 'all' ? 'All master tests' : filter === 'unmapped' ? 'Ready to map' : 'Already mapped'}</Text></TouchableOpacity>)}</View> : null}
                   <TouchableOpacity style={styles.masterRefreshButton} disabled={masterLoading} onPress={() => { loadMasterTests({ page: masterPage, limit: masterPageSize, search: masterSearch, mapped: masterFilter, forceRefresh: true }).catch(cause => showErrorToast('Refresh failed', cause instanceof Error ? cause.message : undefined)); }}>
-                    {masterLoading ? <ActivityIndicator size="small" color="#1D7C72" /> : <RefreshCw size={15} color="#334155" />}<Text style={styles.refreshText}>{masterLoading ? 'Refreshing' : 'Refresh'}</Text>
+                    {masterLoading ? <ActivityIndicator size="small" color={colors.primaryDark} /> : <RefreshCw size={15} color={colors.foreground} />}<Text style={styles.refreshText}>{masterLoading ? 'Refreshing' : 'Refresh'}</Text>
                   </TouchableOpacity>
                   {!!masterLastRefreshed && <Text style={styles.masterRefreshTime}>Last refreshed: {masterLastRefreshed}</Text>}
                   <View style={styles.masterSummary}>
@@ -497,7 +499,7 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
                   </View>
                 </View>
                 {!!error && <Text style={[styles.errorText, styles.masterErrorInset]}>{error}</Text>}
-                {masterLoading ? <ActivityIndicator style={styles.masterLoadingInset} color="#1D7C72" /> : (
+                {masterLoading ? <ActivityIndicator style={styles.masterLoadingInset} color={colors.primaryDark} /> : (
                   <View style={styles.masterCardList}>
                     {masterTests.map(test => <View key={test.id} style={[styles.masterCard, isOn(test.is_mapped_for_clinic) && styles.masterCardMapped]}>
                       <View style={styles.cardTop}><View style={styles.flexFill}><Text style={styles.cardName}>{test.test_name}</Text><Text style={styles.cardCode}>{test.test_code || 'No code'}</Text></View><View style={[styles.badge, isOn(test.status) ? styles.badgeActive : styles.badgeMuted]}><Text style={[styles.badgeText, isOn(test.status) ? styles.badgeActiveText : styles.badgeMutedText]}>{isOn(test.status) ? 'Active' : 'Inactive'}</Text></View></View>
@@ -505,11 +507,11 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
                       <View style={styles.masterBadges}><View style={[styles.badge, isOn(test.is_mapped_for_clinic) ? styles.badgeTeal : styles.badgeOutline]}><Text style={isOn(test.is_mapped_for_clinic) ? styles.badgeTealText : styles.badgeOutlineText}>{isOn(test.is_mapped_for_clinic) ? 'Mapped' : 'Ready to map'}</Text></View>{test.clinic_price != null && <View style={[styles.badge, styles.badgeMuted]}><Text style={styles.badgeMutedText}>{money(test.clinic_price)}</Text></View>}</View>
                       {canAdd && <TouchableOpacity style={[styles.masterAction, isOn(test.is_mapped_for_clinic) ? styles.masterActionMapped : styles.masterActionReady]} onPress={() => selectMasterTest(test)}><Text style={[styles.masterActionText, !isOn(test.is_mapped_for_clinic) && styles.masterActionReadyText]}>{isOn(test.is_mapped_for_clinic) ? 'Edit mapping' : 'Map test'}</Text></TouchableOpacity>}
                     </View>)}
-                    {!masterTests.length && <View style={styles.empty}><FlaskConical size={27} color="#94A3B8" /><Text style={styles.emptyTitle}>No matching master test found</Text><Text style={styles.emptyText}>Try another search or add a custom clinic test.</Text>{canAdd && <TouchableOpacity style={styles.masterAction} onPress={openCustomFromMaster}><Text style={styles.masterActionText}>{masterSearchInput.trim() ? `Create “${masterSearchInput.trim()}” as custom test` : 'Create custom test'}</Text></TouchableOpacity>}</View>}
+                    {!masterTests.length && <View style={styles.empty}><FlaskConical size={27} color={colors.subtle} /><Text style={styles.emptyTitle}>No matching master test found</Text><Text style={styles.emptyText}>Try another search or add a custom clinic test.</Text>{canAdd && <TouchableOpacity style={styles.masterAction} onPress={openCustomFromMaster}><Text style={styles.masterActionText}>{masterSearchInput.trim() ? `Create “${masterSearchInput.trim()}” as custom test` : 'Create custom test'}</Text></TouchableOpacity>}</View>}
                   </View>
                 )}
                 {masterTotal > 5 && <Pagination currentPage={Math.min(masterPage, masterPages)} totalPages={masterPages} totalItems={masterTotal} pageSize={masterPageSize} itemLabel="master tests" pageSizeOptions={PAGE_SIZES} onPageChange={setMasterPage} onPageSizeChange={size => { setMasterPageSize(size); setMasterPage(1); }} />}
-            </ScrollView>
+            </LiquidBorderScrollView>
             <View style={styles.masterModalFooter}><TouchableOpacity style={styles.masterFooterClose} onPress={() => { setSelectedMasterTest(null); setMasterModalOpen(false); }}><Text style={styles.modalActionText}>Close</Text></TouchableOpacity></View>
           </View>
         </View>
@@ -524,14 +526,14 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
         <View style={styles.mappingModalBackdrop}>
           <View style={styles.mappingModalCard}>
             <View style={styles.mappingModalHeader}>
-              <View style={styles.masterHeaderIcon}><TestTube2 size={19} color="#fff" /></View>
+              <View style={styles.masterHeaderIcon}><TestTube2 size={19} color={colors.surface} /></View>
               <View style={styles.mappingHeaderText}>
                 <Text style={styles.mappingModalTitle}>{selectedMasterTest && isOn(selectedMasterTest.is_mapped_for_clinic) ? 'Update clinic mapping' : 'Map master test'}</Text>
                 <Text style={styles.mappingModalSubtitle}>Set price and availability for {clinicName}.</Text>
               </View>
-              <TouchableOpacity style={styles.closeIconButton} accessibilityLabel="Close clinic mapping" onPress={() => setSelectedMasterTest(null)}><X size={18} color="#64748B" /></TouchableOpacity>
+              <TouchableOpacity style={styles.closeIconButton} accessibilityLabel="Close clinic mapping" onPress={() => setSelectedMasterTest(null)}><X size={18} color={colors.muted} /></TouchableOpacity>
             </View>
-            {selectedMasterTest ? <ScrollView keyboardShouldPersistTaps="handled" style={styles.mappingModalScroll} contentContainerStyle={styles.mappingModalBody}>
+            {selectedMasterTest ? <LiquidBorderScrollView keyboardShouldPersistTaps="handled" style={styles.mappingModalScroll} contentContainerStyle={styles.mappingModalBody}>
               <View style={styles.mappingTestCard}>
                 <Text style={styles.cardName}>{selectedMasterTest.test_name}</Text>
                 <Text style={styles.cardCode}>{selectedMasterTest.test_code || 'No code'} · {selectedMasterTest.description || 'No description'}</Text>
@@ -550,11 +552,11 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
               </View>
               <MappingChoiceRow label="Home Collection" value={mappingForm.home_collection_available ? 'Available' : 'Not available'} options={['Available', 'Not available']} onSelect={value => setMappingForm(current => ({ ...current, home_collection_available: value === 'Available' }))} />
               <MappingChoiceRow label="Clinic Availability" value={mappingForm.is_available ? 'Available' : 'Unavailable'} options={['Available', 'Unavailable']} onSelect={value => setMappingForm(current => ({ ...current, is_available: value === 'Available' }))} />
-            </ScrollView> : null}
+            </LiquidBorderScrollView> : null}
             <View style={styles.mappingModalFooter}>
               <TouchableOpacity style={styles.mappingCancelButton} disabled={saving} onPress={() => setSelectedMasterTest(null)}><Text style={styles.modalActionText}>Cancel</Text></TouchableOpacity>
               <TouchableOpacity style={styles.mappingSaveButton} disabled={saving || !canAdd || !selectedMasterTest} onPress={() => { saveMapping(); }}>
-                {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.modalActionPrimaryText}>{selectedMasterTest && isOn(selectedMasterTest.is_mapped_for_clinic) ? 'Update Mapping' : 'Save Mapping'}</Text>}
+                {saving ? <ActivityIndicator color={colors.surface} size="small" /> : <Text style={styles.modalActionPrimaryText}>{selectedMasterTest && isOn(selectedMasterTest.is_mapped_for_clinic) ? 'Update Mapping' : 'Save Mapping'}</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -564,11 +566,11 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
       <AppModal visible={catalogModalOpen} transparent animationType="slide" onRequestClose={() => setCatalogModalOpen(false)}>
         <View style={styles.modalBackdrop}><View style={styles.modalCard}>
           <View style={styles.customModalHeader}>
-            <TouchableOpacity style={styles.customCloseIcon} accessibilityLabel="Close custom lab test form" onPress={() => setCatalogModalOpen(false)}><X size={18} color="#64748B" /></TouchableOpacity>
+            <TouchableOpacity style={styles.customCloseIcon} accessibilityLabel="Close custom lab test form" onPress={() => setCatalogModalOpen(false)}><X size={18} color={colors.muted} /></TouchableOpacity>
             <Text style={styles.customModalTitle}>{selectedCatalogItem ? 'Edit Clinic Lab Test' : 'Create Custom Lab Test'}</Text>
             <Text style={styles.customModalSubtitle}>Use this only when a test is not available in the master catalog.</Text>
           </View>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.modalBody}>
+          <LiquidBorderScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.modalBody}>
             <View style={styles.formField}><Text style={styles.inputLabel}>Test Name <Text style={styles.requiredMark}>*</Text></Text><TextInput style={styles.input} value={catalogForm.test_name} onChangeText={test_name => setCatalogForm(current => ({ ...current, test_name }))} placeholder="e.g. Complete Blood Count" /></View>
             <View style={styles.formField}><Text style={styles.inputLabel}>Code</Text><TextInput style={styles.input} value={catalogForm.test_code} onChangeText={test_code => setCatalogForm(current => ({ ...current, test_code }))} placeholder="e.g. CBC001" /></View>
             <View style={styles.formField}><Text style={styles.inputLabel}>Test Price <Text style={styles.requiredMark}>*</Text></Text><TextInput style={styles.input} value={catalogForm.price} onChangeText={price => setCatalogForm(current => ({ ...current, price }))} keyboardType="decimal-pad" placeholder="0.00" /></View>
@@ -577,8 +579,8 @@ export default function LabInventoryScreen({ onOpenDrawer }: Props) {
             <ChoiceRow label="Available" value={catalogForm.is_available ? 'Available' : 'Unavailable'} onPress={() => setCatalogForm(current => ({ ...current, is_available: !current.is_available }))} />
             <ChoiceRow label="Master Status" value={catalogForm.status ? 'Active' : 'Inactive'} onPress={() => setCatalogForm(current => ({ ...current, status: !current.status }))} />
             <View style={styles.formField}><Text style={styles.inputLabel}>Description</Text><TextInput style={[styles.input, styles.textArea]} value={catalogForm.description} onChangeText={description => setCatalogForm(current => ({ ...current, description }))} multiline placeholder="Short test description" /></View>
-          </ScrollView>
-          <View style={styles.modalActions}><TouchableOpacity style={styles.modalAction} disabled={saving} onPress={() => setCatalogModalOpen(false)}><Text style={styles.modalActionText}>Cancel</Text></TouchableOpacity><TouchableOpacity style={[styles.modalAction, styles.modalActionPrimary]} disabled={saving} onPress={() => { saveCatalog(); }}>{saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.modalActionPrimaryText}>{selectedCatalogItem ? 'Update Item' : 'Save Custom Test'}</Text>}</TouchableOpacity></View>
+          </LiquidBorderScrollView>
+          <View style={styles.modalActions}><TouchableOpacity style={styles.modalAction} disabled={saving} onPress={() => setCatalogModalOpen(false)}><Text style={styles.modalActionText}>Cancel</Text></TouchableOpacity><TouchableOpacity style={[styles.modalAction, styles.modalActionPrimary]} disabled={saving} onPress={() => { saveCatalog(); }}>{saving ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.modalActionPrimaryText}>{selectedCatalogItem ? 'Update Item' : 'Save Custom Test'}</Text>}</TouchableOpacity></View>
         </View></View>
       </AppModal>
 

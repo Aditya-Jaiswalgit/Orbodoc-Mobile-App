@@ -1,7 +1,9 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 // src/components/common/ColumnSelectorModal.tsx
 import React, { memo, useMemo } from 'react';
 import { AppModal } from './AppModal';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { LiquidBorderScrollView } from './LiquidBorderScrollView';
 import { Check, Columns, X } from 'lucide-react-native';
 
 export interface ColumnOption<K extends string = string> {
@@ -49,7 +51,7 @@ export const ColumnSelectorModal = memo(function ColumnSelectorModal<K extends s
               {/* Header */}
               <View style={styles.dropdownHeader}>
                 <View style={styles.headerTitleRow}>
-                  <Columns color="#27A599" size={16} style={{ marginRight: 8 }} />
+                  <Columns color={colors.primary} size={16} style={{ marginRight: spacing.sm }} />
                   <Text style={styles.dropdownTitle}>{title}</Text>
                 </View>
                 <TouchableOpacity
@@ -57,7 +59,7 @@ export const ColumnSelectorModal = memo(function ColumnSelectorModal<K extends s
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   accessibilityLabel="Close"
                 >
-                  <X size={16} color="#64748B" />
+                  <X size={16} color={colors.muted} />
                 </TouchableOpacity>
               </View>
 
@@ -75,13 +77,13 @@ export const ColumnSelectorModal = memo(function ColumnSelectorModal<K extends s
               <View style={styles.dropdownDivider} />
 
               {/* Column Options List */}
-              <ScrollView
+              <LiquidBorderScrollView
                 style={styles.optionsList}
                 showsVerticalScrollIndicator={true}
                 nestedScrollEnabled={true}
                 keyboardShouldPersistTaps="handled"
               >
-                <View style={{ paddingVertical: 4 }}>
+                <View style={{ paddingVertical: spacing.xs }}>
                   {columns.map((column) => {
                     const isChecked = Boolean(visibleColumns[column.key]);
                     return (
@@ -103,7 +105,7 @@ export const ColumnSelectorModal = memo(function ColumnSelectorModal<K extends s
                             isChecked && styles.checkboxBoxChecked,
                           ]}
                         >
-                          {isChecked && <Check size={12} color="#FFFFFF" strokeWidth={3} />}
+                          {isChecked && <Check size={12} color={colors.surface} strokeWidth={3} />}
                         </View>
                         <Text
                           style={[
@@ -117,7 +119,7 @@ export const ColumnSelectorModal = memo(function ColumnSelectorModal<K extends s
                     );
                   })}
                 </View>
-              </ScrollView>
+              </LiquidBorderScrollView>
 
               {/* Footer */}
               <View style={styles.dropdownFooter}>
@@ -147,16 +149,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.xl,
   },
   dropdownCard: {
     width: '100%',
     maxWidth: 320,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#0F172A',
+    borderColor: colors.border,
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
@@ -167,40 +169,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingTop: 14,
-    paddingBottom: 6,
+    paddingBottom: spacing.tiny,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   dropdownTitle: {
-    fontFamily: 'Inter', fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    fontWeight: typography.weight.bold,
+    color: colors.text,
   },
   dropdownSubheader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingBottom: 10,
   },
   dropdownSubtitle: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.muted,
     flex: 1,
-    marginRight: 8,
+    marginRight: spacing.sm,
   },
   resetText: {
-    fontFamily: 'Inter', fontSize: 11,
-    fontWeight: '600',
-    color: '#27A599',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+    color: colors.primary,
   },
   dropdownDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.secondary,
   },
   optionsList: {
     maxHeight: 380,
@@ -210,61 +212,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 9,
-    borderRadius: 6,
-    marginHorizontal: 8,
+    borderRadius: radii.sm,
+    marginHorizontal: spacing.sm,
     marginVertical: 1,
   },
   checkboxRowSelected: {
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.mint,
   },
   checkboxBox: {
     width: 18,
     height: 18,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: '#CBD5E1',
+    borderColor: colors.input,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   checkboxBoxChecked: {
-    backgroundColor: '#27A599',
-    borderColor: '#27A599',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   checkboxLabel: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '500',
-    color: '#334155',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.medium,
+    color: colors.foreground,
   },
   checkboxLabelActive: {
-    color: '#0F172A',
-    fontWeight: '600',
+    color: colors.text,
+    fontWeight: typography.weight.semibold,
   },
   dropdownFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    backgroundColor: '#F8FAFC',
+    borderTopColor: colors.secondary,
+    backgroundColor: colors.background,
   },
   activeCountText: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#64748B',
-    fontWeight: '500',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.muted,
+    fontWeight: typography.weight.medium,
   },
   doneBtn: {
-    backgroundColor: '#27A599',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 6,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.tiny,
+    borderRadius: radii.sm,
   },
   doneBtnText: {
-    fontFamily: 'Inter', fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    fontWeight: typography.weight.bold,
+    color: colors.surface,
   },
 });

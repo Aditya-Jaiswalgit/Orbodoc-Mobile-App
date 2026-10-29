@@ -2,15 +2,16 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import type { ToastConfig, ToastConfigParams } from 'react-native-toast-message';
+import { colors, radii, shadows, spacing, typography } from '../../theme/tokens';
 
 type ToastType = 'success' | 'error' | 'info';
 
 export type AppToastNotice = { title: string; message?: string };
 
 const palette: Record<ToastType, { accent: string; title: string }> = {
-  success: { accent: '#059669', title: '#065F46' },
-  error: { accent: '#DC2626', title: '#991B1B' },
-  info: { accent: '#27A599', title: '#1D7C72' },
+  success: { accent: colors.success, title: '#166534' },
+  error: { accent: colors.destructive, title: colors.destructiveDark },
+  info: { accent: colors.primary, title: colors.primaryDark },
 };
 
 type AppToastCardProps = Pick<
@@ -19,13 +20,13 @@ type AppToastCardProps = Pick<
 >;
 
 function AppToastCard({ type, text1, text2, hide }: AppToastCardProps) {
-  const colors = palette[(type in palette ? type : 'info') as ToastType];
+  const tone = palette[(type in palette ? type : 'info') as ToastType];
 
   return (
     <View style={styles.card}>
-      <View style={[styles.accent, { backgroundColor: colors.accent }]} />
+      <View style={[styles.accent, { backgroundColor: tone.accent }]} />
       <View style={styles.content}>
-        {!!text1 && <Text style={[styles.title, { color: colors.title }]} numberOfLines={1}>{text1}</Text>}
+        {!!text1 && <Text style={[styles.title, { color: tone.title }]} numberOfLines={1}>{text1}</Text>}
         {!!text2 && <Text style={styles.message} numberOfLines={2}>{text2}</Text>}
       </View>
       <TouchableOpacity
@@ -35,7 +36,7 @@ function AppToastCard({ type, text1, text2, hide }: AppToastCardProps) {
         onPress={() => hide()}
         style={styles.closeButton}
       >
-        <X size={18} color="#64748B" />
+        <X size={18} color={colors.muted} />
       </TouchableOpacity>
     </View>
   );
@@ -72,7 +73,7 @@ export function AppToastOverlay({
 const styles = StyleSheet.create({
   overlay: {
     position: 'absolute',
-    top: 36,
+    top: spacing.xxxl,
     left: 0,
     right: 0,
     zIndex: 10000,
@@ -84,20 +85,16 @@ const styles = StyleSheet.create({
     width: '92%',
     minHeight: 64,
     alignSelf: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     overflow: 'hidden',
-    elevation: 8,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.16,
-    shadowRadius: 8,
+    ...shadows.elevated,
   },
   accent: { width: 4, alignSelf: 'stretch' },
-  content: { flex: 1, paddingVertical: 12, paddingHorizontal: 12 },
-  title: { fontFamily: 'Inter', fontSize: 20, fontWeight: '700' },
-  message: { fontFamily: 'Inter', marginTop: 2, color: '#475569', fontSize: 12 },
-  closeButton: { paddingHorizontal: 12, paddingVertical: 12 },
+  content: { flex: 1, paddingVertical: spacing.md, paddingHorizontal: spacing.md },
+  title: { fontFamily: typography.family, fontSize: typography.size.body, fontWeight: typography.weight.bold },
+  message: { fontFamily: typography.family, marginTop: spacing.xxs, color: colors.muted, fontSize: typography.size.sm, lineHeight: typography.lineHeight.compact },
+  closeButton: { paddingHorizontal: spacing.md, paddingVertical: spacing.md },
 });

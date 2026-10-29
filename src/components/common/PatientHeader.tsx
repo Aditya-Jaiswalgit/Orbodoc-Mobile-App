@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { LiquidBorderScrollView } from './LiquidBorderScrollView';
 import { AppModal } from './AppModal';
 import { useAuthContext } from '../../context/AuthContext';
 import RazorpayCheckout from 'react-native-razorpay';
@@ -10,6 +11,7 @@ import { showErrorToast, showSuccessToast } from '../../utils/toast';
 import { publishPatientWalletBalance } from '../../utils/patientWalletEvents';
 import { canUseStaffScreen } from '../../navigation/staffAccess';
 import { NotificationBell } from './NotificationBell';
+import { colors, radii, shadows, spacing, typography } from '../../theme/tokens';
 
 interface PatientHeaderProps {
   onOpenDrawer: () => void;
@@ -75,7 +77,7 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({ onOpenDrawer, onOp
         key: order.key_id, amount: String(order.amount), currency: order.currency || 'INR', order_id: order.order_id,
         name: 'OrboDoc', description: 'Patient wallet recharge',
         prefill: { name: user?.full_name || user?.fullName, email: user?.email, contact: user?.phone },
-        theme: { color: '#1d7c72' },
+        theme: { color: colors.primaryDark },
       });
       const verifyResult = await verifyWalletRechargeApi(token, payment);
       if (!verifyResult.success) throw new Error(verifyResult.message || 'Payment verification failed.');
@@ -118,17 +120,17 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({ onOpenDrawer, onOp
   return (
     <View style={styles.headerContainer}>
       <StatusBar barStyle="dark-content" />
-      {Platform.OS === 'android' && <View style={{ height: statusBarHeight, backgroundColor: '#FFFFFF' }} />}
+      {Platform.OS === 'android' && <View style={{ height: statusBarHeight, backgroundColor: colors.surface }} />}
       <View style={styles.topHeaderBar}>
         <View style={styles.leftGroup}>
           <TouchableOpacity style={styles.menuButton} onPress={onOpenDrawer} activeOpacity={0.7} accessibilityLabel="Open navigation">
-            <Menu size={18} color="#334155" />
+            <Menu size={18} color={colors.foreground} />
           </TouchableOpacity>
         </View>
         <View style={styles.headerRightGroup}>
           <TouchableOpacity style={styles.walletCircleBtn} onPress={() => { setWalletModalOpen(true); void refreshWallet(); }} activeOpacity={0.8} accessibilityLabel="Open wallet">
-            <WalletCards size={16} color="#1D7C72" />
-            <View style={styles.walletPlusBadge}><Plus size={11} color="#FFFFFF" strokeWidth={3} /></View>
+            <WalletCards size={16} color={colors.primaryDark} />
+            <View style={styles.walletPlusBadge}><Plus size={11} color={colors.surface} strokeWidth={3} /></View>
           </TouchableOpacity>
           {canViewNotifications ? <NotificationBell
             onOpenAll={() => onOpenNotifications ? onOpenNotifications() : navigatePatientScreen('notifications')}
@@ -140,7 +142,7 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({ onOpenDrawer, onOp
             activeOpacity={0.8}
             accessibilityLabel="Open profile menu">
             <View style={styles.avatarCircle}><Text style={styles.avatarInitials}>{initials || 'P'}</Text></View>
-            {profileMenuOpen ? <ChevronUp size={14} color="#27A599" /> : <ChevronDown size={14} color="#64748B" />}
+            {profileMenuOpen ? <ChevronUp size={14} color={colors.primary} /> : <ChevronDown size={14} color={colors.muted} />}
           </TouchableOpacity>
         </View>
       </View>
@@ -155,15 +157,15 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({ onOpenDrawer, onOp
             </TouchableOpacity>
             <View style={styles.menuDivider} />
             <TouchableOpacity style={styles.profileMenuItem} onPress={() => { setProfileMenuOpen(false); navigatePatientScreen('profile'); }} activeOpacity={0.7}>
-              <User size={16} color="#27A599" /><Text style={styles.menuItemTitle}>My Profile</Text>
+              <User size={16} color={colors.primary} /><Text style={styles.menuItemTitle}>My Profile</Text>
             </TouchableOpacity>
             <View style={styles.menuDivider} />
             <TouchableOpacity style={styles.profileMenuItem} onPress={() => { setProfileMenuOpen(false); navigatePatientScreen('change_password'); }} activeOpacity={0.7}>
-              <Key size={16} color="#D97706" /><Text style={styles.menuItemTitle}>Change Password</Text>
+              <Key size={16} color={colors.warning} /><Text style={styles.menuItemTitle}>Change Password</Text>
             </TouchableOpacity>
             <View style={styles.menuDivider} />
             <TouchableOpacity style={styles.profileMenuItem} onPress={() => { setProfileMenuOpen(false); logout(); }} activeOpacity={0.7}>
-              <LogOut size={16} color="#EF4444" /><Text style={[styles.menuItemTitle, { color: '#EF4444' }]}>Logout</Text>
+              <LogOut size={16} color={colors.destructive} /><Text style={[styles.menuItemTitle, { color: colors.destructive }]}>Logout</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -173,9 +175,9 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({ onOpenDrawer, onOp
         <View style={styles.walletOverlay}>
           <TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => { if (!walletBusy) setWalletModalOpen(false); }} activeOpacity={1} accessibilityLabel="Close wallet" />
           <View style={styles.walletDialog}>
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.walletDialogContent}>
+            <LiquidBorderScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.walletDialogContent}>
               <View style={styles.walletDialogHeader}>
-                <View style={styles.walletTitleIcon}><WalletCards size={20} color="#1D7C72" /></View>
+                <View style={styles.walletTitleIcon}><WalletCards size={20} color={colors.primaryDark} /></View>
                 <View style={styles.balanceInfo}><Text style={styles.balanceLabel}>Available balance</Text><Text style={styles.balanceAmount}>{walletBalance == null ? '—' : formatBalance(walletBalance)}</Text></View>
                 <TouchableOpacity onPress={() => !walletBusy && setWalletModalOpen(false)} style={styles.walletClose} accessibilityLabel="Close wallet dialog"><Text style={styles.walletCloseText}>×</Text></TouchableOpacity>
               </View>
@@ -189,8 +191,8 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({ onOpenDrawer, onOp
                 <Text style={styles.fieldLabel}>Recharge amount <Text style={styles.required}>*</Text></Text>
                 <View style={styles.amountInputWrap}><Text style={styles.rupeeSymbol}>₹</Text><TextInput value={rechargeAmount} onChangeText={value => setRechargeAmount(value.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="Enter amount" style={styles.amountInput} /></View>
                 <View style={styles.amountPresets}>{[500, 1000, 2000, 5000].map(amount => <TouchableOpacity key={amount} onPress={() => setRechargeAmount(String(amount))} style={[styles.presetButton, Number(rechargeAmount) === amount && styles.presetButtonActive]}><Text style={[styles.presetText, Number(rechargeAmount) === amount && styles.presetTextActive]}>Rs {amount.toLocaleString('en-IN')}</Text></TouchableOpacity>)}</View>
-                <View style={styles.secureCard}><View style={styles.secureIcon}><ShieldCheck size={17} color="#FFFFFF" /></View><View style={{ flex: 1 }}><Text style={styles.secureTitle}>Secure Razorpay checkout</Text><Text style={styles.secureText}>UPI, cards, net banking and supported wallets will be available on the next screen.</Text></View></View>
-                <TouchableOpacity style={[styles.walletPrimaryButton, walletBusy && styles.disabled]} onPress={rechargeWallet} disabled={walletBusy}>{walletBusy ? <ActivityIndicator color="#FFFFFF" /> : <><Plus size={17} color="#FFFFFF" /><Text style={styles.walletPrimaryText}>Continue to Razorpay</Text></>}</TouchableOpacity>
+                <View style={styles.secureCard}><View style={styles.secureIcon}><ShieldCheck size={17} color={colors.surface} /></View><View style={{ flex: 1 }}><Text style={styles.secureTitle}>Secure Razorpay checkout</Text><Text style={styles.secureText}>UPI, cards, net banking and supported wallets will be available on the next screen.</Text></View></View>
+                <TouchableOpacity style={[styles.walletPrimaryButton, walletBusy && styles.disabled]} onPress={rechargeWallet} disabled={walletBusy}>{walletBusy ? <ActivityIndicator color={colors.surface} /> : <><Plus size={17} color={colors.surface} /><Text style={styles.walletPrimaryText}>Continue to Razorpay</Text></>}</TouchableOpacity>
               </> : <>
                 <Text style={styles.fieldLabel}>Transfer amount</Text>
                 <View style={styles.amountInputWrap}><Text style={styles.rupeeSymbol}>₹</Text><TextInput value={transferAmount} onChangeText={setTransferAmount} keyboardType="decimal-pad" placeholder="Enter transfer amount" style={styles.amountInput} /></View>
@@ -202,10 +204,10 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({ onOpenDrawer, onOp
                 </> : <TextInput value={upiId} onChangeText={setUpiId} placeholder="UPI ID (name@bank)" autoCapitalize="none" style={styles.transferInput} />}
                 <Text style={styles.secureText}>Recent transfer requests</Text>
                 {payoutRequests.length ? payoutRequests.map(request => <View key={request.id} style={styles.payoutRow}><Text style={styles.payoutAmount}>{formatBalance(request.requested_amount)}</Text><Text style={styles.payoutStatus}>{request.request_status}</Text></View>) : <Text style={styles.emptyPayout}>No transfer requests yet.</Text>}
-                <TouchableOpacity style={[styles.walletPrimaryButton, walletBusy && styles.disabled]} onPress={requestWalletTransfer} disabled={walletBusy}>{walletBusy ? <ActivityIndicator color="#FFFFFF" /> : <><IndianRupee size={16} color="#FFFFFF" /><Text style={styles.walletPrimaryText}>Request Transfer</Text></>}</TouchableOpacity>
+                <TouchableOpacity style={[styles.walletPrimaryButton, walletBusy && styles.disabled]} onPress={requestWalletTransfer} disabled={walletBusy}>{walletBusy ? <ActivityIndicator color={colors.surface} /> : <><IndianRupee size={16} color={colors.surface} /><Text style={styles.walletPrimaryText}>Request Transfer</Text></>}</TouchableOpacity>
               </>}
               <TouchableOpacity style={styles.walletCancelButton} onPress={() => !walletBusy && setWalletModalOpen(false)} disabled={walletBusy}><Text style={styles.walletCancelText}>Cancel</Text></TouchableOpacity>
-            </ScrollView>
+            </LiquidBorderScrollView>
           </View>
         </View>
       </AppModal>
@@ -214,67 +216,67 @@ export const PatientHeader: React.FC<PatientHeaderProps> = ({ onOpenDrawer, onOp
 };
 
 const styles = StyleSheet.create({
-  headerContainer: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E2E8F0', elevation: 3, shadowColor: '#0F172A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, zIndex: 10 },
-  topHeaderBar: { minHeight: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 8 },
+  headerContainer: { backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, ...shadows.card, zIndex: 10 },
+  topHeaderBar: { minHeight: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   leftGroup: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  menuButton: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center' },
-  headerRightGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  walletCircleBtn: { width: 50, height: 38, borderRadius: 20, backgroundColor: '#E6FFFA', borderWidth: 1, borderColor: '#99F6E4', alignItems: 'center', justifyContent: 'center' },
-  walletPlusBadge: { position: 'absolute', top: -3, right: -2, width: 15, height: 15, borderRadius: 8, backgroundColor: '#F9A91F', borderWidth: 1, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  avatarPillBtn: { minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 5, borderRadius: 20, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' },
-  avatarCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#27A599', alignItems: 'center', justifyContent: 'center' },
-  avatarInitials: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  menuButton: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.secondary, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  headerRightGroup: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  walletCircleBtn: { width: 50, height: 38, borderRadius: 20, backgroundColor: colors.mint, borderWidth: 1, borderColor: colors.mintBorder, alignItems: 'center', justifyContent: 'center' },
+  walletPlusBadge: { position: 'absolute', top: -3, right: -2, width: 15, height: 15, borderRadius: radii.md, backgroundColor: colors.warning, borderWidth: 1, borderColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  avatarPillBtn: { minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 5, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  avatarCircle: { width: 28, height: 28, borderRadius: radii.lg, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  avatarInitials: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.xs, fontWeight: typography.weight.extrabold },
   profileMenuOverlay: { flex: 1, backgroundColor: 'transparent' },
-  profileMenuCard: { position: 'absolute', right: 12, width: 240, backgroundColor: '#FFFFFF', borderRadius: 14, padding: 10, borderWidth: 1, borderColor: '#E2E8F0', elevation: 12, shadowColor: '#0F172A', shadowOpacity: 0.16, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
-  profileMenuHeader: { paddingHorizontal: 9, paddingVertical: 8 },
-  profileMenuName: { fontFamily: 'Inter', color: '#0F172A', fontWeight: '800', fontSize: 14 },
-  profileMenuSub: { fontFamily: 'Inter', color: '#64748B', fontSize: 11, marginTop: 3 },
-  menuDivider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 4 },
+  profileMenuCard: { position: 'absolute', right: 12, width: 240, backgroundColor: colors.surface, borderRadius: radii.lg, padding: 10, borderWidth: 1, borderColor: colors.border, elevation: 12, shadowColor: colors.text, shadowOpacity: 0.16, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+  profileMenuHeader: { paddingHorizontal: 9, paddingVertical: spacing.sm },
+  profileMenuName: { fontFamily: typography.family, color: colors.text, fontWeight: typography.weight.extrabold, fontSize: typography.size.body },
+  profileMenuSub: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.xs, marginTop: 3 },
+  menuDivider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.xs },
   profileMenuItem: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 40, paddingHorizontal: 9 },
-  menuItemTitle: { fontFamily: 'Inter', color: '#334155', fontSize: 13, fontWeight: '700' },
-  walletOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.78)', justifyContent: 'center', alignItems: 'center', padding: 16 },
-  walletDialog: { width: '100%', maxWidth: 460, maxHeight: '90%', borderRadius: 12, backgroundColor: '#F8FAFC', overflow: 'hidden', borderWidth: 1, borderColor: '#CBD5E1', elevation: 22 },
-  walletDialogContent: { padding: 16, paddingBottom: 18 },
-  walletDialogHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#E2E8F0', marginBottom: 14 },
-  walletTitleIcon: { width: 44, height: 44, borderRadius: 10, backgroundColor: '#F0FDFA', borderWidth: 1, borderColor: '#CCFBF1', alignItems: 'center', justifyContent: 'center' },
+  menuItemTitle: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.caption, fontWeight: typography.weight.bold },
+  walletOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.78)', justifyContent: 'center', alignItems: 'center', padding: spacing.lg },
+  walletDialog: { width: '100%', maxWidth: 460, maxHeight: '90%', borderRadius: radii.lg, backgroundColor: colors.background, overflow: 'hidden', borderWidth: 1, borderColor: colors.input, elevation: 22 },
+  walletDialogContent: { padding: spacing.lg, paddingBottom: 18 },
+  walletDialogHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingBottom: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: 14 },
+  walletTitleIcon: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.mint, borderWidth: 1, borderColor: colors.mintBorder, alignItems: 'center', justifyContent: 'center' },
   balanceInfo: { flex: 1, alignItems: 'flex-end' },
-  balanceLabel: { fontFamily: 'Inter', color: '#64748B', fontSize: 11, fontWeight: '500' },
-  balanceAmount: { fontFamily: 'Inter', color: '#1E293B', fontWeight: '800', fontSize: 20, marginTop: 2 },
-  walletClose: { position: 'absolute', top: -8, right: -8, padding: 4 },
-  walletCloseText: { fontFamily: 'Inter', color: '#64748B', fontSize: 25, lineHeight: 26 },
-  walletTitle: { fontFamily: 'Inter', color: '#1E293B', fontSize: 19, fontWeight: '800' },
-  walletDescription: { fontFamily: 'Inter', color: '#64748B', fontSize: 12, lineHeight: 18, marginTop: 5, marginBottom: 14 },
-  walletTabs: { flexDirection: 'row', backgroundColor: '#F1F5F9', padding: 4, borderRadius: 12, marginBottom: 18 },
+  balanceLabel: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.xs, fontWeight: typography.weight.medium },
+  balanceAmount: { fontFamily: typography.family, color: colors.foreground, fontWeight: typography.weight.extrabold, fontSize: typography.size.title, marginTop: 2 },
+  walletClose: { position: 'absolute', top: -8, right: -8, padding: spacing.xs },
+  walletCloseText: { fontFamily: typography.family, color: colors.muted, fontSize: 25, lineHeight: 26 },
+  walletTitle: { fontFamily: typography.family, color: colors.foreground, fontSize: 19, fontWeight: typography.weight.extrabold },
+  walletDescription: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.sm, lineHeight: 18, marginTop: 5, marginBottom: 14 },
+  walletTabs: { flexDirection: 'row', backgroundColor: colors.secondary, padding: spacing.xs, borderRadius: radii.lg, marginBottom: 18 },
   walletTab: { flex: 1, minHeight: 40, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  walletTabActive: { backgroundColor: '#26A69A' },
-  walletTabText: { fontFamily: 'Inter', color: '#334155', fontWeight: '600', fontSize: 12 },
-  walletTabTextActive: { color: '#FFFFFF', fontWeight: '800' },
-  fieldLabel: { fontFamily: 'Inter', color: '#1E293B', fontWeight: '600', fontSize: 14, marginBottom: 7 },
-  required: { color: '#DC2626' },
-  amountInputWrap: { height: 46, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 11, backgroundColor: '#F8FAFC', paddingHorizontal: 12 },
-  rupeeSymbol: { fontFamily: 'Inter', color: '#64748B', fontSize: 16, marginRight: 8 },
-  amountInput: { fontFamily: 'Inter', flex: 1, height: 44, color: '#1E293B', fontSize: 16, fontWeight: '600' },
-  amountPresets: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 8 },
-  presetButton: { flexBasis: '48%', flexGrow: 1, minHeight: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, backgroundColor: '#F8FAFC' },
-  presetButtonActive: { backgroundColor: '#26A69A', borderColor: '#26A69A' },
-  presetText: { fontFamily: 'Inter', color: '#334155', fontSize: 11, fontWeight: '600' },
-  presetTextActive: { color: '#FFFFFF', fontWeight: '800' },
-  secureCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 13, marginTop: 17, marginBottom: 17, borderRadius: 11, borderWidth: 1, borderColor: '#CCFBF1', backgroundColor: '#F0FDFA' },
-  secureIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#1D7C72', alignItems: 'center', justifyContent: 'center' },
-  secureTitle: { fontFamily: 'Inter', color: '#1E293B', fontSize: 12, fontWeight: '700' },
-  secureText: { fontFamily: 'Inter', color: '#64748B', fontSize: 11, lineHeight: 17, marginTop: 3 },
-  walletPrimaryButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, borderRadius: 11, backgroundColor: '#1D7C72', marginTop: 15 },
-  walletPrimaryText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '800', fontSize: 12 },
-  walletCancelButton: { minHeight: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, marginTop: 4, backgroundColor: '#F8FAFC' },
-  walletCancelText: { fontFamily: 'Inter', color: '#1E293B', fontWeight: '600', fontSize: 12 },
+  walletTabActive: { backgroundColor: colors.primary },
+  walletTabText: { fontFamily: typography.family, color: colors.foreground, fontWeight: typography.weight.semibold, fontSize: typography.size.sm },
+  walletTabTextActive: { color: colors.surface, fontWeight: typography.weight.extrabold },
+  fieldLabel: { fontFamily: typography.family, color: colors.foreground, fontWeight: typography.weight.semibold, fontSize: typography.size.body, marginBottom: 7 },
+  required: { color: colors.destructive },
+  amountInputWrap: { height: 46, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 11, backgroundColor: colors.background, paddingHorizontal: spacing.md },
+  rupeeSymbol: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.subtitle, marginRight: spacing.sm },
+  amountInput: { fontFamily: typography.family, flex: 1, height: 44, color: colors.foreground, fontSize: typography.size.subtitle, fontWeight: typography.weight.semibold },
+  amountPresets: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: spacing.sm },
+  presetButton: { flexBasis: '48%', flexGrow: 1, minHeight: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, backgroundColor: colors.background },
+  presetButtonActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  presetText: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
+  presetTextActive: { color: colors.surface, fontWeight: typography.weight.extrabold },
+  secureCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 13, marginTop: 17, marginBottom: 17, borderRadius: 11, borderWidth: 1, borderColor: colors.mintBorder, backgroundColor: colors.mint },
+  secureIcon: { width: 34, height: 34, borderRadius: radii.md, backgroundColor: colors.primaryDark, alignItems: 'center', justifyContent: 'center' },
+  secureTitle: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.sm, fontWeight: typography.weight.bold },
+  secureText: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.xs, lineHeight: 17, marginTop: 3 },
+  walletPrimaryButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, borderRadius: 11, backgroundColor: colors.primaryDark, marginTop: 15 },
+  walletPrimaryText: { fontFamily: typography.family, color: colors.surface, fontWeight: typography.weight.extrabold, fontSize: typography.size.sm },
+  walletCancelButton: { minHeight: 40, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, marginTop: spacing.xs, backgroundColor: colors.background },
+  walletCancelText: { fontFamily: typography.family, color: colors.foreground, fontWeight: typography.weight.semibold, fontSize: typography.size.sm },
   disabled: { opacity: 0.55 },
-  methodRow: { flexDirection: 'row', gap: 8, marginVertical: 10 },
-  methodButton: { flex: 1, minHeight: 38, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
-  transferInput: { fontFamily: 'Inter', height: 42, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 9, paddingHorizontal: 11, color: '#1E293B', marginTop: 8, backgroundColor: '#FFFFFF', fontSize: 12 },
-  payoutRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  payoutAmount: { fontFamily: 'Inter', color: '#334155', fontWeight: '700', fontSize: 12 },
-  payoutStatus: { fontFamily: 'Inter', color: '#1D7C72', textTransform: 'capitalize', fontWeight: '700', fontSize: 11 },
-  emptyPayout: { fontFamily: 'Inter', color: '#64748B', fontSize: 11, paddingVertical: 8 },
+  methodRow: { flexDirection: 'row', gap: spacing.sm, marginVertical: 10 },
+  methodButton: { flex: 1, minHeight: 38, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
+  transferInput: { fontFamily: typography.family, height: 42, borderWidth: 1, borderColor: colors.border, borderRadius: 9, paddingHorizontal: 11, color: colors.foreground, marginTop: spacing.sm, backgroundColor: colors.surface, fontSize: typography.size.sm },
+  payoutRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  payoutAmount: { fontFamily: typography.family, color: colors.foreground, fontWeight: typography.weight.bold, fontSize: typography.size.sm },
+  payoutStatus: { fontFamily: typography.family, color: colors.primaryDark, textTransform: 'capitalize', fontWeight: typography.weight.bold, fontSize: typography.size.xs },
+  emptyPayout: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.xs, paddingVertical: spacing.sm },
 });
 
 export default PatientHeader;

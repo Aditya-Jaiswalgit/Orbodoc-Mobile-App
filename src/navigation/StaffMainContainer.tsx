@@ -1,3 +1,4 @@
+import { colors, radii, spacing, typography } from '../theme/tokens';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AppModal } from '../components/common/AppModal';
 import { Alert, BackHandler, Image, Platform, ScrollView, StatusBar, StyleSheet, Text, ToastAndroid, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
@@ -415,7 +416,7 @@ export const StaffMainContainer = () => {
     if (!canOpen(currentTab)) {
       return <View style={{ flex: 1 }}>
         <StaffHeader title="Access" onOpenDrawer={openDrawer} />
-        <View style={{ padding: 24 }}>
+        <View style={{ padding: spacing.xxl }}>
           <Text>{permissionsLoading ? 'Loading permissions…' : permissionsError ? 'Unable to load permissions.' : 'You do not have permission to open this screen.'}</Text>
           <TouchableOpacity onPress={refreshPermissions}><Text>Refresh permissions</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setActiveTab('dashboard')}><Text>Go to dashboard</Text></TouchableOpacity>
@@ -452,7 +453,7 @@ export const StaffMainContainer = () => {
             return <NurseDashboardScreen onOpenDrawer={openDrawer} onOpenNotifications={openNotifications} onNavigateScreen={(scr) => setActiveTab(scr as any)} />;
         }
       case 'clinics':
-        return <ClinicsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} initialClinicId={dashboardFilterScreen === 'clinics' ? dashboardRouteFilters.clinicId : undefined} />;
+        return <ClinicsManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={navigateFromClinicDashboard} initialClinicId={dashboardFilterScreen === 'clinics' ? dashboardRouteFilters.clinicId : undefined} />;
       case 'staff':
         return <StaffManagementScreen onOpenDrawer={openDrawer} onNavigateScreen={(scr) => setActiveTab(scr as StaffTabType)} initialUserId={dashboardFilterScreen === 'staff' ? dashboardRouteFilters.userId : undefined} />;
       case 'role_permissions':
@@ -603,7 +604,7 @@ export const StaffMainContainer = () => {
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.menuIconButton} onPress={() => setDrawerOpen(false)}>
-                  <Menu color="#14B8A6" size={18} />
+                  <Menu color={colors.primary} size={18} />
                 </TouchableOpacity>
               </View>
 
@@ -631,7 +632,7 @@ export const StaffMainContainer = () => {
                             onPress={() => setUserRoleMgmtOpen(!userRoleMgmtOpen)}>
                             <View style={[styles.itemLeft, { minWidth: 0 }]}>
                               <View style={[styles.menuIconContainer, isGroupActive && styles.menuIconContainerActive]}>
-                                <UserCog color={isGroupActive ? '#5EEAD4' : '#14B8A6'} size={18} />
+                                <UserCog color={isGroupActive ? '#5EEAD4' : colors.primary} size={18} />
                               </View>
                               <Text
                                 numberOfLines={2}
@@ -639,11 +640,11 @@ export const StaffMainContainer = () => {
                                 {item.label}
                               </Text>
                             </View>
-                            <View style={{ flexShrink: 0, marginLeft: 8 }}>
+                            <View style={{ flexShrink: 0, marginLeft: spacing.sm }}>
                               {userRoleMgmtOpen ? (
-                                <ChevronUp color="#94A3B8" size={16} />
+                                <ChevronUp color={colors.subtle} size={16} />
                               ) : (
-                                <ChevronDown color="#94A3B8" size={16} />
+                                <ChevronDown color={colors.subtle} size={16} />
                               )}
                             </View>
                           </TouchableOpacity>
@@ -666,9 +667,9 @@ export const StaffMainContainer = () => {
                                       }}>
                                       <View style={[styles.subIconBadge, isChildActive && styles.subIconBadgeActive]}>
                                         {child.iconType === 'role_permissions' ? (
-                                          <Shield color={isChildActive ? '#2DD4BF' : '#14B8A6'} size={15} />
+                                          <Shield color={isChildActive ? '#2DD4BF' : colors.primary} size={15} />
                                         ) : (
-                                          <UserPlus color={isChildActive ? '#2DD4BF' : '#14B8A6'} size={15} />
+                                          <UserPlus color={isChildActive ? '#2DD4BF' : colors.primary} size={15} />
                                         )}
                                       </View>
                                       <Text style={[styles.subMenuItemLabel, isChildActive && styles.activeSubItemText]}>
@@ -695,7 +696,7 @@ export const StaffMainContainer = () => {
                         }}>
                         <View style={styles.itemLeft}>
                           <View style={[styles.menuIconContainer, isActive && styles.menuIconContainerActive]}>
-                            {renderTabVectorIcon(item.id, isActive ? '#5EEAD4' : '#14B8A6', 18)}
+                            {renderTabVectorIcon(item.id, isActive ? '#5EEAD4' : colors.primary, 18)}
                           </View>
                           <Text style={[styles.menuItemLabel, isActive && styles.activeItemText]}>
                             {item.label}
@@ -721,7 +722,7 @@ export const StaffMainContainer = () => {
                     setDrawerOpen(false);
                     logout();
                   }}>
-                  <LogOut color="#14B8A6" size={20} />
+                  <LogOut color={colors.primary} size={20} />
                   <Text style={styles.logoutText}>Logout</Text>
                 </TouchableOpacity>
               </View>
@@ -737,7 +738,7 @@ export const StaffMainContainer = () => {
             <View style={styles.clinicModalHeader}>
               <Text style={styles.clinicModalTitle}>Select Active Clinic</Text>
               <TouchableOpacity onPress={() => setClinicModalOpen(false)} style={styles.closeBtn}>
-                <X size={20} color="#64748b" />
+                <X size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
 
@@ -759,8 +760,8 @@ export const StaffMainContainer = () => {
                   );
                 })
               ) : (
-                <View style={{ padding: 16 }}>
-                  <Text style={{ color: '#64748b' }}>No assigned clinics found.</Text>
+                <View style={{ padding: spacing.lg }}>
+                  <Text style={{ color: colors.muted }}>No assigned clinics found.</Text>
                 </View>
               )}
             </ScrollView>
@@ -772,16 +773,16 @@ export const StaffMainContainer = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: colors.background },
   screenContainer: { flex: 1 },
   bottomTabBar: {
     flexDirection: 'row',
     height: 65,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
+    borderTopColor: colors.border,
     elevation: 10,
-    shadowColor: '#0f172a',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -796,23 +797,23 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#27a599',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: -20,
-    shadowColor: '#27a599',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 6,
   },
-  fabIcon: { color: '#ffffff', fontSize: 20, fontWeight: 'bold' },
-  fabLabel: { fontSize: 10, color: '#27a599', fontWeight: '700', marginTop: 2 },
+  fabIcon: { color: colors.surface, fontSize: typography.size.title, fontWeight: 'bold' },
+  fabLabel: { fontSize: typography.size.micro, color: colors.primary, fontWeight: typography.weight.bold, marginTop: 2 },
   tabIconWrapper: { position: 'relative' },
-  tabLabel: { fontSize: 10, fontWeight: '600', color: '#64748b', marginTop: 2 },
-  tabLabelActive: { color: '#27a599', fontWeight: '800' },
-  smallBadge: { position: 'absolute', top: -3, right: -6, backgroundColor: '#ef4444', borderRadius: 8, minWidth: 14, height: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
-  smallBadgeText: { color: '#ffffff', fontSize: 9, fontWeight: 'bold' },
+  tabLabel: { fontSize: typography.size.micro, fontWeight: typography.weight.semibold, color: colors.muted, marginTop: 2 },
+  tabLabelActive: { color: colors.primary, fontWeight: typography.weight.extrabold },
+  smallBadge: { position: 'absolute', top: -3, right: -6, backgroundColor: colors.destructive, borderRadius: radii.md, minWidth: 14, height: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2 },
+  smallBadgeText: { color: colors.surface, fontSize: 9, fontWeight: 'bold' },
   modalOverlay: {
     position: 'absolute',
     // A translucent Android modal fills the screen, so offset the drawer by the
@@ -824,63 +825,63 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(10, 15, 29, 0.6)' },
-  drawerSheet: { width: '85%', maxWidth: 320, height: '100%', backgroundColor: '#0A0F1D', borderTopRightRadius: 16, borderBottomRightRadius: 16, paddingHorizontal: 16, paddingTop: 16, elevation: 20 },
+  drawerSheet: { width: '85%', maxWidth: 320, height: '100%', backgroundColor: '#0A0F1D', borderTopRightRadius: 16, borderBottomRightRadius: 16, paddingHorizontal: spacing.lg, paddingTop: spacing.lg, elevation: 20 },
   drawerSafeArea: { flex: 1 },
   
   // Header (Exact Match)
-  drawerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  drawerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xl },
   brandingContainer: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  logoBadge: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 12, overflow: 'hidden' },
+  logoBadge: { width: 48, height: 48, borderRadius: radii.lg, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', marginRight: spacing.md, overflow: 'hidden' },
   clinicLogoImage: { width: 40, height: 40 },
   headerTextContainer: { flex: 1 },
-  clinicTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-  roleSubtitle: { color: '#94A3B8', fontSize: 12, marginTop: 2, textTransform: 'capitalize' },
-  menuIconButton: { width: 36, height: 36, borderRadius: 10, borderWidth: 1, borderColor: '#1E293B', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0F172A' },
-  closeBtn: { padding: 6 },
+  clinicTitle: { color: colors.surface, fontSize: 15, fontWeight: typography.weight.bold },
+  roleSubtitle: { color: colors.subtle, fontSize: typography.size.sm, marginTop: 2, textTransform: 'capitalize' },
+  menuIconButton: { width: 36, height: 36, borderRadius: radii.md, borderWidth: 1, borderColor: colors.foreground, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.text },
+  closeBtn: { padding: spacing.tiny },
 
   // Section Header
-  sectionHeader: { marginBottom: 10, paddingLeft: 4 },
-  sectionTitle: { color: '#2DD4BF', fontSize: 12, fontWeight: '800', letterSpacing: 1.5 },
+  sectionHeader: { marginBottom: 10, paddingLeft: spacing.xs },
+  sectionTitle: { color: '#2DD4BF', fontSize: typography.size.sm, fontWeight: typography.weight.extrabold, letterSpacing: 1.5 },
 
   // ScrollArea & Menu List
   scrollArea: { flex: 1 },
-  menuList: { gap: 4, marginBottom: 20 },
-  menuItemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, marginBottom: 4 },
-  activeMenuItemRow: { backgroundColor: 'rgba(13, 148, 136, 0.15)', borderWidth: 1.5, borderColor: '#27A599' },
+  menuList: { gap: spacing.xs, marginBottom: spacing.xl },
+  menuItemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: spacing.md, borderRadius: radii.lg, marginBottom: spacing.xs },
+  activeMenuItemRow: { backgroundColor: 'rgba(13, 148, 136, 0.15)', borderWidth: 1.5, borderColor: colors.primary },
   itemLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  menuIconContainer: { width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(15, 30, 46, 0.7)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  menuIconContainerActive: { backgroundColor: '#27A599' },
-  menuItemLabel: { fontSize: 14, fontWeight: '500', color: '#E2E8F0' },
-  activeItemText: { color: '#FFFFFF', fontWeight: '700' },
-  itemBadge: { backgroundColor: '#27a599', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
-  itemBadgeText: { color: '#ffffff', fontSize: 11, fontWeight: 'bold' },
+  menuIconContainer: { width: 32, height: 32, borderRadius: radii.md, backgroundColor: 'rgba(15, 30, 46, 0.7)', alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
+  menuIconContainerActive: { backgroundColor: colors.primary },
+  menuItemLabel: { fontSize: typography.size.body, fontWeight: typography.weight.medium, color: colors.border },
+  activeItemText: { color: colors.surface, fontWeight: typography.weight.bold },
+  itemBadge: { backgroundColor: colors.primary, borderRadius: radii.md, paddingHorizontal: 7, paddingVertical: 2 },
+  itemBadgeText: { color: colors.surface, fontSize: typography.size.xs, fontWeight: 'bold' },
 
   // Sub-items Tree (Exact Match)
-  groupContainer: { marginBottom: 4 },
-  subItemTreeContainer: { flexDirection: 'row', paddingLeft: 24, marginTop: 4, marginBottom: 6 },
-  treeLine: { width: 1, backgroundColor: '#1E293B', marginRight: 16 },
+  groupContainer: { marginBottom: spacing.xs },
+  subItemTreeContainer: { flexDirection: 'row', paddingLeft: spacing.xxl, marginTop: spacing.xs, marginBottom: spacing.tiny },
+  treeLine: { width: 1, backgroundColor: colors.foreground, marginRight: spacing.lg },
   subItemsList: { flex: 1 },
-  subMenuItemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8, marginBottom: 4 },
+  subMenuItemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, paddingHorizontal: 10, borderRadius: radii.md, marginBottom: spacing.xs },
   activeSubMenuItemRow: { backgroundColor: 'rgba(13, 148, 136, 0.2)' },
-  subIconBadge: { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(15, 23, 42, 0.8)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  subIconBadgeActive: { backgroundColor: '#27A599' },
-  subMenuItemLabel: { color: '#CBD5E1', fontSize: 13, fontWeight: '500' },
-  activeSubItemText: { color: '#2DD4BF', fontWeight: '700' },
+  subIconBadge: { width: 28, height: 28, borderRadius: radii.md, backgroundColor: 'rgba(15, 23, 42, 0.8)', alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
+  subIconBadgeActive: { backgroundColor: colors.primary },
+  subMenuItemLabel: { color: colors.input, fontSize: typography.size.caption, fontWeight: typography.weight.medium },
+  activeSubItemText: { color: '#2DD4BF', fontWeight: typography.weight.bold },
 
   // Footer Section (Exact Match)
-  footerSection: { borderTopWidth: 1, borderTopColor: '#1E293B', paddingTop: 14, marginTop: 6, marginBottom: 20 },
-  logoutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#111827', borderRadius: 10, paddingVertical: 12, gap: 8, borderWidth: 1, borderColor: '#1E293B' },
-  logoutText: { color: '#E2E8F0', fontSize: 14, fontWeight: '700' },
+  footerSection: { borderTopWidth: 1, borderTopColor: colors.foreground, paddingTop: 14, marginTop: spacing.tiny, marginBottom: spacing.xl },
+  logoutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#111827', borderRadius: radii.md, paddingVertical: spacing.md, gap: spacing.sm, borderWidth: 1, borderColor: colors.foreground },
+  logoutText: { color: colors.border, fontSize: typography.size.body, fontWeight: typography.weight.bold },
 
-  modalOverlayCenter: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  clinicSelectBox: { width: '100%', maxWidth: 360, backgroundColor: '#ffffff', borderRadius: 16, padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 10 },
-  clinicModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  clinicModalTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
-  clinicOptionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10, marginBottom: 6, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0' },
-  clinicOptionRowSelected: { backgroundColor: '#f0fdf4', borderColor: '#2eb877' },
-  clinicOptionText: { fontSize: 14, fontWeight: '600', color: '#334155' },
-  clinicOptionTextSelected: { fontWeight: '800', color: '#166534' },
-  selectedCheck: { fontSize: 12, fontWeight: '800', color: '#2eb877' },
+  modalOverlayCenter: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
+  clinicSelectBox: { width: '100%', maxWidth: 360, backgroundColor: colors.surface, borderRadius: radii.xl, padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 10 },
+  clinicModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.secondary },
+  clinicModalTitle: { fontSize: typography.size.subtitle, fontWeight: typography.weight.extrabold, color: colors.text },
+  clinicOptionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.md, paddingHorizontal: 14, borderRadius: radii.md, marginBottom: spacing.tiny, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
+  clinicOptionRowSelected: { backgroundColor: '#f0fdf4', borderColor: colors.success },
+  clinicOptionText: { fontSize: typography.size.body, fontWeight: typography.weight.semibold, color: colors.foreground },
+  clinicOptionTextSelected: { fontWeight: typography.weight.extrabold, color: '#166534' },
+  selectedCheck: { fontSize: typography.size.sm, fontWeight: typography.weight.extrabold, color: colors.success },
 });
 
 export default StaffMainContainer;

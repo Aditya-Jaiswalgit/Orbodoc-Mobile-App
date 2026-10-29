@@ -1,3 +1,4 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -13,6 +14,7 @@ import Svg, { Circle, Line, Rect, Text as SvgText } from 'react-native-svg';
 import { IndianRupee, Package, ShoppingCart, TrendingUp, TriangleAlert } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { usePharmacistDashboard } from '../../hooks/usePharmacistDashboard';
+import { LiquidBorderTouchable } from '../../components/common/LiquidBorderSurface';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -42,7 +44,7 @@ function MetricCard({
   const { width } = useWindowDimensions();
 
   return (
-    <TouchableOpacity
+    <LiquidBorderTouchable
       activeOpacity={0.7}
       style={[styles.kpiCard, { width: width >= 900 ? '23.5%' : width >= 640 ? '48%' : '100%', padding: width >= 640 ? 24 : 16 }]}
       onPress={onPress}
@@ -59,7 +61,7 @@ function MetricCard({
       <View style={styles.kpiActionWrapper}>
         <Text style={styles.kpiActionLink}>View details ↗</Text>
       </View>
-    </TouchableOpacity>
+    </LiquidBorderTouchable>
   );
 }
 
@@ -107,10 +109,10 @@ function RevenueTrendChart({
                 x={left - 8}
                 y={y + 4}
                 fontSize="11"
-                fill="#64748B"
+                fill={colors.muted}
                 textAnchor="end"
                 fontWeight="500"
-                fontFamily="Inter"
+                fontFamily={typography.family}
               >
                 {formatTick(tickVal)}
               </SvgText>
@@ -119,7 +121,7 @@ function RevenueTrendChart({
                 x2={chartWidth - right}
                 y1={y}
                 y2={y}
-                stroke="#F1F5F9"
+                stroke={colors.secondary}
                 strokeWidth={1}
               />
             </React.Fragment>
@@ -150,9 +152,9 @@ function RevenueTrendChart({
                   y={Math.max(12, y - 5)}
                   fontSize="10"
                   fontWeight="700"
-                  fill="#0F172A"
+                  fill={colors.text}
                   textAnchor="middle"
-                  fontFamily="Inter"
+                  fontFamily={typography.family}
                 >
                   {money(item.value)}
                 </SvgText>
@@ -162,9 +164,9 @@ function RevenueTrendChart({
                 y={chartHeight - 8}
                 fontSize="11"
                 fontWeight="500"
-                fill="#64748B"
+                fill={colors.muted}
                 textAnchor="middle"
-                fontFamily="Inter"
+                fontFamily={typography.family}
               >
                 {item.label}
               </SvgText>
@@ -189,9 +191,9 @@ export const PharmacistDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
   const isMedium = width >= 768;
 
   const revenueBars = [
-    { label: 'Today', value: data.todayRevenue, color: '#27A599' },
-    { label: 'Week', value: data.weekRevenue, color: '#2EB877' },
-    { label: 'Month', value: data.monthRevenue, color: '#F9A91F' },
+    { label: 'Today', value: data.todayRevenue, color: colors.primary },
+    { label: 'Week', value: data.weekRevenue, color: colors.success },
+    { label: 'Month', value: data.monthRevenue, color: colors.warning },
   ];
   const totalStockMix = Math.max(data.totalMedicines, data.lowStockCount, 1);
   const circumference = 2 * Math.PI * 46;
@@ -203,9 +205,9 @@ export const PharmacistDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#27A599" colors={['#27A599']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} colors={[colors.primary]} />}
       >
-        {loading ? <View style={styles.loading}><ActivityIndicator color="#27A599" /><Text style={styles.muted}>Loading pharmacy dashboard…</Text></View> : null}
+        {loading ? <View style={styles.loading}><ActivityIndicator color={colors.primary} /><Text style={styles.muted}>Loading pharmacy dashboard…</Text></View> : null}
         {error ? <TouchableOpacity style={styles.errorBox} onPress={refresh}><Text style={styles.errorText}>{error} Tap to retry.</Text></TouchableOpacity> : null}
 
         {!loading ? <>
@@ -213,7 +215,7 @@ export const PharmacistDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
             <MetricCard
               title="Today's Revenue"
               value={money(data.todayRevenue)}
-              color="#27A599"
+              color={colors.primary}
               background="#E9F6F5"
               icon={IndianRupee}
               onPress={() => onNavigateScreen(`/billing/medicine?date=${todayKey}`)}
@@ -221,7 +223,7 @@ export const PharmacistDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
             <MetricCard
               title="Week Revenue"
               value={money(data.weekRevenue)}
-              color="#2EB877"
+              color={colors.success}
               background="#EAF8F1"
               icon={TrendingUp}
               onPress={() => onNavigateScreen(rangePath(dateKey(weekStart), todayKey))}
@@ -229,7 +231,7 @@ export const PharmacistDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
             <MetricCard
               title="Month Revenue"
               value={money(data.monthRevenue)}
-              color="#F9A91F"
+              color={colors.warning}
               background="#FEF6E9"
               icon={IndianRupee}
               onPress={() => onNavigateScreen(rangePath(dateKey(monthStart), todayKey))}
@@ -237,7 +239,7 @@ export const PharmacistDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
             <MetricCard
               title="Total Medicines"
               value={String(data.totalMedicines)}
-              color="#1D7C72"
+              color={colors.primaryDark}
               background="#E0F5F3"
               icon={Package}
               onPress={() => onNavigateScreen('/medicines?stock=all')}
@@ -254,7 +256,7 @@ export const PharmacistDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
               <View style={styles.donutWrap}>
                 <Svg width={190} height={190} viewBox="0 0 120 120">
                   <Circle cx="60" cy="60" r="46" fill="none" stroke="#EAF8F1" strokeWidth="16" />
-                  <Circle cx="60" cy="60" r="46" fill="none" stroke="#F9A91F" strokeWidth="16" strokeDasharray={`${lowStockArc} ${circumference}`} rotation="-90" origin="60, 60" />
+                  <Circle cx="60" cy="60" r="46" fill="none" stroke={colors.warning} strokeWidth="16" strokeDasharray={`${lowStockArc} ${circumference}`} rotation="-90" origin="60, 60" />
                 </Svg>
                 <View style={styles.donutCenter}><Text style={styles.donutValue}>{data.totalMedicines}</Text><Text style={styles.donutLabel}>medicines</Text></View>
               </View>
@@ -268,16 +270,16 @@ export const PharmacistDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
               <Text style={styles.sectionTitle}>Inventory Status</Text>
               <TouchableOpacity style={styles.inventoryStat} onPress={() => onNavigateScreen('/medicines?stock=low')}>
                 <View><Text style={styles.muted}>Low Stock Items</Text><Text style={styles.inventoryNumber}>{data.lowStockCount}</Text></View>
-                <TriangleAlert size={25} color="#F9A91F" />
+                <TriangleAlert size={25} color={colors.warning} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.inventoryStat} onPress={() => onNavigateScreen('/medicines?stock=all')}>
                 <View><Text style={styles.muted}>Total Medicines</Text><Text style={styles.inventoryNumber}>{data.totalMedicines}</Text></View>
-                <Package size={25} color="#27A599" />
+                <Package size={25} color={colors.primary} />
               </TouchableOpacity>
             </View>
 
             <View style={[styles.card, styles.inventoryCard, isMedium && styles.halfWidthCard]}>
-              <View style={styles.salesHeading}><ShoppingCart size={18} color="#2EB877" /><Text style={styles.sectionTitle}>Recent Sales</Text></View>
+              <View style={styles.salesHeading}><ShoppingCart size={18} color={colors.success} /><Text style={styles.sectionTitle}>Recent Sales</Text></View>
               {data.recentSales.length ? data.recentSales.map(sale => <View key={sale.name} style={styles.saleRow}>
                 <Text numberOfLines={1} style={styles.saleName}>{sale.name}</Text><Text style={styles.saleCount}>{sale.totalSold} sold</Text>
               </View>) : <Text style={styles.emptyText}>No recent sales</Text>}
@@ -299,92 +301,92 @@ export const PharmacistDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  content: { padding: 16, paddingBottom: 40, gap: 24 },
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing.lg, paddingBottom: 40, gap: spacing.xxl },
   kpiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     rowGap: 16,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   kpiCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     elevation: 1,
-    shadowColor: '#0F172A',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
   },
-  chartGridWide: { flexDirection: 'row', gap: 24 },
+  chartGridWide: { flexDirection: 'row', gap: spacing.xxl },
   chartCard: { flex: 1 },
   halfWidthCard: { width: '48%' },
-  inventoryCard: { padding: 24 },
-  bottomGridWide: { flexDirection: 'row', gap: 24 },
+  inventoryCard: { padding: spacing.xxl },
+  bottomGridWide: { flexDirection: 'row', gap: spacing.xxl },
   kpiIconBox: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
   },
-  kpiIconBoxWide: { width: 48, height: 48, borderRadius: 12 },
+  kpiIconBoxWide: { width: 48, height: 48, borderRadius: radii.lg },
   kpiCardValue: {
-    fontFamily: 'Inter',
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 4,
+    fontFamily: typography.family,
+    fontSize: typography.size.display,
+    fontWeight: typography.weight.bold,
+    color: colors.text,
+    marginBottom: spacing.xs,
   },
-  kpiCardValueWide: { fontFamily: 'Inter', fontSize: 30 },
+  kpiCardValueWide: { fontFamily: typography.family, fontSize: 30 },
   kpiCardLabel: {
-    fontFamily: 'Inter',
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#64748B',
+    fontFamily: typography.family,
+    fontSize: typography.size.body,
+    fontWeight: typography.weight.medium,
+    color: colors.muted,
     minHeight: 32,
   },
-  kpiCardLabelWide: { fontFamily: 'Inter', minHeight: 0 },
+  kpiCardLabelWide: { fontFamily: typography.family, minHeight: 0 },
   kpiActionWrapper: {
-    marginTop: 6,
+    marginTop: spacing.tiny,
   },
   kpiActionLink: {
-    fontFamily: 'Inter',
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#27A599',
+    fontFamily: typography.family,
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.bold,
+    color: colors.primary,
   },
-  muted: { fontFamily: 'Inter', color: '#64748B', fontSize: 14, lineHeight: 20 },
+  muted: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.body, lineHeight: 20 },
   loading: { minHeight: 100, alignItems: 'center', justifyContent: 'center', gap: 9 },
-  errorBox: { borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FEF2F2', padding: 12, borderRadius: 10 },
-  errorText: { fontFamily: 'Inter', color: '#B91C1C', fontSize: 12 },
-  chartGrid: { gap: 24 },
+  errorBox: { borderWidth: 1, borderColor: colors.destructiveSoft, backgroundColor: colors.destructiveSoft, padding: spacing.md, borderRadius: radii.md },
+  errorText: { fontFamily: typography.family, color: colors.destructiveDark, fontSize: typography.size.sm },
+  chartGrid: { gap: spacing.xxl },
   card: {
     minWidth: 0,
-    padding: 16,
-    borderRadius: 12,
+    padding: spacing.lg,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#fff',
-    shadowColor: '#0F172A',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
   },
-  sectionTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 18, fontWeight: '600', marginBottom: 16 },
+  sectionTitle: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.lg, fontWeight: typography.weight.semibold, marginBottom: spacing.lg },
   chartSvgWrap: { alignItems: 'center', justifyContent: 'center' },
   donutWrap: { alignSelf: 'center', width: 190, height: 190, alignItems: 'center', justifyContent: 'center', marginVertical: 2 },
-  donutCenter: { position: 'absolute', alignItems: 'center' }, donutValue: { fontFamily: 'Inter', color: '#0F172A', fontSize: 20, fontWeight: '700' }, donutLabel: { fontFamily: 'Inter', color: '#64748B', fontSize: 12 },
-  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 8 }, legendDot: { width: 10, height: 10, borderRadius: 5 }, legendWarning: { backgroundColor: '#F9A91F' }, legendSuccess: { backgroundColor: '#2EB877' }, legendText: { fontFamily: 'Inter', fontSize: 12, color: '#475569' },
-  bottomGrid: { gap: 24 }, inventoryStat: { minHeight: 72, borderRadius: 8, backgroundColor: '#EFF3F5', padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }, inventoryNumber: { fontFamily: 'Inter', color: '#0F172A', fontSize: 30, fontWeight: '700', marginTop: 4 },
-  salesHeading: { flexDirection: 'row', alignItems: 'center', gap: 7 }, saleRow: { minHeight: 0, borderRadius: 8, backgroundColor: '#EFF3F5', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: 12, marginBottom: 12 }, saleName: { fontFamily: 'Inter', color: '#334155', fontSize: 14, flex: 1 }, saleCount: { fontFamily: 'Inter', color: '#64748B', fontSize: 14, fontWeight: '600' }, emptyText: { fontFamily: 'Inter', color: '#64748B', textAlign: 'center', paddingVertical: 20, fontSize: 14 },
-  revenueOverview: { flexDirection: 'column', gap: 12 }, revenueOverviewWide: { flexDirection: 'row' }, revenueCell: { flex: 1, minWidth: 0, alignItems: 'center', padding: 16, backgroundColor: '#EFF3F5', borderRadius: 8 }, revenueValue: { fontFamily: 'Inter', color: '#0F172A', fontSize: 24, fontWeight: '700', marginBottom: 4 },
+  donutCenter: { position: 'absolute', alignItems: 'center' }, donutValue: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.title, fontWeight: typography.weight.bold }, donutLabel: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.sm },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: spacing.sm }, legendDot: { width: 10, height: 10, borderRadius: 5 }, legendWarning: { backgroundColor: colors.warning }, legendSuccess: { backgroundColor: colors.success }, legendText: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted },
+  bottomGrid: { gap: spacing.xxl }, inventoryStat: { minHeight: 72, borderRadius: radii.md, backgroundColor: '#EFF3F5', padding: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg }, inventoryNumber: { fontFamily: typography.family, color: colors.text, fontSize: 30, fontWeight: typography.weight.bold, marginTop: spacing.xs },
+  salesHeading: { flexDirection: 'row', alignItems: 'center', gap: 7 }, saleRow: { minHeight: 0, borderRadius: radii.md, backgroundColor: '#EFF3F5', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: spacing.md, marginBottom: spacing.md }, saleName: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.body, flex: 1 }, saleCount: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.body, fontWeight: typography.weight.semibold }, emptyText: { fontFamily: typography.family, color: colors.muted, textAlign: 'center', paddingVertical: spacing.xl, fontSize: typography.size.body },
+  revenueOverview: { flexDirection: 'column', gap: spacing.md }, revenueOverviewWide: { flexDirection: 'row' }, revenueCell: { flex: 1, minWidth: 0, alignItems: 'center', padding: spacing.lg, backgroundColor: '#EFF3F5', borderRadius: radii.md }, revenueValue: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.display, fontWeight: typography.weight.bold, marginBottom: spacing.xs },
 });
 
 export default PharmacistDashboardScreen;

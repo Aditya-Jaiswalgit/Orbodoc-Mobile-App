@@ -1,6 +1,8 @@
+import { colors } from '../../../theme/tokens';
 import React from 'react';
 import { Dispatch, SetStateAction } from 'react';
-import { ActivityIndicator, Image, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Image, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { LiquidBorderScrollView } from '../../../components/common/LiquidBorderScrollView';
 import { Camera, ChevronDown, ChevronsUpDown, Clock, Edit, MapPin, Plus, X } from 'lucide-react-native';
 import { AppModal } from '../../../components/common/AppModal';
 import { profilePhotoUrl } from '../../../api/profilePhotoApi';
@@ -61,9 +63,9 @@ export function ClinicFormModal(props: Props) {
                 <View style={styles.editClinicModalHeader}>
                   <View style={[styles.editHeaderIconBox, !editingClinicId && styles.createClinicHeaderIconBox]}>
                     {editingClinicId ? (
-                      <Edit color="#0F172A" size={18} />
+                      <Edit color={colors.text} size={18} />
                     ) : (
-                      <Plus color="#1D7C72" size={20} />
+                      <Plus color={colors.primaryDark} size={20} />
                     )}
                   </View>
                   <View style={styles.extractedInline29}>
@@ -79,12 +81,12 @@ export function ClinicFormModal(props: Props) {
                     </Text>
                   </View>
                   <TouchableOpacity onPress={() => setModalVisible(false)}>
-                    <X size={18} color="#64748B" />
+                    <X size={18} color={colors.muted} />
                   </TouchableOpacity>
                 </View>
 
                 {/* Form Body */}
-                <ScrollView
+                <LiquidBorderScrollView
                   style={[styles.extractedInline58, !editingClinicId && styles.createClinicFormScroll]}
                   showsVerticalScrollIndicator={true}
                   nestedScrollEnabled={true}
@@ -103,7 +105,7 @@ export function ClinicFormModal(props: Props) {
                           style={[styles.extractedInline59, !editingClinicId && styles.createClinicLogoImage]}
                         />
                       ) : (
-                        <Camera size={22} color="#64748B" />
+                        <Camera size={22} color={colors.muted} />
                       )}
                       {clinicForm.logo_url ? <TouchableOpacity
                         style={styles.smallCloseBadge}
@@ -112,7 +114,7 @@ export function ClinicFormModal(props: Props) {
                           setClinicForm(form => ({ ...form, logo_url: '' }))
                         }
                       >
-                        <X size={10} color="#64748B" />
+                        <X size={10} color={colors.muted} />
                       </TouchableOpacity> : null}
                     </View>
                     <TouchableOpacity
@@ -142,7 +144,7 @@ export function ClinicFormModal(props: Props) {
                       <TextInput
                         style={styles.formInputBox}
                         placeholder={editingClinicId ? 'Aarogya Care Clinic' : ''}
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         value={clinicForm.name}
                         onChangeText={v =>
                           setClinicForm({ ...clinicForm, name: v })
@@ -158,7 +160,7 @@ export function ClinicFormModal(props: Props) {
                       <TextInput
                         style={styles.formInputBox}
                         placeholder={editingClinicId ? 'contact@aarogyacare.com' : ''}
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         keyboardType="email-address"
                         value={clinicForm.email}
                         onChangeText={v =>
@@ -184,7 +186,7 @@ export function ClinicFormModal(props: Props) {
                       <TextInput
                         style={styles.formInputBox}
                         placeholder={editingClinicId ? '9876543210' : ''}
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         keyboardType="phone-pad"
                         value={clinicForm.phone}
                         onChangeText={v =>
@@ -200,7 +202,7 @@ export function ClinicFormModal(props: Props) {
                       <TextInput
                         style={styles.formInputBox}
                         placeholder="102, Shree Heights, AB Road"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         value={clinicForm.address}
                         onChangeText={v =>
                           setClinicForm({ ...clinicForm, address: v })
@@ -230,14 +232,14 @@ export function ClinicFormModal(props: Props) {
                         <View style={styles.extractedInline23}>
                           <MapPin
                             size={14}
-                            color="#64748B"
+                            color={colors.muted}
                             style={styles.extractedInline7}
                           />
                           <Text style={styles.formDropdownText}>
                             {stateLabel}
                           </Text>
                         </View>
-                        <ChevronDown size={16} color="#64748B" />
+                        <ChevronDown size={16} color={colors.muted} />
                       </TouchableOpacity>
 
                       {showFormStateDropdown && (
@@ -277,14 +279,14 @@ export function ClinicFormModal(props: Props) {
                         <View style={styles.extractedInline23}>
                           <MapPin
                             size={14}
-                            color="#64748B"
+                            color={colors.muted}
                             style={styles.extractedInline7}
                           />
                           <Text style={styles.formDropdownText}>
                             {cityLabel}
                           </Text>
                         </View>
-                        <ChevronDown size={16} color="#64748B" />
+                        <ChevronDown size={16} color={colors.muted} />
                       </TouchableOpacity>
 
                       {showFormCityDropdown && (
@@ -333,7 +335,7 @@ export function ClinicFormModal(props: Props) {
                         <Text style={styles.formDropdownText}>
                           {clinicForm.country}
                         </Text>
-                        <ChevronDown size={16} color="#64748B" />
+                        <ChevronDown size={16} color={colors.muted} />
                       </TouchableOpacity>
 
                       {showFormCountryDropdown && (
@@ -366,7 +368,7 @@ export function ClinicFormModal(props: Props) {
                       <TextInput
                         style={styles.formInputBox}
                         placeholder="https://clinic.example.com"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         value={clinicForm.website}
                         onChangeText={v =>
                           setClinicForm({ ...clinicForm, website: v })
@@ -388,7 +390,7 @@ export function ClinicFormModal(props: Props) {
                       <TextInput
                         style={styles.formInputBox}
                         placeholder="L123"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         value={clinicForm.license_number}
                         onChangeText={v =>
                           setClinicForm({ ...clinicForm, license_number: v })
@@ -401,7 +403,7 @@ export function ClinicFormModal(props: Props) {
                       <TextInput
                         style={styles.formInputBox}
                         placeholder="Mon,Tue,Wed,Thu,Fri"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         value={clinicForm.available_days}
                         onChangeText={v =>
                           setClinicForm({ ...clinicForm, available_days: v })
@@ -423,19 +425,19 @@ export function ClinicFormModal(props: Props) {
                       <View style={styles.formInputBoxWithIcon}>
                         <Clock
                           size={14}
-                          color="#64748B"
+                          color={colors.muted}
                           style={styles.extractedInline7}
                         />
                         <TextInput
                           style={styles.formInputBoxBare}
                           placeholder="12:30 AM"
-                          placeholderTextColor="#94A3B8"
+                          placeholderTextColor={colors.subtle}
                           value={clinicForm.available_from}
                           onChangeText={v =>
                             setClinicForm({ ...clinicForm, available_from: v })
                           }
                         />
-                        <ChevronsUpDown size={14} color="#64748B" />
+                        <ChevronsUpDown size={14} color={colors.muted} />
                       </View>
                       <Text style={styles.apiTimeHelperText}>
                         API time: 00:30:00 (24-hour format)
@@ -447,19 +449,19 @@ export function ClinicFormModal(props: Props) {
                       <View style={styles.formInputBoxWithIcon}>
                         <Clock
                           size={14}
-                          color="#64748B"
+                          color={colors.muted}
                           style={styles.extractedInline7}
                         />
                         <TextInput
                           style={styles.formInputBoxBare}
                           placeholder="02:30 AM"
-                          placeholderTextColor="#94A3B8"
+                          placeholderTextColor={colors.subtle}
                           value={clinicForm.available_to}
                           onChangeText={v =>
                             setClinicForm({ ...clinicForm, available_to: v })
                           }
                         />
-                        <ChevronsUpDown size={14} color="#64748B" />
+                        <ChevronsUpDown size={14} color={colors.muted} />
                       </View>
                       <Text style={styles.apiTimeHelperText}>
                         API time: 02:30:00 (24-hour format)
@@ -475,7 +477,7 @@ export function ClinicFormModal(props: Props) {
                       autoCapitalize="none"
                     />
                   </View>}
-                </ScrollView>
+                </LiquidBorderScrollView>
 
                 {/* Footer Buttons */}
                 <View style={[styles.addAdminFooterRow, !editingClinicId && styles.createClinicFooterRow, !editingClinicId && isMobile && styles.createClinicFooterRowMobile]}>
@@ -498,19 +500,19 @@ export function ClinicFormModal(props: Props) {
                     }
                   >
                     {clinicSaving ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <ActivityIndicator size="small" color={colors.surface} />
                     ) : (
                       <>
                         {editingClinicId ? (
                             <Edit
                             size={15}
-                            color="#FFFFFF"
+                            color={colors.surface}
                             style={styles.extractedInline7}
                           />
                         ) : (
                           <Plus
                             size={15}
-                            color="#FFFFFF"
+                            color={colors.surface}
                             style={styles.extractedInline7}
                           />
                         )}

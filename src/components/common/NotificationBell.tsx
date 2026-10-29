@@ -1,5 +1,7 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { LiquidBorderScrollView } from './LiquidBorderScrollView';
 import { AlertCircle, ArrowRight, Bell, BellOff, Calendar, CheckCheck, CheckCircle, FileText, Trash2, User, X } from 'lucide-react-native';
 import { AppModal } from './AppModal';
 import { fetchMyNotifications, fetchUnreadCount, markAllNotificationsAsRead, markNotificationAsRead, clearMyNotifications, NotificationInboxItem } from '../../api/notificationApi';
@@ -136,15 +138,15 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenAll, o
   const iconFor = (item: NotificationInboxItem) => {
     const text = `${item.not_cat_name || ''} ${item.title || ''} ${item.message || ''}`.toLowerCase();
     if (text.includes('appointment')) return <Calendar size={18} color="#2563eb" />;
-    if (text.includes('patient') || text.includes('user')) return <User size={18} color="#059669" />;
+    if (text.includes('patient') || text.includes('user')) return <User size={18} color={colors.successDark} />;
     if (text.includes('report') || text.includes('lab')) return <FileText size={18} color="#7c3aed" />;
-    if (text.includes('success') || text.includes('paid')) return <CheckCircle size={18} color="#27a599" />;
-    return <AlertCircle size={18} color="#d97706" />;
+    if (text.includes('success') || text.includes('paid')) return <CheckCircle size={18} color={colors.primary} />;
+    return <AlertCircle size={18} color={colors.warning} />;
   };
 
   return <>
     <TouchableOpacity style={styles.bell} onPress={() => { setOpen(true); void load(); }} accessibilityLabel="Notifications">
-      <Bell size={17} color="#334155" />
+      <Bell size={17} color={colors.foreground} />
       {unreadCount > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text></View> : null}
     </TouchableOpacity>
     <AppModal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -157,13 +159,13 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenAll, o
               <Text style={styles.subtitle}>{unreadCount > 0 ? 'You have updates to review' : 'You are all caught up'}</Text>
             </View>
             <View style={styles.actions}>
-              {canEdit && unreadCount > 0 ? <TouchableOpacity style={styles.action} disabled={actionLoading !== null} onPress={() => void markAllRead()} accessibilityLabel="Mark all notifications as read">{actionLoading === 'read' ? <ActivityIndicator size="small" /> : <CheckCheck size={18} color="#475569" />}</TouchableOpacity> : null}
-              {canDelete && items.length > 0 ? <TouchableOpacity style={styles.action} disabled={actionLoading !== null} onPress={() => void clearHistory()} accessibilityLabel="Clear notification history">{actionLoading === 'clear' ? <ActivityIndicator size="small" /> : <Trash2 size={18} color="#dc2626" />}</TouchableOpacity> : null}
-              <TouchableOpacity style={styles.action} onPress={() => setOpen(false)} accessibilityLabel="Close notifications"><X size={18} color="#475569" /></TouchableOpacity>
+              {canEdit && unreadCount > 0 ? <TouchableOpacity style={styles.action} disabled={actionLoading !== null} onPress={() => void markAllRead()} accessibilityLabel="Mark all notifications as read">{actionLoading === 'read' ? <ActivityIndicator size="small" /> : <CheckCheck size={18} color={colors.muted} />}</TouchableOpacity> : null}
+              {canDelete && items.length > 0 ? <TouchableOpacity style={styles.action} disabled={actionLoading !== null} onPress={() => void clearHistory()} accessibilityLabel="Clear notification history">{actionLoading === 'clear' ? <ActivityIndicator size="small" /> : <Trash2 size={18} color={colors.destructive} />}</TouchableOpacity> : null}
+              <TouchableOpacity style={styles.action} onPress={() => setOpen(false)} accessibilityLabel="Close notifications"><X size={18} color={colors.muted} /></TouchableOpacity>
             </View>
           </View>
-          <ScrollView style={styles.list}>
-            {busy && items.length === 0 ? <Text style={styles.empty}>Loading notifications...</Text> : loadFailed && items.length === 0 ? <Text style={styles.empty}>Unable to load notifications. Close and reopen to retry.</Text> : items.length === 0 ? <View style={styles.emptyState}><BellOff size={22} color="#94a3b8" /><Text style={styles.empty}>No notifications</Text><Text style={styles.emptyHint}>New updates will appear here.</Text></View> : items.map(item => (
+          <LiquidBorderScrollView style={styles.list}>
+            {busy && items.length === 0 ? <Text style={styles.empty}>Loading notifications...</Text> : loadFailed && items.length === 0 ? <Text style={styles.empty}>Unable to load notifications. Close and reopen to retry.</Text> : items.length === 0 ? <View style={styles.emptyState}><BellOff size={22} color={colors.subtle} /><Text style={styles.empty}>No notifications</Text><Text style={styles.emptyHint}>New updates will appear here.</Text></View> : items.map(item => (
               <TouchableOpacity key={item.not_rec_id} style={styles.item} onPress={() => void openItem(item)}>
                 <View style={styles.icon}>{iconFor(item)}</View>
                 <View style={styles.content}>
@@ -173,9 +175,9 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenAll, o
                 </View>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </LiquidBorderScrollView>
           <TouchableOpacity style={styles.footer} onPress={() => { setOpen(false); onOpenAll(); }}>
-            <Text style={styles.footerText}>View all notifications</Text><ArrowRight size={16} color="#27a599" />
+            <Text style={styles.footerText}>View all notifications</Text><ArrowRight size={16} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -184,30 +186,30 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenAll, o
 };
 
 const styles = StyleSheet.create({
-  bell: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
-  badge: { position: 'absolute', right: -4, top: -3, minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 4, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontFamily: 'Inter', color: '#fff', fontSize: 9, fontWeight: '800' },
-  overlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.35)', justifyContent: 'flex-start', alignItems: 'flex-end', padding: 16, paddingTop: 56 },
-  card: { width: '100%', maxWidth: 420, maxHeight: '80%', backgroundColor: '#fff', borderRadius: 14, padding: 16, elevation: 8 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  bell: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'absolute', right: -4, top: -3, minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: spacing.xs, backgroundColor: colors.destructive, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { fontFamily: typography.family, color: colors.surface, fontSize: 9, fontWeight: typography.weight.extrabold },
+  overlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.35)', justifyContent: 'flex-start', alignItems: 'flex-end', padding: spacing.lg, paddingTop: 56 },
+  card: { width: '100%', maxWidth: 420, maxHeight: '80%', backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.lg, elevation: 8 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   headerText: { flex: 1 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontFamily: 'Inter', color: '#0f172a', fontSize: 20, fontWeight: '800' },
-  count: { fontFamily: 'Inter', color: '#1d7c72', fontSize: 11, fontWeight: '700' },
-  subtitle: { fontFamily: 'Inter', marginTop: 3, color: '#64748b', fontSize: 14 },
-  actions: { flexDirection: 'row', gap: 4 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  title: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.title, fontWeight: typography.weight.extrabold },
+  count: { fontFamily: typography.family, color: colors.primaryDark, fontSize: typography.size.xs, fontWeight: typography.weight.bold },
+  subtitle: { fontFamily: typography.family, marginTop: 3, color: colors.muted, fontSize: typography.size.body },
+  actions: { flexDirection: 'row', gap: spacing.xs },
   action: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  list: { marginTop: 12, maxHeight: 380 },
+  list: { marginTop: spacing.md, maxHeight: 380 },
   emptyState: { minHeight: 190, alignItems: 'center', justifyContent: 'center' },
-  empty: { fontFamily: 'Inter', paddingVertical: 28, textAlign: 'center', color: '#64748b', fontSize: 13 },
-  emptyHint: { fontFamily: 'Inter', marginTop: -20, color: '#64748b', fontSize: 11, textAlign: 'center' },
-  item: { flexDirection: 'row', gap: 10, paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  icon: { width: 34, height: 34, borderRadius: 8, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' },
+  empty: { fontFamily: typography.family, paddingVertical: 28, textAlign: 'center', color: colors.muted, fontSize: typography.size.caption },
+  emptyHint: { fontFamily: typography.family, marginTop: -20, color: colors.muted, fontSize: typography.size.xs, textAlign: 'center' },
+  item: { flexDirection: 'row', gap: 10, paddingVertical: spacing.md, paddingHorizontal: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.secondary },
+  icon: { width: 34, height: 34, borderRadius: radii.md, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' },
   content: { flex: 1 },
-  itemTitle: { fontFamily: 'Inter', flex: 1, color: '#0f172a', fontSize: 13, fontWeight: '700' },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#14b8a6' },
-  message: { fontFamily: 'Inter', marginTop: 3, color: '#475569', fontSize: 12, lineHeight: 17 },
-  time: { fontFamily: 'Inter', marginTop: 4, color: '#94a3b8', fontSize: 10 },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderTopWidth: 1, borderTopColor: '#e2e8f0', marginTop: 8, paddingTop: 12 },
-  footerText: { fontFamily: 'Inter', color: '#27a599', fontSize: 13, fontWeight: '700' },
+  itemTitle: { fontFamily: typography.family, flex: 1, color: colors.text, fontSize: typography.size.caption, fontWeight: typography.weight.bold },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
+  message: { fontFamily: typography.family, marginTop: 3, color: colors.muted, fontSize: typography.size.sm, lineHeight: 17 },
+  time: { fontFamily: typography.family, marginTop: spacing.xs, color: colors.subtle, fontSize: typography.size.micro },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.tiny, borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.sm, paddingTop: spacing.md },
+  footerText: { fontFamily: typography.family, color: colors.primary, fontSize: typography.size.caption, fontWeight: typography.weight.bold },
 });

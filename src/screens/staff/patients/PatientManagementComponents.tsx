@@ -1,6 +1,8 @@
+import { colors, radii, spacing, typography } from '../../../theme/tokens';
 import React, { useEffect, useRef, useState } from 'react';
 import { AppModal } from '../../../components/common/AppModal';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { LiquidBorderScrollView } from '../../../components/common/LiquidBorderScrollView';
 import {
   Activity,
   Calendar,
@@ -25,6 +27,8 @@ import {
 } from 'lucide-react-native';
 import { PatientModel } from '../../../types/clinicTypes';
 import { CustomCalendarPicker } from '../../../components/common/CustomCalendarPicker';
+import { AnimatedLiquidBorder } from '../../../components/common/AnimatedLiquidBorder';
+import { createTapGestureHandlers } from '../../../utils/tapGestureHandlers';
 import {
   focusedCardOutline,
   usePatientCardFocus,
@@ -36,11 +40,11 @@ import {
 } from '../../../api/patientApi';
 
 const COLORS = {
-  teal: '#27A599',
-  ink: '#0F172A',
-  muted: '#64748B',
-  line: '#E2E8F0',
-  pale: '#F8FAFC',
+  teal: colors.primary,
+  ink: colors.text,
+  muted: colors.muted,
+  line: colors.border,
+  pale: colors.background,
 };
 
 export interface PatientFormValues {
@@ -156,7 +160,7 @@ export function PatientStatsCards({
       label: 'New This Week',
       value: thisWeek,
       tint: '#FFF4E5',
-      color: '#F9A91F',
+      color: colors.warning,
       icon: UserPlus,
     },
   ];
@@ -292,7 +296,7 @@ function FilterDropdown({
         <Text style={[styles.filterDropdownText, screenWidth >= 640 && styles.filterDropdownTextTablet]} numberOfLines={1}>
           {selected?.label || placeholder}
         </Text>
-        <ChevronDown size={15} color="#64748B" />
+        <ChevronDown size={15} color={colors.muted} />
       </TouchableOpacity>
       <AppModal
         visible={open}
@@ -306,7 +310,7 @@ function FilterDropdown({
             onPress={() => setOpen(false)}
           />
           <View style={[styles.filterDropdownMenu, menuPosition]}>
-            <ScrollView
+            <LiquidBorderScrollView
               style={{ maxHeight: menuPosition.maxHeight }}
               nestedScrollEnabled
               keyboardShouldPersistTaps="handled"
@@ -342,7 +346,7 @@ function FilterDropdown({
                   </Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </LiquidBorderScrollView>
           </View>
         </View>
       </AppModal>
@@ -378,15 +382,16 @@ export function PatientFilterPanel({
 }) {
   const { focusedCard, focusCard } = usePatientCardFocus();
   const { width: screenWidth } = useWindowDimensions();
-  const compactFilters = screenWidth < 355;
+  const compactFilters = screenWidth < 380;
   const tabletFilters = screenWidth >= 640;
   return (
     <View
       style={[
         styles.filterCard,
-        focusedCard === 'filters' && focusedCardOutline,
       ]}
+      {...createTapGestureHandlers(() => focusCard('filters'))}
     >
+      <AnimatedLiquidBorder active={focusedCard === 'filters'} radius={13} />
       <View
         style={[
           styles.filterSelectRow,
@@ -464,7 +469,7 @@ export function PatientFilterPanel({
             placeholder="Registration Date"
             triggerStyle={[styles.registrationDateTrigger, tabletFilters && styles.registrationDateTriggerTablet]}
             triggerTextStyle={[styles.registrationDateText, tabletFilters && styles.registrationDateTextTablet]}
-            iconColor="#64748B"
+            iconColor={colors.muted}
             onOpen={() => focusCard('filters')}
             onDateChange={date => {
               const selected = [
@@ -487,7 +492,7 @@ export function PatientFilterPanel({
           }}
           accessibilityLabel="Clear patient filters"
         >
-          <FilterX size={16} color="#94A3B8" />
+          <FilterX size={16} color={colors.subtle} />
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.columnsButton, tabletFilters && styles.columnsButtonTablet]}
@@ -496,7 +501,7 @@ export function PatientFilterPanel({
             onOpenColumns();
           }}
         >
-          <Columns3 size={15} color="#334155" />
+          <Columns3 size={15} color={colors.foreground} />
           <Text style={[styles.columnsButtonText, tabletFilters && styles.columnsButtonTextTablet]}>Columns</Text>
         </TouchableOpacity>
       </View>
@@ -845,7 +850,7 @@ export function PatientFormModal({
               <X size={20} color={COLORS.muted} />
             </TouchableOpacity>
           </View>
-          <ScrollView
+          <LiquidBorderScrollView
             contentContainerStyle={styles.formContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -1039,7 +1044,7 @@ export function PatientFormModal({
             {formError ? (
               <Text style={styles.errorText}>{formError}</Text>
             ) : null}
-          </ScrollView>
+          </LiquidBorderScrollView>
           <View style={[styles.modalFooter, styles.patientFormFooter]}>
             <TouchableOpacity
               style={[styles.cancelButton, styles.patientFormActionButton]}
@@ -1058,7 +1063,7 @@ export function PatientFormModal({
               onPress={submit}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <ActivityIndicator color={colors.surface} size="small" />
               ) : (
                 <Text style={styles.primaryButtonText}>
                   {patient ? 'Update Patient' : 'Add Patient'}
@@ -1187,7 +1192,7 @@ function PatientOptionsModal({
               style={styles.pickerLoading}
             />
           ) : (
-            <ScrollView
+            <LiquidBorderScrollView
               style={styles.pickerOptions}
               keyboardShouldPersistTaps="handled"
             >
@@ -1219,7 +1224,7 @@ function PatientOptionsModal({
               {!filtered.length ? (
                 <Text style={styles.pickerEmpty}>No options found.</Text>
               ) : null}
-            </ScrollView>
+            </LiquidBorderScrollView>
           )}
           <TouchableOpacity style={styles.pickerCancel} onPress={onClose}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -1392,7 +1397,7 @@ export function PatientDetailsModal({
               <Text style={styles.loadingText}>Loading patient profile…</Text>
             </View>
           ) : (
-            <ScrollView contentContainerStyle={styles.detailsContent}>
+            <LiquidBorderScrollView contentContainerStyle={styles.detailsContent}>
               <View style={{ display: 'none' }}>
                 <View style={styles.profileAvatar}>
                   <Text style={styles.profileAvatarText}>
@@ -1579,16 +1584,16 @@ export function PatientDetailsModal({
                 <TouchableOpacity
                   style={[
                     styles.statusAction,
-                    { backgroundColor: '#FEE2E2', marginTop: 8 },
+                    { backgroundColor: '#FEE2E2', marginTop: spacing.sm },
                   ]}
                   onPress={onDelete}
                 >
-                  <Text style={[styles.statusActionText, { color: '#B91C1C' }]}>
+                  <Text style={[styles.statusActionText, { color: colors.destructiveDark }]}>
                     Delete Patient
                   </Text>
                 </TouchableOpacity>
               ) : null}
-            </ScrollView>
+            </LiquidBorderScrollView>
           )}
         </View>
       </View>
@@ -1649,7 +1654,7 @@ function DetailSection({
     <View style={styles.detailSection}>
       <View style={styles.detailSectionHeader}>
         <View style={styles.detailSectionIcon}>
-          <Icon size={16} color="#27A599" />
+          <Icon size={16} color={colors.primary} />
         </View>
         <Text style={styles.detailSectionTitle}>{title}</Text>
       </View>
@@ -1682,20 +1687,20 @@ function ActionButton({
 }
 
 const styles = StyleSheet.create({
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   statCard: {
     width: '48.5%',
     minHeight: 66,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     paddingHorizontal: 9,
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
     borderColor: COLORS.line,
-    shadowColor: '#0F172A',
+    shadowColor: colors.text,
     shadowOpacity: 0.04,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
@@ -1707,13 +1712,13 @@ const styles = StyleSheet.create({
   statIcon: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   statCopy: { flex: 1, minWidth: 0 },
-  statValue: { fontFamily: 'Inter', fontSize: 20, fontWeight: '700', color: '#1C2830' },
-  statValueTablet: { fontSize: 24 },
+  statValue: { fontFamily: typography.family, fontSize: typography.size.title, fontWeight: typography.weight.bold, color: colors.foreground },
+  statValueTablet: { fontSize: typography.size.display },
   activeStats: {
     flex: 1,
     flexDirection: 'row',
@@ -1721,25 +1726,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
   },
   activeStatColumn: { flex: 1, alignItems: 'center' },
-  statDivider: { width: 1, height: 30, backgroundColor: '#E2E8F0' },
+  statDivider: { width: 1, height: 30, backgroundColor: colors.border },
   activeStatValue: { color: '#2EB87F' },
-  inactiveStatValue: { color: '#6C7C93' },
+  inactiveStatValue: { color: colors.muted },
   statLabel: {
-    fontFamily: 'Inter', fontSize: 11,
-    fontWeight: '500',
-    color: '#6C7C93',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    fontWeight: typography.weight.medium,
+    color: colors.muted,
     marginTop: 1,
   },
-  statLabelTablet: { fontSize: 12 },
+  statLabelTablet: { fontSize: typography.size.sm },
   filterCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: COLORS.line,
     borderRadius: 13,
-    padding: 12,
+    padding: spacing.md,
     gap: 9,
   },
-  filterSelectRow: { flexDirection: 'row', gap: 8 },
+  filterSelectRow: { flexDirection: 'row', gap: spacing.sm },
   filterSelectRowStacked: { flexDirection: 'column' },
   genderDropdown: { flex: 0.85 },
   bloodDropdown: { flex: 1.35 },
@@ -1755,25 +1760,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     borderWidth: 1,
     borderColor: COLORS.line,
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
   },
   filterDropdownTablet: { height: 40 },
-  filterDropdownText: { fontFamily: 'Inter', flex: 1, color: '#1C2830', fontSize: 14 },
-  filterDropdownTextTablet: { fontSize: 16 },
+  filterDropdownText: { fontFamily: typography.family, flex: 1, color: colors.foreground, fontSize: typography.size.body },
+  filterDropdownTextTablet: { fontSize: typography.size.subtitle },
   filterDropdownOverlay: {
     flex: 1,
     backgroundColor: 'transparent',
   },
   filterDropdownMenu: {
     position: 'absolute',
-    padding: 4,
-    borderRadius: 10,
+    padding: spacing.xs,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: COLORS.line,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     elevation: 10,
-    shadowColor: '#0F172A',
+    shadowColor: colors.text,
     shadowOpacity: 0.14,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
@@ -1782,34 +1787,34 @@ const styles = StyleSheet.create({
     minHeight: 31,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     borderRadius: 7,
   },
   filterDropdownCheckSpacer: { width: 15, height: 15 },
-  filterDropdownOptionText: { fontFamily: 'Inter', flex: 1, color: '#1C2830', fontSize: 14 },
-  filterDropdownOptionTextTablet: { fontSize: 16 },
+  filterDropdownOptionText: { fontFamily: typography.family, flex: 1, color: colors.foreground, fontSize: typography.size.body },
+  filterDropdownOptionTextTablet: { fontSize: typography.size.subtitle },
   filterDropdownOptionSelected: { backgroundColor: '#E6F4F1' },
-  filterDropdownOptionTextSelected: { color: COLORS.teal, fontWeight: '700' },
+  filterDropdownOptionTextSelected: { color: COLORS.teal, fontWeight: typography.weight.bold },
   registrationDateField: { flex: 1.35, minWidth: 0 },
   registrationDateTrigger: {
     height: 37,
     paddingVertical: 0,
     paddingHorizontal: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: COLORS.line,
-    borderRadius: 10,
+    borderRadius: radii.md,
   },
   registrationDateTriggerTablet: { height: 40 },
   registrationDateText: {
-    fontFamily: 'Inter', flex: 1,
-    color: '#6C7C93',
-    fontSize: 14,
-    fontWeight: '400',
+    fontFamily: typography.family, flex: 1,
+    color: colors.muted,
+    fontSize: typography.size.body,
+    fontWeight: typography.weight.regular,
   },
-  registrationDateTextTablet: { fontSize: 16 },
+  registrationDateTextTablet: { fontSize: typography.size.subtitle },
   clearFiltersIconButton: {
     width: 36,
     height: 36,
@@ -1818,7 +1823,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EDF1F5',
     borderRadius: 18,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
   },
   clearFiltersIconButtonTablet: { width: 40, height: 40 },
   filterToolsRow: {
@@ -1832,20 +1837,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: COLORS.line,
     borderRadius: 9,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
   },
-  columnsButtonTablet: { minHeight: 40, paddingHorizontal: 16 },
-  columnsButtonText: { fontFamily: 'Inter', color: '#1C2830', fontSize: 14, fontWeight: '500' },
-  columnsButtonTextTablet: { fontSize: 16 },
+  columnsButtonTablet: { minHeight: 40, paddingHorizontal: spacing.lg },
+  columnsButtonText: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.body, fontWeight: typography.weight.medium },
+  columnsButtonTextTablet: { fontSize: typography.size.subtitle },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.60)',
     justifyContent: 'center',
-    padding: 12,
+    padding: spacing.md,
   },
   patientFormBackdrop: {
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
@@ -1854,25 +1859,25 @@ const styles = StyleSheet.create({
   },
   formModal: {
     maxWidth: 760,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
-  formModalDesktop: { borderRadius: 12 },
+  formModalDesktop: { borderRadius: radii.lg },
   detailsModal: {
     maxHeight: '94%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 18,
     overflow: 'hidden',
     borderTopWidth: 4,
-    borderTopColor: '#14B8A6',
+    borderTopColor: colors.primary,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.lg,
     borderBottomWidth: 1,
     borderColor: COLORS.line,
     gap: 11,
@@ -1889,14 +1894,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalHeaderText: { flex: 1, minWidth: 0 },
-  modalTitle: { fontFamily: 'Inter', fontSize: 20, fontWeight: '800', color: COLORS.ink },
-  modalSubtitle: { fontFamily: 'Inter', fontSize: 11, color: COLORS.muted, marginTop: 2 },
+  modalTitle: { fontFamily: typography.family, fontSize: typography.size.title, fontWeight: typography.weight.extrabold, color: COLORS.ink },
+  modalSubtitle: { fontFamily: typography.family, fontSize: typography.size.xs, color: COLORS.muted, marginTop: 2 },
   closeButton: { padding: 7 },
   patientFormHeader: {
     minHeight: 58,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    gap: 8,
+    gap: spacing.sm,
   },
   patientFormHeaderIcon: {
     width: 20,
@@ -1904,61 +1909,61 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     backgroundColor: 'transparent',
   },
-  patientFormTitle: { fontWeight: '600' },
-  formContent: { padding: 14, gap: 18, paddingBottom: 20 },
+  patientFormTitle: { fontWeight: typography.weight.semibold },
+  formContent: { padding: 14, gap: 18, paddingBottom: spacing.xl },
   formSection: { gap: 15 },
   sectionHeading: {
-    fontFamily: 'Inter', fontSize: 12,
-    fontWeight: '900',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    fontWeight: typography.weight.black,
     letterSpacing: 0.8,
     color: COLORS.teal,
     marginTop: 5,
   },
   patientFormSectionHeading: {
-    fontFamily: 'Inter', fontSize: 12,
-    fontWeight: '500',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
     color: '#718096',
   },
   patientFormSectionHeadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    paddingBottom: 8,
+    paddingBottom: spacing.sm,
     borderBottomWidth: 1,
     borderColor: COLORS.line,
   },
-  formField: { gap: 6 },
-  fieldLabel: { fontFamily: 'Inter', fontSize: 14, fontWeight: '500', color: '#334155' },
-  requiredMark: { color: '#EF4444', fontWeight: '600' },
+  formField: { gap: spacing.tiny },
+  fieldLabel: { fontFamily: typography.family, fontSize: typography.size.body, fontWeight: typography.weight.medium, color: colors.foreground },
+  requiredMark: { color: colors.destructive, fontWeight: typography.weight.semibold },
   formInput: {
-    fontFamily: 'Inter', minHeight: 39,
+    fontFamily: typography.family, minHeight: 39,
     paddingHorizontal: 11,
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
+    borderColor: colors.border,
+    borderRadius: radii.md,
     color: COLORS.ink,
-    fontSize: 13,
-    backgroundColor: '#F8FAFC',
+    fontSize: typography.size.caption,
+    backgroundColor: colors.background,
   },
   formInputMultiline: { minHeight: 76, textAlignVertical: 'top' },
-  disabledInput: { color: '#718096', backgroundColor: '#F1F5F9' },
+  disabledInput: { color: '#718096', backgroundColor: colors.secondary },
   dateInputRow: {
     minHeight: 39,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
   },
   dateTextInput: {
-    fontFamily: 'Inter', flex: 1,
+    fontFamily: typography.family, flex: 1,
     minWidth: 0,
     height: 37,
     paddingHorizontal: 11,
     color: COLORS.ink,
-    fontSize: 13,
+    fontSize: typography.size.caption,
   },
   datePickerButton: {
     width: 38,
@@ -1974,7 +1979,7 @@ const styles = StyleSheet.create({
     minHeight: 40,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
     paddingHorizontal: 2,
     borderWidth: 1,
     borderColor: 'transparent',
@@ -1984,13 +1989,13 @@ const styles = StyleSheet.create({
   genderRadioOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.tiny,
     minHeight: 38,
   },
   radioOuter: {
     width: 16,
     height: 16,
-    borderRadius: 8,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: '#2DD4BF',
     alignItems: 'center',
@@ -2003,26 +2008,26 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: COLORS.teal,
   },
-  genderRadioText: { fontFamily: 'Inter', color: '#334155', fontSize: 12 },
+  genderRadioText: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.sm },
   formSelect: {
     minHeight: 39,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: spacing.sm,
     paddingHorizontal: 11,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
   },
-  formSelectText: { fontFamily: 'Inter', flex: 1, color: '#334155', fontSize: 13 },
+  formSelectText: { fontFamily: typography.family, flex: 1, color: colors.foreground, fontSize: typography.size.caption },
   formPlaceholder: { color: '#718096' },
   pickerBackdrop: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.xl,
     backgroundColor: 'rgba(15,23,42,0.35)',
   },
   pickerModal: {
@@ -2030,28 +2035,28 @@ const styles = StyleSheet.create({
     maxWidth: 380,
     maxHeight: '75%',
     padding: 14,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: COLORS.line,
     elevation: 10,
   },
   pickerTitle: {
-    fontFamily: 'Inter', marginBottom: 12,
+    fontFamily: typography.family, marginBottom: spacing.md,
     color: COLORS.ink,
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: typography.size.subtitle,
+    fontWeight: typography.weight.bold,
   },
   pickerSearch: {
-    fontFamily: 'Inter', minHeight: 40,
-    marginBottom: 8,
+    fontFamily: typography.family, minHeight: 40,
+    marginBottom: spacing.sm,
     paddingHorizontal: 10,
     borderWidth: 1,
     borderColor: COLORS.line,
     borderRadius: 9,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     color: COLORS.ink,
-    fontSize: 13,
+    fontSize: typography.size.caption,
   },
   pickerOptions: { flexGrow: 0, maxHeight: 330 },
   pickerOption: {
@@ -2060,33 +2065,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 9,
     paddingHorizontal: 9,
-    borderRadius: 8,
+    borderRadius: radii.md,
   },
   pickerOptionSelected: { backgroundColor: '#E6F4F1' },
   pickerCheckSpacer: { width: 16, height: 16 },
-  pickerOptionText: { fontFamily: 'Inter', flex: 1, color: '#334155', fontSize: 13 },
-  pickerOptionTextSelected: { color: COLORS.teal, fontWeight: '700' },
-  pickerLoading: { paddingVertical: 20 },
+  pickerOptionText: { fontFamily: typography.family, flex: 1, color: colors.foreground, fontSize: typography.size.caption },
+  pickerOptionTextSelected: { color: COLORS.teal, fontWeight: typography.weight.bold },
+  pickerLoading: { paddingVertical: spacing.xl },
   pickerEmpty: {
-    fontFamily: 'Inter', padding: 14,
+    fontFamily: typography.family, padding: 14,
     color: COLORS.muted,
-    fontSize: 12,
+    fontSize: typography.size.sm,
     textAlign: 'center',
   },
   pickerCancel: {
     minHeight: 39,
-    marginTop: 8,
+    marginTop: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: COLORS.line,
-    borderRadius: 8,
+    borderRadius: radii.md,
   },
   genderOption: {
     flex: 1,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: colors.input,
     borderRadius: 9,
     alignItems: 'center',
   },
@@ -2094,9 +2099,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.teal,
     backgroundColor: '#E6F4F1',
   },
-  genderOptionText: { fontFamily: 'Inter', fontSize: 10, fontWeight: '800', color: COLORS.muted },
+  genderOptionText: { fontFamily: typography.family, fontSize: typography.size.micro, fontWeight: typography.weight.extrabold, color: COLORS.muted },
   genderOptionTextSelected: { color: COLORS.teal },
-  errorText: { fontFamily: 'Inter', color: '#DC2626', fontSize: 12, fontWeight: '600' },
+  errorText: { fontFamily: typography.family, color: colors.destructive, fontSize: typography.size.sm, fontWeight: typography.weight.semibold },
   modalFooter: {
     flexDirection: 'row',
     gap: 10,
@@ -2111,11 +2116,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: colors.input,
     borderRadius: 9,
   },
   patientFormActionButton: { minHeight: 42, flex: 1 },
-  cancelButtonText: { fontFamily: 'Inter', color: COLORS.ink, fontSize: 14, fontWeight: '700' },
+  cancelButtonText: { fontFamily: typography.family, color: COLORS.ink, fontSize: typography.size.body, fontWeight: typography.weight.bold },
   primaryButton: {
     minHeight: 44,
     flex: 1.2,
@@ -2124,27 +2129,27 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: COLORS.teal,
   },
-  primaryButtonText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+  primaryButtonText: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.body, fontWeight: typography.weight.extrabold },
   closePrimaryButton: { flex: 1 },
   disabledButton: { opacity: 0.65 },
   loadingBox: {
     minHeight: 230,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: spacing.md,
   },
-  loadingText: { fontFamily: 'Inter', color: COLORS.muted, fontSize: 13 },
-  detailsContent: { padding: 14, gap: 12, backgroundColor: '#F0F2F3' },
+  loadingText: { fontFamily: typography.family, color: COLORS.muted, fontSize: typography.size.caption },
+  detailsContent: { padding: 14, gap: spacing.md, backgroundColor: '#F0F2F3' },
   patientDetailsAvatarText: {
-    fontFamily: 'Inter', color: '#159E96',
-    fontSize: 22,
-    fontWeight: '800',
+    fontFamily: typography.family, color: '#159E96',
+    fontSize: typography.size.heading,
+    fontWeight: typography.weight.extrabold,
   },
   patientDetailsHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
     paddingBottom: 13,
     backgroundColor: '#EEF4F4',
   },
@@ -2159,71 +2164,71 @@ const styles = StyleSheet.create({
   },
   detailsStatusPill: {
     paddingHorizontal: 11,
-    paddingVertical: 6,
+    paddingVertical: spacing.tiny,
     borderRadius: 18,
   },
   editInformationButton: {
     minHeight: 36,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: '#E1E7EA',
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
   },
-  editInformationText: { fontFamily: 'Inter', color: '#1F2937', fontSize: 12, fontWeight: '600' },
+  editInformationText: { fontFamily: typography.family, color: '#1F2937', fontSize: typography.size.sm, fontWeight: typography.weight.semibold },
   profileHero: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 11,
     padding: 13,
-    borderRadius: 14,
-    backgroundColor: '#F0FDFA',
+    borderRadius: radii.lg,
+    backgroundColor: colors.mint,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
+    borderColor: colors.mintBorder,
   },
   profileAvatar: {
     width: 48,
     height: 48,
-    borderRadius: 16,
+    borderRadius: radii.xl,
     backgroundColor: COLORS.teal,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  profileAvatarText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 21, fontWeight: '900' },
+  profileAvatarText: { fontFamily: typography.family, color: colors.surface, fontSize: 21, fontWeight: typography.weight.black },
   profileHeroCopy: { flex: 1, minWidth: 0 },
-  profileName: { fontFamily: 'Inter', fontSize: 16, fontWeight: '900', color: COLORS.ink },
-  profileCode: { fontFamily: 'Inter', fontSize: 11, color: COLORS.muted, marginTop: 2 },
+  profileName: { fontFamily: typography.family, fontSize: typography.size.subtitle, fontWeight: typography.weight.black, color: COLORS.ink },
+  profileCode: { fontFamily: typography.family, fontSize: typography.size.xs, color: COLORS.muted, marginTop: 2 },
   statusPill: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    borderRadius: 12,
+    borderRadius: radii.lg,
     marginTop: 5,
   },
-  activePill: { backgroundColor: '#DCFCE7' },
-  inactivePill: { backgroundColor: '#E2E8F0' },
-  statusPillText: { fontFamily: 'Inter', fontSize: 9, fontWeight: '900' },
+  activePill: { backgroundColor: colors.successSoft },
+  inactivePill: { backgroundColor: colors.border },
+  statusPillText: { fontFamily: typography.family, fontSize: 9, fontWeight: typography.weight.black },
   activeText: { color: '#15803D' },
-  inactiveText: { color: '#475569' },
+  inactiveText: { color: colors.muted },
   editIconButton: {
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderWidth: 1,
-    borderColor: '#99F6E4',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    borderColor: colors.mintBorder,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
   },
-  editIconText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '800', color: COLORS.teal },
+  editIconText: { fontFamily: typography.family, fontSize: typography.size.xs, fontWeight: typography.weight.extrabold, color: COLORS.teal },
   detailSection: {
     borderRadius: 13,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.line,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#0F172A',
+    backgroundColor: colors.surface,
+    shadowColor: colors.text,
     shadowOpacity: 0.04,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
@@ -2244,67 +2249,67 @@ const styles = StyleSheet.create({
     height: 31,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
+    borderRadius: radii.md,
     backgroundColor: '#DDF0EE',
   },
-  detailSectionTitle: { fontFamily: 'Inter', color: '#1F2937', fontSize: 12, fontWeight: '800' },
-  detailSectionContent: { gap: 7, padding: 12 },
+  detailSectionTitle: { fontFamily: typography.family, color: '#1F2937', fontSize: typography.size.sm, fontWeight: typography.weight.extrabold },
+  detailSectionContent: { gap: 7, padding: spacing.md },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: spacing.md,
     minHeight: 39,
     paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
   },
   detailLabelGroup: {
     flex: 1,
     minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.tiny,
   },
-  detailLabel: { fontFamily: 'Inter', flex: 1, fontSize: 11, color: COLORS.muted },
+  detailLabel: { fontFamily: typography.family, flex: 1, fontSize: typography.size.xs, color: COLORS.muted },
   detailValue: {
-    fontFamily: 'Inter', flex: 1.2,
+    fontFamily: typography.family, flex: 1.2,
     textAlign: 'right',
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#334155',
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.bold,
+    color: colors.foreground,
   },
-  detailValueEmphasis: { color: '#14B8A6' },
+  detailValueEmphasis: { color: colors.primary },
   consultationCard: {
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.secondary,
     gap: 3,
   },
   consultationTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: spacing.sm,
   },
   consultationDoctor: {
-    fontFamily: 'Inter', flex: 1,
+    fontFamily: typography.family, flex: 1,
     color: COLORS.ink,
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.extrabold,
   },
   consultationStatus: {
-    fontFamily: 'Inter', color: COLORS.teal,
+    fontFamily: typography.family, color: COLORS.teal,
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: typography.weight.extrabold,
     textTransform: 'capitalize',
   },
-  consultationMeta: { fontFamily: 'Inter', color: COLORS.muted, fontSize: 10 },
-  consultationText: { fontFamily: 'Inter', color: '#334155', fontSize: 10, marginTop: 2 },
-  emptyConsultations: { fontFamily: 'Inter', padding: 12, color: COLORS.muted, fontSize: 11 },
-  actionSection: { gap: 8 },
-  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  consultationMeta: { fontFamily: typography.family, color: COLORS.muted, fontSize: typography.size.micro },
+  consultationText: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.micro, marginTop: 2 },
+  emptyConsultations: { fontFamily: typography.family, padding: spacing.md, color: COLORS.muted, fontSize: typography.size.xs },
+  actionSection: { gap: spacing.sm },
+  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   actionButton: {
     width: '48%',
     minHeight: 43,
@@ -2313,19 +2318,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
-    backgroundColor: '#F0FDFA',
+    borderColor: colors.mintBorder,
+    backgroundColor: colors.mint,
     borderRadius: 9,
   },
   actionButtonDisabled: { opacity: 0.5 },
-  actionButtonText: { fontFamily: 'Inter', color: COLORS.teal, fontSize: 14, fontWeight: '800' },
+  actionButtonText: { fontFamily: typography.family, color: COLORS.teal, fontSize: typography.size.body, fontWeight: typography.weight.extrabold },
   statusAction: {
     minHeight: 43,
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  deactivateAction: { backgroundColor: '#FEF2F2' },
-  activateAction: { backgroundColor: '#DCFCE7' },
-  statusActionText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '800', color: '#334155' },
+  deactivateAction: { backgroundColor: colors.destructiveSoft },
+  activateAction: { backgroundColor: colors.successSoft },
+  statusActionText: { fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.extrabold, color: colors.foreground },
 });

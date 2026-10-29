@@ -1,3 +1,4 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import React, { useState } from 'react';
 import {
   Animated,
@@ -57,20 +58,31 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
   const isLoading = loading || internalLoading;
 
   const spinValue = React.useRef(new Animated.Value(0)).current;
+  const spinAnimation = React.useRef<Animated.CompositeAnimation | null>(null);
 
   React.useEffect(() => {
-    if (isLoading) {
-      Animated.loop(
-        Animated.timing(spinValue, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-      ).start();
-    } else {
+    if (!isLoading) {
+      spinAnimation.current?.stop();
+      spinAnimation.current = null;
       spinValue.setValue(0);
+      return;
     }
+
+    const animation = Animated.loop(
+      Animated.timing(spinValue, {
+        toValue: 1,
+        duration: 1000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    spinAnimation.current = animation;
+    animation.start();
+
+    return () => {
+      animation.stop();
+      if (spinAnimation.current === animation) spinAnimation.current = null;
+    };
   }, [isLoading, spinValue]);
 
   const spin = spinValue.interpolate({
@@ -105,10 +117,10 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
         onPress={handleRefresh}>
         {isLoading ? (
           <Animated.View style={{ transform: [{ rotate: spin }] }}>
-            <RefreshCw size={iconSize} color="#0f172a" />
+            <RefreshCw size={iconSize} color={colors.text} />
           </Animated.View>
         ) : (
-          <RefreshCw size={iconSize} color="#0f172a" />
+          <RefreshCw size={iconSize} color={colors.text} />
         )}
         <Text style={[styles.buttonText, size === 'sm' && styles.buttonTextSm, textStyle]}>
           {isLoading ? refreshingLabel : label}
@@ -127,47 +139,47 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     alignItems: 'flex-start',
-    gap: 4,
+    gap: spacing.xs,
   },
   button: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: spacing.sm,
     height: 44,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   buttonSm: {
     height: 40,
-    paddingHorizontal: 8,
-    gap: 6,
+    paddingHorizontal: spacing.sm,
+    gap: spacing.tiny,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
-    fontFamily: 'Inter', fontSize: 14,
-    fontWeight: '600',
-    color: '#0f172a',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    fontWeight: typography.weight.semibold,
+    color: colors.text,
   },
   buttonTextSm: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '600',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.semibold,
   },
   lastUpdatedText: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#64748b',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.muted,
     marginTop: 2,
     paddingLeft: 2,
   },
   lastUpdatedTextTwoLine: {
-    fontFamily: 'Inter', width: 190,
-    fontSize: 10,
+    fontFamily: typography.family, width: 190,
+    fontSize: typography.size.micro,
     lineHeight: 14,
   },
 });

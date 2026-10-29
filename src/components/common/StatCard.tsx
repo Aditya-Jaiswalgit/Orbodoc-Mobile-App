@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { colors, radii, shadows, spacing, typography } from '../../theme/tokens';
+import { AnimatedLiquidBorder } from './AnimatedLiquidBorder';
+import { createLiquidBorderFocusId, useLiquidBorderFocus } from './LiquidBorderFocusContext';
 
 interface StatCardProps {
   title: string;
@@ -18,21 +21,30 @@ export const StatCard: React.FC<StatCardProps> = ({
   value,
   icon,
   subtitle,
-  iconBgColor = 'rgba(13, 148, 136, 0.15)',
-  cardBgColor = '#ffffff',
-  borderColor = '#e2e8f0',
-  textColor = '#0f172a',
+  iconBgColor = colors.mint,
+  cardBgColor = colors.surface,
+  borderColor = colors.border,
+  textColor = colors.text,
   onPress,
 }) => {
+  const cardIdRef = useRef<string | null>(null);
+  if (!cardIdRef.current) cardIdRef.current = createLiquidBorderFocusId('stat-card');
+  const cardId = cardIdRef.current;
+  const focus = useLiquidBorderFocus(cardId);
+  const focused = focus.focused;
   return (
     <TouchableOpacity
       style={[
         styles.card,
         { backgroundColor: cardBgColor, borderColor },
       ]}
-      onPress={onPress}
+      onPress={() => {
+        focus.focus(cardId);
+        onPress?.();
+      }}
       activeOpacity={0.8}
-      disabled={!onPress}>
+      accessibilityRole={onPress ? 'button' : undefined}>
+      <AnimatedLiquidBorder active={focused} radius={radii.lg} />
       <View style={[styles.iconContainer, { backgroundColor: iconBgColor }]}>
         {icon}
       </View>
@@ -47,45 +59,41 @@ export const StatCard: React.FC<StatCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: colors.border,
+    ...shadows.card,
   },
   iconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   textContainer: {
     flex: 1,
   },
   valueText: {
-    fontFamily: 'Inter', color: '#0f172a',
-    fontSize: 20,
-    fontWeight: '800',
+    fontFamily: typography.family, color: colors.text,
+    fontSize: typography.size.title,
+    fontWeight: typography.weight.extrabold,
   },
   titleText: {
-    fontFamily: 'Inter', color: '#475569',
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 2,
+    fontFamily: typography.family, color: colors.muted,
+    fontSize: typography.size.body,
+    fontWeight: typography.weight.semibold,
+    marginTop: spacing.xxs,
   },
   subtitleText: {
-    fontFamily: 'Inter', color: '#94a3b8',
-    fontSize: 11,
-    marginTop: 1,
+    fontFamily: typography.family, color: colors.subtle,
+    fontSize: typography.size.xs,
+    marginTop: spacing.xxs,
   },
 });
 

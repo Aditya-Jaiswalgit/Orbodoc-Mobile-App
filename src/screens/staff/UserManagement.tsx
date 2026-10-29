@@ -1,9 +1,12 @@
+import { colors, spacing, typography } from '../../theme/tokens';
 // src/screens/staff/UserManagement.tsx
 import { styles } from './styles/UserManagement.styles';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { AppModal } from '../../components/common/AppModal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform, StatusBar, ActivityIndicator, Alert, useWindowDimensions, RefreshControl, TouchableWithoutFeedback, KeyboardAvoidingView, Keyboard, Switch } from 'react-native';
+import { useLiquidBorderScrollHandlers } from '../../components/common/LiquidBorderFocusContext';
+import { View, Text, TextInput, TouchableOpacity, Platform, StatusBar, ActivityIndicator, useWindowDimensions, RefreshControl, TouchableWithoutFeedback, KeyboardAvoidingView, Keyboard, Switch } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   UserPlus,
@@ -40,6 +43,7 @@ import { buildRoleCatalog, getManageableRoles, isProtectedAdminRole } from '../.
 import { formatCreatedAt, formatRoleTitle, mapStaffApiRecord, normalizeAssignedClinic, normalizeClinicOption } from './users/userManagementTypes';
 import { ResetPasswordModal } from './users/ResetPasswordModal';
 import { UserDetailsModal } from './users/UserDetailsModal';
+import { LiquidBorderSurface } from '../../components/common/LiquidBorderSurface';
 import type { ClinicOption, StaffApiRecord, UserItem } from './users/userManagementTypes';
 
 export type { UserItem } from './users/userManagementTypes';
@@ -60,6 +64,7 @@ const defaultColumns = Object.fromEntries(Object.keys(userColumns).map(key =>
   [key, !['address', 'department', 'specialization', 'created_at'].includes(key)])) as Record<UserColumn, boolean>;
 
 export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }: UserManagementProps) {
+  const borderScrollHandlers = useLiquidBorderScrollHandlers();
   const { width, fontScale } = useWindowDimensions();
   const isMobile = width < 768;
 
@@ -587,7 +592,8 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
         />
       )}
 
-      <ScrollView
+      <LiquidBorderScrollView
+        {...borderScrollHandlers}
         style={styles.mainScrollView}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
@@ -595,7 +601,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
         keyboardShouldPersistTaps="handled"
         decelerationRate="normal"
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={['#27A599']} />
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[colors.primary]} />
         }>
         {/* --- PAGE HEADER BANNER --- */}
         <View style={styles.outerHeaderCard}>
@@ -636,7 +642,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                 onPress={() => setShowColumns(true)}
                 accessibilityLabel="Choose user columns"
               >
-                <Columns3 size={14} color="#0F172A" style={{ marginRight: 6 }} />
+                <Columns3 size={14} color={colors.text} style={{ marginRight: spacing.tiny }} />
                 <Text style={styles.outlineBtnText}>Columns</Text>
               </TouchableOpacity>
             </View>
@@ -651,7 +657,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                   setCreateUserModalOpen(true);
                 }}
               >
-                <UserPlus size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <UserPlus size={15} color={colors.surface} style={{ marginRight: spacing.tiny }} />
                 <Text style={styles.tealCreateBtnText}>Create</Text>
               </TouchableOpacity>
             </View>
@@ -660,11 +666,11 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
           {/*   SEARCH AND FILTERS ROW  */}
           <View style={[styles.filtersRow, isMobile && { flexDirection: 'column', alignItems: 'stretch' }]}>
             <View style={styles.searchBar}>
-              <Search size={16} color="#94A3B8" style={{ marginRight: 8 }} />
+              <Search size={16} color={colors.subtle} style={{ marginRight: spacing.sm }} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Global Search"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.subtle}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
@@ -681,7 +687,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                 <Text style={styles.dropdownTriggerText} numberOfLines={1}>
                   {selectedRoleFilter}
                 </Text>
-                <ChevronDown size={14} color="#64748B" />
+                <ChevronDown size={14} color={colors.muted} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -694,7 +700,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                 <Text style={styles.dropdownTriggerText} numberOfLines={1}>
                   {selectedStatusFilter}
                 </Text>
-                <ChevronDown size={14} color="#64748B" />
+                <ChevronDown size={14} color={colors.muted} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -707,7 +713,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                 <Text style={styles.dropdownTriggerText} numberOfLines={1}>
                   {selectedClinicFilter}
                 </Text>
-                <ChevronDown size={14} color="#64748B" />
+                <ChevronDown size={14} color={colors.muted} />
               </TouchableOpacity>
             </View>
           </View>
@@ -782,7 +788,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
           {/* --- RESPONSIVE LIST / TABLE VIEW --- */}
           {loading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="large" color="#27A599" />
+              <ActivityIndicator size="large" color={colors.primary} />
               <Text style={styles.loadingText}>Loading users from database...</Text>
             </View>
           ) : filteredUsers.length === 0 ? (
@@ -791,10 +797,10 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
             </View>
           ) : isMobile ? (
             /* Responsive Mobile Card View */
-            <View style={{ gap: 10, marginVertical: 8 }}>
+            <View style={{ gap: 10, marginVertical: spacing.sm }}>
               {paginatedUsers.map((item) => {
                 return (
-                  <View key={item.id} style={styles.mobileUserCard}>
+                  <LiquidBorderSurface key={item.id} style={styles.mobileUserCard} radius={12}>
                     <View style={styles.mobileCardHeader}>
                       <View style={{ flex: 1, minWidth: 0 }}>
                         {visibleColumns.full_name && <Text style={styles.userNameText} numberOfLines={1}>
@@ -831,28 +837,28 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                       <View />
 
                       {/* Action Buttons (Eye & Edit only - No Delete User) */}
-                      {visibleColumns.actions && <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {visibleColumns.actions && <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                         <TouchableOpacity
                           style={styles.actionIconBtn}
                           onPress={() => handleOpenView(item)}>
-                          <Eye size={16} color="#334155" />
+                          <Eye size={16} color={colors.foreground} />
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.actionIconBtn}
                           disabled={!canEdit}
                           accessibilityLabel={'Edit user ' + item.full_name}
                           onPress={() => handleOpenEdit(item)}>
-                          <Edit2 size={15} color="#334155" />
+                          <Edit2 size={15} color={colors.foreground} />
                         </TouchableOpacity>
                       </View>}
                     </View>
-                  </View>
+                  </LiquidBorderSurface>
                 );
               })}
             </View>
           ) : (
             /* Tablet / Desktop Table View */
-            <ScrollView
+            <LiquidBorderScrollView
               horizontal
               showsHorizontalScrollIndicator={true}
               nestedScrollEnabled={true}
@@ -885,7 +891,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
 
                   return (
                     <View key={item.id} style={styles.tableBodyRow}>
-                      {visibleColumns.user_id && <Text style={[styles.tdText, { width: 70, fontWeight: '600' }]}>
+                      {visibleColumns.user_id && <Text style={[styles.tdText, { width: 70, fontWeight: typography.weight.semibold }]}>
                         {item.user_id}
                       </Text>}
 
@@ -942,25 +948,25 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                       </View>}
 
                       {/* Action Buttons (Eye & Edit only) */}
-                      {visibleColumns.actions && <View style={[styles.actionsCell, { width: 60, flexDirection: 'row', gap: 6 }]}>
+                      {visibleColumns.actions && <View style={[styles.actionsCell, { width: 60, flexDirection: 'row', gap: spacing.tiny }]}>
                         <TouchableOpacity
                           style={styles.actionIconBtn}
                           onPress={() => handleOpenView(item)}>
-                          <Eye size={16} color="#334155" />
+                          <Eye size={16} color={colors.foreground} />
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.actionIconBtn}
                           disabled={!canEdit}
                           accessibilityLabel={'Edit user ' + item.full_name}
                           onPress={() => handleOpenEdit(item)}>
-                          <Edit2 size={15} color="#334155" />
+                          <Edit2 size={15} color={colors.foreground} />
                         </TouchableOpacity>
                       </View>}
                     </View>
                   );
                 })}
               </View>
-            </ScrollView>
+            </LiquidBorderScrollView>
           )}
 
           {/* Pagination Component */}
@@ -976,7 +982,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
             }}
           />
         </View>
-      </ScrollView>
+      </LiquidBorderScrollView>
 
       {/*  SHOW / HIDE COLUMNS MODAL (REUSABLE COMPONENT)                           */}
       <ColumnSelectorModal
@@ -1007,7 +1013,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
               <View style={[styles.editModalCard, isMobile && styles.editModalCardMobile]}>
                 <View style={styles.editModalHeader}>
                   <View style={styles.editAvatarIconBox}>
-                    <Edit2 size={18} color="#FFFFFF" />
+                    <Edit2 size={18} color={colors.surface} />
                   </View>
                   <View style={{ flex: 1, marginLeft: 10 }}>
                     <Text style={styles.editModalTitle}>Edit User</Text>
@@ -1016,13 +1022,13 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                     </Text>
                   </View>
                   <TouchableOpacity onPress={closeEditForm}>
-                    <X size={18} color="#64748B" />
+                    <X size={18} color={colors.muted} />
                   </TouchableOpacity>
                 </View>
 
                 {detailsLoading && <ActivityIndicator accessibilityLabel="Loading user details" />}
                 {!!detailsError && (
-                  <View style={{ padding: 16 }}>
+                  <View style={{ padding: spacing.lg }}>
                     <Text accessibilityRole="alert">{detailsError}</Text>
                     <TouchableOpacity onPress={() => setDetailsRetry(value => value + 1)}>
                       <Text>Retry</Text>
@@ -1030,13 +1036,13 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                   </View>
                 )}
                 {editForm && (
-                  <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+                  <LiquidBorderScrollView style={{ padding: spacing.lg }} showsVerticalScrollIndicator={false}>
                     <View style={styles.editSectionCard}>
                       <Text style={styles.editSectionTitle}>Basic information</Text>
                       <Text style={styles.editSectionSub}>Identity and account details</Text>
 
                       <Text style={styles.formLabel}>
-                        Full name <Text style={{ color: '#EF4444' }}>*</Text>
+                        Full name <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TextInput aria-invalid={!!editErrors.full_name}
                         style={[styles.formInput, styles.formInputFocused, !!editErrors.full_name && styles.invalidInput]}
@@ -1047,7 +1053,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                           {!!editErrors.full_name && <Text accessibilityRole="alert" style={styles.fieldError}>{editErrors.full_name}</Text>}
 
                       <Text style={styles.formLabel}>
-                        Email address <Text style={{ color: '#EF4444' }}>*</Text>
+                        Email address <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <View style={[styles.disabledInputRow, !!editErrors.email && styles.invalidInput]}>
                         <TextInput
@@ -1055,13 +1061,13 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                           value={editForm.email}
                           editable={false}
                         />
-                        <Lock size={15} color="#94A3B8" />
+                        <Lock size={15} color={colors.subtle} />
                       </View>
                       <Text style={styles.helperText}>Contact an administrator to change email.</Text>
                       {!!editErrors.email && <Text accessibilityRole="alert" style={styles.fieldError}>{editErrors.email}</Text>}
 
                       <Text style={styles.formLabel}>
-                        Phone number <Text style={{ color: '#EF4444' }}>*</Text>
+                        Phone number <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TextInput aria-invalid={!!editErrors.phone}
                         style={[styles.formInput, !!editErrors.phone && styles.invalidInput]}
@@ -1073,7 +1079,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                           {!!editErrors.phone && <Text accessibilityRole="alert" style={styles.fieldError}>{editErrors.phone}</Text>}
 
                       <Text style={styles.formLabel}>
-                        Role <Text style={{ color: '#EF4444' }}>*</Text>
+                        Role <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TouchableOpacity
                         style={[styles.selectInputTrigger, !!editErrors.role && styles.invalidInput]}
@@ -1081,7 +1087,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                         disabled={protectedEditRole || !canEdit || isRefreshing || editRoles.loading || !!editRoles.error}
                         onPress={() => { if (!protectedEditRole && canEdit) setShowEditRoleDropdown(!showEditRoleDropdown); }}>
                         <Text style={styles.selectInputText}>{editForm.role}</Text>
-                        <ChevronDown size={16} color="#64748B" />
+                        <ChevronDown size={16} color={colors.muted} />
                       </TouchableOpacity>
 
                       {protectedEditRole && <Text style={styles.helperText}>Admin role cannot be changed.</Text>}
@@ -1118,14 +1124,14 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                       )}
 
                       <Text style={styles.formLabel}>
-                        Status <Text style={{ color: '#EF4444' }}>*</Text>
+                        Status <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TouchableOpacity
                         style={styles.selectInputTrigger}
                         accessibilityLabel="Edit status"
                         onPress={() => setShowEditStatusDropdown(!showEditStatusDropdown)}>
                         <Text style={styles.selectInputText}>{editForm.status}</Text>
-                        <ChevronDown size={16} color="#64748B" />
+                        <ChevronDown size={16} color={colors.muted} />
                       </TouchableOpacity>
 
                       {showEditStatusDropdown && (
@@ -1163,7 +1169,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                           <TextInput aria-invalid={!!editErrors.department}
                             style={[styles.formInput, !!editErrors.department && styles.invalidInput]}
                             placeholder="e.g. Cardiology"
-                            placeholderTextColor="#94A3B8"
+                            placeholderTextColor={colors.subtle}
                             value={editForm.department || ''}
                             accessibilityLabel="Edit department"
                             onChangeText={v => { setEditForm({ ...editForm, department: v }); setEditErrors(previous => ({ ...previous, department: '' })); }}
@@ -1176,7 +1182,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                           <TextInput aria-invalid={!!editErrors.specialization}
                             style={[styles.formInput, !!editErrors.specialization && styles.invalidInput]}
                             placeholder="e.g. General Medicine"
-                            placeholderTextColor="#94A3B8"
+                            placeholderTextColor={colors.subtle}
                             value={editForm.specialization || ''}
                             accessibilityLabel="Edit specialization"
                             onChangeText={v => { setEditForm({ ...editForm, specialization: v }); setEditErrors(previous => ({ ...previous, specialization: '' })); }}
@@ -1191,7 +1197,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                           <TextInput aria-invalid={!!editErrors.qualification}
                             style={[styles.formInput, !!editErrors.qualification && styles.invalidInput]}
                             placeholder="e.g. MBBS, MD"
-                            placeholderTextColor="#94A3B8"
+                            placeholderTextColor={colors.subtle}
                             value={editForm.qualification || ''}
                             accessibilityLabel="Edit qualification"
                             onChangeText={v => { setEditForm({ ...editForm, qualification: v }); setEditErrors(previous => ({ ...previous, qualification: '' })); }}
@@ -1204,7 +1210,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                           <TextInput aria-invalid={!!editErrors.experience}
                             style={[styles.formInput, !!editErrors.experience && styles.invalidInput]}
                             placeholder="e.g. 5"
-                            placeholderTextColor="#94A3B8"
+                            placeholderTextColor={colors.subtle}
                             keyboardType="numeric"
                             value={editForm.experience || ''}
                             accessibilityLabel="Edit experience"
@@ -1221,13 +1227,13 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                             disabled={!canEdit || isRefreshing}
                             onValueChange={value => { if (!canEdit || busyRef.current) return; setEditErrors({}); setEditForm({ ...editForm, is_doctor: value,
                               ...(value ? {} : { department: '', specialization: '', qualification: '', registration_number: '', experience: '', consultation_fee: '', available_days: '' }) }); }}
-                            trackColor={{ false: '#E2E8F0', true: '#99F6E4' }} thumbColor={editForm.is_doctor ? '#27A599' : '#F1F5F9'} />
+                            trackColor={{ false: colors.border, true: colors.mintBorder }} thumbColor={editForm.is_doctor ? colors.primary : colors.secondary} />
                         </View>
                       )}
                       {(hasDoctorEditProfile || isNurseEditRole) && <>
                         <Text style={styles.formLabel}>Registration number</Text>
                         <TextInput aria-invalid={!!editErrors.registration_number} style={[styles.formInput, !!editErrors.registration_number && styles.invalidInput]} accessibilityLabel="Edit registration number"
-                          placeholder="Professional registration number" placeholderTextColor="#94A3B8"
+                          placeholder="Professional registration number" placeholderTextColor={colors.subtle}
                           value={editForm.registration_number || ''} editable={canEdit && !isRefreshing}
                           onChangeText={value => { setEditForm({ ...editForm, registration_number: value }); setEditErrors(previous => ({ ...previous, registration_number: '' })); }} />
                           {!!editErrors.registration_number && <Text accessibilityRole="alert" style={styles.fieldError}>{editErrors.registration_number}</Text>}
@@ -1237,7 +1243,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                           <View style={{ flex: 1 }}>
                             <Text style={styles.formLabel}>Consultation fee</Text>
                             <TextInput aria-invalid={!!editErrors.consultation_fee} style={[styles.formInput, !!editErrors.consultation_fee && styles.invalidInput]} accessibilityLabel="Edit consultation fee" keyboardType="decimal-pad"
-                              placeholder="e.g. 500" placeholderTextColor="#94A3B8"
+                              placeholder="e.g. 500" placeholderTextColor={colors.subtle}
                               value={editForm.consultation_fee || ''} editable={canEdit && !isRefreshing}
                               onChangeText={value => { setEditForm({ ...editForm, consultation_fee: value }); setEditErrors(previous => ({ ...previous, consultation_fee: '' })); }} />
                           {!!editErrors.consultation_fee && <Text accessibilityRole="alert" style={styles.fieldError}>{editErrors.consultation_fee}</Text>}
@@ -1245,7 +1251,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                           <View style={{ flex: 1 }}>
                             <Text style={styles.formLabel}>Available days</Text>
                             <TextInput aria-invalid={!!editErrors.available_days} style={[styles.formInput, !!editErrors.available_days && styles.invalidInput]} accessibilityLabel="Edit available days"
-                              placeholder="e.g. Mon, Tue, Fri" placeholderTextColor="#94A3B8"
+                              placeholder="e.g. Mon, Tue, Fri" placeholderTextColor={colors.subtle}
                               value={editForm.available_days || ''} editable={canEdit && !isRefreshing}
                               onChangeText={value => { setEditForm({ ...editForm, available_days: value }); setEditErrors(previous => ({ ...previous, available_days: '' })); }} />
                           {!!editErrors.available_days && <Text accessibilityRole="alert" style={styles.fieldError}>{editErrors.available_days}</Text>}
@@ -1256,14 +1262,14 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                       <TextInput
                         style={[styles.formInput, { height: 70, textAlignVertical: 'top' }]}
                         placeholder="Enter complete address"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         multiline
                         value={editForm.address || ''}
                         accessibilityLabel="Edit address"
                         onChangeText={(v) => setEditForm({ ...editForm, address: v })}
                       />
                     </View>
-                  </ScrollView>
+                  </LiquidBorderScrollView>
                 )}
 
                 {!!editSaveError && <Text accessibilityRole="alert" style={styles.fieldError}>{editSaveError}</Text>}
@@ -1362,7 +1368,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
               <View style={[styles.editModalCard, isMobile && styles.editModalCardMobile]}>
                 <View style={styles.editModalHeader}>
                   <View style={styles.editAvatarIconBox}>
-                    <UserPlus size={18} color="#FFFFFF" />
+                    <UserPlus size={18} color={colors.surface} />
                   </View>
                   <View style={{ flex: 1, marginLeft: 10 }}>
                     <Text style={styles.editModalTitle}>Create User</Text>
@@ -1371,20 +1377,20 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                     </Text>
                   </View>
                   <TouchableOpacity onPress={closeCreateForm} disabled={isRefreshing} accessibilityLabel="Close create user">
-                    <X size={18} color="#64748B" />
+                    <X size={18} color={colors.muted} />
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+                <LiquidBorderScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }} keyboardShouldPersistTaps="handled">
                   {canChooseCreateClinic && <>
-                    <Text style={styles.formLabel}>Clinic <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                    <Text style={styles.formLabel}>Clinic <Text style={{ color: colors.destructive }}>*</Text></Text>
                     {metadata.data?.clinicsError && <TouchableOpacity onPress={metadata.refresh}>
                       <Text accessibilityRole="alert" style={styles.fieldError}>Unable to refresh clinics. Showing assigned clinics. Tap to retry.</Text>
                     </TouchableOpacity>}
                     <TouchableOpacity style={styles.selectInputTrigger} accessibilityLabel="Select user clinic"
                       disabled={isRefreshing || !canCreate} onPress={() => setShowCreateClinicDropdown(value => !value)}>
                       <Text style={styles.selectInputText}>{createClinicOptions.find(c => c.id === createClinicId)?.name || 'Select clinic'}</Text>
-                      <ChevronDown size={16} color="#64748B" />
+                      <ChevronDown size={16} color={colors.muted} />
                     </TouchableOpacity>
                     {showCreateClinicDropdown && <View style={styles.editDropdownList}>
                       {createClinicOptions.map(clinic => <TouchableOpacity key={clinic.id} style={styles.editDropdownItem}
@@ -1394,12 +1400,12 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                     </View>}
                   </>}
                   <Text style={styles.formLabel}>
-                    Full name <Text style={{ color: '#EF4444' }}>*</Text>
+                    Full name <Text style={{ color: colors.destructive }}>*</Text>
                   </Text>
                   <TextInput
                     style={styles.formInput}
                     placeholder="e.g. John Doe"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.subtle}
                     value={createFullName}
                     onChangeText={setCreateFullName}
                     accessibilityLabel="Full name"
@@ -1407,12 +1413,12 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                   />
 
                   <Text style={styles.formLabel}>
-                    Email address <Text style={{ color: '#EF4444' }}>*</Text>
+                    Email address <Text style={{ color: colors.destructive }}>*</Text>
                   </Text>
                   <TextInput
                     style={styles.formInput}
                     placeholder="john@gmail.com"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.subtle}
                     keyboardType="email-address"
                     value={createEmail}
                     onChangeText={setCreateEmail}
@@ -1423,14 +1429,14 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                   />
 
                   <Text style={styles.formLabel}>
-                    Temporary password <Text style={{ color: '#EF4444' }}>*</Text>
+                    Temporary password <Text style={{ color: colors.destructive }}>*</Text>
                   </Text>
                   <View style={[styles.formInput, { flexDirection: 'row', alignItems: 'center' }]}>
                     <TextInput
-                      style={{ fontFamily: 'Inter', flex: 1, padding: 0, color: '#0F172A', fontSize: 13 }}
+                      style={{ fontFamily: typography.family, flex: 1, padding: 0, color: colors.text, fontSize: typography.size.caption }}
                       accessibilityLabel="Temporary password"
                       placeholder="Minimum 8 characters"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                       value={createPassword}
                       onChangeText={setCreatePassword}
                       secureTextEntry={!showCreatePassword}
@@ -1441,15 +1447,15 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                     />
                     <TouchableOpacity accessibilityLabel={showCreatePassword ? 'Hide password' : 'Show password'}
                       onPress={() => setShowCreatePassword(!showCreatePassword)} hitSlop={10}>
-                      {showCreatePassword ? <EyeOff size={18} color="#64748B" /> : <Eye size={18} color="#64748B" />}
+                      {showCreatePassword ? <EyeOff size={18} color={colors.muted} /> : <Eye size={18} color={colors.muted} />}
                     </TouchableOpacity>
                   </View>
 
-                  <Text style={styles.formLabel}>Phone number <Text style={{ color: '#EF4444' }}>*</Text></Text>
+                  <Text style={styles.formLabel}>Phone number <Text style={{ color: colors.destructive }}>*</Text></Text>
                   <TextInput
                     style={styles.formInput}
                     placeholder="7213123212"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.subtle}
                     keyboardType="phone-pad"
                     value={createPhone}
                     accessibilityLabel="Phone number"
@@ -1462,7 +1468,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                   />
 
                   <Text style={styles.formLabel}>
-                    Role <Text style={{ color: '#EF4444' }}>*</Text>
+                    Role <Text style={{ color: colors.destructive }}>*</Text>
                   </Text>
                   <TouchableOpacity
                     style={styles.selectInputTrigger}
@@ -1470,7 +1476,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                     disabled={!canCreate || isRefreshing || createRoles.loading || !createClinicId || Boolean(createRoles.error)}
                     onPress={() => setShowCreateRoleDropdown(!showCreateRoleDropdown)}>
                     <Text style={styles.selectInputText}>{createRoles.loading ? 'Loading roles...' : selectedCreateRole ? formatRoleTitle(selectedCreateRole.role_name || selectedCreateRole.name || '') : 'Select role'}</Text>
-                    <ChevronDown size={16} color="#64748B" />
+                    <ChevronDown size={16} color={colors.muted} />
                   </TouchableOpacity>
                   {createRoles.error && (
                     <TouchableOpacity onPress={() => createRoles.refresh()}>
@@ -1508,7 +1514,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                       })}
                     </View>
                   )}
-                  <Text style={[styles.editSectionTitle, { marginTop: 20 }]}>Professional details</Text>
+                  <Text style={[styles.editSectionTitle, { marginTop: spacing.xl }]}>Professional details</Text>
                   <Text style={styles.editSectionSub}>Optional information can be added now or later.</Text>
                   {([
                     { key: 'department', label: 'Department', placeholder: 'e.g. Cardiology' },
@@ -1529,7 +1535,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                           accessibilityLabel={field.label}
                           style={[styles.formInput, multiline && { minHeight: 80, textAlignVertical: 'top' }]}
                           placeholder={field.placeholder}
-                          placeholderTextColor="#94A3B8"
+                          placeholderTextColor={colors.subtle}
                           value={createDetails[field.key]}
                           onChangeText={value => setCreateDetails(previous => ({ ...previous, [field.key]: value }))}
                           keyboardType={'numeric' in field && field.numeric ? 'decimal-pad' : 'default'}
@@ -1539,7 +1545,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                       </View>
                     );
                   })}
-                </ScrollView>
+                </LiquidBorderScrollView>
 
                 <View style={[styles.editModalFooter, { flexWrap: 'wrap' }]}>
                   {!!createError && (
@@ -1547,7 +1553,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                       <Text accessibilityRole="alert" accessibilityLiveRegion="assertive" style={styles.createErrorText}>{createError}</Text>
                       {createRoles.error && (
                         <TouchableOpacity accessibilityLabel="Retry roles" onPress={() => createRoles.refresh()}>
-                          <Text style={[styles.createErrorText, { fontWeight: '700', marginTop: 6 }]}>Retry roles</Text>
+                          <Text style={[styles.createErrorText, { fontWeight: typography.weight.bold, marginTop: spacing.tiny }]}>Retry roles</Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -1562,7 +1568,7 @@ export function UserManagement({ onOpenDrawer, onNavigateScreen, initialUserId }
                     accessibilityLabel="Submit create user"
                     accessibilityState={{ disabled: !canCreate || isRefreshing, busy: isRefreshing }}
                     disabled={!canCreate || isRefreshing}>
-                    {isRefreshing && <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />}
+                    {isRefreshing && <ActivityIndicator size="small" color={colors.surface} style={{ marginRight: spacing.tiny }} />}
                     <Text style={styles.tealSaveBtnText}>{isRefreshing ? 'Creating...' : 'Create User'}</Text>
                   </TouchableOpacity>
                 </View>

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { AppModal } from './AppModal';
 import { DashboardWelcomeCard } from './DashboardWelcomeCard';
-import { Alert, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Switch, Text as NativeText, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, Pressable, StatusBar, StyleSheet, Switch, Text as NativeText, TouchableOpacity, View } from 'react-native';
+import { LiquidBorderScrollView } from './LiquidBorderScrollView';
 import {
   ArrowRight,
   AlertCircle,
@@ -37,6 +38,7 @@ import { canUseStaffScreen } from '../../navigation/staffAccess';
 import { getNotificationSocket } from '../../api/notificationSocket';
 import { showErrorToast } from '../../utils/toast';
 import type { InboxNotification } from '../../api/staffHeaderApi';
+import { colors, radii, shadows, spacing, typography } from '../../theme/tokens';
 
 const Text = (props: React.ComponentProps<typeof NativeText>) => (
   <NativeText maxFontSizeMultiplier={1.2} {...props} />
@@ -105,10 +107,10 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
   const renderNotificationIcon = (item: InboxNotification) => {
     const text = `${item.not_cat_name || ''} ${item.message || ''}`.toLowerCase();
     if (text.includes('appointment')) return <Calendar size={18} color="#2563eb" />;
-    if (text.includes('patient') || text.includes('user')) return <UserPlus size={18} color="#059669" />;
+    if (text.includes('patient') || text.includes('user')) return <UserPlus size={18} color={colors.successDark} />;
     if (text.includes('report') || text.includes('lab')) return <FileText size={18} color="#7c3aed" />;
-    if (text.includes('success') || text.includes('paid')) return <CheckCircle size={18} color="#27a599" />;
-    return <AlertCircle size={18} color="#d97706" />;
+    if (text.includes('success') || text.includes('paid')) return <CheckCircle size={18} color={colors.primary} />;
+    return <AlertCircle size={18} color={colors.warning} />;
   };
   const canEditNotifications = canUseStaffScreen(role || '', permissionsMap, 'notifications', 'edit');
   const canDeleteNotifications = canUseStaffScreen(role || '', permissionsMap, 'notifications', 'delete');
@@ -173,20 +175,20 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
     <View style={styles.headerContainer}>
       <StatusBar barStyle="dark-content" />
       {Platform.OS === 'android' && (
-        <View style={{ height: statusBarHeight, backgroundColor: '#FFFFFF' }} />
+        <View style={{ height: statusBarHeight, backgroundColor: colors.surface }} />
       )}
 
       {/* ── 1. TOP HEADER BAR ── */}
       <View style={styles.topHeaderBar}>
         <TouchableOpacity style={styles.iconSquareBtn} onPress={onOpenDrawer} activeOpacity={0.7}>
-          <Menu size={18} color="#334155" />
+          <Menu size={18} color={colors.foreground} />
         </TouchableOpacity>
 
         <View style={styles.headerRightGroup}>
           {/* Gold Crown Subscription Button (Web Parity: ONLY Clinic Admin) */}
           {isClinicAdmin && (
             <TouchableOpacity style={styles.crownCircleBtn} onPress={() => setPlanModalOpen(true)} activeOpacity={0.8}>
-              <Crown size={16} color="#D97706" />
+              <Crown size={16} color={colors.warning} />
             </TouchableOpacity>
           )}
 
@@ -200,7 +202,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               accessibilityLabel={`Open provider wallet${providerWalletBalance === null ? '' : `, available balance ${displayAmount(providerWalletBalance)}`}`}
             >
               <View style={styles.walletHeaderIconWrap}>
-                <WalletCards size={16} color="#FFFFFF" strokeWidth={2.2} />
+                <WalletCards size={16} color={colors.surface} strokeWidth={2.2} />
               </View>
             </TouchableOpacity>
           )}
@@ -214,7 +216,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               setNotificationsModalOpen(true);
             }}
             activeOpacity={0.8}>
-            <Bell size={17} color="#334155" />
+            <Bell size={17} color={colors.foreground} />
             {(unreadCount ?? 0) > 0 && (
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeText}>{notificationBadgeLabel}</Text>
@@ -235,9 +237,9 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               <Text style={styles.avatarInitials}>{staffInitials}</Text>
             </View>
             {profileMenuOpen ? (
-              <ChevronUp size={14} color="#27A599" />
+              <ChevronUp size={14} color={colors.primary} />
             ) : (
-              <ChevronDown size={14} color="#64748B" />
+              <ChevronDown size={14} color={colors.muted} />
             )}
           </TouchableOpacity>
         </View>
@@ -268,7 +270,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                 accessibilityLabel="Dismiss notification"
                 onPress={() => setVideoToast(null)}
                 style={styles.videoToastClose}>
-                <X size={18} color="#64748B" />
+                <X size={18} color={colors.muted} />
               </TouchableOpacity>
             </View>
           ) : null}
@@ -291,7 +293,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             <>
               <View style={styles.profileMenuItemRow}>
                 <View style={styles.menuItemLeft}>
-                  <Video size={16} color="#27A599" />
+                  <Video size={16} color={colors.primary} />
                   <View>
                     <Text allowFontScaling={false} style={styles.menuItemTitle}>Video Calling</Text>
                     <Text allowFontScaling={false} style={styles.menuItemSub}>{videoCallingEnabled ? 'Enabled' : 'Disabled'}</Text>
@@ -317,7 +319,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               onNavigate('profile');
             }}
             activeOpacity={0.7}>
-            <User size={16} color="#27A599" />
+            <User size={16} color={colors.primary} />
             <Text allowFontScaling={false} style={styles.menuItemTitle}>My Profile</Text>
           </TouchableOpacity>
 
@@ -332,7 +334,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               onNavigate('change_password');
             }}
             activeOpacity={0.7}>
-            <Key size={16} color="#D97706" />
+            <Key size={16} color={colors.warning} />
             <Text allowFontScaling={false} style={styles.menuItemTitle}>Change Password</Text>
           </TouchableOpacity>
 
@@ -348,7 +350,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                   setPlanModalOpen(true);
                 }}
                 activeOpacity={0.7}>
-                <Crown size={16} color="#D97706" />
+                <Crown size={16} color={colors.warning} />
                 <Text allowFontScaling={false} style={styles.menuItemTitle}>My Plan</Text>
               </TouchableOpacity>
               <View style={styles.menuDivider} />
@@ -363,8 +365,8 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               logout();
             }}
             activeOpacity={0.7}>
-            <LogOut size={16} color="#EF4444" />
-            <Text allowFontScaling={false} style={[styles.menuItemTitle, { color: '#EF4444' }]}>Logout</Text>
+            <LogOut size={16} color={colors.destructive} />
+            <Text allowFontScaling={false} style={[styles.menuItemTitle, { color: colors.destructive }]}>Logout</Text>
           </TouchableOpacity>
         </View>
         </View>
@@ -386,7 +388,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             {/* Header Row */}
             <View style={styles.notifHeaderRow}>
               <View style={styles.notifHeaderLeft}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                   <Text style={styles.notifTitle}>Notifications</Text>
                   {(unreadCount ?? 0) > 0 && (
                     <View style={styles.notifCountPill}>
@@ -406,7 +408,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                     activeOpacity={0.7}
                     style={styles.notifActionBtn}
                     accessibilityLabel="Mark all notifications as read">
-                    <CheckCheck size={18} color="#475569" />
+                    <CheckCheck size={18} color={colors.muted} />
                   </TouchableOpacity>
                 ) : null}
                 {canDeleteNotifications && notifications.length > 0 ? (
@@ -416,7 +418,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                     activeOpacity={0.7}
                     style={styles.notifActionBtn}
                     accessibilityLabel="Clear notification history">
-                    <Trash2 size={18} color="#dc2626" />
+                    <Trash2 size={18} color={colors.destructive} />
                   </TouchableOpacity>
                 ) : null}
 
@@ -424,18 +426,18 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                   onPress={() => setNotificationsModalOpen(false)}
                   activeOpacity={0.7}
                   style={styles.notifActionBtn}>
-                  <X size={18} color="#475569" />
+                  <X size={18} color={colors.muted} />
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Notifications List Body */}
-            <ScrollView
+            <LiquidBorderScrollView
               showsVerticalScrollIndicator={true}
               nestedScrollEnabled={true}
               scrollEventThrottle={16}
               decelerationRate="normal"
-              style={{ maxHeight: 360, marginTop: 12 }}>
+              style={{ maxHeight: 360, marginTop: spacing.md }}>
               {notificationsLoading ? (
                 <Text style={styles.emptyNotifText}>Loading notifications...</Text>
               ) : notificationsError ? (
@@ -498,7 +500,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                   </TouchableOpacity>
                 ))
               )}
-            </ScrollView>
+            </LiquidBorderScrollView>
 
             {/* Bottom Footer Link */}
             <TouchableOpacity
@@ -510,7 +512,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
               }}
               activeOpacity={0.8}>
               <Text style={styles.notifFooterText}>View all notifications</Text>
-              <ArrowRight size={16} color="#27A599" />
+              <ArrowRight size={16} color={colors.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -520,7 +522,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
       {!hideClinicBanner && <View style={styles.clinicBannerSection}>
         <View style={styles.clinicTitleRow}>
           <View style={styles.stethoscopeBox}>
-            <Stethoscope size={20} color="#FFFFFF" />
+            <Stethoscope size={20} color={colors.surface} />
           </View>
           <View style={styles.clinicTitleWrap}>
             <Text numberOfLines={1} ellipsizeMode="tail" style={styles.clinicTitleText}>{selectedClinicName}</Text>
@@ -539,9 +541,9 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
           }}>
           <Text numberOfLines={1} ellipsizeMode="tail" style={styles.clinicDropdownText}>{selectedClinicName}</Text>
           {dropdownOpen ? (
-            <ChevronUp size={18} color="#27A599" />
+            <ChevronUp size={18} color={colors.primary} />
           ) : (
-            <ChevronDown size={18} color="#27A599" />
+            <ChevronDown size={18} color={colors.primary} />
           )}
         </TouchableOpacity>
 
@@ -558,7 +560,7 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
                   style={[styles.dropdownItemRow, isSelected && styles.dropdownItemRowSelected]}
                   onPress={() => handleSelectClinic(Number(clinic.id))}>
                   <View style={styles.itemRowLeft}>
-                    {isSelected && <Check size={16} color="#27A599" style={{ marginRight: 8 }} />}
+                    {isSelected && <Check size={16} color={colors.primary} style={{ marginRight: spacing.sm }} />}
                     <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextSelected]}>
                       {clinic.name}
                     </Text>
@@ -579,12 +581,12 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
             <View style={styles.planModalHeaderGlow} />
 
             <TouchableOpacity style={styles.planCloseBtn} onPress={() => setPlanModalOpen(false)} activeOpacity={0.8}>
-              <X size={18} color="#27A599" />
+              <X size={18} color={colors.primary} />
             </TouchableOpacity>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
+            <LiquidBorderScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
               <View style={styles.planCrownBox}>
-                <Crown size={24} color="#FFFFFF" />
+                <Crown size={24} color={colors.surface} />
               </View>
 
               <Text style={styles.planModalTitle}>My Subscription Plan</Text>
@@ -648,13 +650,13 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
 
               {/* Bottom Notice Box */}
               <View style={styles.planNoticeBox}>
-                <Calendar size={18} color="#27A599" />
+                <Calendar size={18} color={colors.primary} />
                 <Text style={styles.planNoticeText}>
                   Plan dates are based on the active clinic subscription.
                 </Text>
               </View>
               </>)}
-            </ScrollView>
+            </LiquidBorderScrollView>
           </View>
         </View>
       </AppModal>
@@ -664,14 +666,10 @@ export const StaffHeader: React.FC<StaffHeaderProps> = ({
 
 const styles = StyleSheet.create({
   headerContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    elevation: 3,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    borderBottomColor: colors.border,
+    ...shadows.card,
     zIndex: 10,
     position: 'relative',
   },
@@ -679,32 +677,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.border,
   },
   iconSquareBtn: {
     width: 36,
     height: 36,
-    borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    borderRadius: radii.md,
+    backgroundColor: colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
   headerRightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   crownCircleBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.warningSoft,
     borderWidth: 1,
     borderColor: '#FCD34D',
     alignItems: 'center',
@@ -716,18 +714,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#ECFDF5',
     borderWidth: 1,
-    borderColor: '#99F6E4',
+    borderColor: colors.mintBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  walletHeaderIconWrap: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#27A599', alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  walletHeaderIconWrap: { width: 32, height: 32, borderRadius: radii.xl, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   bellCircleBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -736,7 +734,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -2,
     right: -2,
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.destructive,
     borderRadius: 9,
     minWidth: 19,
     height: 18,
@@ -744,27 +742,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 3,
   },
-  bellBadgeText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
+  bellBadgeText: { fontFamily: typography.family, color: colors.surface, fontSize: 9, fontWeight: typography.weight.bold },
   avatarPillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 20,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    gap: 4,
+    paddingHorizontal: spacing.tiny,
+    paddingVertical: spacing.xs,
+    gap: spacing.xs,
   },
   avatarCircle: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#27A599',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarInitials: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  avatarInitials: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.sm, fontWeight: typography.weight.bold },
 
   // Profile Dropdown Menu Card
   profileMenuOverlay: {
@@ -779,13 +777,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 72,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    backgroundColor: colors.background,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     overflow: 'hidden',
     elevation: 16,
-    shadowColor: '#0F172A',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.16,
     shadowRadius: 10,
@@ -793,60 +791,60 @@ const styles = StyleSheet.create({
   videoToastAccent: {
     width: 4,
     alignSelf: 'stretch',
-    backgroundColor: '#059669',
+    backgroundColor: colors.successDark,
   },
   videoToastContent: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     paddingHorizontal: 14,
   },
   videoToastTitle: {
-    fontFamily: 'Inter', color: '#1E293B',
-    fontSize: 13,
-    fontWeight: '600',
+    fontFamily: typography.family, color: colors.foreground,
+    fontSize: typography.size.caption,
+    fontWeight: typography.weight.semibold,
   },
   videoToastMessage: {
-    fontFamily: 'Inter', marginTop: 3,
-    color: '#475569',
-    fontSize: 12,
+    fontFamily: typography.family, marginTop: 3,
+    color: colors.muted,
+    fontSize: typography.size.sm,
   },
   videoToastClose: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
   profileMenuCard: {
     position: 'absolute',
     right: 16,
     width: 256,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.sm,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     elevation: 12,
-    shadowColor: '#0F172A',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     zIndex: 100,
   },
   profileMenuHeader: {
-    paddingBottom: 4,
+    paddingBottom: spacing.xs,
   },
   profileMenuName: {
-    fontFamily: 'Inter', fontSize: 14,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    fontWeight: typography.weight.extrabold,
+    color: colors.text,
   },
   profileMenuSub: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.muted,
     marginTop: 2,
   },
   menuDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
-    marginVertical: 6,
+    backgroundColor: colors.secondary,
+    marginVertical: spacing.tiny,
   },
   profileMenuItemRow: {
     flexDirection: 'row',
@@ -860,13 +858,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   menuItemTitle: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '600',
-    color: '#1E293B',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.semibold,
+    color: colors.foreground,
   },
   menuItemSub: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.muted,
     marginTop: 1,
   },
   profileMenuItemRowBtn: {
@@ -884,7 +882,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     paddingTop: 50,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
   },
   notifBackdropTouch: {
     position: 'absolute',
@@ -896,11 +894,11 @@ const styles = StyleSheet.create({
   notifModalCard: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 24,
-    padding: 20,
+    padding: spacing.xl,
     elevation: 16,
-    shadowColor: '#0F172A',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 16,
@@ -911,32 +909,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.secondary,
     paddingBottom: 14,
   },
   notifHeaderLeft: {},
   notifTitle: {
-    fontFamily: 'Inter', fontSize: 20,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.title,
+    fontWeight: typography.weight.extrabold,
+    color: colors.text,
   },
   notifCountPill: {
-    backgroundColor: '#E6FFFA',
+    backgroundColor: colors.mint,
     paddingHorizontal: 10,
     paddingVertical: 3,
-    borderRadius: 12,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
+    borderColor: colors.mintBorder,
   },
   notifCountText: {
-    fontFamily: 'Inter', color: '#1D7C72',
-    fontSize: 12,
-    fontWeight: '700',
+    fontFamily: typography.family, color: colors.primaryDark,
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.bold,
   },
   notifSubTitle: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#64748B',
-    marginTop: 4,
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.muted,
+    marginTop: spacing.xs,
   },
   notifHeaderActions: {
     flexDirection: 'row',
@@ -944,7 +942,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   notifActionBtn: {
-    padding: 4,
+    padding: spacing.xs,
   },
   notifItemCard: {
     flexDirection: 'row',
@@ -952,17 +950,17 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
+    borderBottomColor: colors.background,
     position: 'relative',
-    gap: 12,
+    gap: spacing.md,
   },
   notifIconBox: {
     width: 38,
     height: 38,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -971,91 +969,91 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notifItemTitle: {
-    fontFamily: 'Inter', fontSize: 15,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: 15,
+    fontWeight: typography.weight.extrabold,
+    color: colors.text,
   },
   notifItemMsg: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#475569',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.muted,
     marginTop: 3,
     lineHeight: 18,
   },
   notifItemTime: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 6,
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.subtle,
+    marginTop: spacing.tiny,
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#27A599',
-    marginTop: 6,
+    backgroundColor: colors.primary,
+    marginTop: spacing.tiny,
   },
   emptyNotifBox: {
     paddingVertical: 30,
     alignItems: 'center',
   },
   emptyNotifText: {
-    fontFamily: 'Inter', color: '#94A3B8',
-    fontSize: 14,
-    fontWeight: '500',
+    fontFamily: typography.family, color: colors.subtle,
+    fontSize: typography.size.body,
+    fontWeight: typography.weight.medium,
   },
   notifFooterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingTop: 16,
+    gap: spacing.sm,
+    paddingTop: spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    marginTop: 8,
+    borderTopColor: colors.secondary,
+    marginTop: spacing.sm,
   },
   notifFooterText: {
-    fontFamily: 'Inter', fontSize: 14,
-    fontWeight: '700',
-    color: '#27A599',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    fontWeight: typography.weight.bold,
+    color: colors.primary,
   },
 
   // Clinic Banner & Dropdown
-  clinicBannerSection: { paddingHorizontal: 16, paddingVertical: 12 },
-  clinicTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
+  clinicBannerSection: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  clinicTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md, gap: 10 },
   stethoscopeBox: {
     width: 38,
     height: 38,
-    borderRadius: 10,
-    backgroundColor: '#27A599',
+    borderRadius: radii.md,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   clinicTitleWrap: { position: 'relative', flex: 1, minWidth: 0 },
-  clinicTitleText: { fontFamily: 'Inter', fontSize: 20, fontWeight: '700', color: '#1D7C72', flexShrink: 1 },
-  titleUnderline: { height: 3, backgroundColor: '#2563EB', marginTop: 4, borderRadius: 2, width: '100%' },
+  clinicTitleText: { fontFamily: typography.family, fontSize: typography.size.title, fontWeight: typography.weight.bold, color: colors.primaryDark, flexShrink: 1 },
+  titleUnderline: { height: 3, backgroundColor: colors.primary, marginTop: spacing.xs, borderRadius: 2, width: '100%' },
 
   clinicDropdownCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingHorizontal: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    paddingHorizontal: spacing.lg,
     paddingVertical: 14,
     borderWidth: 1.5,
-    borderColor: '#CCFBF1',
+    borderColor: colors.mintBorder,
   },
-  clinicDropdownText: { fontFamily: 'Inter', fontSize: 15, fontWeight: '700', color: '#0F172A', flex: 1, flexShrink: 1, marginRight: 10 },
+  clinicDropdownText: { fontFamily: typography.family, fontSize: 15, fontWeight: typography.weight.bold, color: colors.text, flex: 1, flexShrink: 1, marginRight: 10 },
 
   // Inline Expandable Dropdown
   dropdownExpandCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 8,
-    marginTop: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     elevation: 4,
-    shadowColor: '#0F172A',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -1063,19 +1061,19 @@ const styles = StyleSheet.create({
   dropdownItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     paddingHorizontal: 14,
-    borderRadius: 12,
-    marginBottom: 4,
+    borderRadius: radii.lg,
+    marginBottom: spacing.xs,
   },
   dropdownItemRowSelected: {
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.mint,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
+    borderColor: colors.mintBorder,
   },
   itemRowLeft: { flexDirection: 'row', alignItems: 'center' },
-  dropdownItemText: { fontFamily: 'Inter', fontSize: 15, fontWeight: '600', color: '#334155' },
-  dropdownItemTextSelected: { fontWeight: '700', color: '#1D7C72' },
+  dropdownItemText: { fontFamily: typography.family, fontSize: 15, fontWeight: typography.weight.semibold, color: colors.foreground },
+  dropdownItemTextSelected: { fontWeight: typography.weight.bold, color: colors.primaryDark },
 
   // Exact Subscription Plan Modal
   planModalOverlay: {
@@ -1083,20 +1081,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.xl,
   },
   planModalContent: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 28,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 20,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xl,
     position: 'relative',
     overflow: 'hidden',
     elevation: 12,
-    shadowColor: '#0F172A',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
@@ -1118,10 +1116,10 @@ const styles = StyleSheet.create({
     right: 20,
     width: 32,
     height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
     borderWidth: 1.5,
-    borderColor: '#99F6E4',
+    borderColor: colors.mintBorder,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
@@ -1129,36 +1127,36 @@ const styles = StyleSheet.create({
   planCrownBox: {
     width: 48,
     height: 48,
-    borderRadius: 16,
-    backgroundColor: '#F9A91F',
+    borderRadius: radii.xl,
+    backgroundColor: colors.warning,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
-    marginTop: 4,
+    marginBottom: spacing.lg,
+    marginTop: spacing.xs,
     elevation: 4,
-    shadowColor: '#F9A91F',
+    shadowColor: colors.warning,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
   },
   planModalTitle: {
-    fontFamily: 'Inter', fontSize: 24,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.display,
+    fontWeight: typography.weight.extrabold,
+    color: colors.text,
     letterSpacing: -0.3,
   },
   planModalSubtitle: {
-    fontFamily: 'Inter', fontSize: 14,
-    color: '#64748B',
-    marginTop: 6,
-    marginBottom: 20,
+    fontFamily: typography.family, fontSize: typography.size.body,
+    color: colors.muted,
+    marginTop: spacing.tiny,
+    marginBottom: spacing.xl,
     lineHeight: 20,
   },
   activePlanCard: {
     backgroundColor: '#FFFDF0',
     borderRadius: 20,
-    padding: 20,
-    marginBottom: 24,
+    padding: spacing.xl,
+    marginBottom: spacing.xxl,
   },
   planCardHeaderRow: {
     flexDirection: 'row',
@@ -1166,35 +1164,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   planNameText: {
-    fontFamily: 'Inter', fontSize: 22,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.heading,
+    fontWeight: typography.weight.extrabold,
+    color: colors.text,
   },
   activePillTag: {
-    backgroundColor: '#D1FAE5',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: colors.successSoft,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.lg,
   },
   activePillText: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '700',
-    color: '#059669',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.bold,
+    color: colors.successDark,
   },
   planSubLabel: {
-    fontFamily: 'Inter', fontSize: 14,
-    color: '#64748B',
-    marginTop: 6,
-    fontWeight: '400',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    color: colors.muted,
+    marginTop: spacing.tiny,
+    fontWeight: typography.weight.regular,
   },
 
   detailsListBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderRadius: 20,
-    padding: 16,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    marginBottom: 16,
+    borderColor: colors.secondary,
+    marginBottom: spacing.lg,
   },
   detailsGrid2Col: {
     flexDirection: 'row',
@@ -1206,30 +1204,30 @@ const styles = StyleSheet.create({
     width: '48%',
   },
   detailLabel: {
-    fontFamily: 'Inter', fontSize: 14,
-    fontWeight: '700',
-    color: '#1E293B',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    fontWeight: typography.weight.bold,
+    color: colors.foreground,
     marginBottom: 2,
   },
   detailValue: {
-    fontFamily: 'Inter', fontSize: 14,
-    color: '#64748B',
-    fontWeight: '400',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    color: colors.muted,
+    fontWeight: typography.weight.regular,
   },
   planNoticeBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#F0FDFA',
+    gap: spacing.md,
+    backgroundColor: colors.mint,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
-    borderRadius: 16,
+    borderColor: colors.mintBorder,
+    borderRadius: radii.xl,
     padding: 14,
   },
   planNoticeText: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '500',
-    color: '#1D7C72',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.medium,
+    color: colors.primaryDark,
     flex: 1,
     lineHeight: 18,
   },

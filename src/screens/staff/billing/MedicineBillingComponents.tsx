@@ -1,3 +1,4 @@
+import { colors } from '../../../theme/tokens';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { X } from 'lucide-react-native';
@@ -39,7 +40,7 @@ export function MetricCard({
 export function BillMetric({
   label,
   value,
-  valueColor = '#0F172A',
+  valueColor = colors.text,
 }: {
   label: string;
   value: string;
@@ -88,7 +89,7 @@ export function ModalHeader({
         <Text style={styles.modalTitle}>{title}</Text>
       </View>
       <TouchableOpacity onPress={onClose} style={styles.close}>
-        <X size={18} color="#475569" />
+        <X size={18} color={colors.muted} />
       </TouchableOpacity>
     </View>
   );

@@ -1,18 +1,21 @@
+import { colors, spacing } from '../../theme/tokens';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { styles } from './styles/NotificationsCenterScreen.styles';
 // Exact Web Mobile Responsive Parity - Notifications Center
 import { AppModal } from '../../components/common/AppModal';
+import { LiquidBorderTouchable } from '../../components/common/LiquidBorderSurface';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   RefreshControl,
-  ScrollView,
   Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import {
   Bell,
   CheckCircle2,
@@ -476,9 +479,44 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
         ? <PatientHeader onOpenDrawer={onOpenDrawer} unreadCount={unreadCount} />
         : <StaffHeader onOpenDrawer={onOpenDrawer} title="Notification Management" hideClinicBanner={true} />}
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#27a599']} />}>
+      <FlatList
+        data={activeTab === 'history' && !loading ? filteredHistory : []}
+        keyExtractor={item => `notif-${item.not_rec_id}`}
+        renderItem={({ item }) => {
+          const isRead = boolFromApi(item.is_read);
+          return (
+            <LiquidBorderTouchable
+              activeOpacity={0.8}
+              onPress={() => handleNotificationOpen(item)}
+              radius={16}
+              style={[styles.notifCard, isRead ? styles.notifCardRead : styles.notifCardUnread]}>
+              <View style={styles.notifCardTopRow}>
+                <View style={{ flex: 1, paddingRight: spacing.sm }}>
+                  <Text style={styles.notifCardTitle}>{item.not_cat_name || item.title || 'Notification'}</Text>
+                  <Text style={styles.notifCardDate}>{formatDateTime(item.sent_at || item.created_at)}</Text>
+                </View>
+                <View style={[styles.notifPillBadge, isRead && styles.notifPillBadgeRead]}>
+                  <Text style={[styles.notifPillBadgeText, isRead && styles.notifPillBadgeReadText]}>
+                    {isRead ? 'Read' : 'Unread'}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.notifCardMessage}>{item.message || '-'}</Text>
+              <View style={styles.notifCardFooterRow}>
+                <Text style={styles.notifToLabel}>
+                  To: <Text style={styles.notifToName}>{item.recipient_name || '-'}</Text>
+                </Text>
+                <View style={styles.notifRolePill}>
+                  <Text style={styles.notifRolePillText}>
+                    {item.role_name ? prettifyRoleName(String(item.role_name)) : '-'}
+                  </Text>
+                </View>
+              </View>
+            </LiquidBorderTouchable>
+          );
+        }}
+        ItemSeparatorComponent={() => <View style={styles.notifListSeparator} />}
+        ListHeaderComponent={<View>
         {/* 1. Page Header (Exact Screenshot Match) */}
         <View style={styles.pageHeader}>
           <Text style={styles.pageTitle}>Notification Management</Text>
@@ -521,7 +559,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
 
         {loading ? (
           <View style={styles.loaderBox}>
-            <ActivityIndicator size="large" color="#27a599" />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.loadingText}>Loading notification data...</Text>
           </View>
         ) : (
@@ -545,7 +583,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                     activeOpacity={0.8}
                     disabled={saving || !unreadCount}
                     onPress={handleMarkAllRead}>
-                    <CheckCircle2 size={18} color="#0f172a" style={{ marginRight: 8 }} />
+                    <CheckCircle2 size={18} color={colors.text} style={{ marginRight: spacing.sm }} />
                     <Text style={styles.markAllReadText}>Mark All Read</Text>
                 </TouchableOpacity>
 
@@ -555,24 +593,24 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                     activeOpacity={0.8}
                     disabled={saving || history.length === 0}
                     onPress={handleClearHistory}>
-                    <Trash2 size={18} color="#dc2626" style={{ marginRight: 8 }} />
+                    <Trash2 size={18} color={colors.destructive} style={{ marginRight: spacing.sm }} />
                     <Text style={styles.clearHistoryText}>Clear History</Text>
                   </TouchableOpacity>
                 )}
 
                 {/* Search Box (Exact Screenshot Match) */}
                 <View style={styles.searchBox}>
-                  <Search size={18} color="#94a3b8" style={{ marginRight: 10 }} />
+                  <Search size={18} color={colors.subtle} style={{ marginRight: 10 }} />
                   <TextInput
                     style={styles.searchInput}
                     placeholder="Search..."
-                    placeholderTextColor="#94a3b8"
+                    placeholderTextColor={colors.subtle}
                     value={searchText}
                     onChangeText={setSearchText}
                   />
                   {searchText.length > 0 && (
                     <TouchableOpacity onPress={() => setSearchText('')}>
-                      <X size={16} color="#94a3b8" />
+                      <X size={16} color={colors.subtle} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -587,75 +625,20 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                       ? 'All Roles'
                       : roles.find(r => String(r.role_id) === historyRoleFilter)?.role_name || historyRoleFilter}
                   </Text>
-                  <ChevronDown size={18} color="#64748b" />
+                  <ChevronDown size={18} color={colors.muted} />
                 </TouchableOpacity>
 
                 {/* All Status Selector (Exact Screenshot Match) */}
                 <TouchableOpacity
-                  style={[styles.selectTriggerBox, { marginBottom: 16 }]}
+                  style={[styles.selectTriggerBox, { marginBottom: spacing.lg }]}
                   activeOpacity={0.8}
                   onPress={() => setStatusModalVisible(true)}>
                   <Text style={styles.selectTriggerText}>
                     {statusFilter === 'all' ? 'All Status' : statusFilter === 'read' ? 'Read' : 'Unread'}
                   </Text>
-                  <ChevronDown size={18} color="#64748b" />
+                  <ChevronDown size={18} color={colors.muted} />
                 </TouchableOpacity>
 
-                {/* Notification Cards List (Exact Screenshot Card Match) */}
-                <View style={styles.cardsList}>
-                  {filteredHistory.map(item => {
-                    const isRead = boolFromApi(item.is_read);
-                    return (
-                      <TouchableOpacity
-                        key={`notif-${item.not_rec_id}`}
-                        activeOpacity={0.8}
-                        onPress={() => handleNotificationOpen(item)}
-                        style={[
-                          styles.notifCard,
-                          isRead ? styles.notifCardRead : styles.notifCardUnread,
-                        ]}>
-                        {/* Top: Category Title & Date on Left, Badge on Right */}
-                        <View style={styles.notifCardTopRow}>
-                          <View style={{ flex: 1, paddingRight: 8 }}>
-                            <Text style={styles.notifCardTitle}>
-                              {item.not_cat_name || item.title || 'Notification'}
-                            </Text>
-                            <Text style={styles.notifCardDate}>
-                              {formatDateTime(item.sent_at || item.created_at)}
-                            </Text>
-                          </View>
-                          <View style={[styles.notifPillBadge, isRead && styles.notifPillBadgeRead]}>
-                            <Text style={[styles.notifPillBadgeText, isRead && styles.notifPillBadgeReadText]}>
-                              {isRead ? 'Read' : 'Unread'}
-                            </Text>
-                          </View>
-                        </View>
-
-                        {/* Message Body */}
-                        <Text style={styles.notifCardMessage}>{item.message || '-'}</Text>
-
-                        {/* Divider & Footer: To Name on Left, Role Pill adjacent */}
-                        <View style={styles.notifCardFooterRow}>
-                          <Text style={styles.notifToLabel}>
-                            To: <Text style={styles.notifToName}>{item.recipient_name || '-'}</Text>
-                          </Text>
-                          <View style={styles.notifRolePill}>
-                            <Text style={styles.notifRolePillText}>
-                              {item.role_name ? prettifyRoleName(String(item.role_name)) : '-'}
-                            </Text>
-                          </View>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-
-                  {filteredHistory.length === 0 && (
-                    <View style={styles.emptyCard}>
-                      <Bell size={36} color="#cbd5e1" style={{ marginBottom: 10 }} />
-                      <Text style={styles.emptyText}>No notifications found.</Text>
-                    </View>
-                  )}
-                </View>
               </View>
             )}
 
@@ -673,7 +656,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                         <Text style={styles.categoryLabel}>Category: </Text>
                         <Text style={styles.categoryValue}>{cat.not_cat_name || '-'}</Text>
                       </Text>
-                      <Text style={[styles.categoryLine, { marginTop: 6 }]}>
+                      <Text style={[styles.categoryLine, { marginTop: spacing.tiny }]}>
                         <Text style={styles.categoryLabel}>Description: </Text>
                         <Text style={styles.categoryValue}>{cat.description || '-'}</Text>
                       </Text>
@@ -693,11 +676,11 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
             {/* TAB 3: USER SUBSCRIPTIONS (EXACT SCREENSHOT REPLICA) */}
             {/* ═════════════════════════════════════════════════════════════════ */}
             {activeTab === 'subscriptions' && (
-              <View style={{ gap: 16 }}>
+              <View style={{ gap: spacing.lg }}>
                 {/* Header Block (Exact Screenshot: Bell + Title, Subtitle, Full-Width Refresh) */}
-                <View style={{ marginBottom: 4 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                    <Bell size={24} color="#0f172a" />
+                <View style={{ marginBottom: spacing.xs }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: spacing.xs }}>
+                    <Bell size={24} color={colors.text} />
                     <Text style={styles.cardHeaderTitle}>User Subscriptions</Text>
                   </View>
                   <Text style={[styles.pageSubtitle, { marginTop: 0, marginBottom: 14 }]}>
@@ -709,11 +692,11 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                 <View style={styles.mainWhiteCard}>
                   {/* Search Box (Exact Screenshot Match) */}
                   <View style={styles.searchBox}>
-                    <Search size={18} color="#94a3b8" style={{ marginRight: 10 }} />
+                    <Search size={18} color={colors.subtle} style={{ marginRight: 10 }} />
                     <TextInput
                       style={styles.searchInput}
                       placeholder="Search by name..."
-                      placeholderTextColor="#94a3b8"
+                      placeholderTextColor={colors.subtle}
                       value={subscriptionSearch}
                       onChangeText={setSubscriptionSearch}
                     />
@@ -729,12 +712,12 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                         ? 'All Clinics'
                         : clinicOptions.find(c => c.id === subscriptionClinicFilter)?.name || subscriptionClinicFilter}
                     </Text>
-                    <ChevronDown size={18} color="#64748b" />
+                    <ChevronDown size={18} color={colors.muted} />
                   </TouchableOpacity>
 
                   {/* All Roles Selector (Full Width, Exact Screenshot Match) */}
                   <TouchableOpacity
-                    style={[styles.selectTriggerBox, { marginBottom: 16 }]}
+                    style={[styles.selectTriggerBox, { marginBottom: spacing.lg }]}
                     activeOpacity={0.8}
                     onPress={() => setSubRoleModalVisible(true)}>
                     <Text style={styles.selectTriggerText}>
@@ -744,7 +727,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                           ? 'Staff'
                           : 'Patient'}
                     </Text>
-                    <ChevronDown size={18} color="#64748b" />
+                    <ChevronDown size={18} color={colors.muted} />
                   </TouchableOpacity>
 
                   {/* Subscription Cards List */}
@@ -752,7 +735,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                     {paginatedSubscriptionUsers.map(item => (
                       <View key={`sub-user-${item.key}`} style={styles.subUserCardBox}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <View style={{ flex: 1, paddingRight: 8 }}>
+                          <View style={{ flex: 1, paddingRight: spacing.sm }}>
                             <Text style={styles.subUserName}>{item.userName}</Text>
                             <Text style={styles.subUserClinic}>{item.clinicName}</Text>
                           </View>
@@ -767,12 +750,12 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                             {Array.from(new Set(item.rows.map(r => r.not_cat_name).filter(Boolean))).join(', ') || '-'}
                           </Text>
 
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 10 }}>
                             <View style={styles.systemPill}>
                               <Text style={styles.systemPillText}>{item.rows.length} System</Text>
                             </View>
                             <View style={styles.activePill}>
-                              <Bell size={13} color="#047857" style={{ marginRight: 4 }} />
+                              <Bell size={13} color="#047857" style={{ marginRight: spacing.xs }} />
                               <Text style={styles.activePillText}>{item.activeCount} Active</Text>
                             </View>
                           </View>
@@ -802,7 +785,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                         {Math.min(subscriptionPage * SUBSCRIPTION_USERS_PAGE_SIZE, filteredSubscriptionUsers.length)} of{' '}
                         {filteredSubscriptionUsers.length} users
                       </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                         <TouchableOpacity
                           style={[styles.pageNavBtn, subscriptionPage <= 1 && styles.disabledButton]}
                           disabled={subscriptionPage <= 1}
@@ -825,7 +808,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
 
                 {/* Delivery Logs Card (Exact Screenshot Match) */}
                 {canManageNotificationAdmin && (
-                  <View style={[styles.mainWhiteCard, { marginTop: 16 }]}>
+                  <View style={[styles.mainWhiteCard, { marginTop: spacing.lg }]}>
                     <Text style={styles.cardHeaderTitle}>Delivery Logs</Text>
 
                     {/* All Roles Selector (Full Width, Exact Screenshot Match) */}
@@ -838,7 +821,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                           ? 'All Roles'
                           : roles.find(r => String(r.role_id) === logRoleFilter)?.role_name || logRoleFilter}
                       </Text>
-                      <ChevronDown size={18} color="#64748b" />
+                      <ChevronDown size={18} color={colors.muted} />
                     </TouchableOpacity>
 
                     {/* Delivery Log Cards List (Exact Screenshot Match) */}
@@ -847,7 +830,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                         <View key={`log-${log.not_log_id}`} style={styles.deliveryLogCard}>
                           {/* Top: Role Name and Sent At on Left, Status Badge on Right */}
                           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <View style={{ flex: 1, paddingRight: 8 }}>
+                            <View style={{ flex: 1, paddingRight: spacing.sm }}>
                               <Text style={styles.subUserName}>
                                 {log.role_name ? prettifyRoleName(String(log.role_name)) : log.user_type || 'Recipient'}
                               </Text>
@@ -860,7 +843,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
 
                           {/* 2x2 Meta Grid (Exact Screenshot Match) */}
                           <View style={styles.logGridBox}>
-                            <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+                            <View style={{ flexDirection: 'row', marginBottom: spacing.md }}>
                               <View style={{ flex: 1 }}>
                                 <Text style={styles.logMetaLabel}>Role ID</Text>
                                 <Text style={styles.logMetaVal}>{log.role_id ?? '-'}</Text>
@@ -896,7 +879,19 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
             )}
           </>
         )}
-      </ScrollView>
+        </View>}
+        ListEmptyComponent={loading || activeTab !== 'history' ? undefined : (
+          <View style={styles.emptyCard}>
+            <Bell size={36} color={colors.input} style={{ marginBottom: 10 }} />
+            <Text style={styles.emptyText}>No notifications found.</Text>
+          </View>
+        )}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={7}
+      />
 
       {/* ═════════════════════════════════════════════════════════════════ */}
       {/* MODAL 1: MANAGE USER SUBSCRIPTIONS */}
@@ -913,7 +908,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
             {selectedSubscriptionUser && (
               <>
                 <View style={styles.dialogHeader}>
-                  <View style={{ flex: 1, paddingRight: 8 }}>
+                  <View style={{ flex: 1, paddingRight: spacing.sm }}>
                     <Text style={styles.dialogTitle}>
                       Manage Subscriptions - {selectedSubscriptionUser.userName}
                     </Text>
@@ -923,16 +918,16 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                   </View>
                   <TouchableOpacity
                     onPress={() => setSelectedSubscriptionUserKey(null)}
-                    style={{ padding: 4 }}>
-                    <X size={20} color="#64748b" />
+                    style={{ padding: spacing.xs }}>
+                    <X size={20} color={colors.muted} />
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView style={{ maxHeight: 380, padding: 16 }}>
+                <LiquidBorderScrollView style={{ maxHeight: 380, padding: spacing.lg }}>
                   {selectedSubscriptionCategories.map(cat => (
                     <View key={`cat-sec-${cat.categoryName}`} style={styles.categoryGroupBox}>
                       <Text style={styles.categoryGroupTitle}>{cat.categoryName}</Text>
-                      <View style={{ backgroundColor: '#ffffff' }}>
+                      <View style={{ backgroundColor: colors.surface }}>
                         {cat.rows.map(({ item, index }) => {
                           const key = getSubscriptionRowKey(item, index);
                           return (
@@ -943,8 +938,8 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                                 onValueChange={checked =>
                                   setSubscriptionDraft(prev => ({ ...prev, [key]: checked }))
                                 }
-                                trackColor={{ false: '#e2e8f0', true: '#0f172a' }}
-                                thumbColor="#ffffff"
+                                trackColor={{ false: colors.border, true: colors.primary }}
+                                thumbColor={colors.surface}
                               />
                             </View>
                           );
@@ -952,7 +947,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                       </View>
                     </View>
                   ))}
-                </ScrollView>
+                </LiquidBorderScrollView>
 
                 {/* Sub Modal Pagination */}
                 <View style={styles.dialogPaginationRow}>
@@ -964,7 +959,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                     )}{' '}
                     of {selectedSubscriptionRows.length} messages
                   </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                     <TouchableOpacity
                       style={[styles.pageNavBtn, modalSubscriptionPage <= 1 && styles.disabledButton]}
                       disabled={modalSubscriptionPage <= 1}
@@ -998,7 +993,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                     disabled={saving}
                     onPress={handleUpdateSubscriptionModal}>
                     {saving ? (
-                      <ActivityIndicator size="small" color="#ffffff" />
+                      <ActivityIndicator size="small" color={colors.surface} />
                     ) : (
                       <Text style={styles.dialogSaveBtnText}>Update Subscription</Text>
                     )}
@@ -1022,7 +1017,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
           onPress={() => setRoleModalVisible(false)}>
           <View style={styles.pickerCard}>
             <Text style={styles.pickerHeaderTitle}>Select Role</Text>
-            <ScrollView style={{ maxHeight: 260 }}>
+            <LiquidBorderScrollView style={{ maxHeight: 260 }}>
               <TouchableOpacity
                 style={[styles.pickerItemRow, historyRoleFilter === 'all' && styles.pickerItemRowActive]}
                 onPress={() => {
@@ -1042,7 +1037,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                   <Text style={styles.pickerItemText}>{r.role_name}</Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </LiquidBorderScrollView>
           </View>
         </TouchableOpacity>
       </AppModal>
@@ -1088,7 +1083,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
           onPress={() => setClinicModalVisible(false)}>
           <View style={styles.pickerCard}>
             <Text style={styles.pickerHeaderTitle}>Select Clinic</Text>
-            <ScrollView style={{ maxHeight: 260 }}>
+            <LiquidBorderScrollView style={{ maxHeight: 260 }}>
               <TouchableOpacity
                 style={[styles.pickerItemRow, subscriptionClinicFilter === 'all' && styles.pickerItemRowActive]}
                 onPress={() => {
@@ -1108,7 +1103,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                   <Text style={styles.pickerItemText}>{c.name}</Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </LiquidBorderScrollView>
           </View>
         </TouchableOpacity>
       </AppModal>
@@ -1154,7 +1149,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
           onPress={() => setLogRoleModalVisible(false)}>
           <View style={styles.pickerCard}>
             <Text style={styles.pickerHeaderTitle}>Select Role</Text>
-            <ScrollView style={{ maxHeight: 260 }}>
+            <LiquidBorderScrollView style={{ maxHeight: 260 }}>
               <TouchableOpacity
                 style={[styles.pickerItemRow, logRoleFilter === 'all' && styles.pickerItemRowActive]}
                 onPress={() => {
@@ -1174,7 +1169,7 @@ export const NotificationsCenterScreen: React.FC<Props> = ({
                   <Text style={styles.pickerItemText}>{r.role_name}</Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </LiquidBorderScrollView>
           </View>
         </TouchableOpacity>
       </AppModal>

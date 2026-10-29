@@ -1,6 +1,8 @@
+import { colors, radii, spacing, typography } from '../../../theme/tokens';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AppModal } from '../../../components/common/AppModal';
-import { ActivityIndicator, Alert, NativeModules, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, NativeModules, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { LiquidBorderScrollView } from '../../../components/common/LiquidBorderScrollView';
 import {
   AlertCircle,
   CalendarDays,
@@ -332,7 +334,7 @@ function SummaryRow({
   return (
     <View style={styles.summaryRow}>
       <View style={styles.summaryIcon}>
-        <Icon size={16} color="#27A599" />
+        <Icon size={16} color={colors.primary} />
       </View>
       <View style={styles.summaryCopy}>
         <Text style={styles.eyebrow}>{title}</Text>
@@ -641,24 +643,24 @@ export function PatientMedicalHistoryModal({
               </View>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeIcon}>
-              <X size={18} color="#FFFFFF" />
+              <X size={18} color={colors.surface} />
             </TouchableOpacity>
           </View>
 
           {!loading && history ? (
             <View style={styles.filters}>
               <View style={styles.searchBox}>
-                <Search size={15} color="#94A3B8" />
+                <Search size={15} color={colors.subtle} />
                 <TextInput
                   value={query}
                   onChangeText={setQuery}
                   placeholder="Search visits, diagnosis, medicines, lab tests..."
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.subtle}
                   style={styles.searchInput}
                 />
                 {query ? (
                   <TouchableOpacity onPress={() => setQuery('')}>
-                    <X size={14} color="#64748B" />
+                    <X size={14} color={colors.muted} />
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -677,7 +679,7 @@ export function PatientMedicalHistoryModal({
                         ? 'Visits only'
                         : 'Lab reports only'}
                     </Text>
-                    <ChevronDown size={14} color="#64748B" />
+                    <ChevronDown size={14} color={colors.muted} />
                   </TouchableOpacity>
                   {openFilter === 'record' ? (
                     <View style={styles.dropdown}>
@@ -718,7 +720,7 @@ export function PatientMedicalHistoryModal({
                           ?.label
                       }
                     </Text>
-                    <ChevronDown size={14} color="#64748B" />
+                    <ChevronDown size={14} color={colors.muted} />
                   </TouchableOpacity>
                   {openFilter === 'date' ? (
                     <View style={[styles.dropdown, styles.dropdownRight]}>
@@ -748,13 +750,13 @@ export function PatientMedicalHistoryModal({
                     medical records match
                   </Text>
                   <TouchableOpacity style={styles.reset} onPress={resetFilters}>
-                    <RotateCcw size={12} color="#27A599" />
+                    <RotateCcw size={12} color={colors.primary} />
                     <Text style={styles.resetText}>Reset filters</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <View style={styles.filterSummary}>
-                  <SlidersHorizontal size={12} color="#94A3B8" />
+                  <SlidersHorizontal size={12} color={colors.subtle} />
                   <Text style={styles.filterNote}>
                     Filter by record type or date
                   </Text>
@@ -765,7 +767,7 @@ export function PatientMedicalHistoryModal({
 
           {loading ? (
             <View style={styles.loading}>
-              <ActivityIndicator size="large" color="#27A599" />
+              <ActivityIndicator size="large" color={colors.primary} />
               <Text style={styles.sectionTitle}>
                 Loading medical history...
               </Text>
@@ -774,7 +776,7 @@ export function PatientMedicalHistoryModal({
               </Text>
             </View>
           ) : (
-            <ScrollView
+            <LiquidBorderScrollView
               style={styles.content}
               contentContainerStyle={styles.contentInner}
               showsVerticalScrollIndicator
@@ -791,7 +793,7 @@ export function PatientMedicalHistoryModal({
                 </View>
               ) : filtersActive && recordsCount === 0 ? (
                 <View style={styles.empty}>
-                  <Search size={26} color="#94A3B8" />
+                  <Search size={26} color={colors.subtle} />
                   <Text style={styles.emptyTitle}>
                     No matching medical records
                   </Text>
@@ -799,7 +801,7 @@ export function PatientMedicalHistoryModal({
                     Try changing your search, record type, or date filter.
                   </Text>
                   <TouchableOpacity onPress={resetFilters} style={styles.reset}>
-                    <RotateCcw size={13} color="#27A599" />
+                    <RotateCcw size={13} color={colors.primary} />
                     <Text style={styles.resetText}>Clear filters</Text>
                   </TouchableOpacity>
                 </View>
@@ -809,7 +811,7 @@ export function PatientMedicalHistoryModal({
                     <>
                       <View style={styles.sectionTitleRow}>
                         <View style={styles.sectionIcon}>
-                          <HeartPulse size={17} color="#27A599" />
+                          <HeartPulse size={17} color={colors.primary} />
                         </View>
                         <View style={styles.sectionCopy}>
                           <Text style={styles.sectionTitle}>
@@ -850,7 +852,7 @@ export function PatientMedicalHistoryModal({
                     <>
                       <View style={styles.sectionTitleRow}>
                         <View style={styles.sectionIcon}>
-                          <Stethoscope size={17} color="#27A599" />
+                          <Stethoscope size={17} color={colors.primary} />
                         </View>
                         <View style={styles.sectionCopy}>
                           <Text style={styles.sectionTitle}>Visit history</Text>
@@ -878,21 +880,21 @@ export function PatientMedicalHistoryModal({
                                 </Text>
                               </View>
                               <View style={styles.recordMeta}>
-                                <CalendarDays size={12} color="#64748B" />
+                                <CalendarDays size={12} color={colors.muted} />
                                 <Text style={styles.recordMetaText}>
                                   {dateTime(
                                     visit.appointment_date,
                                     visit.appointment_time,
                                   )}
                                 </Text>
-                                <Stethoscope size={12} color="#64748B" />
+                                <Stethoscope size={12} color={colors.muted} />
                                 <Text style={styles.recordMetaText}>
                                   {formatDoctorName(visit.doctor_name)}
                                 </Text>
                               </View>
                               {visit.prescription_id ? (
                                 <Text style={styles.prescriptionBadge}>
-                                  <FileText size={11} color="#27A599" />{' '}
+                                  <FileText size={11} color={colors.primary} />{' '}
                                   Prescription #{visit.prescription_id}
                                 </Text>
                               ) : null}
@@ -900,7 +902,7 @@ export function PatientMedicalHistoryModal({
                             <View style={styles.recordBody}>
                               {visit.notes ? (
                                 <View style={styles.notes}>
-                                  <AlertCircle size={14} color="#D97706" />
+                                  <AlertCircle size={14} color={colors.warning} />
                                   <Text style={styles.notesText}>
                                     {visit.notes}
                                   </Text>
@@ -926,7 +928,7 @@ export function PatientMedicalHistoryModal({
                               {visit.medicines?.length ? (
                                 <View style={styles.subSection}>
                                   <View style={styles.subHeader}>
-                                    <Pill size={15} color="#27A599" />
+                                    <Pill size={15} color={colors.primary} />
                                     <Text style={styles.subTitle}>
                                       Prescribed medicines
                                     </Text>
@@ -977,7 +979,7 @@ export function PatientMedicalHistoryModal({
                     <>
                       <View style={styles.sectionTitleRow}>
                         <View style={styles.sectionIcon}>
-                          <FlaskConical size={17} color="#27A599" />
+                          <FlaskConical size={17} color={colors.primary} />
                         </View>
                         <View style={styles.sectionCopy}>
                           <Text style={styles.sectionTitle}>Lab reports</Text>
@@ -1041,9 +1043,9 @@ export function PatientMedicalHistoryModal({
                                   }
                                 >
                                   {expanded ? (
-                                    <ChevronUp size={14} color="#27A599" />
+                                    <ChevronUp size={14} color={colors.primary} />
                                   ) : (
-                                    <Eye size={14} color="#475569" />
+                                    <Eye size={14} color={colors.muted} />
                                   )}
                                   <Text
                                     style={[
@@ -1060,7 +1062,7 @@ export function PatientMedicalHistoryModal({
                                   <View style={styles.reportPrintableCard}>
                                   <View style={styles.reportExpandedHeader}>
                                     <View style={styles.reportFileIcon}>
-                                      <FileText size={18} color="#27A599" />
+                                      <FileText size={18} color={colors.primary} />
                                     </View>
                                     <View style={styles.reportExpandedCopy}>
                                       <View style={styles.recordTitleRow}>
@@ -1081,14 +1083,14 @@ export function PatientMedicalHistoryModal({
                                       disabled={printing === String(report.lab_test_id)}
                                       style={styles.reportActionButton}
                                       onPress={() => void printReport(report)}>
-                                      {printing === String(report.lab_test_id) ? <ActivityIndicator size="small" color="#27A599" /> : <Printer size={13} color="#475569" />}
+                                      {printing === String(report.lab_test_id) ? <ActivityIndicator size="small" color={colors.primary} /> : <Printer size={13} color={colors.muted} />}
                                       <Text style={styles.reportActionText}>Print</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                       disabled={downloading === String(report.lab_test_id)}
                                       style={styles.reportActionButton}
                                       onPress={() => void reportPdf(report)}>
-                                      {downloading === String(report.lab_test_id) ? <ActivityIndicator size="small" color="#27A599" /> : <Download size={13} color="#475569" />}
+                                      {downloading === String(report.lab_test_id) ? <ActivityIndicator size="small" color={colors.primary} /> : <Download size={13} color={colors.muted} />}
                                       <Text style={styles.reportActionText}>Download</Text>
                                     </TouchableOpacity>
                                   </View>
@@ -1131,7 +1133,7 @@ export function PatientMedicalHistoryModal({
                                         <Text style={styles.recordMetaText}>{rows.length} parameters recorded</Text>
                                       </View>
                                       <View style={styles.resultTotalPill}>
-                                        <IndianRupee size={13} color="#27A599" />
+                                        <IndianRupee size={13} color={colors.primary} />
                                         <Text style={styles.recordMetaText}>Total:</Text>
                                         <Text style={styles.resultTotalValue}>{Number(report.price || 0).toFixed(2)}</Text>
                                       </View>
@@ -1196,7 +1198,7 @@ export function PatientMedicalHistoryModal({
                   ) : null}
                 </>
               )}
-            </ScrollView>
+            </LiquidBorderScrollView>
           )}
 
           <View style={styles.footer}>
@@ -1206,7 +1208,7 @@ export function PatientMedicalHistoryModal({
                 disabled={!history || printing === 'history'}
                 style={styles.downloadButton}
                 onPress={() => void printHistory()}>
-                {printing === 'history' ? <ActivityIndicator size="small" color="#27A599" /> : <Printer size={14} color="#475569" />}
+                {printing === 'history' ? <ActivityIndicator size="small" color={colors.primary} /> : <Printer size={14} color={colors.muted} />}
                 <Text style={styles.downloadButtonText}>Print</Text>
               </TouchableOpacity>
             ) : null}
@@ -1217,15 +1219,15 @@ export function PatientMedicalHistoryModal({
                 onPress={() => void downloadHistoryPdf()}
               >
                 {downloading === 'history' ? (
-                  <ActivityIndicator size="small" color="#27A599" />
+                  <ActivityIndicator size="small" color={colors.primary} />
                 ) : (
-                  <Download size={14} color="#475569" />
+                  <Download size={14} color={colors.muted} />
                 )}
                 <Text style={styles.downloadButtonText}>Download PDF</Text>
               </TouchableOpacity>
             ) : null}
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <X size={14} color="#FFFFFF" />
+              <X size={14} color={colors.surface} />
               <Text style={styles.closeText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -1240,7 +1242,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 12,
+    padding: spacing.md,
     backgroundColor: 'rgba(15,23,42,0.68)',
   },
   modal: {
@@ -1248,14 +1250,14 @@ const styles = StyleSheet.create({
     maxWidth: 650,
     overflow: 'hidden',
     borderRadius: 19,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     elevation: 22,
   },
   header: {
     minHeight: 84,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
     padding: 15,
     paddingRight: 58,
     backgroundColor: '#071522',
@@ -1269,31 +1271,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#2DD4BF',
   },
   headerCopy: { flex: 1, minWidth: 0 },
-  title: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 20, fontWeight: '800' },
+  title: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.title, fontWeight: typography.weight.extrabold },
   patientMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 4,
+    gap: spacing.tiny,
+    marginTop: spacing.xs,
   },
   patientName: {
-    fontFamily: 'Inter', maxWidth: '48%',
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
+    fontFamily: typography.family, maxWidth: '48%',
+    color: colors.surface,
+    fontSize: typography.size.micro,
+    fontWeight: typography.weight.bold,
   },
   codeBadge: {
-    fontFamily: 'Inter', overflow: 'hidden',
-    borderRadius: 10,
+    fontFamily: typography.family, overflow: 'hidden',
+    borderRadius: radii.md,
     paddingHorizontal: 7,
     paddingVertical: 3,
     backgroundColor: 'rgba(45,212,191,0.13)',
-    color: '#99F6E4',
+    color: colors.mintBorder,
     fontSize: 8,
-    fontWeight: '700',
+    fontWeight: typography.weight.bold,
   },
-  patientAge: { fontFamily: 'Inter', color: '#CBD5E1', fontSize: 9 },
+  patientAge: { fontFamily: typography.family, color: colors.input, fontSize: 9 },
   closeIcon: {
     position: 'absolute',
     right: 12,
@@ -1309,25 +1311,25 @@ const styles = StyleSheet.create({
   },
   filters: {
     zIndex: 5,
-    gap: 8,
+    gap: spacing.sm,
     padding: 11,
     borderBottomWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   searchBox: {
     minHeight: 37,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 11,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
   },
-  searchInput: { fontFamily: 'Inter', flex: 1, paddingVertical: 5, color: '#334155', fontSize: 11 },
-  filterRow: { flexDirection: 'row', gap: 8 },
+  searchInput: { fontFamily: typography.family, flex: 1, paddingVertical: 5, color: colors.foreground, fontSize: typography.size.xs },
+  filterRow: { flexDirection: 'row', gap: spacing.sm },
   filterCell: { zIndex: 10, flex: 1 },
   filterButton: {
     minHeight: 37,
@@ -1337,29 +1339,29 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 11,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
   },
-  filterText: { fontFamily: 'Inter', flex: 1, color: '#334155', fontSize: 10 },
+  filterText: { fontFamily: typography.family, flex: 1, color: colors.foreground, fontSize: typography.size.micro },
   dropdown: {
     position: 'absolute',
     top: 40,
     left: 0,
     right: 0,
     zIndex: 20,
-    padding: 4,
+    padding: spacing.xs,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 11,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     elevation: 10,
   },
   dropdownRight: { right: 0 },
   dropdownOption: {
     minHeight: 34,
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
   },
   filterSummary: {
     minHeight: 19,
@@ -1368,23 +1370,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 5,
   },
-  filterNote: { fontFamily: 'Inter', color: '#64748B', fontSize: 9 },
-  reset: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  resetText: { fontFamily: 'Inter', color: '#27A599', fontSize: 9, fontWeight: '700' },
+  filterNote: { fontFamily: typography.family, color: colors.muted, fontSize: 9 },
+  reset: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  resetText: { fontFamily: typography.family, color: colors.primary, fontSize: 9, fontWeight: typography.weight.bold },
   content: { flex: 1 },
-  contentInner: { gap: 10, padding: 12, paddingBottom: 20 },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  contentInner: { gap: 10, padding: spacing.md, paddingBottom: spacing.xl },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   empty: {
     minHeight: 260,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: spacing.sm,
     padding: 25,
   },
   emptyTitle: {
-    fontFamily: 'Inter', color: '#334155',
-    fontSize: 13,
-    fontWeight: '800',
+    fontFamily: typography.family, color: colors.foreground,
+    fontSize: typography.size.caption,
+    fontWeight: typography.weight.extrabold,
     textAlign: 'center',
   },
   sectionTitleRow: {
@@ -1401,23 +1403,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 11,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
-    backgroundColor: '#F0FDFA',
+    borderColor: colors.mintBorder,
+    backgroundColor: colors.mint,
   },
   sectionCopy: { flex: 1, minWidth: 0 },
-  sectionTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 18, fontWeight: '800' },
-  sectionSubtitle: { fontFamily: 'Inter', marginTop: 2, color: '#64748B', fontSize: 9 },
+  sectionTitle: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.lg, fontWeight: typography.weight.extrabold },
+  sectionSubtitle: { fontFamily: typography.family, marginTop: 2, color: colors.muted, fontSize: 9 },
   countBadge: {
-    fontFamily: 'Inter', minWidth: 22,
+    fontFamily: typography.family, minWidth: 22,
     height: 22,
     overflow: 'hidden',
-    paddingHorizontal: 6,
+    paddingHorizontal: spacing.tiny,
     paddingTop: 5,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    color: '#64748B',
+    borderRadius: radii.lg,
+    backgroundColor: colors.secondary,
+    color: colors.muted,
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: typography.weight.bold,
     textAlign: 'center',
   },
   summaryRow: {
@@ -1426,63 +1428,63 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     padding: 10,
-    borderRadius: 12,
-    backgroundColor: '#F8FAFC',
+    borderRadius: radii.lg,
+    backgroundColor: colors.background,
   },
   summaryIcon: {
     width: 28,
     height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
   },
   summaryCopy: { flex: 1, minWidth: 0 },
   eyebrow: {
-    fontFamily: 'Inter', color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '800',
+    fontFamily: typography.family, color: colors.subtle,
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.extrabold,
     letterSpacing: 0.7,
     textTransform: 'uppercase',
   },
   summaryValue: {
-    fontFamily: 'Inter', marginTop: 3,
-    color: '#1E293B',
-    fontSize: 11,
-    fontWeight: '600',
+    fontFamily: typography.family, marginTop: 3,
+    color: colors.foreground,
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
   },
   recordCard: {
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
     elevation: 1,
   },
   expandedCard: { borderColor: '#2DD4BF' },
   recordHead: {
-    gap: 6,
-    padding: 12,
+    gap: spacing.tiny,
+    padding: spacing.md,
     borderBottomWidth: 1,
-    borderColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.secondary,
+    backgroundColor: colors.surface,
   },
   recordTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: spacing.tiny,
   },
-  recordTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 11, fontWeight: '800' },
+  recordTitle: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.xs, fontWeight: typography.weight.extrabold },
   statusBadge: {
-    fontFamily: 'Inter', overflow: 'hidden',
+    fontFamily: typography.family, overflow: 'hidden',
     borderRadius: 9,
     paddingHorizontal: 7,
-    paddingVertical: 4,
+    paddingVertical: spacing.xs,
     backgroundColor: '#ECFDF5',
-    color: '#059669',
+    color: colors.successDark,
     fontSize: 8,
-    fontWeight: '800',
+    fontWeight: typography.weight.extrabold,
     textTransform: 'uppercase',
   },
   recordMeta: {
@@ -1491,49 +1493,49 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 5,
   },
-  recordMetaText: { fontFamily: 'Inter', color: '#64748B', fontSize: 8 },
+  recordMetaText: { fontFamily: typography.family, color: colors.muted, fontSize: 8 },
   prescriptionBadge: {
-    fontFamily: 'Inter', alignSelf: 'flex-start',
+    fontFamily: typography.family, alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
     marginTop: 2,
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 5,
-    borderRadius: 12,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#99F6E4',
-    color: '#1D7C72',
+    borderColor: colors.mintBorder,
+    color: colors.primaryDark,
     fontSize: 8,
   },
-  recordBody: { gap: 9, padding: 12 },
+  recordBody: { gap: 9, padding: spacing.md },
   notes: {
     minHeight: 40,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
-    borderColor: '#FEF3C7',
-    borderRadius: 12,
+    borderColor: colors.warningSoft,
+    borderRadius: radii.lg,
     backgroundColor: '#FFFBEB',
   },
-  notesText: { fontFamily: 'Inter', flex: 1, color: '#78350F', fontSize: 10 },
+  notesText: { fontFamily: typography.family, flex: 1, color: '#78350F', fontSize: typography.size.micro },
   detailBlock: {
     minHeight: 55,
     justifyContent: 'center',
-    gap: 4,
+    gap: spacing.xs,
     padding: 10,
-    borderRadius: 12,
-    backgroundColor: '#F8FAFC',
+    borderRadius: radii.lg,
+    backgroundColor: colors.background,
   },
-  detailValue: { fontFamily: 'Inter', color: '#1E293B', fontSize: 10, lineHeight: 15 },
+  detailValue: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.micro, lineHeight: 15 },
   subSection: {
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
   },
   subHeader: {
     minHeight: 40,
@@ -1542,73 +1544,73 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.secondary,
   },
-  subTitle: { fontFamily: 'Inter', color: '#1E293B', fontSize: 14, fontWeight: '800' },
+  subTitle: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.body, fontWeight: typography.weight.extrabold },
   medicine: {
     gap: 3,
     padding: 10,
     borderBottomWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.secondary,
   },
-  medicineName: { fontFamily: 'Inter', color: '#0F172A', fontSize: 10, fontWeight: '800' },
-  medicineInfo: { fontFamily: 'Inter', color: '#64748B', fontSize: 8 },
-  emptyInline: { fontFamily: 'Inter', padding: 13, color: '#64748B', fontSize: 9 },
+  medicineName: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.micro, fontWeight: typography.weight.extrabold },
+  medicineInfo: { fontFamily: typography.family, color: colors.muted, fontSize: 8 },
+  emptyInline: { fontFamily: typography.family, padding: 13, color: colors.muted, fontSize: 9 },
   reportHead: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    padding: 12,
+    padding: spacing.md,
   },
   reportIcon: {
     width: 37,
     height: 37,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: radii.lg,
     backgroundColor: '#F5F3FF',
   },
-  reportCopy: { flex: 1, minWidth: 0, gap: 4 },
-  reportType: { fontFamily: 'Inter', color: '#64748B', fontSize: 9 },
+  reportCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
+  reportType: { fontFamily: typography.family, color: colors.muted, fontSize: 9 },
   expandButton: {
     minHeight: 36,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: spacing.tiny,
     marginHorizontal: 11,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 11,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
   },
-  expandText: { fontFamily: 'Inter', color: '#475569', fontSize: 10, fontWeight: '700' },
-  expandTextActive: { color: '#27A599' },
+  expandText: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.micro, fontWeight: typography.weight.bold },
+  expandTextActive: { color: colors.primary },
   reportDetails: {
-    gap: 8,
+    gap: spacing.sm,
     padding: 10,
     borderTopWidth: 1,
-    borderColor: '#F1F5F9',
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.secondary,
+    backgroundColor: colors.background,
   },
   reportPrintableCard: {
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
   },
   reportExpandedHeader: {
     minHeight: 66,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.mint,
     borderBottomWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.secondary,
   },
   reportFileIcon: {
     width: 42,
@@ -1616,22 +1618,22 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.mintBorder,
+    backgroundColor: colors.surface,
   },
-  reportExpandedCopy: { flex: 1, minWidth: 0, gap: 4 },
-  reportDetailTitle: { fontFamily: 'Inter', flexShrink: 1, color: '#0F172A', fontSize: 12, fontWeight: '800' },
-  reportDetailSubtitle: { fontFamily: 'Inter', color: '#64748B', fontSize: 9 },
-  abnormalReportStatus: { backgroundColor: '#DC2626', color: '#FFFFFF' },
+  reportExpandedCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
+  reportDetailTitle: { fontFamily: typography.family, flexShrink: 1, color: colors.text, fontSize: typography.size.sm, fontWeight: typography.weight.extrabold },
+  reportDetailSubtitle: { fontFamily: typography.family, color: colors.muted, fontSize: 9 },
+  abnormalReportStatus: { backgroundColor: colors.destructive, color: colors.surface },
   reportActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.mint,
   },
   reportActionButton: {
     minHeight: 36,
@@ -1639,30 +1641,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 8,
+    gap: spacing.tiny,
+    paddingHorizontal: spacing.sm,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 11,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
-  reportActionText: { fontFamily: 'Inter', color: '#475569', fontSize: 10, fontWeight: '700' },
+  reportActionText: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.micro, fontWeight: typography.weight.bold },
   resultSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 6,
+    gap: spacing.tiny,
   },
   resultTotalPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
     paddingHorizontal: 9,
     paddingVertical: 7,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    borderRadius: radii.lg,
+    backgroundColor: colors.secondary,
   },
-  resultTotalValue: { fontFamily: 'Inter', color: '#0F172A', fontSize: 10, fontWeight: '800' },
+  resultTotalValue: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.micro, fontWeight: typography.weight.extrabold },
   downloadSmall: {
     minHeight: 32,
     flexDirection: 'row',
@@ -1670,24 +1672,24 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 9,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.mintBorder,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
   },
-  downloadSmallText: { fontFamily: 'Inter', color: '#27A599', fontSize: 9, fontWeight: '700' },
+  downloadSmallText: { fontFamily: typography.family, color: colors.primary, fontSize: 9, fontWeight: typography.weight.bold },
   resultSection: {
     gap: 7,
     padding: 10,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
   },
   resultRow: {
     gap: 5,
     padding: 9,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 11,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
   },
   resultTop: {
     flexDirection: 'row',
@@ -1702,16 +1704,16 @@ const styles = StyleSheet.create({
   },
   resultMetric: { flex: 1, gap: 3 },
   resultMetricLabel: {
-    fontFamily: 'Inter', color: '#64748B',
+    fontFamily: typography.family, color: colors.muted,
     fontSize: 8,
     textTransform: 'uppercase',
   },
   resultMetricValue: {
-    fontFamily: 'Inter', color: '#0F172A',
-    fontSize: 10,
-    fontWeight: '600',
+    fontFamily: typography.family, color: colors.text,
+    fontSize: typography.size.micro,
+    fontWeight: typography.weight.semibold,
   },
-  resultValue: { fontFamily: 'Inter', color: '#1D7C72', fontSize: 11, fontWeight: '800' },
+  resultValue: { fontFamily: typography.family, color: colors.primaryDark, fontSize: typography.size.xs, fontWeight: typography.weight.extrabold },
   footer: {
     minHeight: 51,
     flexDirection: 'row',
@@ -1720,8 +1722,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderTopWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   downloadButton: {
     minHeight: 36,
@@ -1731,11 +1733,11 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     borderRadius: 11,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
   },
-  downloadButtonText: { fontFamily: 'Inter', color: '#475569', fontSize: 9, fontWeight: '700' },
+  downloadButtonText: { fontFamily: typography.family, color: colors.muted, fontSize: 9, fontWeight: typography.weight.bold },
   closeButton: {
     minWidth: 84,
     minHeight: 36,
@@ -1747,5 +1749,5 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: '#101827',
   },
-  closeText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
+  closeText: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.micro, fontWeight: typography.weight.extrabold },
 });

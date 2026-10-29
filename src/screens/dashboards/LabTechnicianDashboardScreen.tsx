@@ -1,3 +1,4 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,6 +15,7 @@ import { CalendarDays, CheckCircle2, Clock3, IndianRupee, TestTube } from 'lucid
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { useAuthContext } from '../../context/AuthContext';
 import { useLabTechnicianDashboard } from '../../hooks/useLabTechnicianDashboard';
+import { LiquidBorderTouchable } from '../../components/common/LiquidBorderSurface';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -44,7 +46,7 @@ function MetricCard({
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.metricCard}>
+    <LiquidBorderTouchable activeOpacity={0.85} onPress={onPress} style={styles.metricCard}>
       {/* Decorative top-right circle glow */}
       <View style={styles.cardCornerCircle} />
 
@@ -61,7 +63,7 @@ function MetricCard({
           {icon}
         </View>
       </View>
-    </TouchableOpacity>
+    </LiquidBorderTouchable>
   );
 }
 
@@ -126,14 +128,14 @@ function MetricBarChartCard({ title, values, color, isCurrency = false, width }:
                   x2={chartWidth - rightMargin}
                   y1={y}
                   y2={y}
-                  stroke={index === 4 ? '#E2E8F0' : '#F1F5F9'}
+                  stroke={index === 4 ? colors.border : colors.secondary}
                   strokeWidth={1}
                 />
                 <SvgText
                   x={leftMargin - 8}
                   y={y + 4}
                   fontSize="11"
-                  fill="#94A3B8"
+                  fill={colors.subtle}
                   textAnchor="end"
                   fontWeight="500"
                 >
@@ -182,7 +184,7 @@ function MetricBarChartCard({ title, values, color, isCurrency = false, width }:
                   x={leftMargin + slotWidth * index + slotWidth / 2}
                   y={top + plotHeight + 20}
                   fontSize="10"
-                  fill={isSelected ? '#0F172A' : '#94A3B8'}
+                  fill={isSelected ? colors.text : colors.subtle}
                   fontWeight={isSelected ? '700' : '500'}
                   textAnchor="middle"
                   onPress={() => setSelectedIdx(selectedIdx === index ? null : index)}
@@ -196,7 +198,7 @@ function MetricBarChartCard({ title, values, color, isCurrency = false, width }:
                     x={x + barWidth / 2}
                     y={Math.max(12, y - 6)}
                     fontSize="10"
-                    fill="#334155"
+                    fill={colors.foreground}
                     fontWeight="700"
                     textAnchor="middle"
                   >
@@ -230,7 +232,7 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({ onOpenDrawer, on
       <StaffHeader onOpenDrawer={onOpenDrawer} onOpenNotifications={onOpenNotifications} title="Lab Dashboard" />
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#27A599" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}
       >
         {/* ── 1. GREETING & TODAY CARD ── */}
         <View style={styles.greetingSection}>
@@ -244,7 +246,7 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({ onOpenDrawer, on
           {/* Today Date Card */}
           <View style={styles.todayDateCard}>
             <View style={styles.todayIconBox}>
-              <CalendarDays size={22} color="#27A599" strokeWidth={2.2} />
+              <CalendarDays size={22} color={colors.primary} strokeWidth={2.2} />
             </View>
             <View style={styles.todayTextCol}>
               <View style={styles.todayBadgeRow}>
@@ -258,7 +260,7 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({ onOpenDrawer, on
 
         {loading ? (
           <View style={styles.loading}>
-            <ActivityIndicator color="#27A599" />
+            <ActivityIndicator color={colors.primary} />
             <Text style={styles.muted}>Loading lab dashboard…</Text>
           </View>
         ) : null}
@@ -275,29 +277,29 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({ onOpenDrawer, on
               <MetricCard
                 title="Pending Tests"
                 value={String(data.pendingTests)}
-                icon={<Clock3 size={20} color="#27A599" strokeWidth={2.2} />}
-                iconBg="#CCFBF1"
+                icon={<Clock3 size={20} color={colors.primary} strokeWidth={2.2} />}
+                iconBg={colors.mintBorder}
                 onPress={() => onNavigateScreen('/lab/tests?status=pending')}
               />
               <MetricCard
                 title="Completed Today"
                 value={String(data.completedToday)}
-                icon={<CheckCircle2 size={20} color="#2EB877" strokeWidth={2.2} />}
-                iconBg="#DCFCE7"
+                icon={<CheckCircle2 size={20} color={colors.success} strokeWidth={2.2} />}
+                iconBg={colors.successSoft}
                 onPress={() => onNavigateScreen(dayRange)}
               />
               <MetricCard
                 title="Completed This Week"
                 value={String(data.completedWeek)}
-                icon={<TestTube size={20} color="#D97706" strokeWidth={2.2} />}
-                iconBg="#FEF3C7"
+                icon={<TestTube size={20} color={colors.warning} strokeWidth={2.2} />}
+                iconBg={colors.warningSoft}
                 onPress={() => onNavigateScreen(weekRange)}
               />
               <MetricCard
                 title="Weekly Revenue"
                 value={money(data.weeklyRevenue)}
-                icon={<IndianRupee size={20} color="#27A599" strokeWidth={2.2} />}
-                iconBg="#CCFBF1"
+                icon={<IndianRupee size={20} color={colors.primary} strokeWidth={2.2} />}
+                iconBg={colors.mintBorder}
                 onPress={() => onNavigateScreen(weekRange)}
               />
             </View>
@@ -305,7 +307,7 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({ onOpenDrawer, on
             <MetricBarChartCard
               title="Daily Completed Tests · Last 7 Days"
               values={data.dailyCompleted}
-              color="#14B8A6"
+              color={colors.primary}
               width={width}
             />
 
@@ -324,24 +326,24 @@ export const LabTechnicianDashboardScreen: React.FC<Props> = ({ onOpenDrawer, on
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  content: { padding: 16, paddingBottom: 36, gap: 16 },
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing.lg, paddingBottom: 36, gap: spacing.lg },
 
   // Greeting & Date Card
-  greetingSection: { marginBottom: 4 },
-  greetingTitle: { fontFamily: 'Inter', fontSize: 22, fontWeight: '800', color: '#0F172A' },
-  greetingSubtitle: { fontFamily: 'Inter', fontSize: 14, color: '#64748B', marginTop: 4 },
+  greetingSection: { marginBottom: spacing.xs },
+  greetingTitle: { fontFamily: typography.family, fontSize: typography.size.heading, fontWeight: typography.weight.extrabold, color: colors.text },
+  greetingSubtitle: { fontFamily: typography.family, fontSize: typography.size.body, color: colors.muted, marginTop: spacing.xs },
   todayDateCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#99F6E4',
-    borderRadius: 16,
+    borderColor: colors.mintBorder,
+    borderRadius: radii.xl,
     padding: 14,
-    marginTop: 16,
-    gap: 12,
-    shadowColor: '#27A599',
+    marginTop: spacing.lg,
+    gap: spacing.md,
+    shadowColor: colors.primary,
     shadowOpacity: 0.08,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
@@ -350,36 +352,36 @@ const styles = StyleSheet.create({
   todayIconBox: {
     width: 44,
     height: 44,
-    borderRadius: 14,
-    backgroundColor: '#E6FFFA',
+    borderRadius: radii.lg,
+    backgroundColor: colors.mint,
     alignItems: 'center',
     justifyContent: 'center',
   },
   todayTextCol: { flex: 1 },
-  todayBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  greenDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#27A599' },
-  todayBadgeText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '800', color: '#27A599', letterSpacing: 1.4 },
-  todayDateText: { fontFamily: 'Inter', fontSize: 15, fontWeight: '700', color: '#0F172A' },
+  todayBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.tiny, marginBottom: 2 },
+  greenDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: colors.primary },
+  todayBadgeText: { fontFamily: typography.family, fontSize: typography.size.xs, fontWeight: typography.weight.extrabold, color: colors.primary, letterSpacing: 1.4 },
+  todayDateText: { fontFamily: typography.family, fontSize: 15, fontWeight: typography.weight.bold, color: colors.text },
 
   // Metric Cards
   metricGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: spacing.md,
   },
   metricCard: {
     width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     padding: 14,
     minHeight: 126,
     justifyContent: 'space-between',
     position: 'relative',
     overflow: 'hidden',
-    shadowColor: '#0F172A',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -392,7 +394,7 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 38,
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.mint,
   },
   metricContentRow: {
     flexDirection: 'row',
@@ -401,63 +403,63 @@ const styles = StyleSheet.create({
   },
   metricInfoCol: {
     flex: 1,
-    paddingRight: 6,
+    paddingRight: spacing.tiny,
   },
   metricTitle: {
-    fontFamily: 'Inter', color: '#64748B',
-    fontSize: 12,
-    fontWeight: '600',
+    fontFamily: typography.family, color: colors.muted,
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
     lineHeight: 16,
   },
   metricValue: {
-    fontFamily: 'Inter', color: '#0F172A',
-    fontSize: 22,
-    fontWeight: '800',
-    marginTop: 4,
+    fontFamily: typography.family, color: colors.text,
+    fontSize: typography.size.heading,
+    fontWeight: typography.weight.extrabold,
+    marginTop: spacing.xs,
   },
   metricActionWrap: {
     marginTop: 10,
   },
   metricActionText: {
-    fontFamily: 'Inter', fontSize: 12,
-    fontWeight: '700',
-    color: '#27A599',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    fontWeight: typography.weight.bold,
+    color: colors.primary,
   },
   metricIconBox: {
     width: 38,
     height: 38,
-    borderRadius: 12,
+    borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   chartCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 16,
-    shadowColor: '#0F172A',
+    borderColor: colors.border,
+    padding: spacing.lg,
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
     shadowRadius: 6,
     elevation: 1,
   },
   sectionTitle: {
-    fontFamily: 'Inter', color: '#0F172A',
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
+    fontFamily: typography.family, color: colors.text,
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    marginBottom: spacing.md,
   },
   svgWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  loading: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20, alignItems: 'center', gap: 8 },
-  muted: { fontFamily: 'Inter', color: '#64748B', fontSize: 13 },
-  errorBox: { backgroundColor: '#FEF2F2', borderRadius: 12, padding: 12 },
-  errorText: { fontFamily: 'Inter', color: '#B91C1C', fontSize: 13 },
+  loading: { backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.xl, alignItems: 'center', gap: spacing.sm },
+  muted: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.caption },
+  errorBox: { backgroundColor: colors.destructiveSoft, borderRadius: radii.lg, padding: spacing.md },
+  errorText: { fontFamily: typography.family, color: colors.destructiveDark, fontSize: typography.size.caption },
 });
 
 export default LabTechnicianDashboardScreen;

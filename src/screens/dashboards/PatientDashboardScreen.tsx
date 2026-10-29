@@ -1,3 +1,4 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -22,7 +23,7 @@ import {
   Stethoscope,
 } from 'lucide-react-native';
 import { PatientHeader } from '../../components/common/PatientHeader';
-import { DashboardWelcomeCard } from '../../components/common/DashboardWelcomeCard';
+import { LiquidBorderSurface, LiquidBorderTouchable } from '../../components/common/LiquidBorderSurface';
 import { useAuthContext } from '../../context/AuthContext';
 import { usePatientDashboard } from '../../hooks/usePatientDashboard';
 
@@ -118,8 +119,8 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
       label: 'Upcoming Appointments',
       value: appointments.length,
       Icon: Calendar,
-      color: '#27a599',
-      background: '#ccfbf1',
+      color: colors.primary,
+      background: colors.mintBorder,
       onPress: onOpenAppointments,
     },
     {
@@ -134,8 +135,8 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
       label: 'Bills',
       value: bills.length,
       Icon: IndianRupee,
-      color: '#d97706',
-      background: '#fef3c7',
+      color: colors.warning,
+      background: colors.warningSoft,
       onPress: onOpenBilling,
     },
     {
@@ -143,7 +144,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
       value: paidBills,
       Icon: CheckCircle2,
       color: '#15803d',
-      background: '#dcfce7',
+      background: colors.successSoft,
       onPress: onOpenBilling,
     },
   ];
@@ -154,8 +155,6 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
         onOpenDrawer={onOpenDrawer}
         onOpenNotifications={onOpenNotifications}
       />
-      <DashboardWelcomeCard />
-
       <ScrollView
         contentContainerStyle={[styles.scrollContent, wide && styles.wideContent]}
         showsVerticalScrollIndicator={false}
@@ -163,8 +162,8 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#1d7c72"
-            colors={['#1d7c72']}
+            tintColor={colors.primaryDark}
+            colors={[colors.primaryDark]}
           />
         }>
         <View style={styles.greetingSection}>
@@ -172,9 +171,9 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
             {greeting}, <Text style={styles.welcomeName}>{patientName}</Text>!
           </Text>
           <Text style={styles.greetingSubtitle}>Here's what's happening with your health today.</Text>
-          <View style={styles.todayDateCard}>
+          <LiquidBorderSurface style={styles.todayDateCard} radius={16}>
             <View style={styles.todayIconBox}>
-              <CalendarDays size={22} color="#27A599" strokeWidth={2.2} />
+              <CalendarDays size={22} color={colors.primary} strokeWidth={2.2} />
             </View>
             <View style={styles.todayTextCol}>
               <View style={styles.todayBadgeRow}>
@@ -183,7 +182,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
               </View>
               <Text style={styles.todayDateText}>{todayLabel}</Text>
             </View>
-          </View>
+          </LiquidBorderSurface>
         </View>
 
         {error ? (
@@ -199,7 +198,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
           <View style={[styles.bookingBanner, wide && styles.bookingBannerWide]}>
           <View style={styles.bookingCopy}>
             <View style={styles.bannerTitleRow}>
-              <CalendarPlus size={20} color="#1d7c72" />
+              <CalendarPlus size={20} color={colors.primaryDark} />
               <Text style={styles.bannerTitle}>Book an Appointment</Text>
             </View>
             <Text style={styles.bannerSubtitle}>
@@ -211,14 +210,14 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
             onPress={onBookAppointment}
             style={[styles.findDoctorButton, wide && styles.findDoctorButtonWide]}>
             <Text style={styles.findDoctorText}>Find Clinic &amp; Doctor</Text>
-            <ArrowUpRight size={17} color="#ffffff" />
+            <ArrowUpRight size={17} color={colors.surface} />
           </TouchableOpacity>
           </View>
         ) : null}
 
         <View style={styles.statsGrid}>
           {stats.filter(({ label }) => label === 'Upcoming Appointments' ? showAppointments : label === 'Lab Reports' ? showLabReports : showBilling).map(({ label, value, Icon, color, background, onPress }) => (
-            <TouchableOpacity
+            <LiquidBorderTouchable
               key={label}
               activeOpacity={0.82}
               onPress={onPress}
@@ -234,12 +233,12 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
                 <Text style={[styles.statLinkText, { color }]}>View details</Text>
                 <ArrowUpRight size={14} color={color} />
               </View>
-            </TouchableOpacity>
+            </LiquidBorderTouchable>
           ))}
         </View>
 
         <View style={[styles.sectionsRow, wide && styles.sectionsRowWide]}>
-          {showAppointments ? <View style={[styles.sectionCard, styles.careCard, wide && styles.halfSection]}>
+          {showAppointments ? <LiquidBorderSurface style={[styles.sectionCard, styles.careCard, wide && styles.halfSection]} radius={20}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderCopy}>
                 <Text style={styles.careEyebrow}>CARE OVERVIEW</Text>
@@ -249,12 +248,12 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
                 </Text>
               </View>
               <View style={styles.careBadge}>
-                <CalendarClock size={21} color="#ffffff" />
+                <CalendarClock size={21} color={colors.surface} />
               </View>
             </View>
 
             {nextAppointment ? (
-              <View style={styles.nextVisitCard}>
+              <LiquidBorderSurface style={styles.nextVisitCard} radius={16}>
                 <View style={styles.visitTopRow}>
                   <View style={styles.doctorIcon}>
                     <Stethoscope size={20} color="#0e7490" />
@@ -273,7 +272,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
                 </View>
                 <View style={styles.visitDetails}>
                   <View style={styles.visitDateRow}>
-                    <Calendar size={16} color="#27a599" />
+                    <Calendar size={16} color={colors.primary} />
                     <Text style={styles.visitDateText}>
                       {formatAppointmentSchedule(
                         nextAppointment.appointment_date,
@@ -285,13 +284,13 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
                     {nextAppointment.clinic_name || 'Clinic details unavailable'}
                   </Text>
                 </View>
-              </View>
+              </LiquidBorderSurface>
             ) : (
               <View style={styles.emptyAppointment}>
                 {loading ? (
-                  <ActivityIndicator color="#1d7c72" />
+                  <ActivityIndicator color={colors.primaryDark} />
                 ) : (
-                  <CalendarPlus size={29} color="#1d7c72" />
+                  <CalendarPlus size={29} color={colors.primaryDark} />
                 )}
                 <Text style={styles.emptyTitle}>
                   {loading ? 'Loading appointments…' : 'No upcoming appointment'}
@@ -320,11 +319,11 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
               onPress={onOpenAppointments}
               style={styles.footerLink}>
               <Text style={styles.careLinkText}>View appointments</Text>
-              <ArrowUpRight size={16} color="#1d7c72" />
+              <ArrowUpRight size={16} color={colors.primaryDark} />
             </TouchableOpacity>
-          </View> : null}
+          </LiquidBorderSurface> : null}
 
-          {showBilling ? <View style={[styles.sectionCard, styles.billingCard, wide && styles.halfSection]}>
+          {showBilling ? <LiquidBorderSurface style={[styles.sectionCard, styles.billingCard, wide && styles.halfSection]} radius={20}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderCopy}>
                 <Text style={styles.billingEyebrow}>BILLING OVERVIEW</Text>
@@ -334,31 +333,31 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
                 </Text>
               </View>
               <View style={styles.billingBadge}>
-                <ReceiptText size={21} color="#ffffff" />
+                <ReceiptText size={21} color={colors.surface} />
               </View>
             </View>
 
             <View style={styles.billingSummaryRow}>
-              <View style={styles.billedBox}>
+              <LiquidBorderSurface style={styles.billedBox} radius={14}>
                 <Text style={styles.billingStatLabel}>TOTAL BILLED</Text>
                 <Text numberOfLines={1} adjustsFontSizeToFit style={styles.billingStatValue}>
                   {loading ? '—' : formatMoney(totalBilled)}
                 </Text>
                 <Text style={styles.billingStatSub}>Across {bills.length} recent bills</Text>
-              </View>
-              <View style={styles.outstandingBox}>
+              </LiquidBorderSurface>
+              <LiquidBorderSurface style={styles.outstandingBox} radius={14}>
                 <Text style={styles.billingStatLabel}>OUTSTANDING</Text>
                 <Text numberOfLines={1} adjustsFontSizeToFit style={styles.billingStatValue}>
                   {loading ? '—' : formatMoney(outstanding)}
                 </Text>
                 <Text style={styles.outstandingSub}>{paidBills} bills fully paid</Text>
-              </View>
+              </LiquidBorderSurface>
             </View>
 
-            <View style={styles.progressCard}>
+            <LiquidBorderSurface style={styles.progressCard} radius={14}>
               <View style={styles.progressTitleRow}>
                 <View style={styles.progressLabelRow}>
-                  <CheckCircle2 size={16} color="#059669" />
+                  <CheckCircle2 size={16} color={colors.successDark} />
                   <Text style={styles.progressTitle}>Payment progress</Text>
                 </View>
                 <Text style={styles.progressPercent}>{loading ? '—' : `${paidPercent}%`}</Text>
@@ -370,7 +369,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
                 <Text style={styles.progressFootText}>Paid {formatMoney(totalPaid)}</Text>
                 <Text style={styles.progressFootText}>{Math.max(0, bills.length - paidBills)} pending</Text>
               </View>
-            </View>
+            </LiquidBorderSurface>
 
             <TouchableOpacity
               activeOpacity={0.75}
@@ -379,7 +378,7 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
               <Text style={styles.billingLinkText}>View billing history</Text>
               <ArrowUpRight size={16} color="#b45309" />
             </TouchableOpacity>
-          </View> : null}
+          </LiquidBorderSurface> : null}
         </View>
       </ScrollView>
     </View>
@@ -387,92 +386,92 @@ export const PatientDashboardScreen: React.FC<PatientDashboardScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  scrollContent: { padding: 16, paddingBottom: 28, gap: 16 },
-  wideContent: { paddingHorizontal: 24, paddingTop: 22, gap: 19 },
+  container: { flex: 1, backgroundColor: colors.background },
+  scrollContent: { padding: spacing.lg, paddingBottom: 28, gap: spacing.lg },
+  wideContent: { paddingHorizontal: spacing.xxl, paddingTop: 22, gap: 19 },
   greetingSection: { marginBottom: 0 },
-  welcomeText: { fontFamily: 'Inter', color: '#0f172a', fontSize: 20, fontWeight: '800' },
-  welcomeName: { color: '#0f172a', fontWeight: '800' },
-  greetingSubtitle: { fontFamily: 'Inter', color: '#64748b', fontSize: 13, marginTop: 4 },
-  todayDateCard: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, marginTop: 16, borderRadius: 16, borderWidth: 1, borderColor: '#99f6e4', backgroundColor: '#f0fdfa' },
-  todayIconBox: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#ccfbf1', alignItems: 'center', justifyContent: 'center' },
+  welcomeText: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.title, fontWeight: typography.weight.extrabold },
+  welcomeName: { color: colors.text, fontWeight: typography.weight.extrabold },
+  greetingSubtitle: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.caption, marginTop: spacing.xs },
+  todayDateCard: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: 14, paddingVertical: 10, marginTop: spacing.lg, borderRadius: radii.xl, borderWidth: 1, borderColor: colors.mintBorder, backgroundColor: colors.surface, shadowColor: '#0d9488', shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
+  todayIconBox: { width: 42, height: 42, borderRadius: radii.lg, backgroundColor: colors.mintBorder, alignItems: 'center', justifyContent: 'center' },
   todayTextCol: { flex: 1 },
-  todayBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 },
-  greenDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#27a599' },
-  todayBadgeText: { fontFamily: 'Inter', color: '#27a599', fontSize: 10, fontWeight: '800', letterSpacing: 1.2 },
-  todayDateText: { fontFamily: 'Inter', color: '#0f172a', fontSize: 14, fontWeight: '700' },
-  errorCard: { padding: 13, borderRadius: 13, borderWidth: 1, borderColor: '#fecaca', backgroundColor: '#fff7f7', gap: 8 },
-  errorText: { fontFamily: 'Inter', color: '#b91c1c', fontSize: 12, lineHeight: 17 },
-  retryButton: { alignSelf: 'flex-start', paddingVertical: 4 },
-  retryText: { fontFamily: 'Inter', color: '#1d7c72', fontSize: 12, fontWeight: '800' },
-  bookingBanner: { padding: 16, borderRadius: 19, borderWidth: 1, borderColor: '#bdece5', backgroundColor: '#ecfdf9', gap: 14 },
-  bookingBannerWide: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 },
+  todayBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.tiny, marginBottom: 3 },
+  greenDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.primary },
+  todayBadgeText: { fontFamily: typography.family, color: colors.primary, fontSize: typography.size.micro, fontWeight: typography.weight.extrabold, letterSpacing: 1.2 },
+  todayDateText: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.body, fontWeight: typography.weight.bold },
+  errorCard: { padding: 13, borderRadius: 13, borderWidth: 1, borderColor: colors.destructiveSoft, backgroundColor: '#fff7f7', gap: spacing.sm },
+  errorText: { fontFamily: typography.family, color: colors.destructiveDark, fontSize: typography.size.sm, lineHeight: 17 },
+  retryButton: { alignSelf: 'flex-start', paddingVertical: spacing.xs },
+  retryText: { fontFamily: typography.family, color: colors.primaryDark, fontSize: typography.size.sm, fontWeight: typography.weight.extrabold },
+  bookingBanner: { padding: spacing.lg, borderRadius: 19, borderWidth: 1, borderColor: '#bdece5', backgroundColor: '#ecfdf9', gap: 14 },
+  bookingBannerWide: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.xl },
   bookingCopy: { flex: 1 },
-  bannerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  bannerTitle: { fontFamily: 'Inter', color: '#0f172a', fontSize: 17, fontWeight: '800' },
-  bannerSubtitle: { fontFamily: 'Inter', color: '#64748b', fontSize: 12, lineHeight: 18, marginTop: 6 },
-  findDoctorButton: { minHeight: 44, paddingHorizontal: 14, borderRadius: 11, backgroundColor: '#1d7c72', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  bannerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  bannerTitle: { fontFamily: typography.family, color: colors.text, fontSize: 17, fontWeight: typography.weight.extrabold },
+  bannerSubtitle: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.sm, lineHeight: 18, marginTop: spacing.tiny },
+  findDoctorButton: { minHeight: 44, paddingHorizontal: 14, borderRadius: 11, backgroundColor: colors.primaryDark, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   findDoctorButtonWide: { minWidth: 190, alignSelf: 'center' },
-  findDoctorText: { fontFamily: 'Inter', color: '#ffffff', fontSize: 13, fontWeight: '800' },
+  findDoctorText: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.caption, fontWeight: typography.weight.extrabold },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
-  statCard: { minHeight: 116, borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#ffffff', padding: 12, justifyContent: 'space-between', elevation: 1, shadowColor: '#0f172a', shadowOpacity: 0.04, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
-  statTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 },
-  statTitle: { fontFamily: 'Inter', color: '#64748b', fontSize: 11, fontWeight: '700', flex: 1, lineHeight: 15 },
-  statIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  statValue: { fontFamily: 'Inter', color: '#0f172a', fontSize: 25, fontWeight: '900', marginTop: 5 },
-  statLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
-  statLinkText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700' },
+  statCard: { minHeight: 116, borderRadius: radii.xl, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: spacing.md, justifyContent: 'space-between', elevation: 1, shadowColor: colors.text, shadowOpacity: 0.04, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } },
+  statTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.tiny },
+  statTitle: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.xs, fontWeight: typography.weight.bold, flex: 1, lineHeight: 15 },
+  statIcon: { width: 34, height: 34, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center' },
+  statValue: { fontFamily: typography.family, color: colors.text, fontSize: 25, fontWeight: typography.weight.black, marginTop: 5 },
+  statLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: spacing.xs },
+  statLinkText: { fontFamily: typography.family, fontSize: typography.size.xs, fontWeight: typography.weight.bold },
   sectionsRow: { gap: 15 },
   sectionsRowWide: { flexDirection: 'row', alignItems: 'stretch' },
   halfSection: { flex: 1 },
-  sectionCard: { borderRadius: 23, borderWidth: 1, padding: 16, overflow: 'hidden', elevation: 2, shadowColor: '#0f172a', shadowOpacity: 0.045, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+  sectionCard: { borderRadius: 23, borderWidth: 1, padding: spacing.lg, overflow: 'hidden', elevation: 2, shadowColor: colors.text, shadowOpacity: 0.045, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
   careCard: { backgroundColor: '#f5fdfa', borderColor: '#cceee7' },
   billingCard: { backgroundColor: '#fffcf5', borderColor: '#f6e5b7' },
   sectionHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 15 },
   sectionHeaderCopy: { flex: 1 },
-  careEyebrow: { fontFamily: 'Inter', color: '#1d7c72', fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
-  billingEyebrow: { fontFamily: 'Inter', color: '#b45309', fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
-  sectionTitle: { fontFamily: 'Inter', color: '#0f172a', fontSize: 18, fontWeight: '900', marginTop: 3 },
-  sectionSubtitle: { fontFamily: 'Inter', color: '#64748b', fontSize: 11, lineHeight: 16, marginTop: 4 },
-  careBadge: { width: 43, height: 43, borderRadius: 14, backgroundColor: '#1d7c72', alignItems: 'center', justifyContent: 'center' },
-  billingBadge: { width: 43, height: 43, borderRadius: 14, backgroundColor: '#f9a91f', alignItems: 'center', justifyContent: 'center' },
-  nextVisitCard: { padding: 13, borderRadius: 16, borderWidth: 1, borderColor: '#cceee7', backgroundColor: '#ffffff', marginBottom: 12 },
+  careEyebrow: { fontFamily: typography.family, color: colors.primaryDark, fontSize: typography.size.micro, fontWeight: typography.weight.black, letterSpacing: 1.2 },
+  billingEyebrow: { fontFamily: typography.family, color: '#b45309', fontSize: typography.size.micro, fontWeight: typography.weight.black, letterSpacing: 1.2 },
+  sectionTitle: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.lg, fontWeight: typography.weight.black, marginTop: 3 },
+  sectionSubtitle: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.xs, lineHeight: 16, marginTop: spacing.xs },
+  careBadge: { width: 43, height: 43, borderRadius: radii.lg, backgroundColor: colors.primaryDark, alignItems: 'center', justifyContent: 'center' },
+  billingBadge: { width: 43, height: 43, borderRadius: radii.lg, backgroundColor: colors.warning, alignItems: 'center', justifyContent: 'center' },
+  nextVisitCard: { padding: 13, borderRadius: radii.xl, borderWidth: 1, borderColor: '#cceee7', backgroundColor: colors.surface, marginBottom: spacing.md },
   visitTopRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  doctorIcon: { width: 39, height: 39, borderRadius: 12, backgroundColor: '#ecfeff', alignItems: 'center', justifyContent: 'center' },
+  doctorIcon: { width: 39, height: 39, borderRadius: radii.lg, backgroundColor: '#ecfeff', alignItems: 'center', justifyContent: 'center' },
   visitDoctorCopy: { flex: 1, minWidth: 0 },
-  doctorName: { fontFamily: 'Inter', color: '#0f172a', fontSize: 14, fontWeight: '800' },
-  specialization: { fontFamily: 'Inter', color: '#64748b', fontSize: 11, marginTop: 3 },
-  statusBadge: { fontFamily: 'Inter', color: '#047857', backgroundColor: '#ecfdf5', borderColor: '#a7f3d0', borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, overflow: 'hidden', textTransform: 'capitalize', fontSize: 9, fontWeight: '800', maxWidth: 90 },
-  visitDetails: { borderTopWidth: 1, borderTopColor: '#f1f5f9', marginTop: 11, paddingTop: 10, gap: 7 },
+  doctorName: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.body, fontWeight: typography.weight.extrabold },
+  specialization: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.xs, marginTop: 3 },
+  statusBadge: { fontFamily: typography.family, color: '#047857', backgroundColor: '#ecfdf5', borderColor: '#a7f3d0', borderWidth: 1, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: 20, overflow: 'hidden', textTransform: 'capitalize', fontSize: 9, fontWeight: typography.weight.extrabold, maxWidth: 90 },
+  visitDetails: { borderTopWidth: 1, borderTopColor: colors.secondary, marginTop: 11, paddingTop: 10, gap: 7 },
   visitDateRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  visitDateText: { fontFamily: 'Inter', color: '#334155', fontSize: 11, fontWeight: '700', flex: 1 },
-  clinicName: { fontFamily: 'Inter', color: '#64748b', fontSize: 11 },
-  emptyAppointment: { minHeight: 132, borderRadius: 16, borderWidth: 1, borderStyle: 'dashed', borderColor: '#bde3dc', backgroundColor: '#ffffffaa', alignItems: 'center', justifyContent: 'center', padding: 15, marginBottom: 12 },
-  emptyTitle: { fontFamily: 'Inter', color: '#1e293b', fontSize: 14, fontWeight: '800', marginTop: 8 },
-  emptyCopy: { fontFamily: 'Inter', color: '#64748b', fontSize: 11, textAlign: 'center', marginTop: 4, lineHeight: 16 },
-  miniMetrics: { flexDirection: 'row', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e7f2ef', borderRadius: 13, paddingVertical: 10, marginBottom: 12 },
+  visitDateText: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.xs, fontWeight: typography.weight.bold, flex: 1 },
+  clinicName: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.xs },
+  emptyAppointment: { minHeight: 132, borderRadius: radii.xl, borderWidth: 1, borderStyle: 'dashed', borderColor: '#bde3dc', backgroundColor: '#ffffffaa', alignItems: 'center', justifyContent: 'center', padding: 15, marginBottom: spacing.md },
+  emptyTitle: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.body, fontWeight: typography.weight.extrabold, marginTop: spacing.sm },
+  emptyCopy: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.xs, textAlign: 'center', marginTop: spacing.xs, lineHeight: 16 },
+  miniMetrics: { flexDirection: 'row', backgroundColor: colors.surface, borderWidth: 1, borderColor: '#e7f2ef', borderRadius: 13, paddingVertical: 10, marginBottom: spacing.md },
   metric: { flex: 1, alignItems: 'center' },
-  metricValue: { fontFamily: 'Inter', color: '#0f172a', fontSize: 17, fontWeight: '900' },
-  metricLabel: { fontFamily: 'Inter', color: '#64748b', fontSize: 10, fontWeight: '600', marginTop: 2 },
-  footerLink: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 4, paddingVertical: 2 },
-  careLinkText: { fontFamily: 'Inter', color: '#1d7c72', fontSize: 12, fontWeight: '800' },
-  billingLinkText: { fontFamily: 'Inter', color: '#b45309', fontSize: 12, fontWeight: '800' },
+  metricValue: { fontFamily: typography.family, color: colors.text, fontSize: 17, fontWeight: typography.weight.black },
+  metricLabel: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.micro, fontWeight: typography.weight.semibold, marginTop: 2 },
+  footerLink: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: spacing.xs, paddingVertical: 2 },
+  careLinkText: { fontFamily: typography.family, color: colors.primaryDark, fontSize: typography.size.sm, fontWeight: typography.weight.extrabold },
+  billingLinkText: { fontFamily: typography.family, color: '#b45309', fontSize: typography.size.sm, fontWeight: typography.weight.extrabold },
   billingSummaryRow: { flexDirection: 'row', gap: 9 },
-  billedBox: { flex: 1, borderRadius: 15, borderWidth: 1, borderColor: '#f5df9e', backgroundColor: '#ffffff', padding: 12 },
-  outstandingBox: { flex: 1, borderRadius: 15, borderWidth: 1, borderColor: '#bbf7d0', backgroundColor: '#ffffff', padding: 12 },
-  billingStatLabel: { fontFamily: 'Inter', color: '#64748b', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
-  billingStatValue: { fontFamily: 'Inter', color: '#0f172a', fontSize: 20, fontWeight: '900', marginTop: 8 },
-  billingStatSub: { fontFamily: 'Inter', color: '#64748b', fontSize: 9, marginTop: 5 },
-  outstandingSub: { fontFamily: 'Inter', color: '#047857', fontSize: 9, marginTop: 5 },
-  progressCard: { borderRadius: 15, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#ffffff', padding: 13, marginTop: 11, marginBottom: 12 },
+  billedBox: { flex: 1, borderRadius: 15, borderWidth: 1, borderColor: '#f5df9e', backgroundColor: colors.surface, padding: spacing.md },
+  outstandingBox: { flex: 1, borderRadius: 15, borderWidth: 1, borderColor: '#bbf7d0', backgroundColor: colors.surface, padding: spacing.md },
+  billingStatLabel: { fontFamily: typography.family, color: colors.muted, fontSize: 9, fontWeight: typography.weight.extrabold, letterSpacing: 0.5 },
+  billingStatValue: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.title, fontWeight: typography.weight.black, marginTop: spacing.sm },
+  billingStatSub: { fontFamily: typography.family, color: colors.muted, fontSize: 9, marginTop: 5 },
+  outstandingSub: { fontFamily: typography.family, color: '#047857', fontSize: 9, marginTop: 5 },
+  progressCard: { borderRadius: 15, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, padding: 13, marginTop: 11, marginBottom: spacing.md },
   progressTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  progressLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  progressTitle: { fontFamily: 'Inter', color: '#334155', fontSize: 11, fontWeight: '800' },
-  progressPercent: { fontFamily: 'Inter', color: '#0f172a', fontSize: 12, fontWeight: '900' },
-  progressTrack: { height: 8, borderRadius: 5, backgroundColor: '#f1f5f9', overflow: 'hidden', marginTop: 11 },
-  progressFill: { height: '100%', borderRadius: 5, backgroundColor: '#10b981' },
+  progressLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.tiny },
+  progressTitle: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.xs, fontWeight: typography.weight.extrabold },
+  progressPercent: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.sm, fontWeight: typography.weight.black },
+  progressTrack: { height: 8, borderRadius: 5, backgroundColor: colors.secondary, overflow: 'hidden', marginTop: 11 },
+  progressFill: { height: '100%', borderRadius: 5, backgroundColor: colors.success },
   progressFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 7 },
-  progressFootText: { fontFamily: 'Inter', color: '#64748b', fontSize: 9 },
+  progressFootText: { fontFamily: typography.family, color: colors.muted, fontSize: 9 },
 });
 
 export default PatientDashboardScreen;

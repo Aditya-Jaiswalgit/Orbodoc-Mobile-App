@@ -1,6 +1,9 @@
+import { colors } from '../../../theme/tokens';
 import React from 'react';
 import { AppModal } from '../../../components/common/AppModal';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { LiquidBorderSurface } from '../../../components/common/LiquidBorderSurface';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View } from 'react-native';
+import { LiquidBorderScrollView } from '../../../components/common/LiquidBorderScrollView';
 import { Pill, X } from 'lucide-react-native';
 import { styles } from '../styles/PharmacyInventory.styles';
 export function InfoTile({ label, value }: { label: string; value: string }) {
@@ -26,7 +29,7 @@ export function StatCard({
   tone: 'teal' | 'green' | 'amber' | 'blue';
 }) {
   return (
-    <View style={styles.statCard}>
+    <LiquidBorderSurface style={styles.statCard} radius={14}>
       <View
         style={[
           styles.statIcon,
@@ -52,7 +55,7 @@ export function StatCard({
         </Text>
         <Text style={styles.statLabel}>{label}</Text>
       </View>
-    </View>
+    </LiquidBorderSurface>
   );
 }
 
@@ -172,7 +175,7 @@ export function FormModal({
                   >
                     <Pill
                       size={18}
-                      color={isMedicine ? '#FFFFFF' : '#27A599'}
+                      color={isMedicine ? colors.surface : colors.primary}
                     />
                   </View>
                   <View style={styles.modalHeaderCopy}>
@@ -197,10 +200,10 @@ export function FormModal({
                 onPress={onClose}
                 style={isStock ? styles.stockCloseButton : styles.closeButton}
               >
-                <X size={18} color="#475569" />
+                <X size={18} color={colors.muted} />
               </TouchableOpacity>
             </View>
-            <ScrollView
+            <LiquidBorderScrollView
               style={
                 isMedicine
                   ? styles.medicineFormScroll
@@ -218,7 +221,7 @@ export function FormModal({
               keyboardShouldPersistTaps="handled"
             >
               {children}
-            </ScrollView>
+            </LiquidBorderScrollView>
             {isStock ? (
               <View style={styles.stockModalFooter}>
                 <TouchableOpacity
@@ -230,7 +233,7 @@ export function FormModal({
                   onPress={onSave}
                 >
                   {saving ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.surface} />
                   ) : null}
                   <Text style={styles.saveText}>
                     {saving ? 'Updating...' : saveLabel}
@@ -257,7 +260,7 @@ export function FormModal({
                   onPress={onSave}
                 >
                   {saving ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.surface} />
                   ) : null}
                   <Text style={styles.saveText}>
                     {saving ? 'Saving...' : saveLabel}

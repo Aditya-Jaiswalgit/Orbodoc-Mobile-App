@@ -1,3 +1,4 @@
+import { colors, radii, shadows, spacing, typography } from '../../theme/tokens';
 // src/screens/staff/ClinicsManagementScreen.tsx
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
@@ -5,7 +6,6 @@ import {
   Linking,
   Image,
   Modal,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,6 +16,7 @@ import {
   Switch,
   ActivityIndicator,
 } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import {
   Building2,
   Search,
@@ -47,6 +48,7 @@ import {
   ChevronsUpDown,
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { LiquidBorderSurface } from '../../components/common/LiquidBorderSurface';
 import { RefreshButton } from '../../components/common/RefreshButton';
 import { Pagination } from '../../components/common/Pagination';
 import { CustomCalendarPicker } from '../../components/common/CustomCalendarPicker';
@@ -62,6 +64,7 @@ import { resetStaffPasswordApi } from '../../api/userManagementApi';
 import { apiFetch } from '../../api/apiConfig';
 import { canUseStaffScreen } from '../../navigation/staffAccess';
 import { notifyProfileUpdated } from '../../utils/profileEvents';
+import { createTapGestureHandlers } from '../../utils/tapGestureHandlers';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -215,7 +218,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
-  const { token, user, activeClinicId, activeClinicName, isMultiClinic, isMultiPlan, role, permissionsMap = {}, updateClinicName } = useAuthContext();
+  const { token, user, activeClinicId, activeClinicName, isMultiClinic, isMultiPlan, role, permissionsMap = {}, updateClinicName, switchClinic } = useAuthContext();
   const canView = canUseStaffScreen(role, permissionsMap, 'clinics');
   // Match web Clinic Management: use the explicit add permission independently
   // of the view permission, then apply the multi-clinic plan gate at the action.
@@ -259,7 +262,34 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
     if (initialClinic) setSelectedClinicFilter(initialClinic.name);
   }, [clinics, initialClinicId]);
   const [selectedPerformanceDate, setSelectedPerformanceDate] = useState<Date>(new Date());
+  const [activeDashboardCard, setActiveDashboardCard] = useState<string | null>(null);
+  const [activeClinicParent, setActiveClinicParent] = useState<'dashboard' | 'filters' | 'clinics' | null>(null);
+  const dashboardParentTapHandlers = useMemo(
+    () => createTapGestureHandlers(() => {
+      setSearchFocused(false);
+      setShowStatusDropdown(false);
+      setActiveClinicParent('dashboard');
+    }),
+    [],
+  );
+  const filtersParentTapHandlers = useMemo(
+    () => createTapGestureHandlers(() => {
+      setActiveDashboardCard(null);
+      setActiveClinicParent('filters');
+    }),
+    [],
+  );
+  const clinicsParentTapHandlers = useMemo(
+    () => createTapGestureHandlers(() => {
+      setSearchFocused(false);
+      setShowStatusDropdown(false);
+      setActiveDashboardCard(null);
+      setActiveClinicParent('clinics');
+    }),
+    [],
+  );
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('Active');
   const [showStatusDropdown, setShowStatusDropdown] = useState<boolean>(false);
   const [showClinicSelectDropdown, setShowClinicSelectDropdown] = useState<boolean>(false);
@@ -795,14 +825,11 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
         onOpenDrawer={onOpenDrawer}
         title="Clinic Management"
         onNavigate={(path) => {
-          if (onNavigateScreen) {
-            const cleanPath = path.replace('/', '').replace('-', '_');
-            onNavigateScreen(cleanPath);
-          }
+          onNavigateScreen?.(path);
         }}
       />
 
-      <ScrollView
+      <LiquidBorderScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
@@ -813,9 +840,9 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
         <View style={[styles.bannerRow, isMobile && styles.bannerRowMobile]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
             <View style={styles.buildingIconBox}>
-              <Building2 color="#27A599" size={24} />
+              <Building2 color={colors.primary} size={24} />
             </View>
-            <View style={{ marginLeft: 12 }}>
+            <View style={{ marginLeft: spacing.md }}>
               <Text style={styles.bannerTitle}>Clinic Management</Text>
               <Text style={styles.bannerSubtitle}>
                 Manage all clinics and their administrators
@@ -823,7 +850,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
             </View>
           </View>
 
-          {!isMultiClinicPlan && role === 'clinic_admin' ? <TouchableOpacity onPress={() => { void Linking.openURL('https://orbodoc.com/register/plan').catch(() => showErrorToast('Unable to open plans', 'Please try again.')); }} style={[styles.upgradeLinkBtn, isMobile && { marginTop: 8 }]}>
+          {!isMultiClinicPlan && role === 'clinic_admin' ? <TouchableOpacity onPress={() => { void Linking.openURL('https://orbodoc.com/register/plan').catch(() => showErrorToast('Unable to open plans', 'Please try again.')); }} style={[styles.upgradeLinkBtn, isMobile && { marginTop: spacing.sm }]}>
             <Text style={styles.upgradeLinkText}>
               Multiple clinics ke liye <Text style={styles.upgradeLinkHighlight}>plan upgrade karo</Text>
             </Text>
@@ -835,17 +862,17 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
             style={styles.createClinicButton}
             onPress={handleOpenAddClinicModal}
             activeOpacity={0.8}>
-            <Plus color="#FFFFFF" size={16} />
+            <Plus color={colors.surface} size={16} />
             <Text style={styles.createClinicButtonText}>Create Clinic</Text>
           </TouchableOpacity>
         ) : null}
 
         {/* ── TOP MAIN CONTAINER CARD (DAILY PERFORMANCE & SNAPSHOT) ────────── */}
-        <View style={styles.topCardBorder}>
+        <View {...dashboardParentTapHandlers} style={[styles.topCardBorder, activeClinicParent === 'dashboard' && styles.topCardBorderActive]}>
           {/* Controls Bar: Clinic Dropdown, Performance Date, Refresh Button */}
           <View style={[styles.controlsRow, styles.controlsRowWebHeader, isMobile && styles.controlsRowMobile]}>
             {/* Clinic Dropdown */}
-            <View style={{ flex: 1, minWidth: 200, zIndex: 30 }}>
+            <View style={{ flex: 1, minWidth: 200, zIndex: showClinicSelectDropdown ? 60 : 30, elevation: showClinicSelectDropdown ? 12 : 0 }}>
               <Text style={styles.controlLabel}>CLINIC</Text>
               <TouchableOpacity
                 style={styles.controlSelectBtn}
@@ -854,7 +881,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                 <Text style={styles.controlSelectBtnText} numberOfLines={1}>
                   {selectedClinicFilter}
                 </Text>
-                <ChevronDown color="#64748B" size={16} />
+                <ChevronDown color={colors.muted} size={16} />
               </TouchableOpacity>
 
               {showClinicSelectDropdown && (
@@ -866,6 +893,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       onPress={() => {
                         setSelectedClinicFilter(c.name);
                         setShowClinicSelectDropdown(false);
+                        void switchClinic(Number(c.id));
                       }}
                     >
                       <Text style={styles.controlDropdownItemText}>{c.name}</Text>
@@ -876,14 +904,14 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
             </View>
 
             {/* Performance Date with Integrated CustomCalendarPicker */}
-            <View style={{ flex: 1.5, minWidth: 240, zIndex: 40 }}>
+            <View style={{ flex: 1.5, minWidth: 240, zIndex: 20 }}>
               <Text style={styles.performanceDateLabel}>Performance Date</Text>
               <CustomCalendarPicker
                 selectedDate={selectedPerformanceDate}
                 onDateChange={(d) => setSelectedPerformanceDate(d)}
                 maximumDate={new Date()}
                 icon={CalendarDays}
-                iconColor="#27A599"
+                iconColor={colors.primary}
                 formatTriggerDate={date => date.toLocaleDateString('en-US', {
                   weekday: 'long',
                   month: 'long',
@@ -905,6 +933,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
             />
           </View>
 
+          <View style={styles.dashboardBody}>
           {/* SECTION 1: Daily Performance */}
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Daily Performance</Text>
@@ -915,52 +944,52 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 
           <View style={[styles.kpiGrid4, isMobile && styles.kpiGridMobile]}>
             {/* Appointments */}
-            <View style={[styles.kpiCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop]}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open appointments for selected date" activeOpacity={0.82} onPressIn={() => { setActiveDashboardCard('appointments'); setActiveClinicParent('dashboard'); }} onPress={() => onNavigateScreen?.(`/appointments?clinic_id=${encodeURIComponent(String(selectedClinicId || ''))}&date=${selectedDate}`)} style={[styles.kpiCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop, activeDashboardCard === 'appointments' && styles.kpiCardActive]}>
               <View style={{ flex: 1, paddingRight: isMobile ? 4 : 0 }}>
-                <Text style={[styles.kpiLabel, isMobile && { fontFamily: 'Inter', fontSize: 11 }]} numberOfLines={1}>Appointments</Text>
-                <Text style={[styles.kpiValue, isMobile && { fontFamily: 'Inter', fontSize: 17 }]}>{metric('appointments_today') ?? '\u2014'}</Text>
-                <Text style={[styles.kpiSub, isMobile && { fontFamily: 'Inter', fontSize: 10 }]} numberOfLines={1}>Scheduled on date</Text>
+                <Text style={[styles.kpiLabel, isMobile && { fontFamily: typography.family, fontSize: typography.size.xs }]} numberOfLines={1}>Appointments</Text>
+                <Text style={[styles.kpiValue, isMobile && { fontFamily: typography.family, fontSize: 17 }]}>{metric('appointments_today') ?? '\u2014'}</Text>
+                <Text style={[styles.kpiSub, isMobile && { fontFamily: typography.family, fontSize: typography.size.micro }]} numberOfLines={2}>Scheduled on date</Text>
               </View>
-              <View style={[styles.kpiIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: '#E6F4F1' }]}>
-                <CalendarDays color="#27A599" size={isMobile ? 15 : 18} />
+              <View style={[styles.kpiIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: colors.mint }]}>
+                <CalendarDays color={colors.primary} size={isMobile ? 15 : 18} />
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Completed */}
-            <View style={[styles.kpiCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop]}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open completed appointments for selected date" activeOpacity={0.82} onPressIn={() => { setActiveDashboardCard('completed'); setActiveClinicParent('dashboard'); }} onPress={() => onNavigateScreen?.(`/appointments?clinic_id=${encodeURIComponent(String(selectedClinicId || ''))}&date=${selectedDate}&status=complete`)} style={[styles.kpiCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop, activeDashboardCard === 'completed' && styles.kpiCardActive]}>
               <View style={{ flex: 1, paddingRight: isMobile ? 4 : 0 }}>
-                <Text style={[styles.kpiLabel, isMobile && { fontFamily: 'Inter', fontSize: 11 }]} numberOfLines={1}>Completed</Text>
-                <Text style={[styles.kpiValue, isMobile && { fontFamily: 'Inter', fontSize: 17 }]}>{metric('completed_today') ?? '\u2014'}</Text>
-                <Text style={[styles.kpiSub, isMobile && { fontFamily: 'Inter', fontSize: 10 }]} numberOfLines={1}>Visits completed</Text>
+                <Text style={[styles.kpiLabel, isMobile && { fontFamily: typography.family, fontSize: typography.size.xs }]} numberOfLines={1}>Completed</Text>
+                <Text style={[styles.kpiValue, isMobile && { fontFamily: typography.family, fontSize: 17 }]}>{metric('completed_today') ?? '\u2014'}</Text>
+                <Text style={[styles.kpiSub, isMobile && { fontFamily: typography.family, fontSize: typography.size.micro }]} numberOfLines={2}>Visits completed</Text>
               </View>
-              <View style={[styles.kpiIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: '#DCFCE7' }]}>
+              <View style={[styles.kpiIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: colors.successSoft }]}>
                 <CheckCircle2 color="#166534" size={isMobile ? 15 : 18} />
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Cancelled */}
-            <View style={[styles.kpiCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop]}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open cancelled appointments for selected date" activeOpacity={0.82} onPressIn={() => { setActiveDashboardCard('cancelled'); setActiveClinicParent('dashboard'); }} onPress={() => onNavigateScreen?.(`/appointments?clinic_id=${encodeURIComponent(String(selectedClinicId || ''))}&date=${selectedDate}&status=cancel`)} style={[styles.kpiCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop, activeDashboardCard === 'cancelled' && styles.kpiCardActive]}>
               <View style={{ flex: 1, paddingRight: isMobile ? 4 : 0 }}>
-                <Text style={[styles.kpiLabel, isMobile && { fontFamily: 'Inter', fontSize: 11 }]} numberOfLines={1}>Cancelled</Text>
-                <Text style={[styles.kpiValue, isMobile && { fontFamily: 'Inter', fontSize: 17 }]}>{metric('cancelled_today') ?? '\u2014'}</Text>
-                <Text style={[styles.kpiSub, isMobile && { fontFamily: 'Inter', fontSize: 10 }]} numberOfLines={1}>Appointments cancelled</Text>
+                <Text style={[styles.kpiLabel, isMobile && { fontFamily: typography.family, fontSize: typography.size.xs }]} numberOfLines={1}>Cancelled</Text>
+                <Text style={[styles.kpiValue, isMobile && { fontFamily: typography.family, fontSize: 17 }]}>{metric('cancelled_today') ?? '\u2014'}</Text>
+                <Text style={[styles.kpiSub, isMobile && { fontFamily: typography.family, fontSize: typography.size.micro }]} numberOfLines={2}>Appointments cancelled</Text>
               </View>
               <View style={[styles.kpiIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: '#FEE2E2' }]}>
-                <XCircle color="#991B1B" size={isMobile ? 15 : 18} />
+                <XCircle color={colors.destructiveDark} size={isMobile ? 15 : 18} />
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Total Revenue */}
-            <View style={[styles.kpiCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop]}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open treatment billing for selected date" activeOpacity={0.82} onPressIn={() => { setActiveDashboardCard('revenue'); setActiveClinicParent('dashboard'); }} onPress={() => onNavigateScreen?.(`/billing/treatment?clinic_id=${encodeURIComponent(String(selectedClinicId || ''))}&date=${selectedDate}`)} style={[styles.kpiCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop, activeDashboardCard === 'revenue' && styles.kpiCardActive]}>
               <View style={{ flex: 1, paddingRight: isMobile ? 4 : 0 }}>
-                <Text style={[styles.kpiLabel, isMobile && { fontFamily: 'Inter', fontSize: 11 }]} numberOfLines={1}>Total Revenue</Text>
-                <Text style={[styles.kpiValue, isMobile && { fontFamily: 'Inter', fontSize: 17 }]}>{displayAmount(dailyRevenue)}</Text>
-                <Text style={[styles.kpiSub, isMobile && { fontFamily: 'Inter', fontSize: 10 }]} numberOfLines={1}>Treatment + medicine</Text>
+                <Text style={[styles.kpiLabel, isMobile && { fontFamily: typography.family, fontSize: typography.size.xs }]} numberOfLines={1}>Total Revenue</Text>
+                <Text adjustsFontSizeToFit minimumFontScale={0.8} numberOfLines={1} style={[styles.kpiValue, isMobile && { fontFamily: typography.family, fontSize: 17 }]}>{displayAmount(dailyRevenue)}</Text>
+                <Text style={[styles.kpiSub, isMobile && { fontFamily: typography.family, fontSize: typography.size.micro }]} numberOfLines={2}>Treatment + medicine</Text>
               </View>
               <View style={[styles.kpiIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: '#F3E8FF' }]}>
                 <IndianRupee color="#7E22CE" size={isMobile ? 15 : 18} />
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* SECTION 2: Live Operational Snapshot */}
@@ -973,59 +1002,60 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 
           <View style={[styles.kpiGrid3, isMobile && styles.kpiGridMobile]}>
             {/* Active Patients */}
-            <View style={[styles.kpiCardSnapshot, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop3]}>
-              <View style={[styles.kpiIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: '#E6F4F1' }]}>
-                <Users color="#27A599" size={isMobile ? 15 : 18} />
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open active patients" activeOpacity={0.82} onPressIn={() => { setActiveDashboardCard('patients'); setActiveClinicParent('dashboard'); }} onPress={() => onNavigateScreen?.(`/patients?clinic_id=${encodeURIComponent(String(selectedClinicId || ''))}&status=active`)} style={[styles.kpiCardSnapshot, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop3, activeDashboardCard === 'patients' && styles.kpiCardActive]}>
+              <View style={[styles.kpiIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: colors.mint }]}>
+                <Users color={colors.primary} size={isMobile ? 15 : 18} />
               </View>
               <View style={{ flex: 1, marginLeft: isMobile ? 6 : 12 }}>
-                <Text style={[styles.snapshotValue, isMobile && { fontFamily: 'Inter', fontSize: 16 }]}>{metric('total_active_patients') ?? '\u2014'}</Text>
-                <Text style={[styles.snapshotLabel, isMobile && { fontFamily: 'Inter', fontSize: 11 }]} numberOfLines={1}>Active Patients</Text>
+                <Text style={[styles.snapshotValue, isMobile && { fontFamily: typography.family, fontSize: typography.size.subtitle }]}>{metric('total_active_patients') ?? '\u2014'}</Text>
+                <Text style={[styles.snapshotLabel, isMobile && { fontFamily: typography.family, fontSize: typography.size.xs }]} numberOfLines={1}>Active Patients</Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Pending Lab Tests */}
-            <View style={[styles.kpiCardSnapshot, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop3]}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open pending lab tests" activeOpacity={0.82} onPressIn={() => { setActiveDashboardCard('lab-tests'); setActiveClinicParent('dashboard'); }} onPress={() => onNavigateScreen?.(`/lab/tests?clinic_id=${encodeURIComponent(String(selectedClinicId || ''))}&status=pending`)} style={[styles.kpiCardSnapshot, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop3, activeDashboardCard === 'lab-tests' && styles.kpiCardActive]}>
               <View style={[styles.kpiIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: '#FFEDD5' }]}>
                 <ClipboardList color="#C2410C" size={isMobile ? 15 : 18} />
               </View>
               <View style={{ flex: 1, marginLeft: isMobile ? 6 : 12 }}>
-                <Text style={[styles.snapshotValue, isMobile && { fontFamily: 'Inter', fontSize: 16 }]}>{metric('pending_lab_tests') ?? '\u2014'}</Text>
-                <Text style={[styles.snapshotLabel, isMobile && { fontFamily: 'Inter', fontSize: 11 }]} numberOfLines={1}>Pending Lab Tests</Text>
+                <Text style={[styles.snapshotValue, isMobile && { fontFamily: typography.family, fontSize: typography.size.subtitle }]}>{metric('pending_lab_tests') ?? '\u2014'}</Text>
+                <Text style={[styles.snapshotLabel, isMobile && { fontFamily: typography.family, fontSize: typography.size.xs }]} numberOfLines={2}>Pending Lab Tests</Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* Low Stock Medicines */}
-            <View style={[styles.kpiCardSnapshot, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop3]}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Open low stock medicines" activeOpacity={0.82} onPressIn={() => { setActiveDashboardCard('medicines'); setActiveClinicParent('dashboard'); }} onPress={() => onNavigateScreen?.(`/medicines?clinic_id=${encodeURIComponent(String(selectedClinicId || ''))}&stock=low`)} style={[styles.kpiCardSnapshot, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop3, activeDashboardCard === 'medicines' && styles.kpiCardActive]}>
               <View style={[styles.kpiIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: '#FFEDD5' }]}>
                 <Pill color="#C2410C" size={isMobile ? 15 : 18} />
               </View>
               <View style={{ flex: 1, marginLeft: isMobile ? 6 : 12 }}>
-                <Text style={[styles.snapshotValue, isMobile && { fontFamily: 'Inter', fontSize: 16 }]}>{metric('low_stock_medicines') ?? '\u2014'}</Text>
-                <Text style={[styles.snapshotLabel, isMobile && { fontFamily: 'Inter', fontSize: 11 }]} numberOfLines={1}>Low Stock Medicines</Text>
+                <Text style={[styles.snapshotValue, isMobile && { fontFamily: typography.family, fontSize: typography.size.subtitle }]}>{metric('low_stock_medicines') ?? '\u2014'}</Text>
+                <Text style={[styles.snapshotLabel, isMobile && { fontFamily: typography.family, fontSize: typography.size.xs }]} numberOfLines={2}>Low Stock Medicines</Text>
               </View>
-            </View>
+            </TouchableOpacity>
+          </View>
           </View>
         </View>
 
         {/* ── MIDDLE ROW: 4 OVERVIEW METRIC CARDS ────────────────────────────── */}
         <View style={[styles.metricGrid4, isMobile && styles.kpiGridMobile]}>
           <View style={[styles.metricCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop]}>
-            <View style={[styles.metricIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: '#CCFBF1' }]}>
-              <Building2 color="#27A599" size={isMobile ? 16 : 20} />
+            <View style={[styles.metricIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: colors.mintBorder }]}>
+              <Building2 color={colors.primary} size={isMobile ? 16 : 20} />
             </View>
             <View style={{ flex: 1, marginLeft: isMobile ? 6 : 12 }}>
-              <Text style={[styles.metricValue, isMobile && { fontFamily: 'Inter', fontSize: 16 }]}>{totalClinicsCount}</Text>
-              <Text style={[styles.metricLabel, isMobile && { fontFamily: 'Inter', fontSize: 11 }]} numberOfLines={1}>Total Clinics</Text>
+              <Text style={[styles.metricValue, isMobile && { fontFamily: typography.family, fontSize: typography.size.subtitle }]}>{totalClinicsCount}</Text>
+              <Text style={[styles.metricLabel, isMobile && { fontFamily: typography.family, fontSize: typography.size.xs }]} numberOfLines={2}>Total Clinics</Text>
             </View>
           </View>
 
           <View style={[styles.metricCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop]}>
-            <View style={[styles.metricIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: '#DCFCE7' }]}>
+            <View style={[styles.metricIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: colors.successSoft }]}>
               <Building2 color="#166534" size={isMobile ? 16 : 20} />
             </View>
             <View style={{ flex: 1, marginLeft: isMobile ? 6 : 12 }}>
-              <Text style={[styles.metricValue, isMobile && { fontFamily: 'Inter', fontSize: 16 }]}>{activeClinicsCount}</Text>
-              <Text style={[styles.metricLabel, isMobile && { fontFamily: 'Inter', fontSize: 11 }]} numberOfLines={1}>Active Clinics</Text>
+              <Text style={[styles.metricValue, isMobile && { fontFamily: typography.family, fontSize: typography.size.subtitle }]}>{activeClinicsCount}</Text>
+              <Text style={[styles.metricLabel, isMobile && { fontFamily: typography.family, fontSize: typography.size.xs }]} numberOfLines={2}>Active Clinics</Text>
             </View>
           </View>
 
@@ -1034,42 +1064,52 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
               <Users color="#C2410C" size={isMobile ? 16 : 20} />
             </View>
             <View style={{ flex: 1, marginLeft: isMobile ? 6 : 12 }}>
-              <Text style={[styles.metricValue, isMobile && { fontFamily: 'Inter', fontSize: 16 }]}>{totalAdminsCount}</Text>
-              <Text style={[styles.metricLabel, isMobile && { fontFamily: 'Inter', fontSize: 11 }]} numberOfLines={1}>Total Admins</Text>
+              <Text style={[styles.metricValue, isMobile && { fontFamily: typography.family, fontSize: typography.size.subtitle }]}>{totalAdminsCount}</Text>
+              <Text style={[styles.metricLabel, isMobile && { fontFamily: typography.family, fontSize: typography.size.xs }]} numberOfLines={2}>Total Admins</Text>
             </View>
           </View>
 
           <View style={[styles.metricCard, isMobile ? styles.kpiCardMobile : styles.kpiCardDesktop]}>
             <View style={[styles.metricIconBox, isMobile && { width: 32, height: 32 }, { backgroundColor: '#FEE2E2' }]}>
-              <Building2 color="#991B1B" size={isMobile ? 16 : 20} />
+              <Building2 color={colors.destructiveDark} size={isMobile ? 16 : 20} />
             </View>
             <View style={{ flex: 1, marginLeft: isMobile ? 6 : 12 }}>
-              <Text style={[styles.metricValue, isMobile && { fontFamily: 'Inter', fontSize: 16 }]}>{inactiveClinicsCount}</Text>
-              <Text style={[styles.metricLabel, isMobile && { fontFamily: 'Inter', fontSize: 11 }]} numberOfLines={1}>Inactive Clinics</Text>
+              <Text style={[styles.metricValue, isMobile && { fontFamily: typography.family, fontSize: typography.size.subtitle }]}>{inactiveClinicsCount}</Text>
+              <Text style={[styles.metricLabel, isMobile && { fontFamily: typography.family, fontSize: typography.size.xs }]} numberOfLines={2}>Inactive Clinics</Text>
             </View>
           </View>
         </View>
 
         {/* ── SEARCH & STATUS FILTER BAR ────────────────────────────────────── */}
+        <View {...filtersParentTapHandlers} style={[styles.searchFilterParent, (activeClinicParent === 'filters' || searchFocused || showStatusDropdown) && styles.searchFilterParentActive]}>
         <View style={[styles.searchFilterRow, isMobile && { flexDirection: 'column', alignItems: 'stretch' }]}>
-          <View style={styles.searchBar}>
-            <Search color="#94A3B8" size={16} style={{ marginRight: 8 }} />
+          <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
+            <Search color={colors.subtle} size={16} style={{ marginRight: spacing.sm }} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search clinics by name, email, phone or address..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={colors.subtle}
               value={searchQuery}
               onChangeText={setSearchQuery}
+              onFocus={() => {
+                setSearchFocused(true);
+                setActiveDashboardCard(null);
+                setActiveClinicParent('filters');
+              }}
+              onBlur={() => setSearchFocused(false)}
             />
           </View>
 
-          <View style={{ position: 'relative', zIndex: 20 }}>
+          <View style={[{ position: 'relative', zIndex: 20 }, isMobile && { width: '100%' }]}>
             <TouchableOpacity
-              style={styles.statusTriggerBtn}
-              onPress={() => setShowStatusDropdown(!showStatusDropdown)}
+              style={[styles.statusTriggerBtn, showStatusDropdown && styles.kpiCardActive, isMobile && { width: '100%' }]}
+              onPress={() => {
+                setSearchFocused(false);
+                setShowStatusDropdown(!showStatusDropdown);
+              }}
             >
               <Text style={styles.statusTriggerBtnText}>{selectedStatusFilter}</Text>
-              <ChevronDown color="#64748B" size={16} />
+              <ChevronDown color={colors.muted} size={16} />
             </TouchableOpacity>
 
             {showStatusDropdown && (
@@ -1081,6 +1121,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     onPress={() => {
                       setSelectedStatusFilter(s);
                       setShowStatusDropdown(false);
+                      setSearchFocused(false);
                     }}
                   >
                     <Text style={styles.statusDropdownItemText}>{s}</Text>
@@ -1090,21 +1131,22 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
             )}
           </View>
         </View>
+        </View>
 
         {/* ── CLINIC TABLE / LIST CARD ───────────────────────────────────────── */}
-        <View style={styles.tableCardContainer}>
+        <View {...clinicsParentTapHandlers} style={[styles.tableCardContainer, activeClinicParent === 'clinics' && styles.searchFilterParentActive]}>
           <View style={styles.tableHeaderBar}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Building2 color="#0F172A" size={18} style={{ marginRight: 8 }} />
+              <Building2 color={colors.text} size={18} style={{ marginRight: spacing.sm }} />
               <Text style={styles.tableTitleText}>Clinic ({filteredClinics.length})</Text>
             </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
               <TouchableOpacity
                 style={styles.columnsBtn}
                 onPress={() => setShowColumnsModal(true)}
                 activeOpacity={0.7}
               >
-                <Columns color="#334155" size={14} style={{ marginRight: 6 }} />
+                <Columns color={colors.foreground} size={14} style={{ marginRight: spacing.tiny }} />
                 <Text style={styles.columnsBtnText}>Columns</Text>
               </TouchableOpacity>
             </View>
@@ -1113,13 +1155,19 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
           {/* TABLE CONTENT */}
           {isMobile ? (
             /* Mobile Card View */
-            <View style={{ padding: 12, gap: 10 }}>
+            <View style={{ padding: spacing.md, gap: 10 }}>
               {paginatedClinics.map((item) => (
-                <View key={String(item.id)} style={styles.mobileClinicCard}>
+                <TouchableOpacity
+                  key={String(item.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`View ${item.name}`}
+                  activeOpacity={0.92}
+                  onPress={() => handleOpenViewClinicModal(item)}>
+                <LiquidBorderSurface style={styles.mobileClinicCard} radius={14}>
                   {/* Card Header: Clinic Name, Status, Actions */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
                     {visibleClinicColumns.name && (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 }}>
                         <View style={styles.clinicLogoSquare}>
                           {item.logo_url ? (
                             <Image
@@ -1128,11 +1176,11 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                               resizeMode="cover"
                             />
                           ) : (
-                            <Building2 color="#27A599" size={20} />
+                            <Building2 color={colors.primary} size={20} />
                           )}
                         </View>
-                        <View style={{ flex: 1, marginLeft: 10 }}>
-                          <Text style={styles.clinicTitleText}>{item.name}</Text>
+                        <View style={{ flex: 1, minWidth: 0, marginLeft: 10 }}>
+                          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.clinicTitleText}>{item.name}</Text>
                           {item.code ? <Text style={styles.codeText}>{item.code}</Text> : null}
                         </View>
                       </View>
@@ -1159,25 +1207,25 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 
                     {visibleClinicColumns.actions && (
                       <TouchableOpacity
-                        style={{ padding: 6, marginLeft: 4 }}
+                        style={{ padding: spacing.tiny, marginLeft: spacing.xs }}
                         onPress={() =>
                           setActiveActionMenuClinicId(
                             activeActionMenuClinicId === item.id ? null : item.id
                           )
                         }>
-                        <MoreVertical color="#64748B" size={16} />
+                        <MoreVertical color={colors.muted} size={16} />
                       </TouchableOpacity>
                     )}
                   </View>
 
                   {activeActionMenuClinicId === item.id && (
-                    <View style={[styles.actionPopoverMenu, { position: 'relative', top: 0, right: 0, width: '100%', marginBottom: 8 }]}>
+                    <View style={[styles.actionPopoverMenu, { position: 'relative', top: 0, right: 0, width: '100%', marginBottom: spacing.sm }]}>
                       <TouchableOpacity
                         style={styles.popoverItem}
                         onPress={() => {
                           handleOpenViewClinicModal(item);
                         }}>
-                        <Eye size={15} color="#334155" style={{ marginRight: 8 }} />
+                        <Eye size={15} color={colors.foreground} style={{ marginRight: spacing.sm }} />
                         <Text style={styles.popoverItemText}>View Clinic</Text>
                       </TouchableOpacity>
 
@@ -1187,7 +1235,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                           setActiveActionMenuClinicId(null);
                           if (canViewAdmins) setViewAdminsModal(item);
                         }}>
-                        <Users size={15} color="#334155" style={{ marginRight: 8 }} />
+                        <Users size={15} color={colors.foreground} style={{ marginRight: spacing.sm }} />
                         <Text style={styles.popoverItemText}>View Admins</Text>
                       </TouchableOpacity>
 
@@ -1197,7 +1245,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                           setActiveActionMenuClinicId(null);
                           handleOpenEditClinicModal(item);
                         }}>
-                        <Edit2 size={15} color="#334155" style={{ marginRight: 8 }} />
+                        <Edit2 size={15} color={colors.foreground} style={{ marginRight: spacing.sm }} />
                         <Text style={styles.popoverItemText}>Edit Clinic</Text>
                       </TouchableOpacity>
 
@@ -1207,18 +1255,18 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                           setActiveActionMenuClinicId(null);
                           if (canAddAdmin) setAddAdminModalClinic(item);
                         }}>
-                        <UserPlus size={15} color="#334155" style={{ marginRight: 8 }} />
+                        <UserPlus size={15} color={colors.foreground} style={{ marginRight: spacing.sm }} />
                         <Text style={styles.popoverItemText}>Add Admin</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={[styles.popoverItem, { borderTopWidth: 1, borderTopColor: '#F1F5F9' }]}
+                        style={[styles.popoverItem, { borderTopWidth: 1, borderTopColor: colors.secondary }]}
                         onPress={() => {
                           setActiveActionMenuClinicId(null);
                           handleToggleClinicStatus(item.id);
                         }}>
-                        <Trash2 size={15} color={item.status === 'Active' ? '#DC2626' : '#2EB877'} style={{ marginRight: 8 }} />
-                        <Text style={[styles.popoverItemText, { color: item.status === 'Active' ? '#DC2626' : '#2EB877' }]}>
+                        <Trash2 size={15} color={item.status === 'Active' ? colors.destructive : colors.success} style={{ marginRight: spacing.sm }} />
+                        <Text style={[styles.popoverItemText, { color: item.status === 'Active' ? colors.destructive : colors.success }]}>
                           {item.status === 'Active' ? 'Deactivate Clinic' : 'Activate Clinic'}
                         </Text>
                       </TouchableOpacity>
@@ -1229,7 +1277,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <View style={styles.mobileMetaRow}>
                     {visibleClinicColumns.address && (
                       <View style={styles.clinicMetaItem}>
-                        <MapPin size={14} color="#64748B" />
+                        <MapPin size={14} color={colors.muted} />
                         <Text style={styles.metaText}>{item.address || '—'}</Text>
                       </View>
                     )}
@@ -1237,13 +1285,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       <>
                         {item.email ? (
                           <View style={styles.clinicMetaItem}>
-                            <Mail size={14} color="#64748B" />
+                            <Mail size={14} color={colors.muted} />
                             <Text style={styles.metaText}>{item.email}</Text>
                           </View>
                         ) : null}
                         {item.phone ? (
                           <View style={styles.clinicMetaItem}>
-                            <Phone size={14} color="#64748B" />
+                            <Phone size={14} color={colors.muted} />
                             <Text style={styles.metaText}>{item.phone}</Text>
                           </View>
                         ) : null}
@@ -1283,12 +1331,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       </View>
                     )}
                   </View>
-                </View>
+                </LiquidBorderSurface>
+                </TouchableOpacity>
               ))}
             </View>
           ) : (
             /* Desktop / Wide Screen Table View */
-            <ScrollView
+            <LiquidBorderScrollView
               horizontal
               showsHorizontalScrollIndicator={true}
               nestedScrollEnabled={true}
@@ -1317,7 +1366,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     {visibleClinicColumns.name && (
                       <View style={{ width: 220, flexDirection: 'row', alignItems: 'center' }}>
                         <View style={styles.clinicLogoSquare}>
-                          <Building2 color="#27A599" size={18} />
+                          <Building2 color={colors.primary} size={18} />
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.clinicTitleText} numberOfLines={1}>
@@ -1331,7 +1380,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     {/* Address */}
                     {visibleClinicColumns.address && (
                       <View style={{ width: 200, flexDirection: 'row', alignItems: 'center' }}>
-                        <MapPin color="#94A3B8" size={14} style={{ marginRight: 4 }} />
+                        <MapPin color={colors.subtle} size={14} style={{ marginRight: spacing.xs }} />
                         <Text style={styles.tdText} numberOfLines={1}>
                           {item.address || '—'}
                         </Text>
@@ -1342,13 +1391,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     {visibleClinicColumns.contact && (
                       <View style={{ width: 200 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Mail color="#94A3B8" size={12} style={{ marginRight: 4 }} />
+                          <Mail color={colors.subtle} size={12} style={{ marginRight: spacing.xs }} />
                           <Text style={styles.tdText} numberOfLines={1}>
                             {item.email || '—'}
                           </Text>
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                          <Phone color="#94A3B8" size={12} style={{ marginRight: 4 }} />
+                          <Phone color={colors.subtle} size={12} style={{ marginRight: spacing.xs }} />
                           <Text style={styles.tdText}>{item.phone || '—'}</Text>
                         </View>
                       </View>
@@ -1419,7 +1468,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     {visibleClinicColumns.admins && (
                       <View style={{ width: 90, alignItems: 'center', justifyContent: 'center' }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Users color="#64748B" size={14} style={{ marginRight: 4 }} />
+                          <Users color={colors.muted} size={14} style={{ marginRight: spacing.xs }} />
                           <Text style={styles.tdText}>{adminCounts.data?.byClinic[String(item.id)] ?? item.admins_count ?? '\u2014'}</Text>
                         </View>
                       </View>
@@ -1427,7 +1476,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 
                     {/* Status & Toggle Switch */}
                     {visibleClinicColumns.status && (
-                      <View style={{ width: 140, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      <View style={{ width: 140, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.tiny }}>
                         <View
                           style={[
                             styles.statusPillBadge,
@@ -1447,8 +1496,8 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                         <Switch
                           value={item.status === 'Active'}
                           onValueChange={() => handleToggleClinicStatus(item.id)}
-                          trackColor={{ false: '#E2E8F0', true: '#99F6E4' }}
-                          thumbColor={item.status === 'Active' ? '#27A599' : '#F1F5F9'}
+                          trackColor={{ false: colors.border, true: colors.mintBorder }}
+                          thumbColor={item.status === 'Active' ? colors.primary : colors.secondary}
                         />
                       </View>
                     )}
@@ -1457,13 +1506,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     {visibleClinicColumns.actions && (
                       <View style={{ width: 80, alignItems: 'flex-end', justifyContent: 'center', zIndex: 50 }}>
                         <TouchableOpacity
-                          style={{ padding: 6 }}
+                          style={{ padding: spacing.tiny }}
                           onPress={() =>
                             setActiveActionMenuClinicId(
                               activeActionMenuClinicId === item.id ? null : item.id
                             )
                           }>
-                          <MoreVertical color="#64748B" size={16} />
+                          <MoreVertical color={colors.muted} size={16} />
                         </TouchableOpacity>
 
                         {activeActionMenuClinicId === item.id && (
@@ -1474,7 +1523,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                               onPress={() => {
                                 handleOpenViewClinicModal(item);
                               }}>
-                              <Eye size={15} color="#334155" style={{ marginRight: 8 }} />
+                              <Eye size={15} color={colors.foreground} style={{ marginRight: spacing.sm }} />
                               <Text style={styles.popoverItemText}>View Clinic</Text>
                             </TouchableOpacity>
 
@@ -1485,7 +1534,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                                 setActiveActionMenuClinicId(null);
                                 if (canViewAdmins) setViewAdminsModal(item);
                               }}>
-                              <Users size={15} color="#334155" style={{ marginRight: 8 }} />
+                              <Users size={15} color={colors.foreground} style={{ marginRight: spacing.sm }} />
                               <Text style={styles.popoverItemText}>View Admins</Text>
                             </TouchableOpacity>
 
@@ -1496,7 +1545,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                                 setActiveActionMenuClinicId(null);
                                 handleOpenEditClinicModal(item);
                               }}>
-                              <Edit2 size={15} color="#334155" style={{ marginRight: 8 }} />
+                              <Edit2 size={15} color={colors.foreground} style={{ marginRight: spacing.sm }} />
                               <Text style={styles.popoverItemText}>Edit Clinic</Text>
                             </TouchableOpacity>
 
@@ -1507,19 +1556,19 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                                 setActiveActionMenuClinicId(null);
                                 if (canAddAdmin) setAddAdminModalClinic(item);
                               }}>
-                              <UserPlus size={15} color="#334155" style={{ marginRight: 8 }} />
+                              <UserPlus size={15} color={colors.foreground} style={{ marginRight: spacing.sm }} />
                               <Text style={styles.popoverItemText}>Add Admin</Text>
                             </TouchableOpacity>
 
                             {/* 5. Deactivate Clinic / Activate Clinic */}
                             <TouchableOpacity
-                              style={[styles.popoverItem, { borderTopWidth: 1, borderTopColor: '#F1F5F9', marginTop: 2 }]}
+                              style={[styles.popoverItem, { borderTopWidth: 1, borderTopColor: colors.secondary, marginTop: 2 }]}
                               onPress={() => {
                                 setActiveActionMenuClinicId(null);
                                 handleToggleClinicStatus(item.id);
                               }}>
-                              <Trash2 size={15} color={item.status === 'Active' ? '#DC2626' : '#2EB877'} style={{ marginRight: 8 }} />
-                              <Text style={[styles.popoverItemText, { color: item.status === 'Active' ? '#DC2626' : '#2EB877' }]}>
+                              <Trash2 size={15} color={item.status === 'Active' ? colors.destructive : colors.success} style={{ marginRight: spacing.sm }} />
+                              <Text style={[styles.popoverItemText, { color: item.status === 'Active' ? colors.destructive : colors.success }]}>
                                 {item.status === 'Active' ? 'Deactivate Clinic' : 'Activate Clinic'}
                               </Text>
                             </TouchableOpacity>
@@ -1530,7 +1579,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   </View>
                 ))}
               </View>
-            </ScrollView>
+            </LiquidBorderScrollView>
           )}
 
           {/* Pagination */}
@@ -1546,7 +1595,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
             }}
           />
         </View>
-      </ScrollView>
+      </LiquidBorderScrollView>
 
       {/* ────────────────────────────────────────────────────────────────────────── */}
       {/* 👁️ SHOW / HIDE COLUMNS MODAL (REUSABLE COMPONENT)                          */}
@@ -1571,7 +1620,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                 {/* Header */}
                 <View style={styles.editClinicModalHeader}>
                   <View style={styles.editHeaderIconBox}>
-                    {editingClinicId ? <Edit2 color="#0F172A" size={18} /> : <Plus color="#0F172A" size={18} />}
+                    {editingClinicId ? <Edit2 color={colors.text} size={18} /> : <Plus color={colors.text} size={18} />}
                   </View>
                   <View style={{ flex: 1, marginLeft: 10 }}>
                     <Text style={styles.editClinicModalTitle}>
@@ -1582,12 +1631,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     </Text>
                   </View>
                   <TouchableOpacity onPress={() => setModalVisible(false)}>
-                    <X size={18} color="#64748B" />
+                    <X size={18} color={colors.muted} />
                   </TouchableOpacity>
                 </View>
 
                 {/* Form Body */}
-                <ScrollView
+                <LiquidBorderScrollView
                   style={{ padding: 18 }}
                   showsVerticalScrollIndicator={true}
                   nestedScrollEnabled={true}
@@ -1598,12 +1647,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <View style={styles.clinicLogoUploadBox}>
                     <Text style={styles.logoBoxLabel}>Clinic Logo</Text>
                     <View style={styles.cameraIconCircleBadge}>
-                      {clinicForm.logo_url && !logoFailed ? <Image source={{ uri: profilePhotoUrl(clinicForm.logo_url) }} onError={() => setLogoFailed(true)} style={{ width: '100%', height: '100%', borderRadius: 100 }} /> : <Camera size={22} color="#64748B" />}
+                      {clinicForm.logo_url && !logoFailed ? <Image source={{ uri: profilePhotoUrl(clinicForm.logo_url) }} onError={() => setLogoFailed(true)} style={{ width: '100%', height: '100%', borderRadius: 100 }} /> : <Camera size={22} color={colors.muted} />}
                       <TouchableOpacity style={styles.smallCloseBadge} disabled={logoUploading || clinicSaving} onPress={() => setClinicForm(form => ({ ...form, logo_url: '' }))}>
-                        <X size={10} color="#64748B" />
+                        <X size={10} color={colors.muted} />
                       </TouchableOpacity>
                     </View>
-                    <TouchableOpacity style={{ marginTop: 4 }} disabled={logoUploading || clinicSaving} onPress={handleChooseLogo}>
+                    <TouchableOpacity style={{ marginTop: spacing.xs }} disabled={logoUploading || clinicSaving} onPress={handleChooseLogo}>
                       <Text style={styles.changeLogoLink}>Change logo</Text>
                     </TouchableOpacity>
                     <Text style={styles.logoHelperText}>PNG/JPG only, max 2MB</Text>
@@ -1613,12 +1662,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <View style={[styles.grid2ColRow, isMobile && { flexDirection: 'column', gap: 0 }]}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.formLabelText}>
-                        Clinic Name <Text style={{ color: '#EF4444' }}>*</Text>
+                        Clinic Name <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TextInput
                         style={styles.formInputBox}
                         placeholder="Aarogya Care Clinic"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         value={clinicForm.name}
                         onChangeText={(v) => setClinicForm({ ...clinicForm, name: v })}
                       />
@@ -1626,12 +1675,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 
                     <View style={{ flex: 1 }}>
                       <Text style={styles.formLabelText}>
-                        Email Address <Text style={{ color: '#EF4444' }}>*</Text>
+                        Email Address <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TextInput
                         style={styles.formInputBox}
                         placeholder="contact@aarogyacare.com"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         keyboardType="email-address"
                         value={clinicForm.email}
                         onChangeText={(v) => setClinicForm({ ...clinicForm, email: v })}
@@ -1643,12 +1692,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <View style={[styles.grid2ColRow, { marginTop: 10 }, isMobile && { flexDirection: 'column', gap: 0, marginTop: 0 }]}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.formLabelText}>
-                        Phone Number <Text style={{ color: '#EF4444' }}>*</Text>
+                        Phone Number <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TextInput
                         style={styles.formInputBox}
                         placeholder="9876543210"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         keyboardType="phone-pad"
                         value={clinicForm.phone}
                         onChangeText={(v) => setClinicForm({ ...clinicForm, phone: v })}
@@ -1657,12 +1706,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 
                     <View style={{ flex: 1 }}>
                       <Text style={styles.formLabelText}>
-                        Address <Text style={{ color: '#EF4444' }}>*</Text>
+                        Address <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TextInput
                         style={styles.formInputBox}
                         placeholder="102, Shree Heights, AB Road"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         value={clinicForm.address}
                         onChangeText={(v) => setClinicForm({ ...clinicForm, address: v })}
                       />
@@ -1673,16 +1722,16 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <View style={[styles.grid2ColRow, { marginTop: 10 }, isMobile && { flexDirection: 'column', gap: 0, marginTop: 0 }]}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.formLabelText}>
-                        State <Text style={{ color: '#EF4444' }}>*</Text>
+                        State <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TouchableOpacity
                         style={styles.formDropdownSelectTrigger}
                         onPress={() => setShowFormStateDropdown(!showFormStateDropdown)}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <MapPin size={14} color="#64748B" style={{ marginRight: 6 }} />
+                          <MapPin size={14} color={colors.muted} style={{ marginRight: spacing.tiny }} />
                           <Text style={styles.formDropdownText}>{stateLabel}</Text>
                         </View>
-                        <ChevronDown size={16} color="#64748B" />
+                        <ChevronDown size={16} color={colors.muted} />
                       </TouchableOpacity>
 
                       {showFormStateDropdown && (
@@ -1704,16 +1753,16 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 
                     <View style={{ flex: 1 }}>
                       <Text style={styles.formLabelText}>
-                        City <Text style={{ color: '#EF4444' }}>*</Text>
+                        City <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TouchableOpacity
                         style={styles.formDropdownSelectTrigger}
                         onPress={() => setShowFormCityDropdown(!showFormCityDropdown)}>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <MapPin size={14} color="#64748B" style={{ marginRight: 6 }} />
+                          <MapPin size={14} color={colors.muted} style={{ marginRight: spacing.tiny }} />
                           <Text style={styles.formDropdownText}>{cityLabel}</Text>
                         </View>
-                        <ChevronDown size={16} color="#64748B" />
+                        <ChevronDown size={16} color={colors.muted} />
                       </TouchableOpacity>
 
                       {showFormCityDropdown && (
@@ -1738,13 +1787,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <View style={[styles.grid2ColRow, { marginTop: 10 }, isMobile && { flexDirection: 'column', gap: 0, marginTop: 0 }]}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.formLabelText}>
-                        Country <Text style={{ color: '#EF4444' }}>*</Text>
+                        Country <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TouchableOpacity
                         style={styles.formDropdownSelectTrigger}
                         onPress={() => setShowFormCountryDropdown(!showFormCountryDropdown)}>
                         <Text style={styles.formDropdownText}>{clinicForm.country}</Text>
-                        <ChevronDown size={16} color="#64748B" />
+                        <ChevronDown size={16} color={colors.muted} />
                       </TouchableOpacity>
 
                       {showFormCountryDropdown && (
@@ -1769,7 +1818,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       <TextInput
                         style={styles.formInputBox}
                         placeholder="https://clinic.example.com"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         value={clinicForm.website}
                         onChangeText={(v) => setClinicForm({ ...clinicForm, website: v })}
                       />
@@ -1783,7 +1832,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       <TextInput
                         style={styles.formInputBox}
                         placeholder="L123"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         value={clinicForm.license_number}
                         onChangeText={(v) => setClinicForm({ ...clinicForm, license_number: v })}
                       />
@@ -1794,7 +1843,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       <TextInput
                         style={styles.formInputBox}
                         placeholder="Mon,Tue,Wed,Thu,Fri"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         value={clinicForm.available_days}
                         onChangeText={(v) => setClinicForm({ ...clinicForm, available_days: v })}
                       />
@@ -1806,15 +1855,15 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     <View style={{ flex: 1 }}>
                       <Text style={styles.formLabelText}>Available From</Text>
                       <View style={styles.formInputBoxWithIcon}>
-                        <Clock size={14} color="#64748B" style={{ marginRight: 6 }} />
+                        <Clock size={14} color={colors.muted} style={{ marginRight: spacing.tiny }} />
                         <TextInput
                           style={styles.formInputBoxBare}
                           placeholder="12:30 AM"
-                          placeholderTextColor="#94A3B8"
+                          placeholderTextColor={colors.subtle}
                           value={clinicForm.available_from}
                           onChangeText={(v) => setClinicForm({ ...clinicForm, available_from: v })}
                         />
-                        <ChevronsUpDown size={14} color="#64748B" />
+                        <ChevronsUpDown size={14} color={colors.muted} />
                       </View>
                       <Text style={styles.apiTimeHelperText}>API time: 00:30:00 (24-hour format)</Text>
                     </View>
@@ -1822,20 +1871,20 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     <View style={{ flex: 1 }}>
                       <Text style={styles.formLabelText}>Available To</Text>
                       <View style={styles.formInputBoxWithIcon}>
-                        <Clock size={14} color="#64748B" style={{ marginRight: 6 }} />
+                        <Clock size={14} color={colors.muted} style={{ marginRight: spacing.tiny }} />
                         <TextInput
                           style={styles.formInputBoxBare}
                           placeholder="02:30 AM"
-                          placeholderTextColor="#94A3B8"
+                          placeholderTextColor={colors.subtle}
                           value={clinicForm.available_to}
                           onChangeText={(v) => setClinicForm({ ...clinicForm, available_to: v })}
                         />
-                        <ChevronsUpDown size={14} color="#64748B" />
+                        <ChevronsUpDown size={14} color={colors.muted} />
                       </View>
                       <Text style={styles.apiTimeHelperText}>API time: 02:30:00 (24-hour format)</Text>
                     </View>
                   </View>
-                </ScrollView>
+                </LiquidBorderScrollView>
 
                 {/* Footer Buttons */}
                 <View style={styles.addAdminFooterRow}>
@@ -1850,13 +1899,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     onPress={handleSaveClinic}
                     disabled={logoUploading || clinicSaving || (editingClinicId ? !canEdit : !canAdd || !isMultiClinicPlan)}>
                     {clinicSaving ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <ActivityIndicator size="small" color={colors.surface} />
                     ) : (
                       <>
                         {editingClinicId ? (
-                          <Edit2 size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                          <Edit2 size={15} color={colors.surface} style={{ marginRight: spacing.tiny }} />
                         ) : (
-                          <Plus size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                          <Plus size={15} color={colors.surface} style={{ marginRight: spacing.tiny }} />
                         )}
                         <Text style={styles.addAdminSubmitText}>
                           {editingClinicId ? 'Update Clinic' : 'Register Clinic'}
@@ -1889,10 +1938,10 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                         resizeMode="contain"
                       />
                     ) : (
-                      <Building2 color="#64748B" size={24} />
+                      <Building2 color={colors.muted} size={24} />
                     )}
                   </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
+                  <View style={{ flex: 1, marginLeft: spacing.md }}>
                     <Text style={styles.viewClinicTitle}>{viewClinicModal?.name}</Text>
                     <Text style={styles.viewClinicSubtitle}>
                       {resolvedViewClinicCity || viewClinicModal?.city ? `${resolvedViewClinicCity || viewClinicModal?.city} • ` : ''}{viewClinicModal?.country || 'India'}
@@ -1901,13 +1950,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       <Text style={styles.viewClinicStatusText}>{viewClinicModal?.status}</Text>
                     </View>
                   </View>
-                  <TouchableOpacity onPress={() => setViewClinicModal(null)} style={{ padding: 4 }}>
-                    <X size={18} color="#64748B" />
+                  <TouchableOpacity onPress={() => setViewClinicModal(null)} style={{ padding: spacing.xs }}>
+                    <X size={18} color={colors.muted} />
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView
-                  style={{ padding: 16 }}
+                <LiquidBorderScrollView
+                  style={{ padding: spacing.lg }}
                   showsVerticalScrollIndicator={true}
                   nestedScrollEnabled={true}
                   scrollEventThrottle={16}
@@ -1916,7 +1965,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   {/* Contact & Identity Section */}
                   <View style={styles.viewSectionCard}>
                     <View style={styles.sectionHeaderTitleRow}>
-                      <Mail size={15} color="#27A599" style={{ marginRight: 6 }} />
+                      <Mail size={15} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.viewSectionCardTitle}>Contact & Identity</Text>
                     </View>
                     <View style={[styles.grid2ColRow, isMobile && { flexDirection: 'column', gap: 10 }]}>
@@ -1930,7 +1979,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       </View>
                     </View>
 
-                    <View style={[styles.grid2ColRow, { marginTop: 12 }, isMobile && { flexDirection: 'column', gap: 10, marginTop: 10 }]}>
+                    <View style={[styles.grid2ColRow, { marginTop: spacing.md }, isMobile && { flexDirection: 'column', gap: 10, marginTop: 10 }]}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>Website</Text>
                         <Text style={styles.infoBoxVal}>{viewClinicModal?.website || '—'}</Text>
@@ -1945,7 +1994,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   {/* Location Section */}
                   <View style={[styles.viewSectionCard, { marginTop: 14 }]}>
                     <View style={styles.sectionHeaderTitleRow}>
-                      <MapPin size={15} color="#27A599" style={{ marginRight: 6 }} />
+                      <MapPin size={15} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.viewSectionCardTitle}>Location</Text>
                     </View>
                     <View style={[styles.grid2ColRow, isMobile && { flexDirection: 'column', gap: 10 }]}>
@@ -1955,7 +2004,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       </View>
                     </View>
 
-                    <View style={[styles.grid2ColRow, { marginTop: 12 }, isMobile && { flexDirection: 'column', gap: 10, marginTop: 10 }]}>
+                    <View style={[styles.grid2ColRow, { marginTop: spacing.md }, isMobile && { flexDirection: 'column', gap: 10, marginTop: 10 }]}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>City</Text>
                         <Text style={styles.infoBoxVal}>{resolvedViewClinicCity || viewClinicModal?.city || '—'}</Text>
@@ -1966,7 +2015,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       </View>
                     </View>
 
-                    <View style={[styles.grid2ColRow, { marginTop: 12 }, isMobile && { flexDirection: 'column', gap: 10, marginTop: 10 }]}>
+                    <View style={[styles.grid2ColRow, { marginTop: spacing.md }, isMobile && { flexDirection: 'column', gap: 10, marginTop: 10 }]}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.infoBoxLabel}>Country</Text>
                         <Text style={styles.infoBoxVal}>{viewClinicModal?.country || 'India'}</Text>
@@ -1981,7 +2030,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   {/* Availability Section */}
                   <View style={[styles.viewSectionCard, styles.availabilityBgCard, { marginTop: 14, marginBottom: 10 }]}>
                     <View style={styles.sectionHeaderTitleRow}>
-                      <CalendarIcon size={15} color="#27A599" style={{ marginRight: 6 }} />
+                      <CalendarIcon size={15} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.viewSectionCardTitle}>Availability</Text>
                     </View>
                     <View style={[styles.grid3ColRow, isMobile && { flexDirection: 'column', gap: 10 }]}>
@@ -1999,7 +2048,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       </View>
                     </View>
                   </View>
-                </ScrollView>
+                </LiquidBorderScrollView>
 
                 {/* Footer */}
                 <View style={styles.viewClinicFooter}>
@@ -2024,18 +2073,18 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                 {/* Header */}
                 <View style={styles.viewAdminsHeader}>
                   <View style={styles.tealIconBoxSquare}>
-                    <Users color="#FFFFFF" size={20} />
+                    <Users color={colors.surface} size={20} />
                   </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
+                  <View style={{ flex: 1, marginLeft: spacing.md }}>
                     <Text style={styles.viewAdminsTitle}>
-                      Clinic Admins — <Text style={{ color: '#27A599' }}>{viewAdminsModal?.name}</Text>
+                      Clinic Admins — <Text style={{ color: colors.primary }}>{viewAdminsModal?.name}</Text>
                     </Text>
                     <Text style={styles.viewAdminsSubtitle}>
                       Manage administrators for this clinic
                     </Text>
                   </View>
                   <TouchableOpacity onPress={() => setViewAdminsModal(null)}>
-                    <X size={18} color="#64748B" />
+                    <X size={18} color={colors.muted} />
                   </TouchableOpacity>
                 </View>
 
@@ -2049,14 +2098,14 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       setViewAdminsModal(null);
                       if (canAddAdmin) setAddAdminModalClinic(c);
                     }}>
-                    <Plus color="#FFFFFF" size={14} style={{ marginRight: 4 }} />
+                    <Plus color={colors.surface} size={14} style={{ marginRight: spacing.xs }} />
                     <Text style={styles.addNewAdminBtnText}>Add New Admin</Text>
                   </TouchableOpacity>
                 </View>
 
                 {/* Admins Table Container */}
-                <ScrollView
-                  style={{ paddingHorizontal: 16, paddingBottom: 16 }}
+                <LiquidBorderScrollView
+                  style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.lg }}
                   showsVerticalScrollIndicator={true}
                   nestedScrollEnabled={true}
                   scrollEventThrottle={16}
@@ -2064,13 +2113,13 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   decelerationRate="normal">
                   {admins.loading ? (
                     <View style={{ paddingVertical: 36, alignItems: 'center', justifyContent: 'center' }}>
-                      <ActivityIndicator size="small" color="#27A599" />
-                      <Text style={{ fontFamily: 'Inter', marginTop: 8, fontSize: 12, color: '#64748B' }}>Loading administrators...</Text>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <Text style={{ fontFamily: typography.family, marginTop: spacing.sm, fontSize: typography.size.sm, color: colors.muted }}>Loading administrators...</Text>
                     </View>
                   ) : adminsList.length === 0 ? (
-                    <View style={{ paddingVertical: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed', borderRadius: 12, backgroundColor: '#FFFFFF', marginVertical: 8 }}>
-                      <Users size={32} color="#94A3B8" />
-                      <Text style={{ fontFamily: 'Inter', marginTop: 8, fontSize: 13, color: '#64748B', fontWeight: '500' }}>
+                    <View style={{ paddingVertical: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed', borderRadius: radii.lg, backgroundColor: colors.surface, marginVertical: spacing.sm }}>
+                      <Users size={32} color={colors.subtle} />
+                      <Text style={{ fontFamily: typography.family, marginTop: spacing.sm, fontSize: typography.size.caption, color: colors.muted, fontWeight: typography.weight.medium }}>
                         No clinic admins found for this clinic
                       </Text>
                     </View>
@@ -2082,7 +2131,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                               <View style={styles.adminAvatarCircle}>
-                                <Users size={14} color="#27A599" />
+                                <Users size={14} color={colors.primary} />
                               </View>
                               <Text style={styles.adminNameText}>{admin.full_name}</Text>
                             </View>
@@ -2102,27 +2151,27 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                             </TouchableOpacity>
                           </View>
 
-                          <View style={{ marginTop: 8, gap: 4 }}>
+                          <View style={{ marginTop: spacing.sm, gap: spacing.xs }}>
                             <Text style={styles.adminTdText}>✉️ {admin.email}</Text>
                             <Text style={styles.adminTdText}>📞 {admin.phone}</Text>
                           </View>
 
                           {/* Action Buttons: Edit & Delete */}
-                          <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9', flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                          <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.secondary, flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm }}>
                             {canEditAdmin && (
                               <TouchableOpacity
-                                style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' }}
+                                style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.tiny, borderRadius: radii.sm, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface }}
                                 onPress={() => handleOpenEditClinicAdmin(admin)}>
-                                <Edit2 size={13} color="#27A599" style={{ marginRight: 5 }} />
-                                <Text style={{ fontFamily: 'Inter', fontSize: 12, fontWeight: '600', color: '#0F172A' }}>Edit</Text>
+                                <Edit2 size={13} color={colors.primary} style={{ marginRight: 5 }} />
+                                <Text style={{ fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.semibold, color: colors.text }}>Edit</Text>
                               </TouchableOpacity>
                             )}
                             {canDeleteAdmin && (
                               <TouchableOpacity
-                                style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, borderWidth: 1, borderColor: '#FEE2E2', backgroundColor: '#FEF2F2' }}
+                                style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.tiny, borderRadius: radii.sm, borderWidth: 1, borderColor: '#FEE2E2', backgroundColor: colors.destructiveSoft }}
                                 onPress={() => handleDeleteClinicAdmin(admin)}>
-                                <Trash2 size={13} color="#DC2626" style={{ marginRight: 5 }} />
-                                <Text style={{ fontFamily: 'Inter', fontSize: 12, fontWeight: '600', color: '#DC2626' }}>Delete</Text>
+                                <Trash2 size={13} color={colors.destructive} style={{ marginRight: 5 }} />
+                                <Text style={{ fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.semibold, color: colors.destructive }}>Delete</Text>
                               </TouchableOpacity>
                             )}
                           </View>
@@ -2145,7 +2194,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                           {/* Name + Avatar */}
                           <View style={{ flex: 2.2, flexDirection: 'row', alignItems: 'center' }}>
                             <View style={styles.adminAvatarCircle}>
-                              <Users size={14} color="#27A599" />
+                              <Users size={14} color={colors.primary} />
                             </View>
                             <Text style={styles.adminNameText} numberOfLines={1}>
                               {admin.full_name}
@@ -2179,15 +2228,15 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                           </View>
 
                           {/* Actions: Edit & Delete */}
-                          <View style={{ flex: 1.4, flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+                          <View style={{ flex: 1.4, flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.md }}>
                             {canEditAdmin && (
                               <TouchableOpacity onPress={() => handleOpenEditClinicAdmin(admin)}>
-                                <Edit2 size={15} color="#27A599" />
+                                <Edit2 size={15} color={colors.primary} />
                               </TouchableOpacity>
                             )}
                             {canDeleteAdmin && (
                               <TouchableOpacity onPress={() => handleDeleteClinicAdmin(admin)}>
-                                <Trash2 size={15} color="#DC2626" />
+                                <Trash2 size={15} color={colors.destructive} />
                               </TouchableOpacity>
                             )}
                           </View>
@@ -2195,7 +2244,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                       ))}
                     </View>
                   )}
-                </ScrollView>
+                </LiquidBorderScrollView>
               </View>
             </TouchableWithoutFeedback>
           </View>
@@ -2213,9 +2262,9 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                 {/* Header */}
                 <View style={styles.addAdminHeader}>
                   <View style={styles.userPlusIconBox}>
-                    <UserPlus color="#27A599" size={20} />
+                    <UserPlus color={colors.primary} size={20} />
                   </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
+                  <View style={{ flex: 1, marginLeft: spacing.md }}>
                     <Text style={styles.addAdminTitle}>
                       Add Clinic Admin for {addAdminModalClinic?.name}
                     </Text>
@@ -2224,12 +2273,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     </Text>
                   </View>
                   <TouchableOpacity onPress={() => setAddAdminModalClinic(null)}>
-                    <X size={18} color="#64748B" />
+                    <X size={18} color={colors.muted} />
                   </TouchableOpacity>
                 </View>
 
                 {/* Form Body */}
-                <ScrollView
+                <LiquidBorderScrollView
                   style={{ padding: 18 }}
                   showsVerticalScrollIndicator={true}
                   nestedScrollEnabled={true}
@@ -2241,12 +2290,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <View style={[styles.grid2ColRow, isMobile && { flexDirection: 'column', gap: 0 }]}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.formLabelText}>
-                        Full Name <Text style={{ color: '#EF4444' }}>*</Text>
+                        Full Name <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TextInput
                         style={[styles.formInputBox, styles.formInputFocused]}
                         placeholder="Enter full name"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         value={adminFullName}
                         onChangeText={setAdminFullName}
                       />
@@ -2254,12 +2303,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 
                     <View style={{ flex: 1 }}>
                       <Text style={styles.formLabelText}>
-                        Email Address <Text style={{ color: '#EF4444' }}>*</Text>
+                        Email Address <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TextInput
                         style={styles.formInputBox}
                         placeholder="admin@clinic.com"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         keyboardType="email-address"
                         value={adminEmail}
                         onChangeText={setAdminEmail}
@@ -2270,12 +2319,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <View style={[styles.grid2ColRow, { marginTop: 10 }, isMobile && { flexDirection: 'column', gap: 0, marginTop: 0 }]}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.formLabelText}>
-                        Phone Number <Text style={{ color: '#EF4444' }}>*</Text>
+                        Phone Number <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TextInput
                         style={styles.formInputBox}
                         placeholder="9876543210"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         keyboardType="phone-pad"
                         value={adminPhone}
                         onChangeText={setAdminPhone}
@@ -2284,12 +2333,12 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 
                     <View style={{ flex: 1 }}>
                       <Text style={styles.formLabelText}>
-                        Password <Text style={{ color: '#EF4444' }}>*</Text>
+                        Password <Text style={{ color: colors.destructive }}>*</Text>
                       </Text>
                       <TextInput
                         style={styles.formInputBox}
                         placeholder="Enter secure password"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         secureTextEntry
                         value={adminPassword}
                         onChangeText={setAdminPassword}
@@ -2301,7 +2350,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <TextInput
                     style={[styles.formInputBox, { height: 60, textAlignVertical: 'top' }]}
                     placeholder="Enter clinic admin's address (optional)"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.subtle}
                     multiline
                     value={adminAddress}
                     onChangeText={setAdminAddress}
@@ -2310,16 +2359,16 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   {/* Assigned Clinic Card */}
                   <View style={styles.assignedClinicCard}>
                     <Text style={styles.assignedClinicHeaderLabel}>Assigned Clinic</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                      <Building2 size={16} color="#27A599" style={{ marginRight: 6 }} />
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs }}>
+                      <Building2 size={16} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.assignedClinicName}>{addAdminModalClinic?.name}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3 }}>
-                      <MapPin size={14} color="#64748B" style={{ marginRight: 6 }} />
+                      <MapPin size={14} color={colors.muted} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.assignedClinicAddress}>{addAdminModalClinic?.address}</Text>
                     </View>
                   </View>
-                </ScrollView>
+                </LiquidBorderScrollView>
 
                 {/* Footer Buttons */}
                 <View style={styles.addAdminFooterRow}>
@@ -2334,10 +2383,10 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     onPress={handleCreateClinicAdmin}
                     disabled={addAdminSaving || !canAddAdmin}>
                     {addAdminSaving ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <ActivityIndicator size="small" color={colors.surface} />
                     ) : (
                       <>
-                        <UserPlus size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                        <UserPlus size={15} color={colors.surface} style={{ marginRight: spacing.tiny }} />
                         <Text style={styles.addAdminSubmitText}>Create Clinic Admin</Text>
                       </>
                     )}
@@ -2360,9 +2409,9 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                 {/* Header */}
                 <View style={styles.addAdminHeader}>
                   <View style={styles.userPlusIconBox}>
-                    <Edit2 color="#27A599" size={20} />
+                    <Edit2 color={colors.primary} size={20} />
                   </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
+                  <View style={{ flex: 1, marginLeft: spacing.md }}>
                     <Text style={styles.addAdminTitle}>
                       Edit Clinic Admin
                     </Text>
@@ -2371,34 +2420,34 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     </Text>
                   </View>
                   <TouchableOpacity onPress={() => { setShowEditAdminStatusDropdown(false); setEditingClinicAdmin(null); }}>
-                    <X size={18} color="#64748B" />
+                    <X size={18} color={colors.muted} />
                   </TouchableOpacity>
                 </View>
 
                 {/* Form Fields */}
-                <ScrollView
-                  style={{ padding: 16 }}
+                <LiquidBorderScrollView
+                  style={{ padding: spacing.lg }}
                   showsVerticalScrollIndicator={true}
                   nestedScrollEnabled={true}
                   keyboardShouldPersistTaps="handled">
                   <Text style={styles.formLabelText}>
-                    Full Name <Text style={{ color: '#EF4444' }}>*</Text>
+                    Full Name <Text style={{ color: colors.destructive }}>*</Text>
                   </Text>
                   <TextInput
                     style={[styles.formInputBox, styles.formInputFocused]}
                     placeholder="Enter full name"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.subtle}
                     value={editAdminFullName}
                     onChangeText={setEditAdminFullName}
                   />
 
                   <Text style={[styles.formLabelText, { marginTop: 10 }]}>
-                    Phone Number <Text style={{ color: '#EF4444' }}>*</Text>
+                    Phone Number <Text style={{ color: colors.destructive }}>*</Text>
                   </Text>
                   <TextInput
                     style={styles.formInputBox}
                     placeholder="9876543210"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.subtle}
                     keyboardType="phone-pad"
                     value={editAdminPhone}
                     onChangeText={setEditAdminPhone}
@@ -2408,7 +2457,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                   <TextInput
                     style={[styles.formInputBox, { height: 60, textAlignVertical: 'top' }]}
                     placeholder="Enter clinic admin's address (optional)"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={colors.subtle}
                     multiline
                     value={editAdminAddress}
                     onChangeText={setEditAdminAddress}
@@ -2416,14 +2465,14 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 
                   <Text style={[styles.formLabelText, { marginTop: 10 }]}>Email Address</Text>
                   <TextInput
-                    style={[styles.formInputBox, { backgroundColor: '#F1F5F9', color: '#64748B' }]}
+                    style={[styles.formInputBox, { backgroundColor: colors.secondary, color: colors.muted }]}
                     value={editingClinicAdmin?.email}
                     editable={false}
                   />
 
                   {/* Active Status Card */}
                   <View style={styles.adminStatusCard}>
-                    <View style={{ flex: 1, marginRight: 8 }}>
+                    <View style={{ flex: 1, marginRight: spacing.sm }}>
                       <Text style={styles.adminStatusCardTitle}>Active Status</Text>
                       <Text style={styles.adminStatusCardSubtitle}>Enable or disable this admin's access</Text>
                     </View>
@@ -2434,7 +2483,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                         <Text style={styles.adminStatusDropdownText}>
                           {editAdminIsActive ? 'Active' : 'Inactive'}
                         </Text>
-                        <ChevronDown size={14} color="#64748B" style={{ marginLeft: 6 }} />
+                        <ChevronDown size={14} color={colors.muted} style={{ marginLeft: spacing.tiny }} />
                       </TouchableOpacity>
 
                       {showEditAdminStatusDropdown && (
@@ -2448,7 +2497,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                             <Text style={[styles.adminStatusOptionText, editAdminIsActive && styles.adminStatusOptionTextActive]}>
                               Active
                             </Text>
-                            {editAdminIsActive && <Check size={14} color="#27A599" />}
+                            {editAdminIsActive && <Check size={14} color={colors.primary} />}
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={[styles.adminStatusDropdownOption, !editAdminIsActive && styles.adminStatusDropdownOptionSelected]}
@@ -2459,7 +2508,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                             <Text style={[styles.adminStatusOptionText, !editAdminIsActive && styles.adminStatusOptionTextActive]}>
                               Inactive
                             </Text>
-                            {!editAdminIsActive && <Check size={14} color="#27A599" />}
+                            {!editAdminIsActive && <Check size={14} color={colors.primary} />}
                           </TouchableOpacity>
                         </View>
                       )}
@@ -2475,11 +2524,11 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     <TouchableOpacity
                       style={styles.adminResetPasswordBtn}
                       onPress={handleOpenResetPassword}>
-                      <KeyRound size={16} color="#27A599" style={{ marginRight: 6 }} />
+                      <KeyRound size={16} color={colors.primary} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.adminResetPasswordBtnText}>Reset Password</Text>
                     </TouchableOpacity>
                   </View>
-                </ScrollView>
+                </LiquidBorderScrollView>
 
                 {/* Footer */}
                 <View style={styles.addAdminFooterRow}>
@@ -2494,10 +2543,10 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     onPress={handleSaveEditClinicAdmin}
                     disabled={editAdminSaving || !canEditAdmin || adminDetail.loading || Boolean(adminDetail.error) || !adminDetail.data}>
                     {editAdminSaving ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <ActivityIndicator size="small" color={colors.surface} />
                     ) : (
                       <>
-                        <Edit2 size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                        <Edit2 size={15} color={colors.surface} style={{ marginRight: spacing.tiny }} />
                         <Text style={styles.addAdminSubmitText}>Update Admin</Text>
                       </>
                     )}
@@ -2520,29 +2569,29 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                 {/* Header */}
                 <View style={styles.addAdminHeader}>
                   <View style={styles.userPlusIconBox}>
-                    <KeyRound color="#27A599" size={20} />
+                    <KeyRound color={colors.primary} size={20} />
                   </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
+                  <View style={{ flex: 1, marginLeft: spacing.md }}>
                     <Text style={styles.addAdminTitle}>Reset Password</Text>
                     <Text style={styles.addAdminSubtitle}>
                       Set a secure temporary password for {editingClinicAdmin?.full_name || 'this clinic admin'}.
                     </Text>
                   </View>
                   <TouchableOpacity onPress={() => setIsResetPasswordOpen(false)}>
-                    <X size={18} color="#64748B" />
+                    <X size={18} color={colors.muted} />
                   </TouchableOpacity>
                 </View>
 
                 {/* Body */}
-                <View style={{ padding: 16 }}>
+                <View style={{ padding: spacing.lg }}>
                   <Text style={styles.formLabelText}>
-                    New password <Text style={{ color: '#EF4444' }}>*</Text>
+                    New password <Text style={{ color: colors.destructive }}>*</Text>
                   </Text>
                   <View style={[styles.passwordInputContainer, !!resetPasswordErrors.password && styles.invalidInputBox]}>
                     <TextInput
                       style={styles.passwordInputField}
                       placeholder="Enter at least 8 characters"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                       secureTextEntry={!showNewPassword}
                       value={newPasswordVal}
                       onChangeText={(val) => {
@@ -2557,21 +2606,21 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     <TouchableOpacity
                       onPress={() => setShowNewPassword(!showNewPassword)}
                       style={styles.passwordEyeBtn}>
-                      {showNewPassword ? <EyeOff size={16} color="#64748B" /> : <Eye size={16} color="#64748B" />}
+                      {showNewPassword ? <EyeOff size={16} color={colors.muted} /> : <Eye size={16} color={colors.muted} />}
                     </TouchableOpacity>
                   </View>
                   {!!resetPasswordErrors.password && (
                     <Text style={styles.fieldErrorText}>{resetPasswordErrors.password}</Text>
                   )}
 
-                  <Text style={[styles.formLabelText, { marginTop: 12 }]}>
-                    Confirm password <Text style={{ color: '#EF4444' }}>*</Text>
+                  <Text style={[styles.formLabelText, { marginTop: spacing.md }]}>
+                    Confirm password <Text style={{ color: colors.destructive }}>*</Text>
                   </Text>
                   <View style={[styles.passwordInputContainer, !!resetPasswordErrors.confirm && styles.invalidInputBox]}>
                     <TextInput
                       style={styles.passwordInputField}
                       placeholder="Re-enter the new password"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                       secureTextEntry={!showConfirmPassword}
                       value={confirmPasswordVal}
                       onChangeText={(val) => {
@@ -2582,7 +2631,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     <TouchableOpacity
                       onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                       style={styles.passwordEyeBtn}>
-                      {showConfirmPassword ? <EyeOff size={16} color="#64748B" /> : <Eye size={16} color="#64748B" />}
+                      {showConfirmPassword ? <EyeOff size={16} color={colors.muted} /> : <Eye size={16} color={colors.muted} />}
                     </TouchableOpacity>
                   </View>
                   {!!resetPasswordErrors.confirm && (
@@ -2604,10 +2653,10 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
                     onPress={handleExecuteResetPassword}
                     disabled={resetPasswordSaving}>
                     {resetPasswordSaving ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <ActivityIndicator size="small" color={colors.surface} />
                     ) : (
                       <>
-                        <KeyRound size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                        <KeyRound size={15} color={colors.surface} style={{ marginRight: spacing.tiny }} />
                         <Text style={styles.addAdminSubmitText}>Reset Password</Text>
                       </>
                     )}
@@ -2623,7 +2672,7 @@ export const ClinicsManagementScreen: React.FC<Props> = ({ onOpenDrawer, onNavig
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 14, paddingBottom: 60 },
 
   // Top Banner
@@ -2640,89 +2689,105 @@ const styles = StyleSheet.create({
   buildingIconBox: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: '#CCFBF1',
+    borderRadius: radii.lg,
+    backgroundColor: colors.mintBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bannerTitle: { fontFamily: 'Inter', fontSize: 22, fontWeight: '700', color: '#0F172A' },
-  bannerSubtitle: { fontFamily: 'Inter', fontSize: 13, color: '#64748B', marginTop: 2 },
+  bannerTitle: { fontFamily: typography.family, fontSize: typography.size.heading, fontWeight: typography.weight.bold, color: colors.text },
+  bannerSubtitle: { fontFamily: typography.family, fontSize: typography.size.caption, color: colors.muted, marginTop: 2 },
 
-  upgradeLinkBtn: { paddingVertical: 4 },
-  upgradeLinkText: { fontFamily: 'Inter', color: '#64748B', fontSize: 13, fontWeight: '500' },
-  upgradeLinkHighlight: { fontFamily: 'Inter', color: '#27A599', fontSize: 13, fontWeight: '600', textDecorationLine: 'underline' },
+  upgradeLinkBtn: { paddingVertical: spacing.xs },
+  upgradeLinkText: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.caption, fontWeight: typography.weight.medium },
+  upgradeLinkHighlight: { fontFamily: typography.family, color: colors.primary, fontSize: typography.size.caption, fontWeight: typography.weight.semibold, textDecorationLine: 'underline' },
 
   // Top Container Card
   topCardBorder: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 16,
-    marginBottom: 16,
-    elevation: 1,
+    borderColor: colors.border,
+    padding: 0,
+    overflow: 'hidden',
+    marginBottom: spacing.lg,
+    shadowColor: '#0D9488',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  topCardBorderActive: {
+    borderColor: '#7DD3C7',
+    borderWidth: 1.5,
+    shadowOpacity: 0.2,
   },
 
   controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    paddingBottom: 16,
+    gap: spacing.lg,
+    paddingBottom: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.secondary,
   },
   controlsRowWebHeader: {
-    backgroundColor: '#F0FDFA',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingTop: 12,
+    backgroundColor: '#E2F7F5',
+    borderTopLeftRadius: radii.lg,
+    borderTopRightRadius: radii.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
+  },
+  dashboardBody: {
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
   },
   controlsRowMobile: {
     flexDirection: 'column',
     alignItems: 'stretch',
     gap: 10,
   },
-  controlLabel: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700', color: '#475569', marginBottom: 4, textTransform: 'uppercase' },
-  performanceDateLabel: { fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#0F172A', marginBottom: 6 },
-  performanceDateTrigger: { height: 44, minHeight: 44, borderRadius: 6, borderColor: '#E2E8F0', backgroundColor: '#F8FAFC', paddingHorizontal: 12, paddingVertical: 0 },
-  performanceDateText: { fontFamily: 'Inter', color: '#0F172A', fontSize: 14, fontWeight: '500' },
+  controlLabel: { fontFamily: typography.family, fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.muted, marginBottom: spacing.xs, textTransform: 'uppercase' },
+  performanceDateLabel: { fontFamily: typography.family, fontSize: typography.size.body, fontWeight: typography.weight.semibold, color: colors.text, marginBottom: spacing.tiny },
+  performanceDateTrigger: { height: 44, minHeight: 44, borderRadius: radii.sm, borderColor: colors.border, backgroundColor: colors.background, paddingHorizontal: spacing.md, paddingVertical: 0 },
+  performanceDateText: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.body, fontWeight: typography.weight.medium },
 
   controlSelectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: colors.input,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
-  controlSelectBtnText: { fontFamily: 'Inter', color: '#0F172A', fontSize: 14, fontWeight: '600' },
+  controlSelectBtnText: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.body, fontWeight: typography.weight.semibold },
 
   controlDropdownMenu: {
     position: 'absolute',
     top: 60,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingVertical: 4,
-    elevation: 6,
+    borderColor: colors.border,
+    paddingVertical: spacing.xs,
+    elevation: 16,
     zIndex: 99,
   },
-  controlDropdownItem: { paddingHorizontal: 12, paddingVertical: 8 },
-  controlDropdownItemText: { fontFamily: 'Inter', fontSize: 13, color: '#334155' },
+  controlDropdownItem: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  controlDropdownItemText: { fontFamily: typography.family, fontSize: typography.size.caption, color: colors.foreground },
 
   refreshCol: { flex: 1, alignItems: 'flex-end', justifyContent: 'center' },
-  refreshColMobile: { width: '100%', alignItems: 'stretch', marginTop: 4 },
-  webRefreshButton: { height: 44, borderRadius: 6, borderColor: '#E2E8F0', backgroundColor: '#F8FAFC' },
+  refreshColMobile: { width: '100%', alignItems: 'stretch', marginTop: spacing.xs },
+  webRefreshButton: { height: 44, borderRadius: radii.sm, borderColor: colors.border, backgroundColor: colors.background },
 
-  sectionHeaderRow: { marginTop: 14, marginBottom: 12 },
-  sectionTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  sectionSubtitle: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginTop: 2 },
+  sectionHeaderRow: { marginTop: 14, marginBottom: spacing.md },
+  sectionTitle: { fontFamily: typography.family, fontSize: typography.size.lg, fontWeight: typography.weight.bold, color: colors.text },
+  sectionSubtitle: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted, marginTop: 2 },
 
   // KPI Grid 4
   kpiGrid4: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
@@ -2734,24 +2799,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
     padding: 14,
     marginBottom: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
+    ...shadows.card,
   },
   kpiCardDesktop: { width: '23.8%' },
   kpiCardDesktop3: { width: '32%' },
-  kpiCardMobile: { width: '48.5%', padding: 10 },
+  kpiCardMobile: { width: '48%', minWidth: 0, padding: 10 },
+  kpiCardActive: { borderColor: colors.primary, borderWidth: 2 },
 
-  kpiLabel: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: '#64748B' },
-  kpiValue: { fontFamily: 'Inter', fontSize: 20, fontWeight: '800', color: '#0F172A', marginTop: 2 },
-  kpiSub: { fontFamily: 'Inter', fontSize: 11, color: '#94A3B8', marginTop: 2 },
+  kpiLabel: { fontFamily: typography.family, fontSize: typography.size.caption, fontWeight: typography.weight.semibold, color: colors.muted },
+  kpiValue: { fontFamily: typography.family, fontSize: typography.size.title, fontWeight: typography.weight.extrabold, color: colors.text, marginTop: 2 },
+  kpiSub: { fontFamily: typography.family, fontSize: typography.size.xs, color: colors.subtle, marginTop: 2 },
 
   kpiIconBox: {
     width: 38,
     height: 38,
-    borderRadius: 10,
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2760,36 +2827,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
     padding: 14,
     marginBottom: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
+    ...shadows.card,
   },
-  snapshotValue: { fontFamily: 'Inter', fontSize: 18, fontWeight: '800', color: '#0F172A' },
-  snapshotLabel: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginTop: 1, fontWeight: '600' },
+  snapshotValue: { fontFamily: typography.family, fontSize: typography.size.lg, fontWeight: typography.weight.extrabold, color: colors.text },
+  snapshotLabel: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted, marginTop: 1, fontWeight: typography.weight.semibold },
 
   // Middle Metric Grid 4
   metricGrid4: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 14 },
   metricCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
     padding: 14,
     marginBottom: 10,
   },
   metricIconBox: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  metricValue: { fontFamily: 'Inter', fontSize: 18, fontWeight: '800', color: '#0F172A' },
-  metricLabel: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', fontWeight: '600' },
+  metricValue: { fontFamily: typography.family, fontSize: typography.size.lg, fontWeight: typography.weight.extrabold, color: colors.text },
+  metricLabel: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted, fontWeight: typography.weight.semibold },
 
   // Search and Filter Bar
   searchFilterRow: {
@@ -2798,56 +2866,78 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 14,
   },
+  searchFilterParent: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.xl,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    shadowColor: '#0D9488',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  searchFilterParentActive: {
+    borderColor: '#7DD3C7',
+    borderWidth: 1.5,
+    shadowOpacity: 0.2,
+  },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
     height: 42,
   },
-  searchInput: { fontFamily: 'Inter', flex: 1, fontSize: 13, color: '#0F172A' },
+  searchBarFocused: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
+  searchInput: { fontFamily: typography.family, flex: 1, fontSize: typography.size.caption, color: colors.text },
 
   statusTriggerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radii.md,
     paddingHorizontal: 14,
     height: 42,
     minWidth: 120,
   },
-  statusTriggerBtnText: { fontFamily: 'Inter', fontSize: 13, color: '#334155', fontWeight: '600' },
+  statusTriggerBtnText: { fontFamily: typography.family, fontSize: typography.size.caption, color: colors.foreground, fontWeight: typography.weight.semibold },
   statusDropdownMenu: {
     position: 'absolute',
     top: 46,
     right: 0,
     minWidth: 140,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingVertical: 4,
+    borderColor: colors.border,
+    paddingVertical: spacing.xs,
     elevation: 6,
     zIndex: 99,
   },
-  statusDropdownItem: { paddingHorizontal: 12, paddingVertical: 8 },
-  statusDropdownItemText: { fontFamily: 'Inter', fontSize: 13, color: '#334155' },
+  statusDropdownItem: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  statusDropdownItemText: { fontFamily: typography.family, fontSize: typography.size.caption, color: colors.foreground },
 
   // Table Card
   tableCardContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     overflow: 'hidden',
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   tableHeaderBar: {
     flexDirection: 'row',
@@ -2855,69 +2945,69 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.secondary,
   },
-  tableTitleText: { fontFamily: 'Inter', fontSize: 16, fontWeight: '700', color: '#0F172A' },
+  tableTitleText: { fontFamily: typography.family, fontSize: typography.size.subtitle, fontWeight: typography.weight.bold, color: colors.text },
   columnsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.tiny,
+    backgroundColor: colors.surface,
   },
-  columnsBtnText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '600', color: '#334155' },
+  columnsBtnText: { fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.semibold, color: colors.foreground },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: '#26A69A',
+    backgroundColor: colors.primary,
     minHeight: 39,
     paddingHorizontal: 11,
     borderRadius: 9,
   },
-  addBtnText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '800', fontSize: 12 },
+  addBtnText: { fontFamily: typography.family, color: colors.surface, fontWeight: typography.weight.extrabold, fontSize: typography.size.sm },
   createClinicButton: {
     width: '100%',
     minHeight: 39,
     paddingHorizontal: 11,
     borderRadius: 9,
-    backgroundColor: '#26A69A',
+    backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
-  createClinicButtonText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
+  createClinicButtonText: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.sm, fontWeight: typography.weight.extrabold },
 
   // Table Structure
   tableHeaderRow: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border,
   },
-  thCell: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: '#64748B' },
+  thCell: { fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.muted },
 
   tableBodyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     paddingHorizontal: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.secondary,
   },
 
   clinicLogoSquare: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: radii.md,
     backgroundColor: '#E6F4F1',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2925,45 +3015,47 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   clinicListLogoImage: { width: '100%', height: '100%' },
-  clinicTitleText: { fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: '#0F172A' },
-  codeText: { fontFamily: 'Inter', fontSize: 11, color: '#64748B', marginTop: 1 },
-  tdText: { fontFamily: 'Inter', fontSize: 12, color: '#334155' },
+  clinicTitleText: { fontFamily: typography.family, fontSize: typography.size.caption, fontWeight: typography.weight.bold, color: colors.text },
+  codeText: { fontFamily: typography.family, fontSize: typography.size.xs, color: colors.muted, marginTop: 1 },
+  tdText: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.foreground },
 
   statusPillBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: radii.md,
   },
-  statusActiveBg: { backgroundColor: '#DCFCE7' },
+  statusActiveBg: { backgroundColor: colors.successSoft },
   statusInactiveBg: { backgroundColor: '#FEE2E2' },
-  statusPillText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700' },
+  statusPillText: { fontFamily: typography.family, fontSize: typography.size.xs, fontWeight: typography.weight.bold },
   statusActiveText: { color: '#166534' },
-  statusInactiveText: { color: '#991B1B' },
+  statusInactiveText: { color: colors.destructiveDark },
 
   // Mobile Cards
   mobileClinicCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    padding: 12,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    minWidth: 0,
+    ...shadows.card,
   },
-  mobileMetaRow: { gap: 4, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  clinicMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  metaText: { fontFamily: 'Inter', fontSize: 12, color: '#475569' },
+  mobileMetaRow: { gap: spacing.xs, paddingTop: spacing.tiny, borderTopWidth: 1, borderTopColor: colors.secondary, minWidth: 0 },
+  clinicMetaItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.tiny, minWidth: 0 },
+  metaText: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted, flexShrink: 1, minWidth: 0 },
 
   // Modal
-  modalBg: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'center', padding: 20 },
-  modalCard: { backgroundColor: '#FFFFFF', borderRadius: 16, overflow: 'hidden', maxWidth: 440, alignSelf: 'center', width: '100%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  modalTitle: { fontFamily: 'Inter', fontSize: 20, fontWeight: '700', color: '#0F172A' },
-  label: { fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#334155', marginTop: 10, marginBottom: 4 },
-  input: { fontFamily: 'Inter', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 13, color: '#0F172A' },
-  modalBtnRow: { flexDirection: 'row', gap: 10, padding: 16, borderTopWidth: 1, borderTopColor: '#F1F5F9', justifyContent: 'flex-end' },
-  cancelBtn: { paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8 },
-  cancelText: { fontFamily: 'Inter', color: '#475569', fontWeight: '600', fontSize: 13 },
-  saveBtn: { backgroundColor: '#27A599', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 8 },
-  saveText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  modalBg: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.5)', justifyContent: 'center', padding: spacing.xl },
+  modalCard: { backgroundColor: colors.surface, borderRadius: radii.xl, overflow: 'hidden', maxWidth: 440, alignSelf: 'center', width: '100%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.secondary },
+  modalTitle: { fontFamily: typography.family, fontSize: typography.size.title, fontWeight: typography.weight.bold, color: colors.text },
+  label: { fontFamily: typography.family, fontSize: typography.size.body, fontWeight: typography.weight.semibold, color: colors.foreground, marginTop: 10, marginBottom: spacing.xs },
+  input: { fontFamily: typography.family, borderWidth: 1, borderColor: colors.input, borderRadius: radii.md, paddingHorizontal: spacing.md, paddingVertical: 10, fontSize: typography.size.caption, color: colors.text },
+  modalBtnRow: { flexDirection: 'row', gap: 10, padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.secondary, justifyContent: 'flex-end' },
+  cancelBtn: { paddingHorizontal: spacing.lg, paddingVertical: 10, borderWidth: 1, borderColor: colors.input, borderRadius: radii.md },
+  cancelText: { fontFamily: typography.family, color: colors.muted, fontWeight: typography.weight.semibold, fontSize: typography.size.caption },
+  saveBtn: { backgroundColor: colors.primary, paddingHorizontal: 18, paddingVertical: 10, borderRadius: radii.md },
+  saveText: { fontFamily: typography.family, color: colors.surface, fontWeight: typography.weight.bold, fontSize: typography.size.caption },
 
   // Action Popover Menu (Screenshot 2 Match)
   actionPopoverMenu: {
@@ -2971,12 +3063,12 @@ const styles = StyleSheet.create({
     top: 32,
     right: 0,
     width: 175,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingVertical: 6,
-    paddingHorizontal: 4,
+    borderColor: colors.border,
+    paddingVertical: spacing.tiny,
+    paddingHorizontal: spacing.xs,
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -2987,14 +3079,14 @@ const styles = StyleSheet.create({
   popoverItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.sm,
   },
   popoverItemText: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '500',
-    color: '#334155',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.medium,
+    color: colors.foreground,
   },
 
   // View Clinic Modal Styles (Screenshot 3 Match)
@@ -3002,15 +3094,15 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 620,
     maxHeight: '90%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
     overflow: 'hidden',
     elevation: 10,
     alignSelf: 'center',
   },
   viewClinicHeader: {
     backgroundColor: '#ECFDF5',
-    padding: 16,
+    padding: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
@@ -3019,134 +3111,134 @@ const styles = StyleSheet.create({
   clinicLogoSquareLarge: {
     width: 64,
     height: 64,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
+    borderColor: colors.mintBorder,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     elevation: 3,
   },
-  viewClinicLogoImage: { width: '100%', height: '100%', padding: 4 },
-  viewClinicTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  viewClinicSubtitle: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginTop: 2 },
+  viewClinicLogoImage: { width: '100%', height: '100%', padding: spacing.xs },
+  viewClinicTitle: { fontFamily: typography.family, fontSize: typography.size.lg, fontWeight: typography.weight.bold, color: colors.text },
+  viewClinicSubtitle: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted, marginTop: 2 },
   viewClinicStatusTag: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 8,
+    backgroundColor: colors.successSoft,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: radii.md,
     alignSelf: 'flex-start',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
-  viewClinicStatusText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700', color: '#166534' },
+  viewClinicStatusText: { fontFamily: typography.family, fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: '#166534' },
 
   viewSectionCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
     padding: 14,
   },
   availabilityBgCard: {
-    backgroundColor: '#F0FDFA',
-    borderColor: '#CCFBF1',
+    backgroundColor: colors.mint,
+    borderColor: colors.mintBorder,
   },
   sectionHeaderTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
   },
-  viewSectionCardTitle: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: '#0F172A' },
-  grid2ColRow: { flexDirection: 'row', gap: 16 },
-  grid3ColRow: { flexDirection: 'row', gap: 12 },
-  infoBoxLabel: { fontFamily: 'Inter', fontSize: 11, color: '#64748B', fontWeight: '500' },
-  infoBoxVal: { fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: '#0F172A', marginTop: 3 },
+  viewSectionCardTitle: { fontFamily: typography.family, fontSize: typography.size.body, fontWeight: typography.weight.bold, color: colors.text },
+  grid2ColRow: { flexDirection: 'row', gap: spacing.lg },
+  grid3ColRow: { flexDirection: 'row', gap: spacing.md },
+  infoBoxLabel: { fontFamily: typography.family, fontSize: typography.size.xs, color: colors.muted, fontWeight: typography.weight.medium },
+  infoBoxVal: { fontFamily: typography.family, fontSize: typography.size.caption, fontWeight: typography.weight.bold, color: colors.text, marginTop: 3 },
 
   viewClinicFooter: {
     padding: 14,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: colors.border,
     alignItems: 'flex-end',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   viewClinicCloseBtn: {
-    backgroundColor: '#27A599',
+    backgroundColor: colors.primary,
     paddingHorizontal: 22,
     paddingVertical: 9,
-    borderRadius: 8,
+    borderRadius: radii.md,
   },
-  viewClinicCloseBtnText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  viewClinicCloseBtnText: { fontFamily: typography.family, color: colors.surface, fontWeight: typography.weight.bold, fontSize: typography.size.caption },
 
   // View Admins Modal Styles (Screenshot 4 Match)
   viewAdminsCard: {
     width: '100%',
     maxWidth: 680,
     maxHeight: '90%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
     overflow: 'hidden',
     elevation: 10,
     alignSelf: 'center',
   },
   viewAdminsHeader: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.secondary,
   },
   tealIconBoxSquare: {
     width: 42,
     height: 42,
-    borderRadius: 10,
-    backgroundColor: '#27A599',
+    borderRadius: radii.md,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  viewAdminsTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  viewAdminsSubtitle: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginTop: 2 },
+  viewAdminsTitle: { fontFamily: typography.family, fontSize: typography.size.lg, fontWeight: typography.weight.bold, color: colors.text },
+  viewAdminsSubtitle: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted, marginTop: 2 },
   viewAdminsSubHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   addNewAdminBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#27A599',
+    backgroundColor: colors.primary,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
   },
-  addNewAdminBtnText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  addNewAdminBtnText: { fontFamily: typography.family, color: colors.surface, fontWeight: typography.weight.bold, fontSize: typography.size.caption },
 
   adminsTableContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
     overflow: 'hidden',
   },
   adminsTableHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 12,
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: colors.border,
   },
-  adminsTh: { fontFamily: 'Inter', fontSize: 12, fontWeight: '600', color: '#64748B' },
+  adminsTh: { fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.semibold, color: colors.muted },
   adminsTableBodyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.secondary,
   },
   adminAvatarCircle: {
     width: 30,
@@ -3155,76 +3247,76 @@ const styles = StyleSheet.create({
     backgroundColor: '#E6F4F1',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginRight: spacing.sm,
   },
-  adminNameText: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: '#0F172A' },
-  adminTdText: { fontFamily: 'Inter', fontSize: 12, color: '#475569' },
+  adminNameText: { fontFamily: typography.family, fontSize: typography.size.caption, fontWeight: typography.weight.semibold, color: colors.text },
+  adminTdText: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted },
   adminStatusPill: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: radii.md,
   },
-  adminStatusText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700' },
+  adminStatusText: { fontFamily: typography.family, fontSize: typography.size.xs, fontWeight: typography.weight.bold },
 
   // Add Admin Modal Styles (Screenshot 5 Match)
   addAdminCard: {
     width: '100%',
     maxWidth: 540,
     maxHeight: '90%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
     overflow: 'hidden',
     elevation: 10,
     alignSelf: 'center',
   },
   addAdminHeader: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.secondary,
   },
   userPlusIconBox: {
     width: 42,
     height: 42,
-    borderRadius: 10,
+    borderRadius: radii.md,
     backgroundColor: '#E6F4F1',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addAdminTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  addAdminSubtitle: { fontFamily: 'Inter', fontSize: 12, color: '#64748B', marginTop: 2, lineHeight: 16 },
-  formGroupHeader: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: '#0F172A', marginBottom: 12 },
-  formLabelText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '600', color: '#334155', marginTop: 10, marginBottom: 4 },
+  addAdminTitle: { fontFamily: typography.family, fontSize: typography.size.lg, fontWeight: typography.weight.bold, color: colors.text },
+  addAdminSubtitle: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted, marginTop: 2, lineHeight: 16 },
+  formGroupHeader: { fontFamily: typography.family, fontSize: typography.size.body, fontWeight: typography.weight.bold, color: colors.text, marginBottom: spacing.md },
+  formLabelText: { fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.semibold, color: colors.foreground, marginTop: 10, marginBottom: spacing.xs },
   formInputBox: {
-    fontFamily: 'Inter', borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    fontFamily: typography.family, borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
     paddingVertical: 9,
-    fontSize: 13,
-    color: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    fontSize: typography.size.caption,
+    color: colors.text,
+    backgroundColor: colors.background,
   },
   formInputFocused: {
-    borderColor: '#27A599',
+    borderColor: colors.primary,
     borderWidth: 1.5,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
 
   assignedClinicCard: {
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.mint,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
-    borderRadius: 10,
-    padding: 12,
+    borderColor: colors.mintBorder,
+    borderRadius: radii.md,
+    padding: spacing.md,
     marginTop: 14,
-    marginBottom: 6,
+    marginBottom: spacing.tiny,
   },
-  assignedClinicHeaderLabel: { fontFamily: 'Inter', fontSize: 11, fontWeight: '600', color: '#64748B' },
-  assignedClinicName: { fontFamily: 'Inter', fontSize: 13, fontWeight: '700', color: '#0F172A' },
-  assignedClinicAddress: { fontFamily: 'Inter', fontSize: 12, color: '#64748B' },
+  assignedClinicHeaderLabel: { fontFamily: typography.family, fontSize: typography.size.xs, fontWeight: typography.weight.semibold, color: colors.muted },
+  assignedClinicName: { fontFamily: typography.family, fontSize: typography.size.caption, fontWeight: typography.weight.bold, color: colors.text },
+  assignedClinicAddress: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted },
 
   addAdminFooterRow: {
     flexDirection: 'row',
@@ -3233,35 +3325,35 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 14,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
+    borderTopColor: colors.secondary,
+    backgroundColor: colors.surface,
   },
   addAdminCancelBtn: {
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.input,
+    backgroundColor: colors.surface,
     paddingHorizontal: 18,
     paddingVertical: 9,
-    borderRadius: 8,
+    borderRadius: radii.md,
   },
-  addAdminCancelText: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: '#334155' },
+  addAdminCancelText: { fontFamily: typography.family, fontSize: typography.size.caption, fontWeight: typography.weight.semibold, color: colors.foreground },
   addAdminSubmitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#27A599',
+    backgroundColor: colors.primary,
     paddingHorizontal: 18,
     paddingVertical: 9,
-    borderRadius: 8,
+    borderRadius: radii.md,
   },
-  addAdminSubmitText: { fontFamily: 'Inter', color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  addAdminSubmitText: { fontFamily: typography.family, color: colors.surface, fontWeight: typography.weight.bold, fontSize: typography.size.caption },
 
   // Edit / Add Clinic Modal Specific Styles
   editClinicModalCard: {
     width: '100%',
     maxWidth: 640,
     maxHeight: '92%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
     overflow: 'hidden',
     elevation: 10,
     alignSelf: 'center',
@@ -3269,140 +3361,140 @@ const styles = StyleSheet.create({
   clinicLogoUploadBox: {
     alignSelf: 'center',
     width: 220,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    padding: 16,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
     alignItems: 'center',
-    marginVertical: 12,
+    marginVertical: spacing.md,
   },
   cameraIconCircleBadge: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: radii.lg,
     borderWidth: 1.5,
-    borderColor: '#CBD5E1',
+    borderColor: colors.input,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   smallCloseBadge: {
     position: 'absolute',
     top: -6,
     right: -6,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 10,
+    backgroundColor: colors.secondary,
+    borderRadius: radii.md,
     padding: 2,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: colors.input,
   },
   formDropdownSelectTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
     paddingVertical: 9,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
   },
   formDropdownText: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.text,
   },
   formDropdownList: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    marginTop: 4,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    marginTop: spacing.xs,
     maxHeight: 150,
     elevation: 3,
     zIndex: 99,
   },
   formDropdownListItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.secondary,
   },
   formDropdownItemText: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#334155',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.foreground,
   },
   formInputBoxWithIcon: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radii.md,
     paddingHorizontal: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
   },
   formInputBoxBare: {
-    fontFamily: 'Inter', flex: 1,
-    paddingVertical: 8,
-    fontSize: 13,
-    color: '#0F172A',
+    fontFamily: typography.family, flex: 1,
+    paddingVertical: spacing.sm,
+    fontSize: typography.size.caption,
+    color: colors.text,
   },
   editClinicModalHeader: {
-    padding: 16,
+    padding: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: colors.secondary,
+    backgroundColor: colors.surface,
   },
   editHeaderIconBox: {
     width: 36,
     height: 36,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    borderRadius: radii.md,
+    backgroundColor: colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   editClinicModalTitle: {
-    fontFamily: 'Inter', fontSize: 16,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.subtitle,
+    fontWeight: typography.weight.bold,
+    color: colors.text,
   },
   editClinicModalSubtitle: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.muted,
     marginTop: 2,
   },
   logoBoxLabel: {
-    fontFamily: 'Inter', fontSize: 12,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 8,
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.foreground,
+    marginBottom: spacing.sm,
   },
   changeLogoLink: {
-    fontFamily: 'Inter', fontSize: 12,
-    fontWeight: '600',
-    color: '#27A599',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.primary,
   },
   logoHelperText: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 4,
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.subtle,
+    marginTop: spacing.xs,
   },
   apiTimeHelperText: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#64748B',
-    marginTop: 4,
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.muted,
+    marginTop: spacing.xs,
   },
   mobileAdminCardItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
   },
 
   // Active Status in Edit Admin Modal
@@ -3411,48 +3503,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
+    borderColor: colors.border,
+    borderRadius: radii.md,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     marginTop: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   adminStatusCardTitle: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.semibold,
+    color: colors.text,
   },
   adminStatusCardSubtitle: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.muted,
     marginTop: 2,
   },
   adminStatusDropdownBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: colors.input,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
     paddingVertical: 7,
     minWidth: 96,
   },
   adminStatusDropdownText: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '500',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.medium,
+    color: colors.text,
   },
   adminStatusDropdownMenu: {
     position: 'absolute',
     top: 36,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radii.md,
     elevation: 6,
     zIndex: 999,
     minWidth: 110,
@@ -3465,56 +3557,56 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   adminStatusDropdownOptionSelected: {
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.mint,
   },
   adminStatusOptionText: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#334155',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.foreground,
   },
   adminStatusOptionTextActive: {
-    color: '#27A599',
-    fontWeight: '600',
+    color: colors.primary,
+    fontWeight: typography.weight.semibold,
   },
 
   // Reset Password Card in Edit Admin Modal
   adminResetPasswordCard: {
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.mint,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
-    borderRadius: 12,
+    borderColor: colors.mintBorder,
+    borderRadius: radii.lg,
     padding: 14,
     marginTop: 14,
   },
   adminResetPasswordTitle: {
-    fontFamily: 'Inter', fontSize: 14,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    fontWeight: typography.weight.semibold,
+    color: colors.text,
   },
   adminResetPasswordSubtitle: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.muted,
     marginTop: 3,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   adminResetPasswordBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#99F6E4',
-    borderRadius: 8,
+    borderColor: colors.mintBorder,
+    borderRadius: radii.md,
     paddingVertical: 9,
     paddingHorizontal: 14,
   },
   adminResetPasswordBtnText: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '600',
-    color: '#27A599',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.semibold,
+    color: colors.primary,
   },
 
   // Password Input Field with Eye Icon
@@ -3522,30 +3614,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
     paddingHorizontal: 10,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   passwordInputField: {
-    fontFamily: 'Inter', flex: 1,
+    fontFamily: typography.family, flex: 1,
     paddingVertical: 9,
-    fontSize: 13,
-    color: '#0F172A',
+    fontSize: typography.size.caption,
+    color: colors.text,
   },
   passwordEyeBtn: {
-    padding: 6,
+    padding: spacing.tiny,
   },
   invalidInputBox: {
-    borderColor: '#EF4444',
+    borderColor: colors.destructive,
     borderWidth: 1.5,
   },
   fieldErrorText: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#EF4444',
-    marginTop: 4,
-    fontWeight: '500',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.destructive,
+    marginTop: spacing.xs,
+    fontWeight: typography.weight.medium,
   },
 });
 

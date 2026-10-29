@@ -1,8 +1,13 @@
+import { colors } from '../../theme/tokens';
 import { AppModal } from '../../components/common/AppModal';
+import { LiquidBorderSurface } from '../../components/common/LiquidBorderSurface';
+import { useLiquidBorderScrollHandlers } from '../../components/common/LiquidBorderFocusContext';
+import { createTapGestureHandlers } from '../../utils/tapGestureHandlers';
 import { styles } from './styles/MedicineBilling.styles';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, KeyboardAvoidingView, NativeModules, Platform, ScrollView, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+  ActivityIndicator, Alert, KeyboardAvoidingView, NativeModules, Platform, ScrollView as NativeScrollView, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import {
   AlertCircle,
   Check,
@@ -75,8 +80,14 @@ interface Props {
 const PRESCRIPTION_PAGE_SIZE = 5;
 
 export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDate, initialDateFrom, initialDateTo, initialBillId, patientMode = false }) => {
+  const [billsCardActive, setBillsCardActive] = useState(false);
+  const billsCardTapHandlers = useMemo(
+    () => createTapGestureHandlers(() => setBillsCardActive(true)),
+    [],
+  );
   const { width } = useWindowDimensions();
   const isMobile = width < 640;
+  const borderScrollHandlers = useLiquidBorderScrollHandlers();
   const {
     token,
     activeClinicId,
@@ -134,7 +145,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
   const [medicineResults, setMedicineResults] = useState<Medicine[]>([]);
   const [items, setItems] = useState<BillLine[]>([]);
   const [activeMedicineRow, setActiveMedicineRow] = useState<number | null>(null);
-  const createFormScrollRef = useRef<React.ElementRef<typeof ScrollView> | null>(null);
+  const createFormScrollRef = useRef<React.ElementRef<typeof NativeScrollView> | null>(null);
   const medicineItemsSectionY = useRef(0);
   const [prescriptionId, setPrescriptionId] = useState('');
   const [prescriptionOptions, setPrescriptionOptions] = useState<any[]>([]);
@@ -874,7 +885,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
         value={value}
         onChangeText={setValue}
         placeholder={placeholder}
-        placeholderTextColor="#94A3B8"
+        placeholderTextColor={colors.subtle}
         keyboardType={keyboardType}
         style={styles.input}
       />
@@ -886,21 +897,22 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
       {patientMode ? <PatientHeader onOpenDrawer={onOpenDrawer} /> : <StaffHeader onOpenDrawer={onOpenDrawer} title="Medicine Billing" />}
       {!canView ? (
         <View style={styles.center}>
-          <FileText size={30} color="#27A599" />
+          <FileText size={30} color={colors.primary} />
           <Text style={styles.title}>Medicine billing access required</Text>
           <Text style={styles.muted}>
             Your role does not have permission to view medicine bills.
           </Text>
         </View>
       ) : (
-        <ScrollView
+        <LiquidBorderScrollView
+          {...borderScrollHandlers}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.bannerRow, isMobile && styles.billingBannerMobile]}>
             <View style={styles.bannerTitleBlock}>
               <View style={[styles.iconBox, isMobile && styles.pageIconMobile]}>
-                <Receipt color="#27A599" size={24} />
+                <Receipt color={colors.primary} size={24} />
               </View>
               <View style={styles.bannerCopy}>
                 <Text style={[styles.bannerTitle, isMobile && styles.bannerTitleMobile]}>Medicine Bills</Text>
@@ -912,7 +924,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                 style={styles.createBillButton}
                 onPress={openCreate}
               >
-                <Plus size={18} color="#fff" strokeWidth={2.5} />
+                <Plus size={18} color={colors.surface} strokeWidth={2.5} />
                 <Text style={styles.createBillText}>Create Bill</Text>
               </TouchableOpacity>
             ) : null}
@@ -920,19 +932,19 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
 
           {canAdd && isMobile ? (
             <TouchableOpacity style={styles.createBillButtonMobile} onPress={openCreate}>
-              <Plus size={16} color="#fff" strokeWidth={2.5} />
+              <Plus size={16} color={colors.surface} strokeWidth={2.5} />
               <Text style={styles.createBillText}>Create Bill</Text>
             </TouchableOpacity>
           ) : null}
 
           <View style={styles.filters}>
             <View style={styles.searchBox}>
-              <Search size={18} color="#64748B" />
+              <Search size={18} color={colors.muted} />
               <TextInput
                 value={search}
                 onChangeText={setSearch}
                 placeholder="Search by patient ID, name, or mobile..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.subtle}
                 style={styles.searchInput}
               />
               {search.length > 0 && (
@@ -940,7 +952,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                   accessibilityLabel="Clear search"
                   onPress={() => setSearch('')}
                 >
-                  <X size={16} color="#94A3B8" />
+                  <X size={16} color={colors.subtle} />
                 </TouchableOpacity>
               )}
             </View>
@@ -951,7 +963,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                 setDebouncedSearch(search.trim());
               }}
             >
-              <Search size={15} color="#334155" />
+              <Search size={15} color={colors.foreground} />
               <Text style={styles.searchSubmitText}>Search</Text>
             </TouchableOpacity>
 
@@ -997,23 +1009,23 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
 
           {loading ? (
             <View style={styles.center}>
-              <ActivityIndicator color="#27A599" />
+              <ActivityIndicator color={colors.primary} />
               <Text style={styles.muted}>Loading bills...</Text>
             </View>
           ) : bills.length === 0 ? (
-            <View style={styles.empty}>
-              <FileText size={28} color="#94A3B8" />
+            <View {...billsCardTapHandlers} style={[styles.empty, billsCardActive && styles.emptyActive]}>
+              <FileText size={28} color={colors.subtle} />
               <Text style={styles.title}>No medicine bills found</Text>
               <Text style={styles.muted}>
                 Change filters or create a new bill.
               </Text>
             </View>
           ) : (
-            <View style={styles.listCard}>
+            <View {...billsCardTapHandlers} style={[styles.listCard, billsCardActive && styles.listCardActive]}>
               <View style={[styles.listHeader, isMobile && styles.listHeaderMobile]}>
                 <View style={[styles.flex, styles.extractedInline1]}>
                   <View style={styles.listTitleRow}>
-                    <Receipt size={18} color="#0F172A" />
+                    <Receipt size={18} color={colors.text} />
                     <Text style={styles.listTitle}>
                       All Bills ({total || bills.length})
                     </Text>
@@ -1026,14 +1038,14 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                     onPress={() => loadBills()}
                     disabled={loading}
                   >
-                    <RefreshCw size={14} color="#334155" />
+                    <RefreshCw size={14} color={colors.foreground} />
                     <Text style={styles.headerButtonText}>Refresh</Text>
                   </TouchableOpacity>}
                   <TouchableOpacity
                     style={[styles.headerButton, isMobile && styles.headerButtonMobile]}
                     onPress={() => setColumnsVisible(true)}
                   >
-                    <Columns size={14} color="#334155" />
+                    <Columns size={14} color={colors.foreground} />
                     <Text style={styles.headerButtonText}>Columns</Text>
                   </TouchableOpacity>
                 </View>
@@ -1060,9 +1072,9 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                       ? '#B45309'
                       : billStatus === 'cancelled'
                       ? '#374151'
-                      : '#DC2626';
+                      : colors.destructive;
                   return (
-                    <View key={bill.id} style={styles.billCard}>
+                    <LiquidBorderSurface key={bill.id} style={styles.billCard} radius={6}>
                       <View style={styles.cardHeader}>
                         <View style={styles.flex}>
                           {columns.bill_number ? (
@@ -1142,7 +1154,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                           <BillMetric
                             label="Due"
                             value={money(balance)}
-                            valueColor="#DC2626"
+                            valueColor={colors.destructive}
                           />
                         ) : null}
                         {columns.pharmacist_name ? (
@@ -1177,12 +1189,12 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                             style={styles.viewAction}
                             onPress={() => openView(bill)}
                           >
-                            <Eye size={17} color="#27A599" />
+                            <Eye size={17} color={colors.primary} />
                           </TouchableOpacity>
                           {canEdit || canDelete ? <TouchableOpacity
                             style={styles.moreAction}
                             onPress={() => setActionMenuBill(current => current?.id === bill.id ? null : bill)}
-                          ><MoreVertical size={17} color="#475569" /></TouchableOpacity> : null}
+                          ><MoreVertical size={17} color={colors.muted} /></TouchableOpacity> : null}
                         </View>}
                       </View>
                       {actionMenuBill?.id === bill.id ? (
@@ -1192,7 +1204,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                               style={styles.menuAction}
                               onPress={() => void openEditForm(bill)}
                             >
-                              <MoreVertical size={15} color="#334155" />
+                              <MoreVertical size={15} color={colors.foreground} />
                               <Text style={styles.menuActionText}>
                                 Edit bill
                               </Text>
@@ -1206,7 +1218,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                                 cancelBill(bill);
                               }}
                             >
-                              <Trash2 size={15} color="#DC2626" />
+                              <Trash2 size={15} color={colors.destructive} />
                               <Text
                                 style={[styles.menuActionText, styles.danger]}
                               >
@@ -1216,7 +1228,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                           ) : null}
                         </View>
                       ) : null}
-                    </View>
+                    </LiquidBorderSurface>
                   );
                 })}
               </View>
@@ -1235,7 +1247,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
               }}
             />
           ) : null}
-        </ScrollView>
+        </LiquidBorderScrollView>
       )}
 
       <ColumnSelectorModal
@@ -1268,16 +1280,16 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
           <View style={styles.createModalShell}>
             <View style={styles.createModalCard}>
               <View style={styles.createModalHeader}>
-                <View style={styles.createHeaderIcon}><Pill size={20} color="#FFFFFF" /></View>
+                <View style={styles.createHeaderIcon}><Pill size={20} color={colors.surface} /></View>
                 <View style={styles.flex}>
                   <Text style={styles.modalTitle}>{formEditBill ? 'Edit Medicine Bill' : 'Create Medicine Bill'}</Text>
                   <Text numberOfLines={1} style={styles.muted}>{formEditBill ? 'Update bill details' : 'Enter bill details to create a new medicine bill'}</Text>
                 </View>
                 <TouchableOpacity onPress={closeBillForm} style={styles.close}>
-                  <X size={18} color="#64748B" />
+                  <X size={18} color={colors.muted} />
                 </TouchableOpacity>
               </View>
-              <ScrollView
+              <LiquidBorderScrollView
                 ref={createFormScrollRef}
                 style={styles.createModalScroll}
                 contentContainerStyle={styles.createModalContent}
@@ -1285,7 +1297,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
               >
                 <View style={styles.createSection}>
                   <View style={styles.createSectionHeader}>
-                    <View style={styles.createSectionIcon}><UserRound size={15} color="#27A599" /></View>
+                    <View style={styles.createSectionIcon}><UserRound size={15} color={colors.primary} /></View>
                     <View>
                       <Text style={styles.createSectionTitle}>Bill Information</Text>
                       <Text style={styles.createSectionSubtitle}>Select the patient and an optional completed appointment.</Text>
@@ -1294,7 +1306,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                   <View style={styles.field}>
                   <Text style={styles.createLabel}>Patient <Text style={styles.required}>*</Text></Text>
                   <View style={styles.createInputWrap}>
-                    <UserRound size={15} color="#64748B" style={styles.inputLeadingIcon} />
+                    <UserRound size={15} color={colors.muted} style={styles.inputLeadingIcon} />
                     <TextInput
                       value={patientSearch}
                       onChangeText={value => {
@@ -1302,13 +1314,13 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                         setPatientSearch(value);
                       }}
                       placeholder="Search patient by ID, name, or mobile..."
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                       style={[styles.input, styles.createInputWithIcon, patientSearch.length > 0 && styles.inputWithClear]}
                     />
                     {patientSearch.length > 0 ? <TouchableOpacity style={styles.inputClear} onPress={() => {
                       resetPatientDependencies();
                       setPatientSearch('');
-                    }}><X size={15} color="#64748B" /></TouchableOpacity> : null}
+                    }}><X size={15} color={colors.muted} /></TouchableOpacity> : null}
                   </View>
                   {selectedPatient ? (
                     <Text style={styles.selectedPatientSummary}>
@@ -1358,7 +1370,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                       }}
                       editable={Boolean(selectedPatient)}
                       placeholder="Type date or appointment ID"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                       style={styles.input}
                     />
                     {appointmentSearch ? <TouchableOpacity style={styles.inputClear} onPress={() => {
@@ -1367,7 +1379,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                       setPrescriptionAppointmentFilterId('');
                       setPrescriptionPage(1);
                       setAppointmentOpen(Boolean(selectedPatient));
-                    }}><X size={15} color="#64748B" /></TouchableOpacity> : null}
+                    }}><X size={15} color={colors.muted} /></TouchableOpacity> : null}
                   </View>
                   {appointmentOpen ? (
                     <View style={styles.createSuggestions}>
@@ -1393,13 +1405,13 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                 <View style={styles.createSectionTint}>
                   <View style={styles.lineHeader}>
                     <View style={styles.createSectionHeaderCompact}>
-                      <FileText size={15} color="#27A599" />
+                      <FileText size={15} color={colors.primary} />
                       <Text style={styles.createSectionTitle}>Prescription History</Text>
                     </View>
                     {prescriptionTotal > 0 ? <Text style={styles.prescriptionCountBadge}>{prescriptionTotal} {prescriptionTotal === 1 ? 'record' : 'records'}</Text> : null}
                   </View>
                   {!selectedPatient ? <Text style={styles.createSectionSubtitleIndented}>Select patient to view prescription history.</Text> : null}
-                  {prescriptionLoading ? <ActivityIndicator color="#27A599" /> : null}
+                  {prescriptionLoading ? <ActivityIndicator color={colors.primary} /> : null}
                   {selectedPatient && !prescriptionLoading && prescriptionOptions.length === 0 ? (
                     <Text style={styles.muted}>No prescription history found.</Text>
                   ) : null}
@@ -1457,14 +1469,14 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                   onLayout={event => { medicineItemsSectionY.current = event.nativeEvent.layout.y; }}
                 >
                   <View style={styles.createSectionHeader}>
-                    <View style={styles.createSectionIcon}><Pill size={15} color="#27A599" /></View>
+                    <View style={styles.createSectionIcon}><Pill size={15} color={colors.primary} /></View>
                     <View style={styles.flex}>
                       <Text style={styles.createSectionTitle}>Medicine Bill Items</Text>
                       <Text style={styles.createSectionSubtitle}>Add medicines manually or apply a prescription.</Text>
                     </View>
                   </View>
                   <TouchableOpacity style={styles.addMedicineButton} onPress={addMedicineRow}>
-                    <Plus size={16} color="#0F172A" />
+                    <Plus size={16} color={colors.text} />
                     <Text style={styles.addMedicineText}>Add Medicine</Text>
                   </TouchableOpacity>
                   {items.length === 0 ? (
@@ -1538,7 +1550,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                         onPress={() => setItems(prev => prev.filter((_, lineIndex) => lineIndex !== index))}
                         style={styles.lineRemoveButton}
                       >
-                        <X size={15} color="#EF4444" />
+                        <X size={15} color={colors.destructive} />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1573,7 +1585,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                   <Text style={styles.createLabel}>Payment Method</Text>
                   <TouchableOpacity style={styles.createSelect} onPress={() => setPaymentMethodOpen(value => !value)}>
                     <Text style={styles.createSelectText}>{paymentMethod === 'net_banking' ? 'Net Banking' : paymentMethod[0].toUpperCase() + paymentMethod.slice(1)}</Text>
-                    <ChevronDown size={15} color="#94A3B8" />
+                    <ChevronDown size={15} color={colors.subtle} />
                   </TouchableOpacity>
                   {paymentMethodOpen ? <View style={styles.createSelectOptions}>
                     {['cash', 'card', 'upi', 'online'].map(method => (
@@ -1588,7 +1600,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                   <Text style={styles.createLabel}>Status</Text>
                   <TouchableOpacity style={styles.createSelect} onPress={() => setStatusOptionsOpen(value => !value)}>
                     <Text style={styles.createSelectText}>{billStatus[0].toUpperCase() + billStatus.slice(1)}</Text>
-                    <ChevronDown size={15} color="#94A3B8" />
+                    <ChevronDown size={15} color={colors.subtle} />
                   </TouchableOpacity>
                   {statusOptionsOpen ? <View style={styles.createSelectOptions}>
                     {['pending', 'partial', 'paid'].map(value => (
@@ -1601,7 +1613,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                 </View>
                 {renderField('Notes', notes, setNotes, 'Optional notes')}
                 </View>
-              </ScrollView>
+              </LiquidBorderScrollView>
               <View style={styles.createModalFooter}>
                 <View style={styles.amountDueRow}>
                   <Text style={styles.amountDueLabel}>AMOUNT DUE</Text>
@@ -1620,7 +1632,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                   onPress={() => createBill()}
                 >
                   {saving ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color={colors.surface} size="small" />
                   ) : null}
                   <Text style={styles.primaryText}>{formEditBill ? 'Update Bill' : 'Create Bill'}</Text>
                 </TouchableOpacity>
@@ -1641,7 +1653,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
           <View style={[styles.modalCard, styles.invoiceModalCard, isMobile && styles.invoiceModalCardMobile]}>
             <View style={styles.invoiceHeader}>
               <View style={styles.invoiceHeaderIcon}>
-                <Receipt size={19} color="#FFFFFF" />
+                <Receipt size={19} color={colors.surface} />
               </View>
               <View style={styles.invoiceHeaderCopy}>
                 <Text style={styles.invoiceHeaderTitle}>Medicine Invoice</Text>
@@ -1655,10 +1667,10 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                 onPress={() => setViewVisible(false)}
                 style={styles.invoiceCloseIcon}
               >
-                <X size={19} color="#64748B" />
+                <X size={19} color={colors.muted} />
               </TouchableOpacity>
             </View>
-            <ScrollView
+            <LiquidBorderScrollView
               style={styles.invoiceBodyScroll}
               contentContainerStyle={styles.invoiceBodyScrollContent}
             >
@@ -1741,7 +1753,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                           ? '#15803D'
                           : modalStatus === 'partial'
                           ? '#B45309'
-                          : '#DC2626';
+                          : colors.destructive;
                         return (
                           <View style={[styles.invoiceStatusPill, pillBg]}>
                             <Text style={[styles.invoiceStatusText, { color: pillTextColor }]}>
@@ -1810,14 +1822,14 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                   </View>
                 </View>
               ) : null}
-            </ScrollView>
+            </LiquidBorderScrollView>
             <View style={styles.invoiceActionFooter}>
               <View style={styles.invoiceActionButtonsRow}>
               <TouchableOpacity
                 style={[styles.invoiceCloseAction, styles.invoiceCloseActionButton]}
                 onPress={() => setViewVisible(false)}
               >
-                <X size={16} color="#334155" />
+                <X size={16} color={colors.foreground} />
                 <Text maxFontSizeMultiplier={1.15} style={styles.invoiceCloseActionText}>Close</Text>
               </TouchableOpacity>
 
@@ -1833,7 +1845,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                   style={[styles.invoiceDownloadButton, styles.invoicePrimaryActionButton]}
                   onPress={() => downloadPdf(viewedBill)}
                 >
-                  <Download size={17} color="#FFFFFF" />
+                  <Download size={17} color={colors.surface} />
                   <Text maxFontSizeMultiplier={1.15} numberOfLines={1} adjustsFontSizeToFit style={styles.invoiceDownloadButtonText}>Download PDF</Text>
                 </TouchableOpacity>
               ) : null}
@@ -1843,7 +1855,7 @@ export const MedicineBillingScreen: React.FC<Props> = ({ onOpenDrawer, initialDa
                   style={[styles.invoiceDownloadButton, styles.invoicePrintActionButton]}
                   onPress={() => void printBill(viewedBill)}
                 >
-                  <Printer size={17} color="#FFFFFF" />
+                  <Printer size={17} color={colors.surface} />
                   <Text maxFontSizeMultiplier={1.15} numberOfLines={1} adjustsFontSizeToFit style={styles.invoiceDownloadButtonText}>Print Bill</Text>
                 </TouchableOpacity>
               ) : null}

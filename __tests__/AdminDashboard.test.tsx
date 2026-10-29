@@ -17,9 +17,9 @@ jest.mock('../src/api/dashboardApi', () => ({
 }));
 jest.mock('../src/api/providerWalletApi', () => ({ getProviderWalletSummaryApi: jest.fn() }));
 jest.mock('lucide-react-native', () => Object.fromEntries(
-  ['Calendar', 'CalendarCheck', 'CalendarX', 'IndianRupee', 'Pill', 'TestTube', 'Users', 'WalletCards'].map(name => [name, name]),
+  ['Calendar', 'CalendarDays', 'CalendarCheck', 'CalendarX', 'IndianRupee', 'Pill', 'TestTube', 'Users', 'WalletCards'].map(name => [name, name]),
 ));
-jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Circle: 'Circle', G: 'G' }));
+jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Circle: 'Circle', G: 'G', Path: 'Path' }));
 
 let screen: ReactTestRenderer.ReactTestRenderer;
 const chartApi = jest.mocked(getAppointmentChartApi);

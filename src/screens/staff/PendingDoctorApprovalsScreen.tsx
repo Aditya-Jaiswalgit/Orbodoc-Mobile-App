@@ -1,9 +1,12 @@
+import { colors } from '../../theme/tokens';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, RefreshControl, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import { Search, ShieldCheck, UserRoundX, X } from 'lucide-react-native';
 import { AppModal } from '../../components/common/AppModal';
 import { Pagination } from '../../components/common/Pagination';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { LiquidBorderSurface } from '../../components/common/LiquidBorderSurface';
 import { approveDoctorApi, DoctorApprovalRecord, fetchDoctorApprovalsApi, rejectDoctorApi } from '../../api/superAdminApi';
 import { useAuthContext } from '../../context/AuthContext';
 import { normalizeRoleName } from '../../utils/rolePermissions';
@@ -116,26 +119,26 @@ export default function PendingDoctorApprovalsScreen({ onOpenDrawer }: Props) {
   return (
     <View style={styles.root}>
       <StaffHeader onOpenDrawer={onOpenDrawer} title="Pending Doctor Approvals" />
-      <ScrollView contentContainerStyle={styles.pageContent} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => loadDoctors().catch(() => undefined)} />}>
+      <LiquidBorderScrollView contentContainerStyle={styles.pageContent} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => loadDoctors().catch(() => undefined)} />}>
         <View style={styles.panel}>
           <View style={styles.panelHeader}>
             <View style={styles.flexOne}><Text style={styles.pageTitle}>Pending Doctor Approvals</Text><Text style={styles.mutedText}>Review pending registrations and monitor approved teleconsultation doctors.</Text></View>
           </View>
           <View style={styles.contentInset}>
             <Text style={styles.fieldLabel}>Search doctors</Text>
-            <View style={styles.searchBox}><Search size={17} color="#64748B" /><TextInput value={search} onChangeText={setSearch} placeholder="Search by name, email, phone, or registration number" placeholderTextColor="#94A3B8" style={styles.searchInput} /></View>
+            <View style={styles.searchBox}><Search size={17} color={colors.muted} /><TextInput value={search} onChangeText={setSearch} placeholder="Search by name, email, phone, or registration number" placeholderTextColor={colors.subtle} style={styles.searchInput} /></View>
             <View style={styles.tabRow}>
               <TouchableOpacity style={[styles.tabButton, tab === 'pending' && styles.tabButtonActive]} onPress={() => setTab('pending')}><Text style={[styles.tabText, tab === 'pending' && styles.tabTextActive]}>Pending ({pendingDoctors.length})</Text></TouchableOpacity>
               <TouchableOpacity style={[styles.tabButton, tab === 'approved' && styles.tabButtonActive]} onPress={() => setTab('approved')}><Text style={[styles.tabText, tab === 'approved' && styles.tabTextActive]}>Approved ({approvedDoctors.length})</Text></TouchableOpacity>
             </View>
 
-            {loading ? <View style={styles.loading}><ActivityIndicator color="#27A599" /><Text style={styles.mutedText}>Loading doctor approvals...</Text></View> : error ? <View style={styles.errorCard}><Text style={styles.errorText}>{error}</Text><TouchableOpacity style={styles.outlineButton} onPress={() => loadDoctors().catch(() => undefined)}><Text style={styles.outlineButtonText}>Retry</Text></TouchableOpacity></View> : visibleDoctors.length === 0 ? (
-              <View style={styles.emptyCard}><ShieldCheck size={36} color="#CBD5E1" /><Text style={styles.cardTitle}>{tab === 'pending' ? 'No pending approvals' : 'No approved doctors'}</Text><Text style={styles.mutedText}>{tab === 'pending' ? 'All doctor registrations are already reviewed.' : 'Approved teleconsultation doctors will appear here.'}</Text></View>
+            {loading ? <View style={styles.loading}><ActivityIndicator color={colors.primary} /><Text style={styles.mutedText}>Loading doctor approvals...</Text></View> : error ? <View style={styles.errorCard}><Text style={styles.errorText}>{error}</Text><TouchableOpacity style={styles.outlineButton} onPress={() => loadDoctors().catch(() => undefined)}><Text style={styles.outlineButtonText}>Retry</Text></TouchableOpacity></View> : visibleDoctors.length === 0 ? (
+              <View style={styles.emptyCard}><ShieldCheck size={36} color={colors.input} /><Text style={styles.cardTitle}>{tab === 'pending' ? 'No pending approvals' : 'No approved doctors'}</Text><Text style={styles.mutedText}>{tab === 'pending' ? 'All doctor registrations are already reviewed.' : 'Approved teleconsultation doctors will appear here.'}</Text></View>
             ) : <View style={styles.listGap}>
               {visibleDoctors.map(doctor => {
                 const id = doctorId(doctor);
                 const busy = submittingId === id;
-                return <View key={`${tab}-${id}`} style={styles.dataCard}>
+                return <LiquidBorderSurface key={`${tab}-${id}`} style={styles.dataCard} radius={12}>
                   <View style={styles.cardTopRow}><View style={styles.flexOne}><Text style={styles.cardTitle}>{doctor.full_name || '-'}</Text><View style={[styles.statusBadge, tab === 'pending' ? styles.statusBadgeMuted : styles.statusBadgeSuccess]}><Text style={[styles.statusText, tab === 'pending' ? styles.statusTextMuted : styles.statusTextSuccess]}>{tab === 'pending' ? 'Pending Review' : 'Approved'}</Text></View></View></View>
                   <View style={styles.approvalDetails}>
                     <Text style={styles.detailLabel}>Contact</Text><Text style={styles.detailValue}>{doctor.email || '-'}{doctor.phone ? ` · ${doctor.phone}` : ''}</Text>
@@ -146,25 +149,25 @@ export default function PendingDoctorApprovalsScreen({ onOpenDrawer }: Props) {
                     {tab === 'pending' ? <><Text style={styles.detailLabel}>Registered</Text><Text style={styles.detailValue}>{formatDate(doctor.created_at)}</Text></> : <><Text style={styles.detailLabel}>Status</Text><Text style={styles.detailValue}>Live in Marketplace</Text></>}
                   </View>
                   {tab === 'pending' ? <View style={styles.actionRow}>
-                    <TouchableOpacity style={[styles.primaryButton, styles.flexButton]} onPress={() => confirmApprove(doctor)} disabled={busy}>{busy ? <ActivityIndicator size="small" color="#fff" /> : null}<Text style={styles.primaryButtonText}>Approve</Text></TouchableOpacity>
+                    <TouchableOpacity style={[styles.primaryButton, styles.flexButton]} onPress={() => confirmApprove(doctor)} disabled={busy}>{busy ? <ActivityIndicator size="small" color={colors.surface} /> : null}<Text style={styles.primaryButtonText}>Approve</Text></TouchableOpacity>
                     <TouchableOpacity style={[styles.dangerOutlineButton, styles.flexButton]} onPress={() => { setRejecting(doctor); setRejectionReason(''); }} disabled={busy}><UserRoundX size={16} color="#E11D48" /><Text style={styles.dangerText}>Reject</Text></TouchableOpacity>
                   </View> : null}
-                </View>;
+                </LiquidBorderSurface>;
               })}
             </View>}
           </View>
           {!loading && !error ? <Pagination currentPage={page} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} itemLabel="doctors" pageSizeOptions={PAGE_SIZES} onPageChange={next => tab === 'pending' ? setPendingPage(next) : setApprovedPage(next)} onPageSizeChange={size => { setPageSize(size); setPendingPage(1); setApprovedPage(1); }} /> : null}
         </View>
-      </ScrollView>
+      </LiquidBorderScrollView>
 
       <AppModal visible={Boolean(rejecting)} transparent animationType="fade" onRequestClose={() => { setRejecting(null); setRejectionReason(''); }}>
         <View style={styles.modalBackdrop}><View style={styles.formModalCard}>
-          <View style={styles.modalHeader}><TouchableOpacity style={styles.modalClose} onPress={() => { setRejecting(null); setRejectionReason(''); }}><X size={18} color="#64748B" /></TouchableOpacity><Text style={styles.modalTitle}>Reject doctor registration</Text><Text style={styles.mutedText}>You can optionally provide a reason for rejecting this registration.</Text></View>
-          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.formBody} keyboardShouldPersistTaps="handled">
+          <View style={styles.modalHeader}><TouchableOpacity style={styles.modalClose} onPress={() => { setRejecting(null); setRejectionReason(''); }}><X size={18} color={colors.muted} /></TouchableOpacity><Text style={styles.modalTitle}>Reject doctor registration</Text><Text style={styles.mutedText}>You can optionally provide a reason for rejecting this registration.</Text></View>
+          <LiquidBorderScrollView style={styles.modalScroll} contentContainerStyle={styles.formBody} keyboardShouldPersistTaps="handled">
             <View style={styles.dataCard}><Text style={styles.fieldLabel}>Doctor: {rejecting?.full_name || '-'}</Text><Text style={styles.mutedText}>Registration No.: {rejecting?.registration_number || '-'}</Text></View>
             <Text style={styles.fieldLabel}>Rejection Reason (optional)</Text>
-            <TextInput style={[styles.textInput, styles.textArea]} value={rejectionReason} onChangeText={setRejectionReason} placeholder="Add a note for why this registration is being rejected" placeholderTextColor="#94A3B8" multiline textAlignVertical="top" />
-          </ScrollView>
+            <TextInput style={[styles.textInput, styles.textArea]} value={rejectionReason} onChangeText={setRejectionReason} placeholder="Add a note for why this registration is being rejected" placeholderTextColor={colors.subtle} multiline textAlignVertical="top" />
+          </LiquidBorderScrollView>
           <View style={styles.modalFooter}><TouchableOpacity style={styles.outlineButton} disabled={submittingId === doctorId(rejecting || {})} onPress={() => { setRejecting(null); setRejectionReason(''); }}><Text style={styles.outlineButtonText}>Cancel</Text></TouchableOpacity><TouchableOpacity style={styles.dangerButton} disabled={submittingId === doctorId(rejecting || {})} onPress={() => submitRejection()}><Text style={styles.dangerButtonText}>{submittingId === doctorId(rejecting || {}) ? 'Rejecting...' : 'Reject Doctor'}</Text></TouchableOpacity></View>
         </View></View>
       </AppModal>

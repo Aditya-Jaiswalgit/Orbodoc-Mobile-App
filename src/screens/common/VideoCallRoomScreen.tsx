@@ -1,3 +1,4 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -293,9 +294,9 @@ export function VideoCallRoomScreen({ appointment, roomId, callerRole, userId, t
       {localStream ? <RTCView streamURL={localStream.toURL()} objectFit="cover" mirror style={styles.localVideo} /> : null}
       <View style={styles.topBar}><Text style={styles.name}>{callerRole === 'patient' ? appointment.doctor_name : appointment.patient_name}</Text><Text style={styles.status}>{status}</Text></View>
       <View style={styles.controls}>
-        <TouchableOpacity accessibilityLabel={muted ? 'Unmute microphone' : 'Mute microphone'} style={styles.control} onPress={toggleMute}>{muted ? <MicOff color="#FFF" /> : <Mic color="#FFF" />}</TouchableOpacity>
-        <TouchableOpacity accessibilityLabel={cameraOff ? 'Turn camera on' : 'Turn camera off'} style={styles.control} onPress={toggleCamera}>{cameraOff ? <CameraOff color="#FFF" /> : <Camera color="#FFF" />}</TouchableOpacity>
-        <TouchableOpacity accessibilityLabel="End call" style={[styles.control, styles.endControl]} onPress={() => void endCall()}><PhoneOff color="#FFF" /></TouchableOpacity>
+        <TouchableOpacity accessibilityLabel={muted ? 'Unmute microphone' : 'Mute microphone'} style={styles.control} onPress={toggleMute}>{muted ? <MicOff color={colors.surface} /> : <Mic color={colors.surface} />}</TouchableOpacity>
+        <TouchableOpacity accessibilityLabel={cameraOff ? 'Turn camera on' : 'Turn camera off'} style={styles.control} onPress={toggleCamera}>{cameraOff ? <CameraOff color={colors.surface} /> : <Camera color={colors.surface} />}</TouchableOpacity>
+        <TouchableOpacity accessibilityLabel="End call" style={[styles.control, styles.endControl]} onPress={() => void endCall()}><PhoneOff color={colors.surface} /></TouchableOpacity>
       </View>
     </View>
   );
@@ -305,12 +306,12 @@ const styles = StyleSheet.create({
   screen: { ...StyleSheet.absoluteFill, zIndex: 100, backgroundColor: '#07111F' },
   remoteVideo: { ...StyleSheet.absoluteFill },
   waiting: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, padding: 28 },
-  waitingTitle: { fontFamily: 'Inter', color: '#FFF', fontSize: 20, fontWeight: '700' },
-  status: { fontFamily: 'Inter', color: '#CBD5E1', fontSize: 13, textAlign: 'center' },
-  topBar: { position: 'absolute', top: 42, left: 20, right: 20, gap: 4 },
-  name: { fontFamily: 'Inter', color: '#FFF', fontSize: 18, fontWeight: '700' },
-  localVideo: { position: 'absolute', right: 18, top: 105, width: 112, height: 156, borderRadius: 14, backgroundColor: '#1E293B' },
-  controls: { position: 'absolute', bottom: 34, alignSelf: 'center', flexDirection: 'row', gap: 18, padding: 12, borderRadius: 32, backgroundColor: 'rgba(15,23,42,0.85)' },
-  control: { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', backgroundColor: '#334155' },
-  endControl: { backgroundColor: '#DC2626' },
+  waitingTitle: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.title, fontWeight: typography.weight.bold },
+  status: { fontFamily: typography.family, color: colors.input, fontSize: typography.size.caption, textAlign: 'center' },
+  topBar: { position: 'absolute', top: 42, left: 20, right: 20, gap: spacing.xs },
+  name: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.lg, fontWeight: typography.weight.bold },
+  localVideo: { position: 'absolute', right: 18, top: 105, width: 112, height: 156, borderRadius: radii.lg, backgroundColor: colors.foreground },
+  controls: { position: 'absolute', bottom: 34, alignSelf: 'center', flexDirection: 'row', gap: 18, padding: spacing.md, borderRadius: 32, backgroundColor: 'rgba(15,23,42,0.85)' },
+  control: { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.foreground },
+  endControl: { backgroundColor: colors.destructive },
 });

@@ -1,3 +1,4 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 // src/components/common/Pagination.tsx
 import React from 'react';
 import {
@@ -111,7 +112,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           disabled={safeCurrentPage <= 1}
           onPress={() => onPageChange(1)}
         >
-          <ChevronsLeft size={16} color={safeCurrentPage <= 1 ? '#cbd5e1' : '#475569'} />
+          <ChevronsLeft size={16} color={safeCurrentPage <= 1 ? colors.input : colors.muted} />
         </TouchableOpacity>
 
         {/* Previous Page */}
@@ -120,7 +121,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           disabled={safeCurrentPage <= 1}
           onPress={() => onPageChange(safeCurrentPage - 1)}
         >
-          <ChevronLeft size={16} color={safeCurrentPage <= 1 ? '#cbd5e1' : '#475569'} />
+          <ChevronLeft size={16} color={safeCurrentPage <= 1 ? colors.input : colors.muted} />
         </TouchableOpacity>
 
         {/* Page numbers */}
@@ -159,7 +160,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         >
           <ChevronRight
             size={16}
-            color={safeCurrentPage >= validTotalPages ? '#cbd5e1' : '#475569'}
+            color={safeCurrentPage >= validTotalPages ? colors.input : colors.muted}
           />
         </TouchableOpacity>
 
@@ -174,7 +175,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         >
           <ChevronsRight
             size={16}
-            color={safeCurrentPage >= validTotalPages ? '#cbd5e1' : '#475569'}
+            color={safeCurrentPage >= validTotalPages ? colors.input : colors.muted}
           />
         </TouchableOpacity>
       </View>
@@ -184,97 +185,97 @@ export const Pagination: React.FC<PaginationProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderTopColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
-    marginTop: 8,
-    borderRadius: 8,
+    gap: spacing.md,
+    marginTop: spacing.sm,
+    borderRadius: radii.md,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: spacing.md,
   },
   infoText: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#64748b',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.muted,
   },
   boldText: {
-    fontWeight: '700',
-    color: '#0f172a',
+    fontWeight: typography.weight.bold,
+    color: colors.text,
   },
   pageSizeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginLeft: 8,
+    gap: spacing.tiny,
+    marginLeft: spacing.sm,
   },
   pageSizeLabel: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#64748b',
-    fontWeight: '500',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.muted,
+    fontWeight: typography.weight.medium,
   },
   pageSizeChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#f8fafc',
+    borderColor: colors.input,
+    backgroundColor: colors.background,
   },
   pageSizeChipActive: {
     backgroundColor: '#0284c7',
     borderColor: '#0284c7',
   },
   pageSizeText: {
-    fontFamily: 'Inter', fontSize: 11,
-    fontWeight: '600',
-    color: '#475569',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+    color: colors.muted,
   },
   pageSizeTextActive: {
-    color: '#ffffff',
+    color: colors.surface,
   },
   controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
   },
   navBtn: {
     width: 32,
     height: 32,
-    borderRadius: 6,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#ffffff',
+    borderColor: colors.input,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   navBtnDisabled: {
-    backgroundColor: '#f1f5f9',
-    borderColor: '#e2e8f0',
+    backgroundColor: colors.secondary,
+    borderColor: colors.border,
   },
   pageNumbersRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginHorizontal: 4,
+    gap: spacing.xs,
+    marginHorizontal: spacing.xs,
   },
   pageBtn: {
     minWidth: 32,
     height: 32,
-    paddingHorizontal: 6,
-    borderRadius: 6,
+    paddingHorizontal: spacing.tiny,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#ffffff',
+    borderColor: colors.input,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -283,16 +284,16 @@ const styles = StyleSheet.create({
     borderColor: '#0284c7',
   },
   pageBtnText: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.semibold,
+    color: colors.foreground,
   },
   pageBtnTextActive: {
-    color: '#ffffff',
+    color: colors.surface,
   },
   ellipsis: {
-    fontFamily: 'Inter', fontSize: 14,
-    color: '#94a3b8',
-    paddingHorizontal: 4,
+    fontFamily: typography.family, fontSize: typography.size.body,
+    color: colors.subtle,
+    paddingHorizontal: spacing.xs,
   },
 });

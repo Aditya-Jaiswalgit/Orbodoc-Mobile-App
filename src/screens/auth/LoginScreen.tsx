@@ -1,3 +1,4 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,6 +15,8 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react-native';
+import { FormInput } from '../../components/ui/FormInput';
+import { AnimatedLiquidBorder } from '../../components/common/AnimatedLiquidBorder';
 import { useAuth } from '../../hooks/useAuth';
 import { UserRoleType } from '../../types/auth';
 import { showErrorToast, showSuccessToast } from '../../utils/toast';
@@ -29,6 +32,7 @@ export const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [focusedField, setFocusedField] = useState<'email' | 'phone' | 'password' | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [forgotModalVisible, setForgotModalVisible] = useState(false);
@@ -75,6 +79,7 @@ export const LoginScreen = () => {
 
   const handleRoleChange = (role: UserRoleType) => {
     setActiveRole(role);
+    setFocusedField(null);
     setValidationError(null);
     clearError();
   };
@@ -193,7 +198,7 @@ export const LoginScreen = () => {
             {/* Error Banner */}
             {displayError ? (
               <View style={styles.errorBanner}>
-                <AlertCircle size={18} color="#dc2626" />
+                <AlertCircle size={18} color={colors.destructive} />
                 <Text style={styles.errorBannerText}>{displayError}</Text>
               </View>
             ) : null}
@@ -204,18 +209,23 @@ export const LoginScreen = () => {
                 <Text style={styles.label}>
                   Email <Text style={styles.asterisk}>*</Text>
                 </Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your registered email"
-                  placeholderTextColor="#94a3b8"
-                  value={email}
-                  onChangeText={text => {
-                    setEmail(text);
-                    if (validationError) setValidationError(null);
-                  }}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
+                <View style={styles.inputLiquidFrame}>
+                  <FormInput
+                    style={styles.input}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(current => current === 'email' ? null : current)}
+                    placeholder="Enter your registered email"
+                    placeholderTextColor={colors.subtle}
+                    value={email}
+                    onChangeText={text => {
+                      setEmail(text);
+                      if (validationError) setValidationError(null);
+                    }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                  <AnimatedLiquidBorder active={focusedField === 'email'} radius={radii.md} />
+                </View>
               </View>
             ) : (
               /* Patient Phone Field */
@@ -223,19 +233,24 @@ export const LoginScreen = () => {
                 <Text style={styles.label}>
                   Mobile Number <Text style={styles.asterisk}>*</Text>
                 </Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter 10-digit mobile number"
-                  placeholderTextColor="#94a3b8"
-                  numberOfLines={1}
-                  value={phone}
-                  onChangeText={text => {
-                    setPhone(text);
-                    if (validationError) setValidationError(null);
-                  }}
-                  keyboardType="phone-pad"
-                  maxLength={10}
-                />
+                <View style={styles.inputLiquidFrame}>
+                  <FormInput
+                    style={styles.input}
+                    onFocus={() => setFocusedField('phone')}
+                    onBlur={() => setFocusedField(current => current === 'phone' ? null : current)}
+                    placeholder="Enter 10-digit mobile number"
+                    placeholderTextColor={colors.subtle}
+                    numberOfLines={1}
+                    value={phone}
+                    onChangeText={text => {
+                      setPhone(text);
+                      if (validationError) setValidationError(null);
+                    }}
+                    keyboardType="phone-pad"
+                    maxLength={10}
+                  />
+                  <AnimatedLiquidBorder active={focusedField === 'phone'} radius={radii.md} />
+                </View>
               </View>
             )}
 
@@ -247,8 +262,10 @@ export const LoginScreen = () => {
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(current => current === 'password' ? null : current)}
                   placeholder="Enter your password"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor={colors.subtle}
                   value={password}
                   onChangeText={text => {
                     setPassword(text);
@@ -262,11 +279,12 @@ export const LoginScreen = () => {
                   activeOpacity={0.7}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                   {showPassword ? (
-                    <EyeOff size={20} color="#64748b" />
+                    <EyeOff size={20} color={colors.muted} />
                   ) : (
-                    <Eye size={20} color="#64748b" />
+                    <Eye size={20} color={colors.muted} />
                   )}
                 </TouchableOpacity>
+                <AnimatedLiquidBorder active={focusedField === 'password'} radius={radii.lg} />
               </View>
             </View>
 
@@ -285,7 +303,7 @@ export const LoginScreen = () => {
               style={[styles.signInButton, loading && styles.signInButtonDisabled]}
               onPress={handleLogin}>
               {loading ? (
-                <ActivityIndicator color="#ffffff" size="small" />
+                <ActivityIndicator color={colors.surface} size="small" />
               ) : (
                 <Text style={styles.signInButtonText}>Sign In</Text>
               )}
@@ -296,22 +314,22 @@ export const LoginScreen = () => {
           </TouchableOpacity>
           </> : <>
             <TouchableOpacity style={styles.backToLogin} onPress={() => setRegistrationKind('login')} activeOpacity={0.8}>
-              <ArrowLeft size={18} color="#27a599" /><Text style={styles.backToLoginText}>Back to sign in</Text>
+              <ArrowLeft size={18} color={colors.primary} /><Text style={styles.backToLoginText}>Back to sign in</Text>
             </TouchableOpacity>
             {registrationKind === 'choose' ? <View style={styles.registrationChoices}>
               <Text style={styles.choiceTitle}>Want to Join?</Text>
               <Text style={styles.choiceSubtitle}>Choose how you would like to join OrboDoc.</Text>
               <TouchableOpacity style={styles.choiceCard} onPress={() => { registration.setError(''); setRegistrationKind('plans'); }}>
-                <View style={styles.choiceIcon}><WalletCards size={21} color="#059669" /></View><View style={styles.choiceText}><Text style={styles.choiceLabel}>Buy a Plan</Text><Text style={styles.choiceDescription}>Explore clinic plans and pricing</Text></View><Text style={styles.choiceArrow}>›</Text>
+                <View style={styles.choiceIcon}><WalletCards size={21} color={colors.successDark} /></View><View style={styles.choiceText}><Text style={styles.choiceLabel}>Buy a Plan</Text><Text style={styles.choiceDescription}>Explore clinic plans and pricing</Text></View><Text style={styles.choiceArrow}>›</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.choiceCard} onPress={() => { registration.setError(''); setRegistrationKind('doctor'); }}>
-                <View style={styles.choiceIcon}><Stethoscope size={21} color="#059669" /></View><View style={styles.choiceText}><Text style={styles.choiceLabel}>Register as Doctor</Text><Text style={styles.choiceDescription}>Apply for independent teleconsultation</Text></View><Text style={styles.choiceArrow}>›</Text>
+                <View style={styles.choiceIcon}><Stethoscope size={21} color={colors.successDark} /></View><View style={styles.choiceText}><Text style={styles.choiceLabel}>Register as Doctor</Text><Text style={styles.choiceDescription}>Apply for independent teleconsultation</Text></View><Text style={styles.choiceArrow}>›</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.choiceCard} onPress={() => { registration.setError(''); setRegistrationKind('patient'); }}>
-                <View style={styles.choiceIcon}><UserRound size={21} color="#059669" /></View><View style={styles.choiceText}><Text style={styles.choiceLabel}>Register as Patient</Text><Text style={styles.choiceDescription}>Create a patient portal account</Text></View><Text style={styles.choiceArrow}>›</Text>
+                <View style={styles.choiceIcon}><UserRound size={21} color={colors.successDark} /></View><View style={styles.choiceText}><Text style={styles.choiceLabel}>Register as Patient</Text><Text style={styles.choiceDescription}>Create a patient portal account</Text></View><Text style={styles.choiceArrow}>›</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.choiceCard} onPress={() => { registration.setError(''); setRegistrationKind('lab'); }}>
-                <View style={styles.choiceIcon}><FlaskConical size={21} color="#059669" /></View><View style={styles.choiceText}><Text style={styles.choiceLabel}>Register as Lab</Text><Text style={styles.choiceDescription}>Create a diagnostic lab profile</Text></View><Text style={styles.choiceArrow}>›</Text>
+                <View style={styles.choiceIcon}><FlaskConical size={21} color={colors.successDark} /></View><View style={styles.choiceText}><Text style={styles.choiceLabel}>Register as Lab</Text><Text style={styles.choiceDescription}>Create a diagnostic lab profile</Text></View><Text style={styles.choiceArrow}>›</Text>
               </TouchableOpacity>
             </View> : registrationKind === 'plans' ? <PublicPlanRegistrationFlow
               states={registration.states}
@@ -365,20 +383,20 @@ export const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     paddingTop: 50,
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.xxl,
     paddingTop: 40,
     paddingBottom: 40,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: spacing.xl,
     marginTop: 10,
     paddingBottom: 40
   },
@@ -388,13 +406,13 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     padding: 5,
-    marginBottom: 24,
+    marginBottom: spacing.xxl,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#64748b',
+    borderColor: colors.border,
+    shadowColor: colors.muted,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -402,59 +420,59 @@ const styles = StyleSheet.create({
   },
   toggleButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   toggleButtonActive: {
-    backgroundColor: '#27A599',
+    backgroundColor: colors.primary,
   },
   toggleText: {
-    fontFamily: 'Inter', fontSize: 15,
-    fontWeight: '600',
-    color: '#64748b',
+    fontFamily: typography.family, fontSize: 15,
+    fontWeight: typography.weight.semibold,
+    color: colors.muted,
   },
   toggleTextActive: {
-    color: '#ffffff',
-    fontWeight: '700',
+    color: colors.surface,
+    fontWeight: typography.weight.bold,
   },
-  signupLink: { flexDirection: 'row', justifyContent: 'center', paddingVertical: 20 },
-  signupPrompt: { fontFamily: 'Inter', color: '#64748b', fontSize: 14 },
-  signupLinkText: { fontFamily: 'Inter', color: '#1D7C72', fontSize: 14, fontWeight: '800' },
-  backToLogin: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 7, paddingVertical: 8, marginBottom: 14 },
-  backToLoginText: { fontFamily: 'Inter', color: '#27a599', fontSize: 14, fontWeight: '700' },
-  registrationChoices: { backgroundColor: '#fff', borderRadius: 22, borderWidth: 1, borderColor: '#e2e8f0', padding: 20, marginTop: 8 },
-  choiceTitle: { fontFamily: 'Inter', color: '#0f172a', fontSize: 23, fontWeight: '800' },
-  choiceSubtitle: { fontFamily: 'Inter', color: '#64748b', fontSize: 14, marginTop: 5, marginBottom: 20 },
-  choiceCard: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 76, padding: 13, borderWidth: 1, borderColor: '#dbe7e5', borderRadius: 15, marginBottom: 12, backgroundColor: '#fbfefd' },
+  signupLink: { flexDirection: 'row', justifyContent: 'center', paddingVertical: spacing.xl },
+  signupPrompt: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.body },
+  signupLinkText: { fontFamily: typography.family, color: colors.primaryDark, fontSize: typography.size.body, fontWeight: typography.weight.extrabold },
+  backToLogin: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 7, paddingVertical: spacing.sm, marginBottom: 14 },
+  backToLoginText: { fontFamily: typography.family, color: colors.primary, fontSize: typography.size.body, fontWeight: typography.weight.bold },
+  registrationChoices: { backgroundColor: colors.surface, borderRadius: 22, borderWidth: 1, borderColor: colors.border, padding: spacing.xl, marginTop: spacing.sm },
+  choiceTitle: { fontFamily: typography.family, color: colors.text, fontSize: 23, fontWeight: typography.weight.extrabold },
+  choiceSubtitle: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.body, marginTop: 5, marginBottom: spacing.xl },
+  choiceCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 76, padding: 13, borderWidth: 1, borderColor: '#dbe7e5', borderRadius: 15, marginBottom: spacing.md, backgroundColor: '#fbfefd' },
   choiceIcon: { width: 42, height: 42, borderRadius: 13, backgroundColor: '#ecfdf5', alignItems: 'center', justifyContent: 'center' },
   choiceText: { flex: 1 },
-  choiceLabel: { fontFamily: 'Inter', color: '#0f172a', fontSize: 15, fontWeight: '800' },
-  choiceDescription: { fontFamily: 'Inter', color: '#64748b', fontSize: 12, marginTop: 3 },
-  choiceArrow: { fontFamily: 'Inter', color: '#27a599', fontSize: 26, fontWeight: '600' },
+  choiceLabel: { fontFamily: typography.family, color: colors.text, fontSize: 15, fontWeight: typography.weight.extrabold },
+  choiceDescription: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.sm, marginTop: 3 },
+  choiceArrow: { fontFamily: typography.family, color: colors.primary, fontSize: 26, fontWeight: typography.weight.semibold },
   headingContainer: {
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   title: {
-    fontFamily: 'Inter', fontSize: 20,
-    fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 6,
+    fontFamily: typography.family, fontSize: typography.size.title,
+    fontWeight: typography.weight.extrabold,
+    color: colors.text,
+    marginBottom: spacing.tiny,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontFamily: 'Inter', fontSize: 14,
-    color: '#64748b',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    color: colors.muted,
     lineHeight: 20,
   },
   formContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderRadius: 20,
-    padding: 20,
+    padding: spacing.xl,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
+    borderColor: colors.border,
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 12,
@@ -463,80 +481,76 @@ const styles = StyleSheet.create({
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#fef2f2',
+    gap: spacing.sm,
+    backgroundColor: colors.destructiveSoft,
     borderWidth: 1,
-    borderColor: '#fecaca',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
+    borderColor: colors.destructiveSoft,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
   },
   errorBannerText: {
-    fontFamily: 'Inter', flex: 1,
-    color: '#dc2626',
-    fontSize: 13,
-    fontWeight: '600',
+    fontFamily: typography.family, flex: 1,
+    color: colors.destructive,
+    fontSize: typography.size.caption,
+    fontWeight: typography.weight.semibold,
   },
   inputGroup: {
     marginBottom: 18,
   },
   label: {
-    fontFamily: 'Inter', fontSize: 14,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 8,
+    fontFamily: typography.family, fontSize: typography.size.body,
+    fontWeight: typography.weight.semibold,
+    color: colors.foreground,
+    marginBottom: spacing.sm,
   },
   asterisk: {
-    color: '#ef4444',
+    color: colors.destructive,
   },
   input: {
-    fontFamily: 'Inter', backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingVertical: 13,
-    fontSize: 15,
-    color: '#0f172a',
   },
+  inputLiquidFrame: { position: 'relative' },
   passwordContainer: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 12,
+    borderColor: colors.input,
+    borderRadius: radii.lg,
   },
   passwordInput: {
-    fontFamily: 'Inter', flex: 1,
-    paddingHorizontal: 16,
+    fontFamily: typography.family, flex: 1,
+    paddingHorizontal: spacing.lg,
     paddingVertical: 13,
     fontSize: 15,
-    color: '#0f172a',
+    color: colors.text,
   },
   eyeButton: {
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
   },
   eyeIcon: {
-    fontFamily: 'Inter', fontSize: 18,
+    fontFamily: typography.family, fontSize: typography.size.lg,
   },
   forgotPasswordContainer: {
     alignSelf: 'flex-end',
-    marginBottom: 24,
+    marginBottom: spacing.xxl,
   },
   forgotPasswordText: {
-    fontFamily: 'Inter', fontSize: 14,
-    fontWeight: '600',
-    color: '#1D7C72',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    fontWeight: typography.weight.semibold,
+    color: colors.primaryDark,
   },
   signInButton: {
-    backgroundColor: '#27A599',
-    borderRadius: 12,
+    backgroundColor: colors.primary,
+    borderRadius: radii.lg,
     paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#27A599',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -546,9 +560,9 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   signInButtonText: {
-    fontFamily: 'Inter', color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
+    fontFamily: typography.family, color: colors.surface,
+    fontSize: typography.size.subtitle,
+    fontWeight: typography.weight.bold,
   },
 });
 

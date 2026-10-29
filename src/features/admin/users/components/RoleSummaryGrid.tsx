@@ -1,6 +1,8 @@
 // src/features/admin/users/components/RoleSummaryGrid.tsx
+import { colors } from '../../../../theme/tokens';
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { LiquidBorderTouchable } from '../../../../components/common/LiquidBorderSurface';
 import { roleConfig } from '../constants';
 
 export type RoleSummaryGridProps = {
@@ -22,7 +24,7 @@ export function RoleSummaryGrid({
         const isSelected = selectedRole === role;
 
         return (
-          <TouchableOpacity
+          <LiquidBorderTouchable
             key={role}
             activeOpacity={0.7}
             onPress={() => setSelectedRole(isSelected ? 'all' : role)}
@@ -45,7 +47,7 @@ export function RoleSummaryGrid({
                 {config.label}
               </Text>
             </View>
-          </TouchableOpacity>
+          </LiquidBorderTouchable>
         );
       })}
     </View>
@@ -78,7 +80,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   selectedCard: {
-    borderColor: '#27A599',
+    borderColor: colors.primary,
     borderWidth: 2,
     backgroundColor: '#F0FDFA',
   },

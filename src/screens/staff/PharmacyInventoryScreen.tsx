@@ -1,8 +1,10 @@
+import { colors } from '../../theme/tokens';
 import { AppModal } from '../../components/common/AppModal';
 import { styles } from './styles/PharmacyInventory.styles';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+  ActivityIndicator, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import {
   Check,
   ChevronDown,
@@ -20,6 +22,7 @@ import {
   IndianRupee,
 } from 'lucide-react-native';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { LiquidBorderSurface } from '../../components/common/LiquidBorderSurface';
 import { Pagination } from '../../components/common/Pagination';
 import { ColumnSelectorModal } from '../../components/common/ColumnSelectorModal';
 import { CustomCalendarPicker } from '../../components/common/CustomCalendarPicker';
@@ -231,7 +234,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
         value={form[key]}
         onChangeText={value => setField(key, value)}
         placeholder={placeholder || label}
-        placeholderTextColor="#94A3B8"
+        placeholderTextColor={colors.subtle}
         keyboardType={keyboardType}
         autoCapitalize={
           key === 'name' || key === 'generic_name' || key === 'manufacturer'
@@ -249,7 +252,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
       <StaffHeader onOpenDrawer={onOpenDrawer} title="Medicine Inventory" />
       {!canView ? (
         <View style={styles.permissionBox}>
-          <Pill size={28} color="#27A599" />
+          <Pill size={28} color={colors.primary} />
           <Text style={styles.emptyTitle}>
             Medicine inventory access required
           </Text>
@@ -258,13 +261,13 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
           </Text>
         </View>
       ) : (
-        <ScrollView
+        <LiquidBorderScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.pageHeading}>
             <View style={styles.headingIcon}>
-              <Pill size={19} color="#27A599" />
+              <Pill size={19} color={colors.primary} />
             </View>
             <View style={styles.headingText}>
               <Text style={styles.pageTitle}>Medicine Inventory</Text>
@@ -284,7 +287,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                   setImportVisible(true);
                 }}
               >
-                <Upload size={16} color="#0F172A" />
+                <Upload size={16} color={colors.text} />
                 <Text style={styles.patientStyleSecondaryText}>Import</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -292,7 +295,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                 style={styles.patientStylePrimaryButton}
                 onPress={openAdd}
               >
-                <Plus size={16} color="#FFFFFF" />
+                <Plus size={16} color={colors.surface} />
                 <Text style={styles.patientStylePrimaryText}>Add Medicine</Text>
               </TouchableOpacity>
             </View>
@@ -300,19 +303,19 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
 
           <View style={styles.statsGrid}>
             <StatCard
-              icon={<Pill size={16} color="#27A599" />}
+              icon={<Pill size={16} color={colors.primary} />}
               label="Total Medicines"
               value={String(totalItems)}
               tone="teal"
             />
             <StatCard
-              icon={<Package size={16} color="#2EB877" />}
+              icon={<Package size={16} color={colors.success} />}
               label="In Stock"
               value={String(inStockCount)}
               tone="green"
             />
             <StatCard
-              icon={<TriangleAlert size={16} color="#D97706" />}
+              icon={<TriangleAlert size={16} color={colors.warning} />}
               label="Low Stock"
               value={String(lowStockCount)}
               tone="amber"
@@ -330,18 +333,18 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
 
           <View style={styles.filtersCard}>
             <View style={styles.searchBox}>
-              <Search size={17} color="#64748B" />
+              <Search size={17} color={colors.muted} />
               <TextInput
                 value={search}
                 onChangeText={setSearch}
                 placeholder="Search medicines..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={colors.subtle}
                 style={styles.searchInput}
                 returnKeyType="search"
               />
               {search ? (
                 <TouchableOpacity onPress={() => setSearch('')}>
-                  <X size={16} color="#64748B" />
+                  <X size={16} color={colors.muted} />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -363,10 +366,10 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                       ? 'All Categories'
                       : selectedCategory}
                   </Text>
-                  <ChevronDown size={16} color="#64748B" />
+                  <ChevronDown size={16} color={colors.muted} />
                 </TouchableOpacity>
                 {openFilter === 'category' ? (
-                  <ScrollView
+                  <LiquidBorderScrollView
                     style={styles.filterPopover}
                     nestedScrollEnabled
                     keyboardShouldPersistTaps="handled"
@@ -386,11 +389,11 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                             : option}
                         </Text>
                         {selectedCategory === option ? (
-                          <Check size={15} color="#27A599" />
+                          <Check size={15} color={colors.primary} />
                         ) : null}
                       </TouchableOpacity>
                     ))}
-                  </ScrollView>
+                  </LiquidBorderScrollView>
                 ) : null}
               </View>
               <View
@@ -410,7 +413,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                       ? 'All Status'
                       : selectedStatus}
                   </Text>
-                  <ChevronDown size={16} color="#64748B" />
+                  <ChevronDown size={16} color={colors.muted} />
                 </TouchableOpacity>
                 {openFilter === 'status' ? (
                   <View style={styles.filterPopover}>
@@ -432,7 +435,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                           {option === 'All status' ? 'All Status' : option}
                         </Text>
                         {selectedStatus === option ? (
-                          <Check size={15} color="#27A599" />
+                          <Check size={15} color={colors.primary} />
                         ) : null}
                       </TouchableOpacity>
                     ))}
@@ -444,25 +447,26 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
               style={styles.columnsButton}
               onPress={() => setColumnsVisible(true)}
             >
-              <Columns3 size={16} color="#1E293B" />
+              <Columns3 size={16} color={colors.foreground} />
               <Text style={styles.columnsButtonText}>Columns</Text>
             </TouchableOpacity>
           </View>
 
+          <View style={styles.medicineResultsCard}>
           <View style={styles.listHeader}>
-            <Pill size={17} color="#0F172A" />
+            <Pill size={17} color={colors.text} />
               <Text style={styles.listTitle}>
                 All Medicines ({visibleMedicines.length})
               </Text>
             </View>
             {loading ? (
               <View style={styles.loading}>
-                <ActivityIndicator size="large" color="#27A599" />
+                <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={styles.muted}>Loading medicines...</Text>
               </View>
             ) : visibleMedicines.length === 0 ? (
               <View style={styles.empty}>
-                <Package size={28} color="#94A3B8" />
+                <Package size={28} color={colors.subtle} />
                 <Text style={styles.emptyTitle}>
                   {loadError
                     ? 'Inventory could not be loaded'
@@ -488,10 +492,10 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                     ? styles.lowStock
                     : styles.outStock;
                 return (
-                  <View key={medicine.id} style={styles.card}>
+                  <LiquidBorderSurface key={medicine.id} style={styles.card} radius={15}>
                     <View style={styles.cardTop}>
                       <View style={styles.medicineIcon}>
-                        <Pill size={17} color="#27A599" />
+                        <Pill size={17} color={colors.primary} />
                       </View>
                       <View style={styles.cardTitleBlock}>
                         {visibleColumns.medicine ? (
@@ -531,7 +535,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                             style={styles.moreButton}
                             onPress={() => openMedicineMenu(medicine)}
                           >
-                            <MoreVertical size={18} color="#334155" />
+                            <MoreVertical size={18} color={colors.foreground} />
                           </TouchableOpacity>
                         </View>
                       ) : null}
@@ -602,7 +606,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                         />
                       ) : null}
                     </View>
-                  </View>
+                  </LiquidBorderSurface>
                 );
               })}
               </View>
@@ -620,7 +624,8 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                 }}
               />
             ) : null}
-        </ScrollView>
+          </View>
+        </LiquidBorderScrollView>
       )}
 
       <ColumnSelectorModal
@@ -656,14 +661,14 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
             {canEdit ? (
               <MenuAction
                 highlighted
-                icon={<Edit2 size={16} color="#27A599" />}
+                icon={<Edit2 size={16} color={colors.primary} />}
                 label="Edit"
                 onPress={() => menu && openEdit(menu.medicine)}
               />
             ) : null}
             {canEdit ? (
               <MenuAction
-                icon={<Package size={16} color="#334155" />}
+                icon={<Package size={16} color={colors.foreground} />}
                 label="Update Stock"
                 onPress={() => menu && openStock(menu.medicine)}
               />
@@ -671,7 +676,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
             {canEdit && canDelete ? <View style={styles.menuDivider} /> : null}
             {canDelete ? (
               <MenuAction
-                icon={<Trash2 size={16} color="#EF4444" />}
+                icon={<Trash2 size={16} color={colors.destructive} />}
                 label="Delete"
                 destructive
                 onPress={() => menu && confirmDelete(menu.medicine)}
@@ -793,7 +798,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
           >
             <Plus
               size={17}
-              color={stockType === 'add' ? '#FFFFFF' : '#334155'}
+              color={stockType === 'add' ? colors.surface : colors.foreground}
             />
             <Text
               style={[
@@ -813,7 +818,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
           >
             <Package
               size={16}
-              color={stockType === 'remove' ? '#FFFFFF' : '#334155'}
+              color={stockType === 'remove' ? colors.surface : colors.foreground}
             />
             <Text
               style={[
@@ -867,7 +872,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
           style={styles.filePicker}
           onPress={() => chooseImportFile()}
         >
-          <Upload size={18} color="#27A599" />
+          <Upload size={18} color={colors.primary} />
           <Text style={styles.filePickerText}>
             {pickedFile
               ? 'Choose a different file'
@@ -876,7 +881,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
         </TouchableOpacity>
         {pickedFile ? (
           <View style={styles.selectedFile}>
-            <Package size={16} color="#27A599" />
+            <Package size={16} color={colors.primary} />
             <View style={styles.fileCopy}>
               <Text style={styles.fileName} numberOfLines={1}>
                 {pickedFile.name}
@@ -894,7 +899,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                 setImportPreview(null);
               }}
             >
-              <X size={16} color="#64748B" />
+              <X size={16} color={colors.muted} />
             </TouchableOpacity>
           </View>
         ) : null}
@@ -906,7 +911,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
             <Text style={styles.fileName}>
               Preview · {importPreview.total} rows
             </Text>
-            <ScrollView nestedScrollEnabled style={styles.extractedInline1}>
+            <LiquidBorderScrollView nestedScrollEnabled style={styles.extractedInline1}>
               {importPreview.rows.slice(0, 30).map(row => (
                 <View key={row.rowNumber} style={styles.importPreviewRow}>
                   <Text style={styles.formHint}>
@@ -915,7 +920,7 @@ export const PharmacyInventoryScreen: React.FC<Props> = ({ onOpenDrawer, initial
                   <Text style={styles.formHint}>{row.action}</Text>
                 </View>
               ))}
-            </ScrollView>
+            </LiquidBorderScrollView>
           </View>
         ) : null}
         <Text style={styles.formHint}>

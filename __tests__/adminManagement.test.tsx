@@ -34,7 +34,8 @@ jest.mock('lucide-react-native', () => Object.fromEntries([
   'Clock', 'Building', 'Stethoscope', 'GraduationCap', 'Award', 'Calendar', 'IndianRupee', 'MapPin',
   'Lock', 'ChevronDown', 'ChevronLeft', 'ChevronRight', 'ChevronsLeft', 'ChevronsRight',
   'ShieldCheck', 'Check', 'Plus', 'Pencil', 'Shield',
-  'MoreVertical', 'CheckCircle', 'XCircle', 'Users', 'ClipboardList', 'Pill', 'Trash2', 'Camera', 'ChevronsUpDown',
+  'MoreVertical', 'CheckCircle', 'CheckCircle2', 'XCircle', 'Users', 'ClipboardList', 'Pill', 'Trash2', 'Camera', 'ChevronsUpDown', 'Columns3',
+  'AlertTriangle', 'AlertCircle', 'Info', 'Building2', 'CalendarDays', 'KeyRound',
 ].map(name => [name, name])));
 
 const fetchMock = jest.mocked(apiFetch);

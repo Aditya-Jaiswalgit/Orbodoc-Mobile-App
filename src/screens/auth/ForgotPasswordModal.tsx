@@ -1,6 +1,8 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import React, { useState, useEffect, useRef } from 'react';
 import { AppModal } from '../../components/common/AppModal';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import {
   AlertCircle,
   ArrowLeft,
@@ -270,9 +272,9 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
             <View style={styles.headerRow}>
               <View style={styles.headerIconBadge}>
                 {step === 4 ? (
-                  <CheckCircle2 color="#27A599" size={22} />
+                  <CheckCircle2 color={colors.primary} size={22} />
                 ) : (
-                  <KeyRound color="#27A599" size={22} />
+                  <KeyRound color={colors.primary} size={22} />
                 )}
               </View>
               <View style={styles.headerTitles}>
@@ -296,7 +298,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                 style={styles.closeButton}
                 activeOpacity={0.7}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <X color="#64748B" size={20} />
+                <X color={colors.muted} size={20} />
               </TouchableOpacity>
             </View>
 
@@ -311,21 +313,21 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
               </View>
             ) : null}
 
-            <ScrollView
+            <LiquidBorderScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={styles.scrollBody}>
               {/* Feedback Banners */}
               {error ? (
                 <View style={styles.errorBox}>
-                  <AlertCircle size={16} color="#DC2626" style={{ marginRight: 8, marginTop: 2 }} />
+                  <AlertCircle size={16} color={colors.destructive} style={{ marginRight: spacing.sm, marginTop: 2 }} />
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               ) : null}
 
               {successMsg && step < 4 ? (
                 <View style={styles.successBox}>
-                  <CheckCircle2 size={16} color="#059669" style={{ marginRight: 8, marginTop: 2 }} />
+                  <CheckCircle2 size={16} color={colors.successDark} style={{ marginRight: spacing.sm, marginTop: 2 }} />
                   <Text style={styles.successText}>{successMsg}</Text>
                 </View>
               ) : null}
@@ -343,11 +345,11 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                     <View style={styles.inputGroup}>
                       <Text style={styles.fieldLabel}>Email Address</Text>
                       <View style={styles.inputWrapper}>
-                        <Mail color="#94A3B8" size={18} style={styles.inputIcon} />
+                        <Mail color={colors.subtle} size={18} style={styles.inputIcon} />
                         <TextInput
                           style={styles.textInput}
                           placeholder="doctor@example.clinic"
-                          placeholderTextColor="#94A3B8"
+                          placeholderTextColor={colors.subtle}
                           keyboardType="email-address"
                           autoCapitalize="none"
                           autoCorrect={false}
@@ -363,11 +365,11 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                     <View style={styles.inputGroup}>
                       <Text style={styles.fieldLabel}>Mobile Number</Text>
                       <View style={styles.inputWrapper}>
-                        <Phone color="#94A3B8" size={18} style={styles.inputIcon} />
+                        <Phone color={colors.subtle} size={18} style={styles.inputIcon} />
                         <TextInput
                           style={styles.textInput}
                           placeholder="10-digit mobile number"
-                          placeholderTextColor="#94A3B8"
+                          placeholderTextColor={colors.subtle}
                           keyboardType="phone-pad"
                           maxLength={10}
                           value={phone}
@@ -386,7 +388,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                     disabled={loading}
                     activeOpacity={0.85}>
                     {loading ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
+                      <ActivityIndicator color={colors.surface} size="small" />
                     ) : (
                       <Text style={styles.primaryButtonText}>Send Verification Code</Text>
                     )}
@@ -399,7 +401,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                 <View style={styles.stepContent}>
                   <Text style={styles.instructionText}>
                     Please enter the verification code sent to{' '}
-                    <Text style={{ fontWeight: '700', color: '#0F172A' }}>
+                    <Text style={{ fontWeight: typography.weight.bold, color: colors.text }}>
                       {initialRole === 'staff' ? email : phone}
                     </Text>
                   </Text>
@@ -407,11 +409,11 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                   <View style={styles.inputGroup}>
                     <Text style={styles.fieldLabel}>6-Digit Verification Code</Text>
                     <View style={styles.inputWrapper}>
-                      <ShieldCheck color="#27A599" size={18} style={styles.inputIcon} />
+                      <ShieldCheck color={colors.primary} size={18} style={styles.inputIcon} />
                       <TextInput
                         style={[styles.textInput, styles.otpInput]}
                         placeholder="• • • • • •"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         keyboardType="number-pad"
                         maxLength={6}
                         autoFocus={true}
@@ -448,7 +450,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                         setStep(1);
                       }}
                       activeOpacity={0.8}>
-                      <ArrowLeft color="#475569" size={16} style={{ marginRight: 6 }} />
+                      <ArrowLeft color={colors.muted} size={16} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.secondaryButtonText}>Back</Text>
                     </TouchableOpacity>
 
@@ -458,7 +460,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                       disabled={loading}
                       activeOpacity={0.85}>
                       {loading ? (
-                        <ActivityIndicator color="#FFFFFF" size="small" />
+                        <ActivityIndicator color={colors.surface} size="small" />
                       ) : (
                         <Text style={styles.primaryButtonText}>Verify Code</Text>
                       )}
@@ -478,11 +480,11 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                   <View style={styles.inputGroup}>
                     <Text style={styles.fieldLabel}>New Password</Text>
                     <View style={styles.inputWrapper}>
-                      <Lock color="#94A3B8" size={18} style={styles.inputIcon} />
+                      <Lock color={colors.subtle} size={18} style={styles.inputIcon} />
                       <TextInput
                         style={styles.textInput}
                         placeholder="At least 8 characters"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         secureTextEntry={!showNewPassword}
                         value={newPassword}
                         onChangeText={text => {
@@ -494,9 +496,9 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                         onPress={() => setShowNewPassword(!showNewPassword)}
                         style={styles.eyeToggle}>
                         {showNewPassword ? (
-                          <EyeOff size={18} color="#64748B" />
+                          <EyeOff size={18} color={colors.muted} />
                         ) : (
-                          <Eye size={18} color="#64748B" />
+                          <Eye size={18} color={colors.muted} />
                         )}
                       </TouchableOpacity>
                     </View>
@@ -506,11 +508,11 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                   <View style={styles.inputGroup}>
                     <Text style={styles.fieldLabel}>Confirm New Password</Text>
                     <View style={styles.inputWrapper}>
-                      <Lock color="#94A3B8" size={18} style={styles.inputIcon} />
+                      <Lock color={colors.subtle} size={18} style={styles.inputIcon} />
                       <TextInput
                         style={styles.textInput}
                         placeholder="Re-enter password"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={colors.subtle}
                         secureTextEntry={!showConfirmPassword}
                         value={confirmPassword}
                         onChangeText={text => {
@@ -522,9 +524,9 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                         onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                         style={styles.eyeToggle}>
                         {showConfirmPassword ? (
-                          <EyeOff size={18} color="#64748B" />
+                          <EyeOff size={18} color={colors.muted} />
                         ) : (
-                          <Eye size={18} color="#64748B" />
+                          <Eye size={18} color={colors.muted} />
                         )}
                       </TouchableOpacity>
                     </View>
@@ -553,7 +555,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                         setStep(2);
                       }}
                       activeOpacity={0.8}>
-                      <ArrowLeft color="#475569" size={16} style={{ marginRight: 6 }} />
+                      <ArrowLeft color={colors.muted} size={16} style={{ marginRight: spacing.tiny }} />
                       <Text style={styles.secondaryButtonText}>Back</Text>
                     </TouchableOpacity>
 
@@ -563,7 +565,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                       disabled={loading}
                       activeOpacity={0.85}>
                       {loading ? (
-                        <ActivityIndicator color="#FFFFFF" size="small" />
+                        <ActivityIndicator color={colors.surface} size="small" />
                       ) : (
                         <Text style={styles.primaryButtonText}>Reset Password</Text>
                       )}
@@ -576,7 +578,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
               {step === 4 ? (
                 <View style={styles.successScreenContent}>
                   <View style={styles.successIconCircle}>
-                    <CheckCircle2 color="#059669" size={48} />
+                    <CheckCircle2 color={colors.successDark} size={48} />
                   </View>
 
                   <Text style={styles.successTitle}>Password Reset Complete!</Text>
@@ -592,7 +594,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                   </TouchableOpacity>
                 </View>
               ) : null}
-            </ScrollView>
+            </LiquidBorderScrollView>
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -606,7 +608,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.72)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.lg,
   },
   backdrop: {
     ...StyleSheet.absoluteFill,
@@ -616,7 +618,7 @@ const styles = StyleSheet.create({
     maxWidth: 440,
   },
   cardContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 24,
     overflow: 'hidden',
     shadowColor: '#000000',
@@ -627,46 +629,46 @@ const styles = StyleSheet.create({
   },
   accentBar: {
     height: 4,
-    backgroundColor: '#27A599',
+    backgroundColor: colors.primary,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
     paddingTop: 18,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.secondary,
   },
   headerIconBadge: {
     width: 42,
     height: 42,
-    borderRadius: 14,
-    backgroundColor: '#F0FDFA',
+    borderRadius: radii.lg,
+    backgroundColor: colors.mint,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
+    borderColor: colors.mintBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   headerTitles: {
     flex: 1,
   },
   headerTitle: {
-    fontFamily: 'Inter', fontSize: 18,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.text,
   },
   headerSubtitle: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.muted,
     marginTop: 2,
   },
   closeButton: {
     width: 34,
     height: 34,
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -675,119 +677,119 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.secondary,
   },
   stepDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#CBD5E1',
+    backgroundColor: colors.input,
   },
   stepDotActive: {
-    backgroundColor: '#27A599',
+    backgroundColor: colors.primary,
     transform: [{ scale: 1.2 }],
   },
   stepLine: {
     width: 44,
     height: 2,
-    backgroundColor: '#E2E8F0',
-    marginHorizontal: 6,
+    backgroundColor: colors.border,
+    marginHorizontal: spacing.tiny,
   },
   stepLineActive: {
-    backgroundColor: '#27A599',
+    backgroundColor: colors.primary,
   },
   scrollBody: {
-    padding: 20,
+    padding: spacing.xl,
   },
   instructionText: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#475569',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.muted,
     lineHeight: 20,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   inputGroup: {
     marginBottom: 14,
   },
   fieldLabel: {
-    fontFamily: 'Inter', fontSize: 14,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 6,
+    fontFamily: typography.family, fontSize: typography.size.body,
+    fontWeight: typography.weight.semibold,
+    color: colors.foreground,
+    marginBottom: spacing.tiny,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    paddingHorizontal: spacing.md,
     height: 48,
   },
   inputIcon: {
     marginRight: 10,
   },
   textInput: {
-    fontFamily: 'Inter', flex: 1,
-    fontSize: 14,
-    color: '#0F172A',
-    paddingVertical: 8,
+    fontFamily: typography.family, flex: 1,
+    fontSize: typography.size.body,
+    color: colors.text,
+    paddingVertical: spacing.sm,
   },
   otpInput: {
-    fontFamily: 'Inter', fontSize: 18,
-    fontWeight: '700',
+    fontFamily: typography.family, fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
     letterSpacing: 6,
     textAlign: 'center',
   },
   eyeToggle: {
-    padding: 6,
+    padding: spacing.tiny,
   },
   matchIndicatorRow: {
     marginTop: -4,
     marginBottom: 14,
   },
   matchSuccessText: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#059669',
-    fontWeight: '600',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.successDark,
+    fontWeight: typography.weight.semibold,
   },
   matchErrorText: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#DC2626',
-    fontWeight: '600',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.destructive,
+    fontWeight: typography.weight.semibold,
   },
   resendRow: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   resendTimerText: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.muted,
   },
   resendActionText: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#27A599',
-    fontWeight: '600',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.primary,
+    fontWeight: typography.weight.semibold,
     textDecorationLine: 'underline',
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.destructiveSoft,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    borderRadius: 12,
+    borderColor: colors.destructiveSoft,
+    borderRadius: radii.lg,
     padding: 10,
     marginBottom: 14,
   },
   errorText: {
-    fontFamily: 'Inter', flex: 1,
-    fontSize: 12,
-    color: '#B91C1C',
+    fontFamily: typography.family, flex: 1,
+    fontSize: typography.size.sm,
+    color: colors.destructiveDark,
     lineHeight: 18,
   },
   successBox: {
@@ -796,13 +798,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#ECFDF5',
     borderWidth: 1,
     borderColor: '#A7F3D0',
-    borderRadius: 12,
+    borderRadius: radii.lg,
     padding: 10,
     marginBottom: 14,
   },
   successText: {
-    fontFamily: 'Inter', flex: 1,
-    fontSize: 12,
+    fontFamily: typography.family, flex: 1,
+    fontSize: typography.size.sm,
     color: '#047857',
     lineHeight: 18,
   },
@@ -810,15 +812,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   primaryButton: {
-    backgroundColor: '#27A599',
+    backgroundColor: colors.primary,
     height: 48,
-    borderRadius: 12,
+    borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#27A599',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -828,9 +830,9 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   primaryButtonText: {
-    fontFamily: 'Inter', color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
+    fontFamily: typography.family, color: colors.surface,
+    fontSize: typography.size.body,
+    fontWeight: typography.weight.bold,
     letterSpacing: 0.2,
   },
   secondaryButton: {
@@ -838,23 +840,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 48,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.input,
+    backgroundColor: colors.background,
   },
   secondaryButtonText: {
-    fontFamily: 'Inter', color: '#475569',
-    fontSize: 14,
-    fontWeight: '600',
+    fontFamily: typography.family, color: colors.muted,
+    fontSize: typography.size.body,
+    fontWeight: typography.weight.semibold,
   },
   stepContent: {
     width: '100%',
   },
   successScreenContent: {
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
   },
   successIconCircle: {
     width: 80,
@@ -863,21 +865,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#ECFDF5',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   successTitle: {
-    fontFamily: 'Inter', fontSize: 20,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 8,
+    fontFamily: typography.family, fontSize: typography.size.title,
+    fontWeight: typography.weight.bold,
+    color: colors.text,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   successDescription: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 24,
-    paddingHorizontal: 12,
+    marginBottom: spacing.xxl,
+    paddingHorizontal: spacing.md,
   },
 });

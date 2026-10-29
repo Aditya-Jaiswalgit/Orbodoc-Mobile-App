@@ -1,28 +1,32 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Linking,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import {
   CalendarDays,
   CheckCircle2,
   Download,
   Printer,
   FlaskConical,
+  FilterX,
   MapPin,
   Search,
   TestTube2,
+  X,
 } from 'lucide-react-native';
 import { AppModal } from '../../components/common/AppModal';
 import { PatientHeader } from '../../components/common/PatientHeader';
-import { PatientPageHeading } from '../../components/common/PatientPageHeading';
+import { LiquidBorderSurface } from '../../components/common/LiquidBorderSurface';
 import { BASE_URL } from '../../api/apiConfig';
 import { getPatientMedicalHistoryApi } from '../../api/patientApi';
 import {
@@ -385,19 +389,13 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
   return (
     <View style={styles.container}>
       <PatientHeader onOpenDrawer={onOpenDrawer} />
-      <ScrollView
+      <LiquidBorderScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={search} />
         }
       >
-        <PatientPageHeading
-          title="Find Lab Tests"
-          subtitle="Search tests by name, symptom or disease, compare nearby clinics and book a slot."
-          icon={<FlaskConical size={21} color="#27A599" />}
-        />
-
         <View style={styles.historySection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>My Lab Tests & Reports</Text>
@@ -406,14 +404,14 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
               disabled={historyLoading}
             >
               {historyLoading ? (
-                <ActivityIndicator size="small" color="#1d7c72" />
+                <ActivityIndicator size="small" color={colors.primaryDark} />
               ) : (
                 <Text style={styles.historyRefresh}>Refresh</Text>
               )}
             </TouchableOpacity>
           </View>
           {historyLoading ? (
-            <ActivityIndicator style={styles.historyLoader} color="#1d7c72" />
+            <ActivityIndicator style={styles.historyLoader} color={colors.primaryDark} />
           ) : myReports.length ? (
             myReports.map(item => (
               <View
@@ -450,7 +448,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
                           : `${BASE_URL.replace(/\/api\/?$/, '')}/${String(item.report_file_url).replace(/^\/+/, '')}`;
                         Linking.openURL(url).catch(() => showErrorToast('Could not open report', 'Try again later.'));
                       }}>
-                      <Printer size={16} color="#1d7c72" />
+                      <Printer size={16} color={colors.primaryDark} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       accessibilityRole="button"
@@ -462,7 +460,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
                           : `${BASE_URL.replace(/\/api\/?$/, '')}/${String(item.report_file_url).replace(/^\/+/, '')}`;
                         Linking.openURL(url).catch(() => showErrorToast('Could not open report', 'Try again later.'));
                       }}>
-                      <Download size={16} color="#1d7c72" />
+                      <Download size={16} color={colors.primaryDark} />
                     </TouchableOpacity>
                   </View>
                 ) : null}
@@ -475,11 +473,31 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
           )}
         </View>
 
-        <View style={styles.searchCard}>
+        <View style={styles.discoveryCard}>
+          <Image
+            source={require('../../../assets/lab-test-discovery.png')}
+            resizeMode="cover"
+            style={styles.discoveryImage}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
+          <View style={styles.discoveryImageWash} pointerEvents="none" />
+          <View style={styles.discoveryHeading}>
+            <View style={styles.discoveryKicker}>
+              <FlaskConical size={15} color={colors.primaryDark} />
+              <Text style={styles.discoveryKickerText}>LAB TEST DISCOVERY</Text>
+            </View>
+            <Text style={styles.discoveryTitle}>
+              Search symptoms. Pick a test. Compare Test Prices.
+            </Text>
+            <Text style={styles.discoverySubtitle}>
+              Search tests by name, symptom or disease, compare nearby clinics and book a slot.
+            </Text>
+          </View>
           <View style={styles.inputWrap}>
-            <Search size={17} color="#64748B" />
+            <Search size={17} color={colors.muted} />
             <TextInput
-              style={[styles.input, styles.inputNoMargin]}
+              style={styles.filterTextInput}
               value={query}
               onChangeText={setQuery}
               placeholder="Search test, symptom, disease or code"
@@ -487,22 +505,60 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
               returnKeyType="search"
               onSubmitEditing={search}
             />
+            {query ? (
+              <TouchableOpacity
+                onPress={() => {
+                  setQuery('');
+                  setSelectedTestId(null);
+                  setTests([]);
+                  setClinics([]);
+                  setSearched(false);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+              >
+                <X size={16} color={colors.muted} />
+              </TouchableOpacity>
+            ) : null}
           </View>
           <View style={styles.locationRow}>
-            <TextInput
-              style={[styles.input, styles.locationInput]}
-              value={state}
-              onChangeText={setState}
-              placeholder="State (optional)"
-              placeholderTextColor="#71839D"
-            />
-            <TextInput
-              style={[styles.input, styles.locationInput]}
-              value={city}
-              onChangeText={setCity}
-              placeholder="City (optional)"
-              placeholderTextColor="#71839D"
-            />
+            <View style={[styles.inputWrap, styles.locationInputWrap]}>
+              <MapPin size={15} color={colors.muted} />
+              <TextInput
+                style={[styles.filterTextInput, styles.locationInput]}
+                value={state}
+                onChangeText={setState}
+                placeholder="State (optional)"
+                placeholderTextColor="#71839D"
+              />
+            </View>
+            <View style={[styles.inputWrap, styles.locationInputWrap]}>
+              <MapPin size={15} color={colors.muted} />
+              <TextInput
+                style={[styles.filterTextInput, styles.locationInput]}
+                value={city}
+                onChangeText={setCity}
+                placeholder="City (optional)"
+                placeholderTextColor="#71839D"
+              />
+            </View>
+            <TouchableOpacity
+              style={styles.clearFiltersButton}
+              accessibilityRole="button"
+              accessibilityLabel="Clear lab test filters"
+              disabled={!query && !state && !city}
+              onPress={() => {
+                setQuery('');
+                setState('');
+                setCity('');
+                setSelectedTestId(null);
+                setTests([]);
+                setClinics([]);
+                setSearched(false);
+              }}
+            >
+              <FilterX size={17} color={colors.primaryDark} />
+            </TouchableOpacity>
           </View>
           <TouchableOpacity
             style={styles.searchButton}
@@ -510,9 +566,9 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
             onPress={() => search()}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color={colors.surface} size="small" />
             ) : (
-              <Search size={16} color="#fff" />
+              <Search size={16} color={colors.surface} />
             )}
             <Text style={styles.searchButtonText}>
               {loading ? 'Searching...' : 'Search Tests'}
@@ -522,68 +578,78 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
 
         {searched && !loading ? (
           <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Suggested Tests</Text>
-              <Text style={styles.count}>{tests.length}</Text>
-            </View>
-            {tests.length ? (
-              <View style={styles.testChips}>
-                {tests.map(test => (
-                  <TouchableOpacity
-                    key={test.id}
-                    style={[
-                      styles.testChip,
-                      selectedTestId === test.id && styles.testChipActive,
-                    ]}
-                    onPress={() => setSelectedTestId(test.id)}
-                  >
-                    <Text
+            <View style={styles.resultsPanel}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionHeadingCopy}>
+                  <Text style={styles.sectionKicker}>TESTS</Text>
+                  <Text style={styles.sectionTitle}>Select a lab test</Text>
+                </View>
+                <Text style={styles.count}>{tests.length}</Text>
+              </View>
+              {tests.length ? (
+                <View style={styles.testChips}>
+                  {tests.map(test => (
+                    <TouchableOpacity
+                      key={test.id}
                       style={[
-                        styles.testChipText,
-                        selectedTestId === test.id && styles.testChipTextActive,
+                        styles.testChip,
+                        selectedTestId === test.id && styles.testChipActive,
                       ]}
+                      onPress={() => setSelectedTestId(test.id)}
                     >
-                      {test.test_name}
-                    </Text>
-                    {test.min_price ? (
                       <Text
                         style={[
-                          styles.testPrice,
-                          selectedTestId === test.id &&
-                            styles.testChipTextActive,
+                          styles.testChipText,
+                          selectedTestId === test.id && styles.testChipTextActive,
                         ]}
                       >
-                        From {money(test.min_discount_price || test.min_price)}
+                        {test.test_name}
                       </Text>
-                    ) : null}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : (
-              <Empty text="No matching lab tests. Try another test name or symptom." />
-            )}
+                      {test.min_price ? (
+                        <Text
+                          style={[
+                            styles.testPrice,
+                            selectedTestId === test.id &&
+                              styles.testChipTextActive,
+                          ]}
+                        >
+                          From {money(test.min_discount_price || test.min_price)}
+                        </Text>
+                      ) : null}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : (
+                <Empty text="No matching lab tests. Try another test name or symptom." />
+              )}
+            </View>
 
             {selectedTest ? (
               <>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>
-                    Clinics for {selectedTest.test_name}
-                  </Text>
-                  <Text style={styles.count}>
-                    {clinicsForSelectedTest.length}
-                  </Text>
-                </View>
-                {clinicsForSelectedTest.length ? (
-                  clinicsForSelectedTest.map(clinic => {
-                    const mapping = clinic.tests.find(
-                      test => Number(test.lab_test_id) === selectedTest.id,
-                    );
-                    if (!mapping) return null;
-                    return (
-                      <View key={clinic.clinic_id} style={styles.clinicCard}>
+                <View style={styles.resultsPanel}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionHeadingCopy}>
+                      <Text style={styles.sectionKicker}>CLINICS</Text>
+                      <Text style={styles.sectionTitle}>
+                        Clinics for {selectedTest.test_name}
+                      </Text>
+                    </View>
+                    <Text style={styles.count}>
+                      {clinicsForSelectedTest.length}
+                    </Text>
+                  </View>
+                  {clinicsForSelectedTest.length ? (
+                    <View style={styles.clinicList}>
+                      {clinicsForSelectedTest.map(clinic => {
+                        const mapping = clinic.tests.find(
+                          test => Number(test.lab_test_id) === selectedTest.id,
+                        );
+                        if (!mapping) return null;
+                        return (
+                          <LiquidBorderSurface key={clinic.clinic_id} style={styles.clinicCard} radius={16}>
                         <View style={styles.clinicHeading}>
                           <View style={styles.locationIcon}>
-                            <MapPin size={17} color="#27A599" />
+                            <MapPin size={17} color={colors.primary} />
                           </View>
                           <View style={styles.flex}>
                             <Text style={styles.clinicTitle}>
@@ -620,22 +686,24 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
                           style={styles.bookButton}
                           onPress={() => openBooking(clinic)}
                         >
-                          <CalendarDays size={16} color="#fff" />
+                          <CalendarDays size={16} color={colors.surface} />
                           <Text style={styles.bookButtonText}>
                             Book Lab Test
                           </Text>
                         </TouchableOpacity>
-                      </View>
-                    );
-                  })
-                ) : (
-                  <Empty text="No clinics currently offer this test in the selected location." />
-                )}
+                          </LiquidBorderSurface>
+                        );
+                      })}
+                    </View>
+                  ) : (
+                    <Empty text="No clinics currently offer this test in the selected location." />
+                  )}
+                </View>
               </>
             ) : null}
           </>
         ) : null}
-      </ScrollView>
+      </LiquidBorderScrollView>
 
       <AppModal
         visible={Boolean(bookingClinic)}
@@ -645,7 +713,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.bookingModal}>
-            <ScrollView keyboardShouldPersistTaps="handled">
+            <LiquidBorderScrollView keyboardShouldPersistTaps="handled">
               <Text style={styles.modalTitle}>Book Lab Test</Text>
               <Text style={styles.modalSubtitle}>
                 {bookingTest?.test_name} · {bookingClinic?.clinic_name}
@@ -667,7 +735,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
                   disabled={lookupLoading}
                 >
                   {lookupLoading ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color={colors.surface} size="small" />
                   ) : (
                     <Text style={styles.lookupText}>Find</Text>
                   )}
@@ -732,7 +800,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
               />
               <Text style={styles.fieldLabel}>Available time slots</Text>
               {slotsLoading ? (
-                <ActivityIndicator color="#1d7c72" />
+                <ActivityIndicator color={colors.primaryDark} />
               ) : slots.length ? (
                 <View style={styles.slotGrid}>
                   {slots.map(slot => (
@@ -818,13 +886,13 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
                   onPress={() => submitBooking()}
                 >
                   {submitting ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color={colors.surface} size="small" />
                   ) : (
                     <Text style={styles.bookButtonText}>Confirm Booking</Text>
                   )}
                 </TouchableOpacity>
               </View>
-            </ScrollView>
+            </LiquidBorderScrollView>
           </View>
         </View>
       </AppModal>
@@ -837,7 +905,7 @@ export const LabTestsScreen: React.FC<LabTestsScreenProps> = ({
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.successCard}>
-            <CheckCircle2 size={42} color="#059669" />
+            <CheckCircle2 size={42} color={colors.successDark} />
             <Text style={styles.modalTitle}>Booking submitted</Text>
             <Text style={styles.modalSubtitle}>
               {successInfo?.test} for {successInfo?.patient} at{' '}
@@ -876,52 +944,100 @@ const Choice = ({
 );
 const Empty = ({ text }: { text: string }) => (
   <View style={styles.empty}>
-    <TestTube2 size={24} color="#94A3B8" />
+    <TestTube2 size={24} color={colors.subtle} />
     <Text style={styles.emptyText}>{text}</Text>
   </View>
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 14, paddingBottom: 40, gap: 13 },
   flex: { flex: 1, minWidth: 0 },
-  hero: {
+  discoveryCard: {
+    position: 'relative',
+    overflow: 'hidden',
+    padding: spacing.lg,
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: '#CFE8E2',
+    borderRadius: 28,
+    backgroundColor: '#F4FBFA',
+    shadowColor: '#0F766E',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 2,
+  },
+  discoveryImage: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: '72%',
+    height: 160,
+    opacity: 0.55,
+  },
+  discoveryImageWash: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    left: 0,
+    height: 160,
+    backgroundColor: 'rgba(244,251,250,0.58)',
+  },
+  discoveryHeading: { gap: spacing.sm, paddingRight: 18 },
+  discoveryKicker: {
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 17,
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
     borderWidth: 1,
-    borderColor: '#DCE5E9',
-    borderRadius: 16,
-    backgroundColor: '#fff',
+    borderColor: '#BFE3DB',
+    borderRadius: radii.pill,
+    backgroundColor: 'rgba(255,255,255,0.9)',
   },
-  heroIcon: {
-    width: 46,
-    height: 46,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 13,
-    backgroundColor: '#CCFBF1',
+  discoveryKickerText: {
+    fontFamily: typography.family,
+    color: colors.primaryDark,
+    fontSize: typography.size.micro,
+    fontWeight: typography.weight.extrabold,
+    letterSpacing: 0.5,
+  },
+  discoveryTitle: {
+    maxWidth: 340,
+    fontFamily: typography.family,
+    color: colors.primaryDark,
+    fontSize: typography.size.heading,
+    lineHeight: 28,
+    fontWeight: typography.weight.extrabold,
+  },
+  discoverySubtitle: {
+    maxWidth: 360,
+    fontFamily: typography.family,
+    color: '#5D7580',
+    fontSize: typography.size.sm,
+    lineHeight: 19,
   },
   historySection: {
     padding: 13,
-    gap: 8,
+    gap: spacing.sm,
     borderWidth: 1,
     borderColor: '#DCE5E9',
-    borderRadius: 14,
-    backgroundColor: '#fff',
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
   },
   historyCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#EEF2F6',
   },
-  historyRefresh: { fontFamily: 'Inter', color: '#1D7C72', fontSize: 11, fontWeight: '700' },
-  historyLoader: { marginVertical: 12 },
-  historyRemarks: { fontFamily: 'Inter', color: '#475569', fontSize: 11, marginTop: 4 },
+  historyRefresh: { fontFamily: typography.family, color: colors.primaryDark, fontSize: typography.size.xs, fontWeight: typography.weight.bold },
+  historyLoader: { marginVertical: spacing.md },
+  historyRemarks: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.xs, marginTop: spacing.xs },
   historyDownload: {
     width: 36,
     height: 36,
@@ -931,80 +1047,122 @@ const styles = StyleSheet.create({
     borderColor: '#BFE3DB',
     borderRadius: 9,
   },
-  historyReportActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  historyEmpty: { fontFamily: 'Inter', color: '#64748B', fontSize: 12, paddingVertical: 5 },
-  title: { fontFamily: 'Inter', color: '#0F172A', fontSize: 20, fontWeight: '800' },
-  subtitle: { fontFamily: 'Inter', color: '#64748B', fontSize: 14, lineHeight: 18, marginTop: 3 },
-  searchCard: {
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#DCE5E9',
-    borderRadius: 15,
-    backgroundColor: '#fff',
-    gap: 9,
-  },
+  historyReportActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.tiny },
+  historyEmpty: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.sm, paddingVertical: 5 },
+  title: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.title, fontWeight: typography.weight.extrabold },
+  subtitle: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.body, lineHeight: 18, marginTop: 3 },
   inputWrap: {
+    flex: 1,
     minHeight: 46,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
     paddingHorizontal: 11,
     borderWidth: 1,
     borderColor: '#DCE5E9',
     borderRadius: 11,
+    backgroundColor: colors.surface,
   },
   input: {
-    fontFamily: 'Inter', minHeight: 44,
+    fontFamily: typography.family, minHeight: 44,
     paddingHorizontal: 11,
     paddingVertical: 9,
-    marginTop: 8,
+    marginTop: spacing.sm,
     borderWidth: 1,
     borderColor: '#DCE5E9',
-    borderRadius: 10,
-    color: '#0F172A',
-    backgroundColor: '#fff',
-    fontSize: 13,
+    borderRadius: radii.md,
+    color: colors.text,
+    backgroundColor: colors.surface,
+    fontSize: typography.size.caption,
   },
   inputNoMargin: { marginTop: 0 },
-  locationRow: { flexDirection: 'row', gap: 8 },
+  filterTextInput: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 44,
+    paddingHorizontal: 0,
+    paddingVertical: spacing.sm,
+    color: colors.text,
+    fontFamily: typography.family,
+    fontSize: typography.size.caption,
+  },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  locationInputWrap: { minWidth: 0 },
   locationInput: { flex: 1, minWidth: 0 },
+  clearFiltersButton: {
+    width: 46,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#BFE3DB',
+    borderRadius: 11,
+    backgroundColor: '#EEF9F7',
+  },
+  sectionHeadingCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
+  sectionKicker: {
+    fontFamily: typography.family,
+    color: colors.primaryDark,
+    fontSize: typography.size.micro,
+    fontWeight: typography.weight.extrabold,
+    letterSpacing: 0.5,
+  },
+  resultsPanel: {
+    padding: spacing.lg,
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: '#CFE8E2',
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    shadowColor: '#0F766E',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.08,
+    shadowRadius: 17,
+    elevation: 2,
+  },
+  clinicList: { gap: spacing.md },
   searchButton: {
     minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    borderRadius: 10,
-    backgroundColor: '#27A599',
+    borderRadius: radii.md,
+    backgroundColor: colors.primary,
   },
-  searchButtonText: { fontFamily: 'Inter', color: '#fff', fontSize: 13, fontWeight: '700' },
+  searchButtonText: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.caption, fontWeight: typography.weight.bold },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 4,
+    gap: spacing.sm,
+    marginTop: spacing.xs,
   },
-  sectionTitle: { fontFamily: 'Inter', flex: 1, color: '#0F172A', fontSize: 18, fontWeight: '800' },
-  count: { fontFamily: 'Inter', color: '#1D7C72', fontSize: 11, fontWeight: '700' },
-  testChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  sectionTitle: { fontFamily: typography.family, flex: 1, color: colors.text, fontSize: typography.size.lg, fontWeight: typography.weight.extrabold },
+  count: { fontFamily: typography.family, color: colors.primaryDark, fontSize: typography.size.xs, fontWeight: typography.weight.bold },
+  testChips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   testChip: {
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 9,
     borderWidth: 1,
     borderColor: '#CFE6E1',
-    borderRadius: 12,
-    backgroundColor: '#fff',
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
   },
-  testChipActive: { borderColor: '#1D7C72', backgroundColor: '#1D7C72' },
-  testChipText: { fontFamily: 'Inter', color: '#17313A', fontSize: 12, fontWeight: '700' },
-  testChipTextActive: { color: '#fff' },
-  testPrice: { fontFamily: 'Inter', color: '#64748B', fontSize: 10, marginTop: 4 },
+  testChipActive: { borderColor: colors.primaryDark, backgroundColor: colors.primaryDark },
+  testChipText: { fontFamily: typography.family, color: '#17313A', fontSize: typography.size.sm, fontWeight: typography.weight.bold },
+  testChipTextActive: { color: colors.surface },
+  testPrice: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.micro, marginTop: spacing.xs },
   clinicCard: {
-    padding: 14,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: '#DCE5E9',
-    borderRadius: 15,
-    backgroundColor: '#fff',
+    borderColor: '#E1EFEC',
+    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
+    shadowColor: '#0F766E',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 1,
   },
   clinicHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
   locationIcon: {
@@ -1012,13 +1170,13 @@ const styles = StyleSheet.create({
     height: 34,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
-    backgroundColor: '#F0FDFA',
+    borderRadius: radii.md,
+    backgroundColor: colors.mint,
   },
-  clinicTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 14, fontWeight: '800' },
+  clinicTitle: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.body, fontWeight: typography.weight.extrabold },
   clinicAddress: {
-    fontFamily: 'Inter', color: '#64748B',
-    fontSize: 11,
+    fontFamily: typography.family, color: colors.muted,
+    fontSize: typography.size.xs,
     lineHeight: 16,
     marginTop: 3,
   },
@@ -1026,28 +1184,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
-    paddingVertical: 12,
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
     marginTop: 11,
     borderTopWidth: 1,
     borderTopColor: '#EEF2F6',
   },
-  priceLabel: { fontFamily: 'Inter', color: '#64748B', fontSize: 10 },
+  priceLabel: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.micro },
   priceValue: {
-    fontFamily: 'Inter', color: '#0F172A',
-    fontSize: 18,
-    fontWeight: '800',
+    fontFamily: typography.family, color: colors.text,
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.extrabold,
     marginTop: 3,
   },
   oldPrice: {
-    fontFamily: 'Inter', color: '#94A3B8',
-    fontSize: 10,
+    fontFamily: typography.family, color: colors.subtle,
+    fontSize: typography.size.micro,
     textDecorationLine: 'line-through',
   },
   collectionText: {
-    fontFamily: 'Inter', color: '#1D7C72',
-    fontSize: 10,
-    fontWeight: '700',
+    fontFamily: typography.family, color: colors.primaryDark,
+    fontSize: typography.size.micro,
+    fontWeight: typography.weight.bold,
     textAlign: 'right',
   },
   bookButton: {
@@ -1056,24 +1214,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: '#27A599',
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: colors.primary,
   },
-  bookButtonText: { fontFamily: 'Inter', color: '#fff', fontSize: 12, fontWeight: '700' },
+  bookButtonText: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.sm, fontWeight: typography.weight.bold },
   empty: {
     minHeight: 105,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    padding: 16,
+    gap: spacing.sm,
+    padding: spacing.lg,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#CBD5E1',
-    borderRadius: 14,
-    backgroundColor: '#fff',
+    borderColor: colors.input,
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
   },
-  emptyText: { fontFamily: 'Inter', color: '#64748B', fontSize: 12, textAlign: 'center' },
+  emptyText: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.sm, textAlign: 'center' },
   modalBackdrop: {
     flex: 1,
     justifyContent: 'center',
@@ -1084,44 +1242,44 @@ const styles = StyleSheet.create({
     maxHeight: '94%',
     padding: 17,
     borderRadius: 18,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   successCard: {
     alignItems: 'center',
     gap: 10,
     padding: 22,
     borderRadius: 18,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
-  modalTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 20, fontWeight: '800' },
+  modalTitle: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.title, fontWeight: typography.weight.extrabold },
   modalSubtitle: {
-    fontFamily: 'Inter', color: '#64748B',
-    fontSize: 12,
+    fontFamily: typography.family, color: colors.muted,
+    fontSize: typography.size.sm,
     lineHeight: 18,
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
   },
-  lookupRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  lookupRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   phoneInput: { flex: 1 },
   lookupButton: {
     minHeight: 42,
     minWidth: 64,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: spacing.sm,
     borderRadius: 9,
-    backgroundColor: '#1D7C72',
+    backgroundColor: colors.primaryDark,
   },
-  lookupText: { fontFamily: 'Inter', color: '#fff', fontSize: 12, fontWeight: '700' },
-  lookupHint: { fontFamily: 'Inter', color: '#64748B', fontSize: 11, marginTop: 7 },
+  lookupText: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.sm, fontWeight: typography.weight.bold },
+  lookupHint: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.xs, marginTop: 7 },
   fieldLabel: {
-    fontFamily: 'Inter', color: '#334155',
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 12,
+    fontFamily: typography.family, color: colors.foreground,
+    fontSize: typography.size.body,
+    fontWeight: typography.weight.bold,
+    marginTop: spacing.md,
   },
-  choiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 8 },
-  slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 8 },
+  choiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: spacing.sm },
+  slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: spacing.sm },
   choice: {
     minHeight: 36,
     justifyContent: 'center',
@@ -1129,19 +1287,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DCE5E9',
     borderRadius: 9,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
-  choiceActive: { borderColor: '#27A599', backgroundColor: '#F0FDFA' },
-  choiceText: { fontFamily: 'Inter', color: '#475569', fontSize: 11, fontWeight: '600' },
-  choiceTextActive: { color: '#1D7C72' },
+  choiceActive: { borderColor: colors.primary, backgroundColor: colors.mint },
+  choiceText: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
+  choiceTextActive: { color: colors.primaryDark },
   multiline: { minHeight: 65, textAlignVertical: 'top' },
-  coverageHint: { fontFamily: 'Inter', fontSize: 11, lineHeight: 16, marginTop: 7 },
+  coverageHint: { fontFamily: typography.family, fontSize: typography.size.xs, lineHeight: 16, marginTop: 7 },
   coverageGood: { color: '#047857' },
-  coverageBad: { color: '#B91C1C' },
+  coverageBad: { color: colors.destructiveDark },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 8,
+    gap: spacing.sm,
     marginTop: 15,
   },
   cancelButton: {
@@ -1149,10 +1307,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 13,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: colors.input,
     borderRadius: 9,
   },
-  cancelText: { fontFamily: 'Inter', color: '#475569', fontSize: 12, fontWeight: '700' },
+  cancelText: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.sm, fontWeight: typography.weight.bold },
 });
 
 export default LabTestsScreen;

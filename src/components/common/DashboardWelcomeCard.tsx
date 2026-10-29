@@ -2,6 +2,7 @@ import React from 'react';
 import { CalendarDays } from 'lucide-react-native';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useAuthContext } from '../../context/AuthContext';
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -29,7 +30,7 @@ export const DashboardWelcomeCard = () => {
         <Text style={styles.subtitle}>Here's what's happening at your clinic today.</Text>
       </View>
       <View style={styles.todayCard}>
-        <View style={styles.iconBox}><CalendarDays size={20} color="#1D7C72" /></View>
+        <View style={styles.iconBox}><CalendarDays size={20} color={colors.primaryDark} /></View>
         <View style={styles.todayCopy}>
           <View style={styles.todayLabelRow}><View style={styles.dot} /><Text style={styles.todayLabel}>TODAY</Text></View>
           <Text style={[styles.date, width >= 640 && styles.dateWide]} numberOfLines={1}>{today}</Text>
@@ -40,18 +41,18 @@ export const DashboardWelcomeCard = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { marginHorizontal: 16, marginTop: 4, marginBottom: 8, gap: 12 },
+  container: { marginHorizontal: spacing.lg, marginTop: spacing.xs, marginBottom: spacing.sm, gap: spacing.md },
   containerWide: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   copy: { flex: 1, minWidth: 0 },
-  greeting: { fontFamily: 'Inter', color: '#1D2931', fontSize: 18, fontWeight: '700' },
-  greetingWide: { fontFamily: 'Inter', fontSize: 20 },
-  subtitle: { fontFamily: 'Inter', color: '#6B7A85', fontSize: 14, marginTop: 4 },
-  todayCard: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: '#CDE9E5', borderRadius: 16, backgroundColor: '#FFFFFF' },
-  iconBox: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: '#EAF7F5' },
+  greeting: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.lg, fontWeight: typography.weight.bold },
+  greetingWide: { fontSize: typography.size.title },
+  subtitle: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.body, marginTop: spacing.xs },
+  todayCard: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderWidth: 1, borderColor: colors.mintBorder, borderRadius: radii.lg, backgroundColor: colors.surface, shadowColor: '#0d9488', shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
+  iconBox: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, backgroundColor: colors.mint },
   todayCopy: { flex: 1, minWidth: 0 },
   todayLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 3 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#27A599' },
-  todayLabel: { fontFamily: 'Inter', color: '#1D7C72', fontSize: 11, fontWeight: '700', letterSpacing: 1.1 },
-  date: { fontFamily: 'Inter', color: '#1D2931', fontSize: 14, fontWeight: '600' },
-  dateWide: { fontFamily: 'Inter', fontSize: 16 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary },
+  todayLabel: { fontFamily: typography.family, color: colors.primaryDark, fontSize: typography.size.xs, fontWeight: typography.weight.bold, letterSpacing: 1.1 },
+  date: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.body, fontWeight: typography.weight.semibold },
+  dateWide: { fontSize: typography.size.subtitle },
 });

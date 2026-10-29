@@ -1,6 +1,8 @@
+import { colors, radii, spacing, typography } from '../../../theme/tokens';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AppModal } from '../../../components/common/AppModal';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { LiquidBorderScrollView } from '../../../components/common/LiquidBorderScrollView';
 import {
   CalendarDays,
   Check,
@@ -401,7 +403,7 @@ export function PatientAppointmentModal({
           >
             {value || placeholder}
           </Text>
-          <ChevronDown size={17} color="#94A3B8" />
+          <ChevronDown size={17} color={colors.subtle} />
         </TouchableOpacity>
         {isOpen ? (
           <View style={styles.inlinePicker}>
@@ -416,15 +418,15 @@ export function PatientAppointmentModal({
                       ? 'Search doctor name or specialization...'
                       : 'Search time slot...'
                   }
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.subtle}
                   style={styles.inlineSearchInput}
                 />
               </View>
             ) : null}
             {kind === 'doctor' && loadingDoctors ? (
-              <ActivityIndicator color="#27A599" style={styles.loading} />
+              <ActivityIndicator color={colors.primary} style={styles.loading} />
             ) : (
-              <ScrollView
+              <LiquidBorderScrollView
                 style={[
                   styles.inlineOptions,
                   {
@@ -451,7 +453,7 @@ export function PatientAppointmentModal({
                         onPress={() => chooseOption(item)}
                       >
                         {selected ? (
-                          <Check size={15} color="#27A599" />
+                          <Check size={15} color={colors.primary} />
                         ) : (
                           <View style={styles.checkSpacer} />
                         )}
@@ -482,7 +484,7 @@ export function PatientAppointmentModal({
                       : 'No matching options.'}
                   </Text>
                 )}
-              </ScrollView>
+              </LiquidBorderScrollView>
             )}
           </View>
         ) : null}
@@ -510,7 +512,7 @@ export function PatientAppointmentModal({
         >
           <View style={styles.header}>
             <View style={styles.iconBox}>
-              <CalendarDays size={19} color="#27A599" />
+              <CalendarDays size={19} color={colors.primary} />
             </View>
             <View style={styles.headerCopy}>
               <Text style={styles.title}>Book Appointment</Text>
@@ -521,11 +523,11 @@ export function PatientAppointmentModal({
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.close}>
-              <X size={19} color="#64748B" />
+              <X size={19} color={colors.muted} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView
+          <LiquidBorderScrollView
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -533,7 +535,7 @@ export function PatientAppointmentModal({
             {selectField(
               'doctor',
               'Select Doctor',
-              <Stethoscope size={15} color="#334155" />,
+              <Stethoscope size={15} color={colors.foreground} />,
               selectedDoctor
                 ? `${selectedDoctor.full_name}${
                     selectedDoctor.department || selectedDoctor.specialization
@@ -555,7 +557,7 @@ export function PatientAppointmentModal({
                 {Number(selectedDoctor.consultation_fee || 0) > 0 ? (
                   <View style={styles.feeCard}>
                     <View style={styles.feeHeading}>
-                      <IndianRupee size={15} color="#27A599" />
+                      <IndianRupee size={15} color={colors.primary} />
                       <Text style={styles.feeTitle}>Consultation Fee</Text>
                     </View>
                     <Text style={styles.feeAmount}>
@@ -573,7 +575,7 @@ export function PatientAppointmentModal({
             {selectField(
               'mode',
               'Consultation Mode',
-              <Monitor size={15} color="#334155" />,
+              <Monitor size={15} color={colors.foreground} />,
               consultationModes.find(mode => mode.id === consultationMode)
                 ?.label || '',
               'Select mode',
@@ -581,7 +583,7 @@ export function PatientAppointmentModal({
 
             <View style={styles.field}>
               <Text style={styles.labelRow}>
-                <CalendarDays size={15} color="#334155" />
+                <CalendarDays size={15} color={colors.foreground} />
                 <Text style={styles.label}>
                   Appointment Date<Text style={styles.required}> *</Text>
                 </Text>
@@ -617,7 +619,7 @@ export function PatientAppointmentModal({
             {selectField(
               'time',
               'Appointment Time',
-              <Clock3 size={15} color="#334155" />,
+              <Clock3 size={15} color={colors.foreground} />,
               availableSlots.find(slot => slot === selectedTime)
                 ? formatTime(selectedTime)
                 : '',
@@ -680,7 +682,7 @@ export function PatientAppointmentModal({
               </Text>
             ) : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
-          </ScrollView>
+          </LiquidBorderScrollView>
 
           <View style={styles.footer}>
             <TouchableOpacity
@@ -689,7 +691,7 @@ export function PatientAppointmentModal({
               onPress={submit}
             >
               {submitting ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={colors.surface} />
               ) : (
                 <Text style={styles.confirmText}>Book Appointment</Text>
               )}
@@ -720,9 +722,9 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     borderRadius: 15,
     overflow: 'hidden',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderTopWidth: 4,
-    borderTopColor: '#14B8A6',
+    borderTopColor: colors.primary,
     elevation: 12,
   },
   header: {
@@ -733,8 +735,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.border,
+    backgroundColor: colors.background,
   },
   iconBox: {
     width: 34,
@@ -746,18 +748,18 @@ const styles = StyleSheet.create({
   },
   headerCopy: { flex: 1, minWidth: 0 },
   title: {
-    fontFamily: 'Inter', color: '#1F2937',
-    fontSize: 20,
-    fontWeight: '600',
+    fontFamily: typography.family, color: '#1F2937',
+    fontSize: typography.size.title,
+    fontWeight: typography.weight.semibold,
     textAlign: 'center',
   },
   subtitle: {
-    fontFamily: 'Inter', color: '#64748B',
-    fontSize: 14,
+    fontFamily: typography.family, color: colors.muted,
+    fontSize: typography.size.body,
     marginTop: 2,
     textAlign: 'center',
   },
-  close: { padding: 6 },
+  close: { padding: spacing.tiny },
   content: {
     paddingHorizontal: 14,
     paddingTop: 10,
@@ -771,21 +773,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
   },
-  label: { fontFamily: 'Inter', color: '#1F2937', fontSize: 14, fontWeight: '600' },
-  required: { color: '#EF4444', fontWeight: '700' },
+  label: { fontFamily: typography.family, color: '#1F2937', fontSize: typography.size.body, fontWeight: typography.weight.semibold },
+  required: { color: colors.destructive, fontWeight: typography.weight.bold },
   selectInput: {
     minHeight: 39,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: spacing.sm,
     paddingHorizontal: 11,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
   },
-  selectText: { fontFamily: 'Inter', flex: 1, color: '#334155', fontSize: 11 },
+  selectText: { fontFamily: typography.family, flex: 1, color: colors.foreground, fontSize: typography.size.xs },
   placeholder: { color: '#718096' },
   focusedInput: { borderColor: '#27B8AB', borderWidth: 2 },
   disabledInput: { opacity: 0.55 },
@@ -795,106 +797,106 @@ const styles = StyleSheet.create({
     padding: 5,
     borderWidth: 1,
     borderColor: '#D9E2EA',
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
     elevation: 3,
   },
   inlineSearch: {
     minHeight: 34,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
-    paddingHorizontal: 8,
+    gap: spacing.tiny,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.sm,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
   },
   inlineSearchInput: {
-    fontFamily: 'Inter', flex: 1,
+    fontFamily: typography.family, flex: 1,
     paddingVertical: 5,
-    color: '#334155',
-    fontSize: 11,
+    color: colors.foreground,
+    fontSize: typography.size.xs,
   },
   inlineOptions: { maxHeight: 168, flexGrow: 0 },
-  doctorInfo: { gap: 6 },
-  doctorDetails: { fontFamily: 'Inter', marginTop: -4, color: '#64748B', fontSize: 10 },
+  doctorInfo: { gap: spacing.tiny },
+  doctorDetails: { fontFamily: typography.family, marginTop: -4, color: colors.muted, fontSize: typography.size.micro },
   feeCard: {
     padding: 10,
     borderWidth: 1,
     borderColor: '#BFEAE5',
-    borderRadius: 10,
-    backgroundColor: '#EAF7F5',
+    borderRadius: radii.md,
+    backgroundColor: colors.mint,
     gap: 3,
   },
   feeHeading: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  feeTitle: { fontFamily: 'Inter', color: '#1F2937', fontSize: 11, fontWeight: '600' },
-  feeAmount: { fontFamily: 'Inter', color: '#1F2937', fontSize: 14, fontWeight: '800' },
-  feeHint: { fontFamily: 'Inter', color: '#718096', fontSize: 9, lineHeight: 13 },
+  feeTitle: { fontFamily: typography.family, color: '#1F2937', fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
+  feeAmount: { fontFamily: typography.family, color: '#1F2937', fontSize: typography.size.body, fontWeight: typography.weight.extrabold },
+  feeHint: { fontFamily: typography.family, color: '#718096', fontSize: 9, lineHeight: 13 },
   textArea: {
-    fontFamily: 'Inter', minHeight: 64,
+    fontFamily: typography.family, minHeight: 64,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
-    color: '#334155',
-    fontSize: 11,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
+    color: colors.foreground,
+    fontSize: typography.size.xs,
   },
-  helpText: { fontFamily: 'Inter', color: '#64748B', fontSize: 10, lineHeight: 15 },
+  helpText: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.micro, lineHeight: 15 },
   retryText: {
-    fontFamily: 'Inter', color: '#B45309',
-    fontSize: 10,
+    fontFamily: typography.family, color: '#B45309',
+    fontSize: typography.size.micro,
     textDecorationLine: 'underline',
   },
   videoBillingNote: {
-    fontFamily: 'Inter', color: '#047857',
+    fontFamily: typography.family, color: '#047857',
     backgroundColor: '#ECFDF5',
     borderColor: '#A7F3D0',
     borderWidth: 1,
     borderRadius: 9,
     padding: 10,
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
     textAlign: 'center',
   },
-  error: { fontFamily: 'Inter', color: '#DC2626', fontSize: 11, fontWeight: '600' },
+  error: { fontFamily: typography.family, color: colors.destructive, fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
   footer: {
     gap: 7,
     paddingHorizontal: 14,
     paddingTop: 10,
-    paddingBottom: 12,
+    paddingBottom: spacing.md,
     borderTopWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.border,
+    backgroundColor: colors.background,
   },
   confirm: {
     minHeight: 39,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#26A69A',
-    borderRadius: 10,
+    backgroundColor: colors.primary,
+    borderRadius: radii.md,
   },
-  confirmText: { fontFamily: 'Inter', color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  confirmText: { fontFamily: typography.family, color: colors.surface, fontSize: typography.size.xs, fontWeight: typography.weight.extrabold },
   cancel: {
     minHeight: 36,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
   },
-  cancelText: { fontFamily: 'Inter', color: '#1F2937', fontSize: 11, fontWeight: '600' },
+  cancelText: { fontFamily: typography.family, color: '#1F2937', fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
   disabled: { opacity: 0.65 },
   loading: { paddingVertical: 18 },
   emptyText: {
-    fontFamily: 'Inter', paddingHorizontal: 10,
+    fontFamily: typography.family, paddingHorizontal: 10,
     paddingVertical: 18,
-    color: '#64748B',
-    fontSize: 11,
+    color: colors.muted,
+    fontSize: typography.size.xs,
     textAlign: 'center',
   },
   pickerOption: {
@@ -902,13 +904,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    paddingHorizontal: 8,
-    borderRadius: 8,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radii.md,
   },
   pickerOptionSelected: { backgroundColor: '#DDF5F2' },
   checkSpacer: { width: 16 },
   optionCopy: { flex: 1 },
-  optionLabel: { fontFamily: 'Inter', color: '#334155', fontSize: 11, fontWeight: '600' },
-  optionLabelSelected: { color: '#27A599' },
-  optionDescription: { fontFamily: 'Inter', marginTop: 2, color: '#64748B', fontSize: 9 },
+  optionLabel: { fontFamily: typography.family, color: colors.foreground, fontSize: typography.size.xs, fontWeight: typography.weight.semibold },
+  optionLabelSelected: { color: colors.primary },
+  optionDescription: { fontFamily: typography.family, marginTop: 2, color: colors.muted, fontSize: 9 },
 });

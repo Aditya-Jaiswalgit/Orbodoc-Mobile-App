@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 
 interface PatientPageHeadingProps {
   title: string;
@@ -28,14 +29,14 @@ export const PatientPageHeading: React.FC<PatientPageHeadingProps> = ({
 );
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  compactRow: { alignItems: 'flex-start', marginBottom: 14 },
-  icon: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#E6F7F5', alignItems: 'center', justifyContent: 'center' },
-  compactIcon: { width: 38, height: 38, borderRadius: 12 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
+  compactRow: { alignItems: 'flex-start', marginBottom: spacing.md },
+  icon: { width: 44, height: 44, borderRadius: radii.lg, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
+  compactIcon: { width: 38, height: 38, borderRadius: radii.lg },
   copy: { flex: 1, minWidth: 0 },
-  title: { fontFamily: 'Inter', color: '#0F172A', fontSize: 20, lineHeight: 27, fontWeight: '800' },
-  compactTitle: { fontFamily: 'Inter', fontSize: 20, lineHeight: 25 },
-  subtitle: { fontFamily: 'Inter', color: '#64748B', fontSize: 14, lineHeight: 18, marginTop: 2 },
+  title: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.title, lineHeight: typography.lineHeight.title, fontWeight: typography.weight.extrabold },
+  compactTitle: { fontSize: typography.size.title, lineHeight: typography.lineHeight.title },
+  subtitle: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.body, lineHeight: typography.lineHeight.body, marginTop: spacing.xxs },
   action: { flexShrink: 0, alignSelf: 'center' },
 });
 

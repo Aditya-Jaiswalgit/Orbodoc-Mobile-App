@@ -7,6 +7,8 @@ import { AuthProvider, useAuthContext } from './src/context/AuthContext';
 import { PatientMainContainer } from './src/navigation/PatientMainContainer';
 import { StaffMainContainer } from './src/navigation/StaffMainContainer';
 import { LoginScreen } from './src/screens/auth/LoginScreen';
+import { colors } from './src/theme/tokens';
+import { LiquidBorderFocusProvider } from './src/components/common/LiquidBorderFocusContext';
 
 function AppNavigator() {
   const { isAuthenticated, userType, isLoading } = useAuthContext();
@@ -45,10 +47,12 @@ function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <AppNavigator />
-        <View pointerEvents="box-none" style={styles.toastLayer}>
-          <Toast config={appToastConfig} />
-        </View>
+        <LiquidBorderFocusProvider>
+          <AppNavigator />
+          <View pointerEvents="box-none" style={styles.toastLayer}>
+            <Toast config={appToastConfig} />
+          </View>
+        </LiquidBorderFocusProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
@@ -57,13 +61,13 @@ function App() {
 const styles = StyleSheet.create({
   flexOne: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.background,
   },
   toastLayer: {
     ...StyleSheet.absoluteFill,

@@ -1,3 +1,4 @@
+import { colors, radii, spacing, typography } from '../theme/tokens';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { AppModal } from '../components/common/AppModal';
 import { Alert, BackHandler, Platform, ScrollView, StatusBar, StyleSheet, Text, ToastAndroid, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
@@ -335,7 +336,7 @@ export const PatientMainContainer = () => {
             <SafeAreaView style={styles.drawerSafeArea}>
                 <View style={styles.drawerHeader}>
                   <View style={styles.brandingContainer}>
-                    <View style={styles.logoBadge}><Building2 color="#27A599" size={22} /></View>
+                    <View style={styles.logoBadge}><Building2 color={colors.primary} size={22} /></View>
                     <View style={styles.patientNameCol}>
                       <Text style={styles.patientNameText} numberOfLines={1}>{patientName}</Text>
                       <Text style={styles.patientSubText}>Patient Account</Text>
@@ -344,7 +345,7 @@ export const PatientMainContainer = () => {
                   <TouchableOpacity
                     onPress={() => setDrawerOpen(false)}
                     style={styles.closeBtn} accessibilityLabel="Close navigation">
-                    <X size={20} color="#14B8A6" />
+                    <X size={20} color={colors.primary} />
                   </TouchableOpacity>
                 </View>
                 <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>PATIENT PORTAL</Text></View>
@@ -371,7 +372,7 @@ export const PatientMainContainer = () => {
                           ]}>
                           {renderTabVectorIcon(
                             item.id,
-                            isActive ? '#ffffff' : '#14b8a6',
+                            isActive ? colors.surface : colors.primary,
                             19
                           )}
                         </View>
@@ -403,7 +404,7 @@ export const PatientMainContainer = () => {
                       setDrawerOpen(false);
                       logout();
                     }}>
-                    <LogOut size={19} color="#14B8A6" />
+                    <LogOut size={19} color={colors.primary} />
                     <Text style={styles.logoutBtnText}>Logout</Text>
                   </TouchableOpacity>
                 </View>
@@ -418,7 +419,7 @@ export const PatientMainContainer = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.background,
   },
   screenContainer: {
     flex: 1,
@@ -431,7 +432,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#27a599',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -441,8 +442,8 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   floatingMenuIcon: {
-    color: '#ffffff',
-    fontSize: 18,
+    color: colors.surface,
+    fontSize: typography.size.lg,
     fontWeight: 'bold',
   },
   modalOverlay: {
@@ -470,8 +471,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A0F1D',
     borderTopRightRadius: 16,
     borderBottomRightRadius: 16,
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
     shadowColor: '#000',
     shadowOffset: { width: 6, height: 4 },
     shadowOpacity: 0.4,
@@ -489,7 +490,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 22,
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing.xs,
   },
   brandingContainer: {
     flex: 1,
@@ -500,7 +501,7 @@ const styles = StyleSheet.create({
   logoBadge: {
     width: 42,
     height: 42,
-    borderRadius: 12,
+    borderRadius: radii.lg,
     backgroundColor: '#102A35',
     borderWidth: 1,
     borderColor: '#164E52',
@@ -508,48 +509,48 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sectionHeader: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#1E293B',
-    marginBottom: 12,
+    borderBottomColor: colors.foreground,
+    marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#94A3B8',
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.extrabold,
+    color: colors.subtle,
     letterSpacing: 1.15,
   },
   closeBtn: {
-    padding: 6,
+    padding: spacing.tiny,
   },
   closeBtnText: {
-    color: '#94a3b8',
-    fontSize: 18,
+    color: colors.subtle,
+    fontSize: typography.size.lg,
     fontWeight: 'bold',
   },
   patientNameCol: {
     flex: 1,
   },
   patientNameText: {
-    color: '#F8FAFC',
+    color: colors.background,
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: typography.weight.bold,
   },
   patientSubText: {
-    color: '#94A3B8',
-    fontSize: 11,
+    color: colors.subtle,
+    fontSize: typography.size.xs,
   },
   menuList: {
     gap: 5,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   menuItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 10,
-    borderRadius: 10,
+    borderRadius: radii.md,
   },
   menuItemRowActive: {
     backgroundColor: '#122B36',
@@ -559,64 +560,64 @@ const styles = StyleSheet.create({
   menuIconContainer: {
     width: 34,
     height: 34,
-    borderRadius: 10,
+    borderRadius: radii.md,
     backgroundColor: '#111827',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   menuIconContainerActive: {
-    backgroundColor: '#27A599',
+    backgroundColor: colors.primary,
   },
   menuItemEmoji: {
-    fontSize: 16,
+    fontSize: typography.size.subtitle,
   },
   menuItemLabel: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#CBD5E1',
+    fontSize: typography.size.body,
+    fontWeight: typography.weight.semibold,
+    color: colors.input,
   },
   menuItemLabelActive: {
-    color: '#ffffff',
-    fontWeight: '800',
+    color: colors.surface,
+    fontWeight: typography.weight.extrabold,
   },
   itemBadge: {
-    backgroundColor: '#27a599',
-    borderRadius: 10,
+    backgroundColor: colors.primary,
+    borderRadius: radii.md,
     paddingHorizontal: 7,
     paddingVertical: 2,
   },
   itemBadgeText: {
-    color: '#ffffff',
-    fontSize: 11,
+    color: colors.surface,
+    fontSize: typography.size.xs,
     fontWeight: 'bold',
   },
   footerSection: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#1E293B',
-    marginBottom: 20,
+    borderTopColor: colors.foreground,
+    marginBottom: spacing.xl,
   },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#111827',
-    borderRadius: 10,
-    paddingVertical: 12,
-    gap: 8,
+    borderRadius: radii.md,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: colors.foreground,
   },
   logoutBtnIcon: {
-    fontSize: 16,
+    fontSize: typography.size.subtitle,
   },
   logoutBtnText: {
-    color: '#E2E8F0',
-    fontWeight: '700',
-    fontSize: 14,
+    color: colors.border,
+    fontWeight: typography.weight.bold,
+    fontSize: typography.size.body,
   },
 });
 

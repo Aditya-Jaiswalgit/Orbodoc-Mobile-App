@@ -1,3 +1,4 @@
+import { colors, radii, spacing, typography } from '../../../theme/tokens';
 // src/screens/staff/billing/CreateTreatmentBillModal.tsx
 import React, {
   useState,
@@ -7,7 +8,8 @@ import React, {
   useCallback,
 } from 'react';
 import { AppModal } from '../../../components/common/AppModal';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { LiquidBorderScrollView } from '../../../components/common/LiquidBorderScrollView';
 import {
   AlertCircle,
   ChevronDown,
@@ -772,7 +774,7 @@ export const CreateTreatmentBillModal: React.FC<
           <View style={styles.modalHeader}>
             <View style={styles.extractedInline1}>
               <View style={[styles.sectionIconBox, styles.extractedInline2]}>
-                <Receipt size={18} color="#FFFFFF" />
+                <Receipt size={18} color={colors.surface} />
               </View>
               <View style={styles.extractedInline3}>
                 <Text style={styles.modalTitle}>
@@ -792,13 +794,13 @@ export const CreateTreatmentBillModal: React.FC<
                 </View>
               )}
               <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-                <X size={20} color="#64748B" />
+                <X size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Body Content */}
-          <ScrollView
+          <LiquidBorderScrollView
             ref={formScrollRef}
             style={styles.modalBody}
             contentContainerStyle={styles.modalBodyContent}
@@ -809,7 +811,7 @@ export const CreateTreatmentBillModal: React.FC<
             <View style={styles.formSection}>
               <View style={styles.sectionHeaderRow}>
                 <View style={[styles.sectionIconBox, styles.extractedInline5]}>
-                  <FileText size={16} color="#27A599" />
+                  <FileText size={16} color={colors.primary} />
                 </View>
                 <View style={styles.extractedInline6}>
                   <Text style={styles.sectionTitle}>Bill Information</Text>
@@ -835,7 +837,7 @@ export const CreateTreatmentBillModal: React.FC<
                     <TextInput
                       style={styles.searchInputField}
                       placeholder="Search by patient ID, name or mobile"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                       value={patientSearchTerm}
                       onFocus={() => {
                         setShowPatientSuggestions(true);
@@ -864,7 +866,7 @@ export const CreateTreatmentBillModal: React.FC<
                     {patientSearching ? (
                       <ActivityIndicator
                         size="small"
-                        color="#27A599"
+                        color={colors.primary}
                         style={styles.extractedInline10}
                       />
                     ) : selectedPatient || patientSearchTerm ? (
@@ -873,7 +875,7 @@ export const CreateTreatmentBillModal: React.FC<
                         style={styles.extractedInline11}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
-                        <X size={16} color="#64748B" />
+                        <X size={16} color={colors.muted} />
                       </TouchableOpacity>
                     ) : null}
                   </View>
@@ -957,7 +959,7 @@ export const CreateTreatmentBillModal: React.FC<
 
                 {formErrors.patient_id && (
                   <View style={styles.inlineError}>
-                    <AlertCircle size={14} color="#EF4444" />
+                    <AlertCircle size={14} color={colors.destructive} />
                     <Text style={styles.inlineErrorText}>
                       {formErrors.patient_id}
                     </Text>
@@ -1002,10 +1004,10 @@ export const CreateTreatmentBillModal: React.FC<
                       }}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                      <X size={15} color="#64748B" />
+                      <X size={15} color={colors.muted} />
                     </TouchableOpacity>
                   ) : (
-                    <ChevronDown size={16} color="#64748B" />
+                    <ChevronDown size={16} color={colors.muted} />
                   )}
                 </TouchableOpacity>
                 <Text style={styles.helperText}>
@@ -1014,7 +1016,7 @@ export const CreateTreatmentBillModal: React.FC<
 
                 {formErrors.appointment_id && (
                   <View style={styles.inlineError}>
-                    <AlertCircle size={14} color="#EF4444" />
+                    <AlertCircle size={14} color={colors.destructive} />
                     <Text style={styles.inlineErrorText}>
                       {formErrors.appointment_id}
                     </Text>
@@ -1026,7 +1028,7 @@ export const CreateTreatmentBillModal: React.FC<
                   <View style={styles.dropdownMenu}>
                     {appointmentsLoading ? (
                       <View style={styles.extractedInline16}>
-                        <ActivityIndicator size="small" color="#27A599" />
+                        <ActivityIndicator size="small" color={colors.primary} />
                       </View>
                     ) : appointmentOptions.length > 0 ? (
                       appointmentOptions.map(a => (
@@ -1081,7 +1083,7 @@ export const CreateTreatmentBillModal: React.FC<
             <View style={styles.formSection}>
               <View style={styles.sectionHeaderRow}>
                 <View style={[styles.sectionIconBox, styles.extractedInline5]}>
-                  <FileText size={16} color="#27A599" />
+                  <FileText size={16} color={colors.primary} />
                 </View>
                 <View style={styles.extractedInline19}>
                   <Text style={styles.sectionTitle}>Prescription History</Text>
@@ -1106,7 +1108,7 @@ export const CreateTreatmentBillModal: React.FC<
 
               {selectedPatient && prescriptionLoading && (
                 <View style={styles.extractedInline20}>
-                  <ActivityIndicator size="small" color="#27A599" />
+                  <ActivityIndicator size="small" color={colors.primary} />
                   <Text style={styles.rxNoticeText}>
                     Loading prescription history...
                   </Text>
@@ -1165,7 +1167,7 @@ export const CreateTreatmentBillModal: React.FC<
                           const tone =
                             mIdx % 4 === 0
                               ? {
-                                  bg: '#D1FAE5',
+                                  bg: colors.successSoft,
                                   text: '#065F46',
                                   border: '#A7F3D0',
                                 }
@@ -1177,7 +1179,7 @@ export const CreateTreatmentBillModal: React.FC<
                                 }
                               : mIdx % 4 === 2
                               ? {
-                                  bg: '#FEF3C7',
+                                  bg: colors.warningSoft,
                                   text: '#92400E',
                                   border: '#FDE68A',
                                 }
@@ -1243,7 +1245,7 @@ export const CreateTreatmentBillModal: React.FC<
                     {PAYMENT_METHODS.find(m => m.key === paymentMethod)
                       ?.label || 'Cash'}
                   </Text>
-                  <ChevronDown size={16} color="#64748B" />
+                  <ChevronDown size={16} color={colors.muted} />
                 </TouchableOpacity>
 
                 {showMethodDropdown && (
@@ -1289,7 +1291,7 @@ export const CreateTreatmentBillModal: React.FC<
                       ? 'Partially Paid'
                       : 'Pending'}
                   </Text>
-                  <ChevronDown size={16} color="#64748B" />
+                  <ChevronDown size={16} color={colors.muted} />
                 </TouchableOpacity>
 
                 {showStatusDropdown && (
@@ -1326,7 +1328,7 @@ export const CreateTreatmentBillModal: React.FC<
                 <TextInput
                   style={styles.textarea}
                   placeholder="Bill description"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.subtle}
                   value={description}
                   onChangeText={setDescription}
                   multiline
@@ -1343,7 +1345,7 @@ export const CreateTreatmentBillModal: React.FC<
                   <View
                     style={[styles.sectionIconBox, styles.extractedInline5]}
                   >
-                    <Receipt size={16} color="#27A599" />
+                    <Receipt size={16} color={colors.primary} />
                   </View>
                   <View style={styles.extractedInline6}>
                     <Text style={styles.sectionTitle}>Charges & Services</Text>
@@ -1358,9 +1360,9 @@ export const CreateTreatmentBillModal: React.FC<
                   activeOpacity={0.8}
                 >
                   {showServiceForm ? (
-                    <X size={15} color="#0F172A" strokeWidth={2.5} />
+                    <X size={15} color={colors.text} strokeWidth={2.5} />
                   ) : (
-                    <Plus size={15} color="#0F172A" strokeWidth={2.5} />
+                    <Plus size={15} color={colors.text} strokeWidth={2.5} />
                   )}
                   <Text style={styles.addServiceBtnText}>
                     {showServiceForm ? 'Close Form' : 'Add Service'}
@@ -1393,11 +1395,11 @@ export const CreateTreatmentBillModal: React.FC<
                     }
                   }}
                   placeholder="0"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.subtle}
                 />
                 {formErrors.amount && (
                   <View style={styles.inlineError}>
-                    <AlertCircle size={14} color="#EF4444" />
+                    <AlertCircle size={14} color={colors.destructive} />
                     <Text style={styles.inlineErrorText}>
                       {formErrors.amount}
                     </Text>
@@ -1418,7 +1420,7 @@ export const CreateTreatmentBillModal: React.FC<
                   value={paidAmount}
                   onChangeText={handlePaidAmountChange}
                   placeholder="0.00"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.subtle}
                 />
               </View>
 
@@ -1426,7 +1428,7 @@ export const CreateTreatmentBillModal: React.FC<
               {showServiceForm && (
                 <View style={styles.serviceFormBox}>
                   <View style={styles.serviceFormHeader}>
-                    <Plus size={15} color="#1D7C72" strokeWidth={2.5} />
+                    <Plus size={15} color={colors.primaryDark} strokeWidth={2.5} />
                     <Text style={styles.serviceFormTitle}>
                       New Service Item
                     </Text>
@@ -1439,7 +1441,7 @@ export const CreateTreatmentBillModal: React.FC<
                     <TextInput
                       style={styles.serviceFormInput}
                       placeholder="e.g., OPD Consultation"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                       value={itemInput.service_name}
                       onChangeText={t =>
                         setItemInput(prev => ({ ...prev, service_name: t }))
@@ -1454,7 +1456,7 @@ export const CreateTreatmentBillModal: React.FC<
                     <TextInput
                       style={styles.serviceFormInput}
                       placeholder="e.g., CONS001"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor={colors.subtle}
                       value={itemInput.service_code}
                       onChangeText={t =>
                         setItemInput(prev => ({ ...prev, service_code: t }))
@@ -1528,7 +1530,7 @@ export const CreateTreatmentBillModal: React.FC<
                     onPress={handleAddBillItem}
                     activeOpacity={0.8}
                   >
-                    <Plus size={15} color="#FFFFFF" strokeWidth={2.5} />
+                    <Plus size={15} color={colors.surface} strokeWidth={2.5} />
                     <Text style={styles.serviceAddBtnText}>Add Item</Text>
                   </TouchableOpacity>
                 </View>
@@ -1559,7 +1561,7 @@ export const CreateTreatmentBillModal: React.FC<
                             onPress={() => handleRemoveBillItem(idx)}
                             style={styles.addedItemDeleteBtn}
                           >
-                            <Trash2 size={16} color="#EF4444" />
+                            <Trash2 size={16} color={colors.destructive} />
                           </TouchableOpacity>
                         </View>
 
@@ -1666,7 +1668,7 @@ export const CreateTreatmentBillModal: React.FC<
                 </View>
               </View>
             </View>
-          </ScrollView>
+          </LiquidBorderScrollView>
 
           {/* Sticky Footer */}
           <View style={styles.modalFooter}>
@@ -1691,7 +1693,7 @@ export const CreateTreatmentBillModal: React.FC<
                 disabled={submitting}
               >
                 {submitting ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={colors.surface} />
                 ) : (
                   <Text style={styles.createBillBtnText}>
                     {editingBill ? 'Update Bill' : 'Create Bill'}
@@ -1712,13 +1714,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.lg,
   },
   modalContainer: {
     width: '100%',
     maxWidth: 580,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
     maxHeight: '92%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -1732,46 +1734,46 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingHorizontal: 18,
-    paddingTop: 16,
+    paddingTop: spacing.lg,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
   },
   modalTitle: {
-    fontFamily: 'Inter', fontSize: 20,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.title,
+    fontWeight: typography.weight.extrabold,
+    color: colors.text,
   },
   modalSubtitle: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.muted,
     marginTop: 2,
   },
   closeBtn: {
-    padding: 6,
-    borderRadius: 6,
-    backgroundColor: '#F8FAFC',
+    padding: spacing.tiny,
+    borderRadius: radii.sm,
+    backgroundColor: colors.background,
   },
   draftBadge: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.warningSoft,
     borderWidth: 1,
     borderColor: '#FDE68A',
-    borderRadius: 12,
-    paddingHorizontal: 8,
+    borderRadius: radii.lg,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
   },
   draftBadgeText: {
-    fontFamily: 'Inter', fontSize: 11,
-    fontWeight: '700',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    fontWeight: typography.weight.bold,
     color: '#B45309',
   },
   modalBody: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingTop: 14,
   },
   formSection: {
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -1785,91 +1787,91 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sectionTitle: {
-    fontFamily: 'Inter', fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.lg,
+    fontWeight: typography.weight.extrabold,
+    color: colors.text,
   },
   sectionSubtitle: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.muted,
     marginTop: 1,
   },
   sectionDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.secondary,
     marginVertical: 14,
   },
   fieldLabel: {
-    fontFamily: 'Inter', fontSize: 14,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 6,
+    fontFamily: typography.family, fontSize: typography.size.body,
+    fontWeight: typography.weight.bold,
+    color: colors.foreground,
+    marginBottom: spacing.tiny,
   },
   searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1.5,
-    borderColor: '#27A599',
+    borderColor: colors.primary,
     borderRadius: 9,
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
   },
   searchInputField: {
-    fontFamily: 'Inter', flex: 1,
+    fontFamily: typography.family, flex: 1,
     paddingVertical: 10,
-    fontSize: 13,
-    color: '#0F172A',
+    fontSize: typography.size.caption,
+    color: colors.text,
   },
   selectedPatientBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.mint,
     borderWidth: 1,
-    borderColor: '#99F6E4',
+    borderColor: colors.mintBorder,
     borderRadius: 9,
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
   },
   patientAvatarBox: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#CCFBF1',
+    backgroundColor: colors.mintBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   selectedPatientName: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.bold,
+    color: colors.text,
   },
   selectedPatientSub: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#27A599',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.primary,
     marginTop: 2,
-    fontWeight: '500',
+    fontWeight: typography.weight.medium,
   },
   clearPatientBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 5,
-    borderRadius: 6,
+    borderRadius: radii.sm,
     backgroundColor: '#FEE2E2',
-    gap: 4,
+    gap: spacing.xs,
   },
   clearPatientBtnText: {
-    fontFamily: 'Inter', fontSize: 11,
-    fontWeight: '700',
-    color: '#DC2626',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    fontWeight: typography.weight.bold,
+    color: colors.destructive,
   },
   suggestionsContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    marginTop: 4,
+    borderColor: colors.input,
+    borderRadius: radii.md,
+    marginTop: spacing.xs,
     maxHeight: 200,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -1880,74 +1882,74 @@ const styles = StyleSheet.create({
   },
   suggestionRow: {
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: colors.secondary,
   },
   suggestionName: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '700',
-    color: '#1E293B',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.bold,
+    color: colors.foreground,
   },
   suggestionPhone: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.muted,
     marginTop: 2,
   },
   selectedPatientCard: {
-    marginTop: 8,
-    padding: 12,
-    backgroundColor: '#F0FDFA',
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.mint,
     borderWidth: 1,
-    borderColor: '#99F6E4',
-    borderRadius: 8,
+    borderColor: colors.mintBorder,
+    borderRadius: radii.md,
   },
   selectedPatientMeta: {
-    fontFamily: 'Inter', marginTop: 3,
-    fontSize: 11,
-    color: '#475569',
+    fontFamily: typography.family, marginTop: 3,
+    fontSize: typography.size.xs,
+    color: colors.muted,
   },
   patientDetailsGrid: {
-    marginTop: 8,
-    gap: 4,
+    marginTop: spacing.sm,
+    gap: spacing.xs,
   },
   patientDetailText: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#334155',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.foreground,
   },
   patientDetailLabel: {
-    fontWeight: '600',
-    color: '#1D7C72',
+    fontWeight: typography.weight.semibold,
+    color: colors.primaryDark,
   },
   selectBox: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: colors.input,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
     paddingVertical: 11,
   },
   selectValue: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#0F172A',
-    fontWeight: '500',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.text,
+    fontWeight: typography.weight.medium,
     flex: 1,
-    marginRight: 6,
+    marginRight: spacing.tiny,
   },
   helperText: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.muted,
     marginTop: 5,
   },
   dropdownMenu: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    marginTop: 4,
+    borderColor: colors.input,
+    borderRadius: radii.md,
+    marginTop: spacing.xs,
     maxHeight: 180,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -1958,196 +1960,196 @@ const styles = StyleSheet.create({
   },
   dropdownItem: {
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
+    borderBottomColor: colors.background,
   },
   dropdownItemSelected: {
-    backgroundColor: '#F0FDFA',
+    backgroundColor: colors.mint,
   },
   dropdownItemText: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#334155',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.foreground,
   },
   inlineError: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: spacing.xs,
+    marginTop: spacing.xs,
   },
   inlineErrorText: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#EF4444',
-    fontWeight: '500',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.destructive,
+    fontWeight: typography.weight.medium,
   },
   rxBadge: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
+    backgroundColor: colors.secondary,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: radii.sm,
   },
   rxBadgeText: {
-    fontFamily: 'Inter', fontSize: 11,
-    fontWeight: '600',
-    color: '#475569',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+    color: colors.muted,
   },
   rxNoticeText: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#64748B',
-    marginTop: 6,
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.muted,
+    marginTop: spacing.tiny,
   },
   rxCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginTop: spacing.sm,
   },
   rxCardTitle: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '700',
-    color: '#27A599',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.bold,
+    color: colors.primary,
   },
   rxCardMetaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginTop: 4,
-    gap: 4,
+    marginTop: spacing.xs,
+    gap: spacing.xs,
   },
   rxCardMetaText: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.muted,
   },
   rxCardMetaBold: {
-    fontWeight: '600',
-    color: '#334155',
+    fontWeight: typography.weight.semibold,
+    color: colors.foreground,
   },
   rxDetailText: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#334155',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.foreground,
     marginTop: 3,
   },
   rxPillsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 6,
+    gap: spacing.tiny,
+    marginTop: spacing.tiny,
   },
   rxPill: {
     borderWidth: 1,
-    borderRadius: 16,
-    paddingHorizontal: 8,
+    borderRadius: radii.xl,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 3,
   },
   rxPillText: {
-    fontFamily: 'Inter', fontSize: 11,
-    fontWeight: '600',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
   },
   textarea: {
-    fontFamily: 'Inter', backgroundColor: '#FFFFFF',
+    fontFamily: typography.family, backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: colors.input,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    fontSize: 13,
-    color: '#0F172A',
+    fontSize: typography.size.caption,
+    color: colors.text,
     minHeight: 70,
     textAlignVertical: 'top',
   },
   addServiceBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
+    borderColor: colors.input,
+    borderRadius: radii.md,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    gap: 6,
+    paddingVertical: spacing.sm,
+    gap: spacing.tiny,
   },
   addServiceBtnText: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.bold,
+    color: colors.text,
   },
   inputField: {
-    fontFamily: 'Inter', backgroundColor: '#FFFFFF',
+    fontFamily: typography.family, backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: colors.input,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    fontSize: 13,
-    color: '#0F172A',
+    fontSize: typography.size.caption,
+    color: colors.text,
   },
   serviceFormBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
+    borderColor: colors.input,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    marginTop: spacing.md,
   },
   serviceFormHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.tiny,
   },
   serviceFormTitle: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.bold,
+    color: colors.text,
   },
   serviceFormInputLabel: {
-    fontFamily: 'Inter', fontSize: 11,
-    fontWeight: '600',
-    color: '#475569',
-    marginBottom: 4,
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+    color: colors.muted,
+    marginBottom: spacing.xs,
   },
   serviceFormInput: {
-    fontFamily: 'Inter', backgroundColor: '#FFFFFF',
+    fontFamily: typography.family, backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 6,
+    borderColor: colors.input,
+    borderRadius: radii.sm,
     paddingHorizontal: 10,
     paddingVertical: 7,
-    fontSize: 12,
-    color: '#0F172A',
+    fontSize: typography.size.sm,
+    color: colors.text,
   },
   serviceFormGrid: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
     marginTop: 10,
   },
   serviceAddBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#27A599',
-    borderRadius: 6,
+    backgroundColor: colors.primary,
+    borderRadius: radii.sm,
     paddingVertical: 9,
-    paddingHorizontal: 16,
-    marginTop: 12,
-    gap: 6,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    gap: spacing.tiny,
   },
   serviceAddBtnText: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.bold,
+    color: colors.surface,
   },
   itemsListTitle: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.bold,
+    color: colors.text,
   },
   addedItemCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderColor: colors.border,
+    borderRadius: radii.md,
     padding: 10,
   },
   addedItemCardHeader: {
@@ -2156,106 +2158,106 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   addedItemTitle: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.bold,
+    color: colors.text,
   },
   addedItemSubtitle: {
-    fontFamily: 'Inter', fontSize: 11,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    color: colors.muted,
     marginTop: 1,
   },
   addedItemDeleteBtn: {
-    padding: 6,
-    borderRadius: 6,
-    backgroundColor: '#FEF2F2',
+    padding: spacing.tiny,
+    borderRadius: radii.sm,
+    backgroundColor: colors.destructiveSoft,
   },
   addedItemGrid: {
     flexDirection: 'row',
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.secondary,
   },
   addedItemGridCol: {
     flex: 1,
   },
   addedItemColLabel: {
-    fontFamily: 'Inter', fontSize: 10,
-    color: '#64748B',
-    fontWeight: '500',
+    fontFamily: typography.family, fontSize: typography.size.micro,
+    color: colors.muted,
+    fontWeight: typography.weight.medium,
   },
   addedItemColVal: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#0F172A',
-    fontWeight: '600',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.text,
+    fontWeight: typography.weight.semibold,
     marginTop: 2,
   },
   addedItemColTotal: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#27A599',
-    fontWeight: '700',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.primary,
+    fontWeight: typography.weight.bold,
     marginTop: 2,
   },
   emptyServiceBox: {
     borderStyle: 'dashed',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    paddingVertical: 24,
+    borderColor: colors.input,
+    backgroundColor: colors.background,
+    borderRadius: radii.md,
+    paddingVertical: spacing.xxl,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
+    marginTop: spacing.md,
   },
   emptyServiceText: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.muted,
+    fontWeight: typography.weight.medium,
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
     padding: 14,
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   summaryLabel: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.muted,
+    fontWeight: typography.weight.medium,
   },
   summaryValue: {
-    fontFamily: 'Inter', fontSize: 15,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: 15,
+    fontWeight: typography.weight.extrabold,
+    color: colors.text,
     marginTop: 2,
   },
   modalFooter: {
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    borderTopColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
     paddingBottom: 14,
   },
   amountDueRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   amountDueLabel: {
-    fontFamily: 'Inter', fontSize: 11,
-    fontWeight: '700',
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.xs,
+    fontWeight: typography.weight.bold,
+    color: colors.muted,
     letterSpacing: 0.5,
   },
   amountDueValue: {
-    fontFamily: 'Inter', fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.lg,
+    fontWeight: typography.weight.extrabold,
+    color: colors.text,
   },
   footerBtnsRow: {
     flexDirection: 'row',
@@ -2264,67 +2266,67 @@ const styles = StyleSheet.create({
   cancelBtn: {
     flex: 1,
     height: 42,
-    borderRadius: 8,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.input,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelBtnText: {
-    fontFamily: 'Inter', fontSize: 14,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    fontWeight: typography.weight.semibold,
+    color: colors.text,
   },
   createBillBtn: {
     flex: 1,
     height: 42,
-    borderRadius: 8,
-    backgroundColor: '#27A599',
+    borderRadius: radii.md,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   createBillBtnText: {
-    fontFamily: 'Inter', fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    fontWeight: typography.weight.bold,
+    color: colors.surface,
   },
 
   extractedInline1: { flexDirection: 'row', alignItems: 'center' },
   extractedInline2: {
-    backgroundColor: '#27A599',
+    backgroundColor: colors.primary,
     width: 34,
     height: 34,
-    borderRadius: 8,
+    borderRadius: radii.md,
   },
   extractedInline3: { marginLeft: 10 },
-  extractedInline4: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  extractedInline4: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   extractedInline5: { backgroundColor: '#ECFDF5' },
   extractedInline6: { marginLeft: 10, flex: 1 },
-  extractedInline7: { marginTop: 12 },
-  extractedInline8: { color: '#EF4444' },
-  extractedInline9: { borderColor: '#EF4444' },
-  extractedInline10: { marginRight: 6 },
-  extractedInline11: { padding: 6 },
-  extractedInline12: { padding: 12 },
+  extractedInline7: { marginTop: spacing.md },
+  extractedInline8: { color: colors.destructive },
+  extractedInline9: { borderColor: colors.destructive },
+  extractedInline10: { marginRight: spacing.tiny },
+  extractedInline11: { padding: spacing.tiny },
+  extractedInline12: { padding: spacing.md },
   extractedInline13: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#94A3B8',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.subtle,
     textAlign: 'center',
   },
   extractedInline14: {
     opacity: 0.6,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
   },
-  extractedInline15: { color: '#94A3B8' },
-  extractedInline16: { padding: 12, alignItems: 'center' },
+  extractedInline15: { color: colors.subtle },
+  extractedInline16: { padding: spacing.md, alignItems: 'center' },
   extractedInline17: {
-    color: '#27A599',
-    fontWeight: '700',
+    color: colors.primary,
+    fontWeight: typography.weight.bold,
   },
   extractedInline18: {
-    fontFamily: 'Inter', fontSize: 12,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    color: colors.muted,
     textAlign: 'center',
   },
   extractedInline19: {
@@ -2337,14 +2339,14 @@ const styles = StyleSheet.create({
   extractedInline20: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.tiny,
     marginTop: 10,
   },
-  extractedInline21: { fontWeight: '700', marginTop: 6 },
+  extractedInline21: { fontWeight: typography.weight.bold, marginTop: spacing.tiny },
   extractedInline22: { backgroundColor: '#EFF6FF' },
   extractedInline23: {
-    color: '#27A599',
-    fontWeight: '700',
+    color: colors.primary,
+    fontWeight: typography.weight.bold,
   },
   extractedInline24: { justifyContent: 'space-between' },
   extractedInline25: {
@@ -2354,20 +2356,20 @@ const styles = StyleSheet.create({
   },
   extractedInline26: { marginTop: 14 },
   extractedInline27: {
-    backgroundColor: '#F1F5F9',
-    color: '#64748B',
+    backgroundColor: colors.secondary,
+    color: colors.muted,
   },
   extractedInline28: { marginTop: 10 },
   extractedInline29: { flex: 1 },
   extractedInline30: { flex: 1.2 },
-  extractedInline31: { marginTop: 16 },
-  extractedInline32: { gap: 8, marginTop: 8 },
-  extractedInline33: { flex: 1, marginRight: 8 },
+  extractedInline31: { marginTop: spacing.lg },
+  extractedInline32: { gap: spacing.sm, marginTop: spacing.sm },
+  extractedInline33: { flex: 1, marginRight: spacing.sm },
   extractedInline34: { alignItems: 'flex-end' },
-  extractedInline35: { flexDirection: 'row', gap: 16 },
-  extractedInline36: { flex: 1, gap: 12 },
-  extractedInline37: { color: '#27A599' },
+  extractedInline35: { flexDirection: 'row', gap: spacing.lg },
+  extractedInline36: { flex: 1, gap: spacing.md },
+  extractedInline37: { color: colors.primary },
   modalBodyContent: { paddingBottom: 28 },
-  pendingAmountDanger: { color: '#DC2626' },
-  pendingAmountNormal: { color: '#64748B' },
+  pendingAmountDanger: { color: colors.destructive },
+  pendingAmountNormal: { color: colors.muted },
 });

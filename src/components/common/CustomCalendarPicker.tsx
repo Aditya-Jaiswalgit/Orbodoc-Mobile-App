@@ -1,7 +1,9 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 // src/components/common/CustomCalendarPicker.tsx
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { AppModal } from './AppModal';
-import { View, Text, TouchableOpacity, StyleSheet, Pressable, ScrollView, TextInput, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Pressable, TextInput, useWindowDimensions } from 'react-native';
+import { LiquidBorderScrollView } from './LiquidBorderScrollView';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, Check, Search } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
@@ -49,7 +51,7 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
   onDateChange,
   triggerStyle,
   triggerTextStyle,
-  iconColor = '#27A599',
+  iconColor = colors.primary,
   icon: TriggerIcon = CalendarIcon,
   placeholder = 'Select date',
   formatTriggerDate,
@@ -219,7 +221,7 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
                 <View style={styles.calendarHeaderRow}>
                   {/* Prev Month Button */}
                   <TouchableOpacity style={styles.arrowBtn} onPress={handlePrevMonth}>
-                    <ChevronLeft color="#64748B" size={18} />
+                    <ChevronLeft color={colors.muted} size={18} />
                   </TouchableOpacity>
 
                   {/* Month Selector Dropdown Trigger */}
@@ -229,7 +231,7 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
                       onPress={() => openDropdown('month')}
                     >
                       <Text style={styles.selectorPillText}>{MONTHS[viewMonth]}</Text>
-                      <ChevronDown color="#64748B" size={14} style={{ marginLeft: 4 }} />
+                      <ChevronDown color={colors.muted} size={14} style={{ marginLeft: spacing.xs }} />
                     </TouchableOpacity>
 
                   </View>
@@ -241,14 +243,14 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
                       onPress={() => openDropdown('year')}
                     >
                       <Text style={styles.selectorPillText}>{viewYear}</Text>
-                      <ChevronDown color="#64748B" size={14} style={{ marginLeft: 4 }} />
+                      <ChevronDown color={colors.muted} size={14} style={{ marginLeft: spacing.xs }} />
                     </TouchableOpacity>
 
                   </View>
 
                   {/* Next Month Button */}
                   <TouchableOpacity style={styles.arrowBtn} onPress={handleNextMonth}>
-                    <ChevronRight color="#64748B" size={18} />
+                    <ChevronRight color={colors.muted} size={18} />
                   </TouchableOpacity>
                 </View>
 
@@ -326,18 +328,18 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
           >
             {dropdownType ? (
               <View style={styles.yearSearchWrap}>
-                <Search size={15} color="#94A3B8" />
+                <Search size={15} color={colors.subtle} />
                 <TextInput
                   value={yearSearch}
                   onChangeText={setYearSearch}
                   placeholder={`Search ${dropdownType}...`}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={colors.subtle}
                   keyboardType={dropdownType === 'year' ? 'number-pad' : 'default'}
                   style={styles.yearSearchInput}
                 />
               </View>
             ) : null}
-            <ScrollView
+            <LiquidBorderScrollView
               ref={node => { dropdownListRef.current = node; }}
               style={[styles.dropdownList, { height: dropdownType === 'year' ? 250 : 240 }]}
               nestedScrollEnabled
@@ -363,12 +365,12 @@ export const CustomCalendarPicker: React.FC<CustomCalendarPickerProps> = ({
                       setDropdownType(null);
                     }}
                   >
-                    {active ? <Check size={15} color="#27A599" /> : <View style={styles.dropdownCheckSpace} />}
+                    {active ? <Check size={15} color={colors.primary} /> : <View style={styles.dropdownCheckSpace} />}
                     <Text style={[styles.dropdownOptionText, active && styles.dropdownOptionTextActive]}>{label}</Text>
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </LiquidBorderScrollView>
           </View>
         </View>
       </AppModal>
@@ -382,15 +384,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#E6F4F1', // Light cyan tint from screenshot 4
     borderWidth: 1,
-    borderColor: '#CCFBF1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: colors.mintBorder,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
     paddingVertical: 10,
   },
   triggerText: {
-    fontFamily: 'Inter', color: '#27A599',
-    fontSize: 14,
-    fontWeight: '600',
+    fontFamily: typography.family, color: colors.primary,
+    fontSize: typography.size.body,
+    fontWeight: typography.weight.semibold,
   },
 
   modalOverlay: {
@@ -398,54 +400,54 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.xl,
   },
 
   calendarCard: {
     width: 320,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
 
   calendarHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   arrowBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: radii.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
 
   selectorPill: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderColor: colors.input,
+    borderRadius: radii.md,
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.tiny,
   },
   selectorPillText: {
-    fontFamily: 'Inter', color: '#0F172A',
-    fontSize: 13,
-    fontWeight: '600',
+    fontFamily: typography.family, color: colors.text,
+    fontSize: typography.size.caption,
+    fontWeight: typography.weight.semibold,
   },
 
   dropdownOverlayMenu: {
@@ -453,65 +455,65 @@ const styles = StyleSheet.create({
     top: 36,
     left: 0,
     minWidth: 120,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     elevation: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
-    paddingVertical: 4,
+    paddingVertical: spacing.xs,
     zIndex: 99,
   },
   dropdownModalOverlay: { flex: 1 },
   dropdownOptionItem: {
     height: 38,
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   dropdownCheckSpace: { width: 15 },
   dropdownList: { flexGrow: 0 },
   yearSearchWrap: {
     height: 38,
-    marginHorizontal: 6,
-    marginBottom: 4,
-    paddingHorizontal: 8,
+    marginHorizontal: spacing.tiny,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.tiny,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
   },
-  yearSearchInput: { fontFamily: 'Inter', flex: 1, padding: 0, color: '#334155', fontSize: 12 },
+  yearSearchInput: { fontFamily: typography.family, flex: 1, padding: 0, color: colors.foreground, fontSize: typography.size.sm },
   dropdownOptionActive: {
     backgroundColor: '#E6F4F1',
   },
   dropdownOptionText: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#334155',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.foreground,
   },
   dropdownOptionTextActive: {
-    color: '#27A599',
-    fontWeight: '700',
+    color: colors.primary,
+    fontWeight: typography.weight.bold,
   },
 
   weekdaysRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   weekdayText: {
-    fontFamily: 'Inter', width: 36,
+    fontFamily: typography.family, width: 36,
     textAlign: 'center',
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.muted,
   },
 
   daysGrid: {
@@ -529,29 +531,29 @@ const styles = StyleSheet.create({
   dayCell: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dayCellSelected: {
-    backgroundColor: '#27A599', // Exact teal highlight from screenshot 4
+    backgroundColor: colors.primary, // Exact teal highlight from screenshot 4
   },
-  triggerIcon: { marginRight: 8 },
+  triggerIcon: { marginRight: spacing.sm },
   dayCellDisabled: { opacity: 0.35 },
 
   dayText: {
-    fontFamily: 'Inter', fontSize: 13,
-    color: '#0F172A',
-    fontWeight: '500',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    color: colors.text,
+    fontWeight: typography.weight.medium,
   },
   dayTextOtherMonth: {
-    color: '#CBD5E1', // Faded gray for prev/next month days
+    color: colors.input, // Faded gray for prev/next month days
   },
   dayTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: colors.surface,
+    fontWeight: typography.weight.bold,
   },
-  dayTextDisabled: { color: '#94A3B8' },
+  dayTextDisabled: { color: colors.subtle },
 });
 
 export default CustomCalendarPicker;

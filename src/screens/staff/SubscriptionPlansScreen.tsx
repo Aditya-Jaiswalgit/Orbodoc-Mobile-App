@@ -1,9 +1,12 @@
+import { colors } from '../../theme/tokens';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import { Check, ChevronDown, Pencil, Plus, Trash2, X } from 'lucide-react-native';
 import { AppModal } from '../../components/common/AppModal';
 import { Pagination } from '../../components/common/Pagination';
 import { StaffHeader } from '../../components/common/StaffHeader';
+import { LiquidBorderSurface } from '../../components/common/LiquidBorderSurface';
 import { fetchSystemObjectsApi, SystemObject } from '../../api/roleManagementApi';
 import {
   createSubscriptionPlanApi,
@@ -44,9 +47,9 @@ function SelectField({ label, value, options, onSelect }: { label: string; value
       <Text style={styles.fieldLabel}>{label}</Text>
       <TouchableOpacity style={styles.selectButton} onPress={() => setOpen(current => !current)}>
         <Text style={styles.selectValue}>{options.find(option => option.value === value)?.label || value}</Text>
-        <ChevronDown size={16} color="#64748B" />
+        <ChevronDown size={16} color={colors.muted} />
       </TouchableOpacity>
-      {open ? <ScrollView style={styles.selectOptions} nestedScrollEnabled keyboardShouldPersistTaps="handled">{options.map(option => <TouchableOpacity key={option.value} style={[styles.selectOption, option.value === value && styles.selectOptionActive]} onPress={() => { onSelect(option.value); setOpen(false); }}><Text style={styles.selectValue}>{option.label}</Text>{option.value === value ? <Check size={15} color="#27A599" /> : null}</TouchableOpacity>)}</ScrollView> : null}
+      {open ? <LiquidBorderScrollView style={styles.selectOptions} nestedScrollEnabled keyboardShouldPersistTaps="handled">{options.map(option => <TouchableOpacity key={option.value} style={[styles.selectOption, option.value === value && styles.selectOptionActive]} onPress={() => { onSelect(option.value); setOpen(false); }}><Text style={styles.selectValue}>{option.label}</Text>{option.value === value ? <Check size={15} color={colors.primary} /> : null}</TouchableOpacity>)}</LiquidBorderScrollView> : null}
     </View>
   );
 }
@@ -55,7 +58,7 @@ function NumberField({ label, value, onChange, placeholder }: { label: string; v
   return (
     <View style={styles.formField}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput style={styles.textInput} value={value == null ? '' : String(value)} onChangeText={text => onChange(toOptionalNumber(text))} keyboardType="decimal-pad" placeholder={placeholder || '0'} placeholderTextColor="#94A3B8" />
+      <TextInput style={styles.textInput} value={value == null ? '' : String(value)} onChangeText={text => onChange(toOptionalNumber(text))} keyboardType="decimal-pad" placeholder={placeholder || '0'} placeholderTextColor={colors.subtle} />
     </View>
   );
 }
@@ -194,16 +197,16 @@ export default function SubscriptionPlansScreen({ onOpenDrawer, initialPlanId }:
   return (
     <View style={styles.root}>
       <StaffHeader onOpenDrawer={onOpenDrawer} title="Subscription Plans" />
-      <ScrollView contentContainerStyle={styles.pageContent} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => loadAllData().catch(() => undefined)} />}>
+      <LiquidBorderScrollView contentContainerStyle={styles.pageContent} refreshControl={<RefreshControl refreshing={loading} onRefresh={() => loadAllData().catch(() => undefined)} />}>
         <View style={styles.panel}>
           <View style={styles.panelHeader}>
             <View style={styles.flexOne}><Text style={styles.pageTitle}>Subscription Plans</Text><Text style={styles.mutedText}>Super Admin can create, read, update and delete all subscription plans.</Text></View>
-            <TouchableOpacity style={styles.primaryButton} onPress={openCreate}><Plus size={17} color="#fff" /><Text style={styles.primaryButtonText}>Create Plan</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.primaryButton} onPress={openCreate}><Plus size={17} color={colors.surface} /><Text style={styles.primaryButtonText}>Create Plan</Text></TouchableOpacity>
           </View>
           <View style={styles.contentInset}>
             <SelectField label="Filter Plans" value={filter} options={[{ value: 'all', label: `All (${plans.length})` }, { value: 'single', label: `Single (${singlePlans.length})` }, { value: 'multi', label: `Multi (${multiPlans.length})` }]} onSelect={value => { setFilter(value as PlanFilter); setPage(1); }} />
-            {loading ? <View style={styles.loading}><ActivityIndicator color="#27A599" /><Text style={styles.mutedText}>Loading plans...</Text></View> : visiblePlans.length ? <View style={styles.listGap}>
-              {visiblePlans.map(plan => <View key={plan.id} style={styles.dataCard}>
+            {loading ? <View style={styles.loading}><ActivityIndicator color={colors.primary} /><Text style={styles.mutedText}>Loading plans...</Text></View> : visiblePlans.length ? <View style={styles.listGap}>
+              {visiblePlans.map(plan => <LiquidBorderSurface key={plan.id} style={styles.dataCard} radius={12}>
                 <View style={styles.cardTopRow}><View style={styles.flexOne}><Text style={styles.cardTitle}>{plan.plan_name}</Text><Text style={styles.mutedText}>Plan ID: {plan.id}</Text></View><View style={[styles.statusBadge, plan.plan_type === 'multi' ? styles.statusBadgeTeal : styles.statusBadgeMuted]}><Text style={[styles.statusText, plan.plan_type === 'multi' ? styles.statusTextTeal : styles.statusTextMuted]}>{plan.plan_type}</Text></View></View>
                 <View style={styles.detailGrid}>
                   <View style={styles.detailCell}><Text style={styles.detailLabel}>Clinics</Text><Text style={styles.detailValue}>{plan.max_clinics ?? '-'}</Text></View>
@@ -214,20 +217,20 @@ export default function SubscriptionPlansScreen({ onOpenDrawer, initialPlanId }:
                 </View>
                 <View style={styles.actionRow}>
                   <TouchableOpacity style={styles.outlineButton} onPress={() => openFeatures(plan)}><Text style={styles.outlineButtonText}>View Features</Text></TouchableOpacity>
-                  <TouchableOpacity style={styles.iconButton} onPress={() => openEdit(plan.id)} disabled={saving} accessibilityLabel={`Edit ${plan.plan_name}`}><Pencil size={17} color="#334155" /></TouchableOpacity>
+                  <TouchableOpacity style={styles.iconButton} onPress={() => openEdit(plan.id)} disabled={saving} accessibilityLabel={`Edit ${plan.plan_name}`}><Pencil size={17} color={colors.foreground} /></TouchableOpacity>
                   <TouchableOpacity style={styles.iconButton} onPress={() => deletePlan(plan.id)} disabled={deletingId === plan.id} accessibilityLabel={`Delete ${plan.plan_name}`}>{deletingId === plan.id ? <ActivityIndicator size="small" color="#E11D48" /> : <Trash2 size={17} color="#E11D48" />}</TouchableOpacity>
                 </View>
-              </View>)}
+              </LiquidBorderSurface>)}
             </View> : <View style={styles.emptyCard}><Text style={styles.cardTitle}>No plans found.</Text></View>}
           </View>
           {!loading ? <Pagination currentPage={page} totalPages={totalPages} totalItems={filteredPlans.length} pageSize={pageSize} itemLabel="plans" pageSizeOptions={PAGE_SIZES} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1); }} /> : null}
         </View>
-      </ScrollView>
+      </LiquidBorderScrollView>
 
       <AppModal visible={dialogOpen} transparent animationType="slide" onRequestClose={() => setDialogOpen(false)}>
         <View style={styles.modalBackdrop}><View style={styles.formModalCard}>
-          <View style={styles.modalHeader}><TouchableOpacity style={styles.modalClose} onPress={() => setDialogOpen(false)}><X size={18} color="#64748B" /></TouchableOpacity><Text style={styles.modalTitle}>{editPlanId ? 'Update Plan' : 'Create Plan'}</Text><Text style={styles.mutedText}>Fill subscription plan details.</Text></View>
-          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.formBody} keyboardShouldPersistTaps="handled">
+          <View style={styles.modalHeader}><TouchableOpacity style={styles.modalClose} onPress={() => setDialogOpen(false)}><X size={18} color={colors.muted} /></TouchableOpacity><Text style={styles.modalTitle}>{editPlanId ? 'Update Plan' : 'Create Plan'}</Text><Text style={styles.mutedText}>Fill subscription plan details.</Text></View>
+          <LiquidBorderScrollView style={styles.modalScroll} contentContainerStyle={styles.formBody} keyboardShouldPersistTaps="handled">
             <View style={styles.formField}><Text style={styles.fieldLabel}>Plan Name</Text><TextInput style={styles.textInput} value={form.plan_name} onChangeText={plan_name => setForm(current => ({ ...current, plan_name }))} placeholder="Basic / Professional / Enterprise" /></View>
             <SelectField label="Plan Type" value={form.plan_type} options={[{ value: 'single', label: 'single' }, { value: 'multi', label: 'multi' }]} onSelect={value => setForm(current => ({ ...current, plan_type: value as SubscriptionPlanType }))} />
             <NumberField label="Max Clinics" value={form.max_clinics} onChange={max_clinics => setForm(current => ({ ...current, max_clinics }))} placeholder="1" />
@@ -235,15 +238,15 @@ export default function SubscriptionPlansScreen({ onOpenDrawer, initialPlanId }:
             <NumberField label="Max Patients" value={form.max_patients} onChange={max_patients => setForm(current => ({ ...current, max_patients }))} placeholder="1000" />
             <NumberField label="Price Monthly" value={form.price_monthly} onChange={price_monthly => setForm(current => ({ ...current, price_monthly: price_monthly ?? 0 }))} placeholder="999" />
             <NumberField label="Price Yearly" value={form.price_yearly} onChange={price_yearly => setForm(current => ({ ...current, price_yearly: price_yearly ?? 0 }))} placeholder="9999" />
-          </ScrollView>
-          <View style={styles.modalFooter}><TouchableOpacity style={styles.outlineButton} disabled={saving} onPress={() => setDialogOpen(false)}><Text style={styles.outlineButtonText}>Cancel</Text></TouchableOpacity><TouchableOpacity style={styles.primaryButton} disabled={saving} onPress={() => savePlan()}>{saving ? <ActivityIndicator size="small" color="#fff" /> : null}<Text style={styles.primaryButtonText}>{editPlanId ? 'Update' : 'Create'}</Text></TouchableOpacity></View>
+          </LiquidBorderScrollView>
+          <View style={styles.modalFooter}><TouchableOpacity style={styles.outlineButton} disabled={saving} onPress={() => setDialogOpen(false)}><Text style={styles.outlineButtonText}>Cancel</Text></TouchableOpacity><TouchableOpacity style={styles.primaryButton} disabled={saving} onPress={() => savePlan()}>{saving ? <ActivityIndicator size="small" color={colors.surface} /> : null}<Text style={styles.primaryButtonText}>{editPlanId ? 'Update' : 'Create'}</Text></TouchableOpacity></View>
         </View></View>
       </AppModal>
 
       <AppModal visible={featureDialogOpen} transparent animationType="slide" onRequestClose={() => setFeatureDialogOpen(false)}>
         <View style={styles.modalBackdrop}><View style={styles.featureModalCard}>
-          <View style={styles.modalHeader}><TouchableOpacity style={styles.modalClose} onPress={() => setFeatureDialogOpen(false)}><X size={18} color="#64748B" /></TouchableOpacity><Text style={styles.modalTitle}>{viewPlan?.plan_name || 'Plan'} Features</Text><Text style={styles.mutedText}>Plan details and mapped feature access.</Text></View>
-          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.formBody} keyboardShouldPersistTaps="handled">
+          <View style={styles.modalHeader}><TouchableOpacity style={styles.modalClose} onPress={() => setFeatureDialogOpen(false)}><X size={18} color={colors.muted} /></TouchableOpacity><Text style={styles.modalTitle}>{viewPlan?.plan_name || 'Plan'} Features</Text><Text style={styles.mutedText}>Plan details and mapped feature access.</Text></View>
+          <LiquidBorderScrollView style={styles.modalScroll} contentContainerStyle={styles.formBody} keyboardShouldPersistTaps="handled">
             <View style={styles.detailGrid}>
               <View style={styles.detailCell}><Text style={styles.detailLabel}>Plan ID</Text><Text style={styles.detailValue}>{viewPlan?.id ?? '-'}</Text></View>
               <View style={styles.detailCell}><Text style={styles.detailLabel}>Type</Text><Text style={styles.detailValue}>{viewPlan?.plan_type ?? '-'}</Text></View>
@@ -257,15 +260,15 @@ export default function SubscriptionPlansScreen({ onOpenDrawer, initialPlanId }:
               <Text style={styles.cardTitle}>Add Feature</Text>
               <SelectField label="System Object" value={featureObjectId} options={[{ value: '', label: 'Select object' }, ...systemObjects.map(item => ({ value: String(item.id), label: `${item.name} (#${item.id})` }))]} onSelect={setFeatureObjectId} />
               <SelectField label="Status" value={featureEnabled} options={[{ value: '1', label: 'enabled' }, { value: '0', label: 'disabled' }]} onSelect={value => setFeatureEnabled(value as '1' | '0')} />
-              <TouchableOpacity style={[styles.primaryButton, styles.fullButton]} onPress={() => addFeature()} disabled={addingFeature}>{addingFeature ? <ActivityIndicator size="small" color="#fff" /> : null}<Text style={styles.primaryButtonText}>Add Feature</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.primaryButton, styles.fullButton]} onPress={() => addFeature()} disabled={addingFeature}>{addingFeature ? <ActivityIndicator size="small" color={colors.surface} /> : null}<Text style={styles.primaryButtonText}>Add Feature</Text></TouchableOpacity>
             </View>
             {(viewPlan?.features || []).map((feature, index) => <View key={`${feature.feature_id}-${feature.sys_obj_id}-${index}`} style={styles.dataCard}>
               <View style={styles.cardTopRow}><Text style={styles.cardTitle}>{feature.object_name || `Feature ${index + 1}`}</Text><View style={[styles.statusBadge, Number(feature.is_enabled) ? styles.statusBadgeTeal : styles.statusBadgeMuted]}><Text style={[styles.statusText, Number(feature.is_enabled) ? styles.statusTextTeal : styles.statusTextMuted]}>{Number(feature.is_enabled) ? 'enabled' : 'disabled'}</Text></View></View>
               <Text style={styles.mutedText}>Feature ID: {feature.feature_id ?? '-'} · System Object ID: {feature.sys_obj_id ?? '-'}</Text>
-              <TouchableOpacity style={styles.outlineButton} onPress={() => updateFeature(feature)} disabled={updatingFeatureId === Number(feature.feature_id)}>{updatingFeatureId === Number(feature.feature_id) ? <ActivityIndicator size="small" color="#27A599" /> : <Text style={styles.outlineButtonText}>Update</Text>}</TouchableOpacity>
+              <TouchableOpacity style={styles.outlineButton} onPress={() => updateFeature(feature)} disabled={updatingFeatureId === Number(feature.feature_id)}>{updatingFeatureId === Number(feature.feature_id) ? <ActivityIndicator size="small" color={colors.primary} /> : <Text style={styles.outlineButtonText}>Update</Text>}</TouchableOpacity>
             </View>)}
             {(viewPlan?.features || []).length === 0 ? <Text style={styles.mutedText}>No features mapped to this plan.</Text> : null}
-          </ScrollView>
+          </LiquidBorderScrollView>
           <View style={styles.modalFooter}><TouchableOpacity style={[styles.outlineButton, styles.fullButton]} onPress={() => setFeatureDialogOpen(false)}><Text style={styles.outlineButtonText}>Close</Text></TouchableOpacity></View>
         </View></View>
       </AppModal>

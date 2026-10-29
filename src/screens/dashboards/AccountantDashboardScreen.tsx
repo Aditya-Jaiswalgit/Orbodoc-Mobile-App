@@ -1,3 +1,4 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -20,6 +21,7 @@ import {
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { useAuthContext } from '../../context/AuthContext';
 import { useAccountantDashboard } from '../../hooks/useAccountantDashboard';
+import { LiquidBorderTouchable } from '../../components/common/LiquidBorderSurface';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -52,7 +54,7 @@ function MetricCard({
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity
+    <LiquidBorderTouchable
       activeOpacity={0.7}
       style={styles.kpiCardHalf}
       onPress={onPress}
@@ -69,7 +71,7 @@ function MetricCard({
       <View style={styles.kpiActionWrapper}>
         <Text style={styles.kpiActionLink}>View details ↗</Text>
       </View>
-    </TouchableOpacity>
+    </LiquidBorderTouchable>
   );
 }
 
@@ -117,7 +119,7 @@ function RevenueTrendChart({
                 x={left - 8}
                 y={y + 4}
                 fontSize="11"
-                fill="#64748B"
+                fill={colors.muted}
                 textAnchor="end"
                 fontWeight="500"
               >
@@ -128,7 +130,7 @@ function RevenueTrendChart({
                 x2={chartWidth - right}
                 y1={y}
                 y2={y}
-                stroke="#F1F5F9"
+                stroke={colors.secondary}
                 strokeWidth={1}
               />
             </React.Fragment>
@@ -159,7 +161,7 @@ function RevenueTrendChart({
                   y={Math.max(12, y - 5)}
                   fontSize="10"
                   fontWeight="700"
-                  fill="#0F172A"
+                  fill={colors.text}
                   textAnchor="middle"
                 >
                   {money(item.value)}
@@ -170,7 +172,7 @@ function RevenueTrendChart({
                 y={chartHeight - 8}
                 fontSize="11"
                 fontWeight="500"
-                fill="#64748B"
+                fill={colors.muted}
                 textAnchor="middle"
               >
                 {item.label}
@@ -195,16 +197,16 @@ function BillingMix({ treatment, medicine, pending }: { treatment: number; medic
       <View style={styles.mixContent}>
         <View style={styles.donutWrap}>
           <Svg width={112} height={112} viewBox="0 0 100 100">
-            <Circle cx="50" cy="50" r="38" fill="none" stroke="#E2E8F0" strokeWidth="13" />
-            <Circle cx="50" cy="50" r="38" fill="none" stroke="#27A599" strokeWidth="13" strokeDasharray={`${treatmentArc} ${circumference}`} rotation="-90" origin="50, 50" />
-            <Circle cx="50" cy="50" r="38" fill="none" stroke="#2EB877" strokeWidth="13" strokeDasharray={`${medicineArc} ${circumference}`} strokeDashoffset={-treatmentArc} rotation="-90" origin="50, 50" />
-            <Circle cx="50" cy="50" r="38" fill="none" stroke="#F9A91F" strokeWidth="13" strokeDasharray={`${pendingArc} ${circumference}`} strokeDashoffset={-(treatmentArc + medicineArc)} rotation="-90" origin="50, 50" />
+            <Circle cx="50" cy="50" r="38" fill="none" stroke={colors.border} strokeWidth="13" />
+            <Circle cx="50" cy="50" r="38" fill="none" stroke={colors.primary} strokeWidth="13" strokeDasharray={`${treatmentArc} ${circumference}`} rotation="-90" origin="50, 50" />
+            <Circle cx="50" cy="50" r="38" fill="none" stroke={colors.success} strokeWidth="13" strokeDasharray={`${medicineArc} ${circumference}`} strokeDashoffset={-treatmentArc} rotation="-90" origin="50, 50" />
+            <Circle cx="50" cy="50" r="38" fill="none" stroke={colors.warning} strokeWidth="13" strokeDasharray={`${pendingArc} ${circumference}`} strokeDashoffset={-(treatmentArc + medicineArc)} rotation="-90" origin="50, 50" />
           </Svg>
         </View>
         <View style={styles.legend}>
-          <Legend color="#27A599" label="Treatment" value={money(treatment)} />
-          <Legend color="#2EB877" label="Medicine" value={money(medicine)} />
-          <Legend color="#F9A91F" label="Pending" value={String(pending)} />
+          <Legend color={colors.primary} label="Treatment" value={money(treatment)} />
+          <Legend color={colors.success} label="Medicine" value={money(medicine)} />
+          <Legend color={colors.warning} label="Pending" value={String(pending)} />
         </View>
       </View>
     </View>
@@ -276,9 +278,9 @@ export const AccountantDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
   const medicineRatio = breakdownTotal ? data.medicineRevenue / breakdownTotal : 0;
 
   const revenueBars = [
-    { label: 'Today', value: data.todayRevenue, color: '#27A599' },
-    { label: 'Week', value: data.weekRevenue, color: '#2EB877' },
-    { label: 'Month', value: data.monthRevenue, color: '#D97706' },
+    { label: 'Today', value: data.todayRevenue, color: colors.primary },
+    { label: 'Week', value: data.weekRevenue, color: colors.success },
+    { label: 'Month', value: data.monthRevenue, color: colors.warning },
   ];
 
   return (
@@ -287,7 +289,7 @@ export const AccountantDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#27A599" colors={['#27A599']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} colors={[colors.primary]} />}
       >
         {/* ── 1. GREETING & TODAY CARD ── */}
         <View style={styles.welcomeBlock}>
@@ -302,7 +304,7 @@ export const AccountantDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
         {/* Today Date Card */}
         <View style={styles.todayCard}>
           <View style={styles.todayIcon}>
-            <CalendarDays size={22} color="#27A599" strokeWidth={2.2} />
+            <CalendarDays size={22} color={colors.primary} strokeWidth={2.2} />
           </View>
           <View style={styles.todayCopy}>
             <View style={styles.todayEyebrow}>
@@ -315,7 +317,7 @@ export const AccountantDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
 
         {loading ? (
           <View style={styles.loading}>
-            <ActivityIndicator color="#27A599" />
+            <ActivityIndicator color={colors.primary} />
             <Text style={styles.muted}>Loading accounts dashboard…</Text>
           </View>
         ) : null}
@@ -333,24 +335,24 @@ export const AccountantDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
               <MetricCard
                 title="Today's Revenue"
                 value={money(data.todayRevenue)}
-                color="#27A599"
-                background="#E6FFFA"
+                color={colors.primary}
+                background={colors.mint}
                 icon={IndianRupee}
                 onPress={() => onNavigateScreen(todayPath)}
               />
               <MetricCard
                 title="Week Revenue"
                 value={money(data.weekRevenue)}
-                color="#2EB877"
-                background="#DCFCE7"
+                color={colors.success}
+                background={colors.successSoft}
                 icon={TrendingUp}
                 onPress={() => onNavigateScreen(weekPath)}
               />
               <MetricCard
                 title="Month Revenue"
                 value={money(data.monthRevenue)}
-                color="#D97706"
-                background="#FEF3C7"
+                color={colors.warning}
+                background={colors.warningSoft}
                 icon={IndianRupee}
                 onPress={() => onNavigateScreen(monthPath)}
               />
@@ -391,13 +393,13 @@ export const AccountantDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
             <View style={styles.detailGrid}>
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Revenue Breakdown</Text>
-                <Breakdown label="Treatment Revenue" value={data.treatmentRevenue} ratio={treatmentRatio} color="#27A599" />
-                <Breakdown label="Medicine Revenue" value={data.medicineRevenue} ratio={medicineRatio} color="#2EB877" />
+                <Breakdown label="Treatment Revenue" value={data.treatmentRevenue} ratio={treatmentRatio} color={colors.primary} />
+                <Breakdown label="Medicine Revenue" value={data.medicineRevenue} ratio={medicineRatio} color={colors.success} />
               </View>
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Bills Status</Text>
-                <StatusTile icon={<FileText size={22} color="#27A599" />} label="Bills Generated" value={String(data.billsGenerated)} />
-                <StatusTile icon={<AlertCircle size={22} color="#D97706" />} label="Pending Payments" value={String(data.pendingPayments)} warning />
+                <StatusTile icon={<FileText size={22} color={colors.primary} />} label="Bills Generated" value={String(data.billsGenerated)} />
+                <StatusTile icon={<AlertCircle size={22} color={colors.warning} />} label="Pending Payments" value={String(data.pendingPayments)} warning />
               </View>
             </View>
           </>
@@ -408,60 +410,60 @@ export const AccountantDashboardScreen: React.FC<Props> = ({ onOpenDrawer, onOpe
 };
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F8FAFC' },
-  content: { padding: 16, paddingBottom: 40, gap: 14 },
-  welcomeBlock: { gap: 4, marginBottom: 2 },
-  greetingTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 18, fontWeight: '800' },
-  greetingSubtitle: { fontFamily: 'Inter', color: '#64748B', fontSize: 13 },
+  root: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing.lg, paddingBottom: 40, gap: 14 },
+  welcomeBlock: { gap: spacing.xs, marginBottom: 2 },
+  greetingTitle: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.lg, fontWeight: typography.weight.extrabold },
+  greetingSubtitle: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.caption },
   todayCard: {
     minHeight: 68,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 16,
+    borderRadius: radii.xl,
     borderWidth: 1,
-    borderColor: '#99F6E4',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#27A599',
+    borderColor: colors.mintBorder,
+    backgroundColor: colors.surface,
+    shadowColor: colors.primary,
     shadowOpacity: 0.1,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
     elevation: 2,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   todayIcon: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E6FFFA',
+    backgroundColor: colors.mint,
   },
   todayCopy: { flex: 1, gap: 3 },
-  todayEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  todayDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#27A599' },
-  todayLabel: { fontFamily: 'Inter', color: '#27A599', fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
-  todayDate: { fontFamily: 'Inter', color: '#0F172A', fontSize: 15, fontWeight: '700' },
+  todayEyebrow: { flexDirection: 'row', alignItems: 'center', gap: spacing.tiny, marginBottom: 2 },
+  todayDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
+  todayLabel: { fontFamily: typography.family, color: colors.primary, fontSize: typography.size.xs, fontWeight: typography.weight.extrabold, letterSpacing: 1.2 },
+  todayDate: { fontFamily: typography.family, color: colors.text, fontSize: 15, fontWeight: typography.weight.bold },
 
   // KPI Grid
   kpiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   kpiCardHalf: {
     width: '48%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 18,
     padding: 14,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     elevation: 1,
-    shadowColor: '#0F172A',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -469,46 +471,46 @@ const styles = StyleSheet.create({
   kpiIconBox: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
   },
   kpiCardValue: {
-    fontFamily: 'Inter', fontSize: 20,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 4,
+    fontFamily: typography.family, fontSize: typography.size.title,
+    fontWeight: typography.weight.extrabold,
+    color: colors.text,
+    marginBottom: spacing.xs,
   },
   kpiCardLabel: {
-    fontFamily: 'Inter', fontSize: 12,
-    fontWeight: '500',
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
+    color: colors.muted,
     minHeight: 32,
   },
   kpiActionWrapper: {
-    marginTop: 6,
+    marginTop: spacing.tiny,
   },
   kpiActionLink: {
-    fontFamily: 'Inter', fontSize: 12,
-    fontWeight: '700',
-    color: '#27A599',
+    fontFamily: typography.family, fontSize: typography.size.sm,
+    fontWeight: typography.weight.bold,
+    color: colors.primary,
   },
 
   chartGrid: { gap: 14 },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 16,
-    shadowColor: '#0F172A',
+    borderColor: colors.border,
+    padding: spacing.lg,
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
   },
-  cardTitle: { fontFamily: 'Inter', color: '#0F172A', fontSize: 18, fontWeight: '700', marginBottom: 14 },
+  cardTitle: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.lg, fontWeight: typography.weight.bold, marginBottom: 14 },
   chartSvgWrap: { alignItems: 'center', justifyContent: 'center' },
 
   mixContent: { flexDirection: 'row', alignItems: 'center', gap: 14 },
@@ -516,32 +518,32 @@ const styles = StyleSheet.create({
   legend: { flex: 1, gap: 11 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   legendDot: { width: 9, height: 9, borderRadius: 5 },
-  legendLabel: { fontFamily: 'Inter', flex: 1, color: '#64748B', fontSize: 12 },
-  legendValue: { fontFamily: 'Inter', color: '#0F172A', fontSize: 12, fontWeight: '700' },
+  legendLabel: { fontFamily: typography.family, flex: 1, color: colors.muted, fontSize: typography.size.sm },
+  legendValue: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.sm, fontWeight: typography.weight.bold },
 
-  overviewRow: { flexDirection: 'row', gap: 8 },
-  overview: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: 11, padding: 10, alignItems: 'center' },
-  overviewAmount: { fontFamily: 'Inter', color: '#0F172A', fontWeight: '800', fontSize: 14 },
-  overviewLabel: { fontFamily: 'Inter', color: '#64748B', fontSize: 10, marginTop: 4, textAlign: 'center' },
+  overviewRow: { flexDirection: 'row', gap: spacing.sm },
+  overview: { flex: 1, backgroundColor: colors.background, borderRadius: 11, padding: 10, alignItems: 'center' },
+  overviewAmount: { fontFamily: typography.family, color: colors.text, fontWeight: typography.weight.extrabold, fontSize: typography.size.body },
+  overviewLabel: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.micro, marginTop: spacing.xs, textAlign: 'center' },
 
   detailGrid: { gap: 14 },
-  breakdown: { padding: 12, backgroundColor: '#F8FAFC', borderRadius: 11, marginBottom: 10 },
-  breakdownHead: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 9 },
-  breakdownLabel: { fontFamily: 'Inter', color: '#64748B', fontSize: 12 },
-  breakdownValue: { fontFamily: 'Inter', color: '#0F172A', fontWeight: '700', fontSize: 13 },
-  progressTrack: { height: 8, borderRadius: 5, backgroundColor: '#E2E8F0', overflow: 'hidden' },
+  breakdown: { padding: spacing.md, backgroundColor: colors.background, borderRadius: 11, marginBottom: 10 },
+  breakdownHead: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm, marginBottom: 9 },
+  breakdownLabel: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.sm },
+  breakdownValue: { fontFamily: typography.family, color: colors.text, fontWeight: typography.weight.bold, fontSize: typography.size.caption },
+  progressTrack: { height: 8, borderRadius: 5, backgroundColor: colors.border, overflow: 'hidden' },
   progress: { height: '100%', borderRadius: 5 },
 
-  statusTile: { padding: 12, backgroundColor: '#F8FAFC', borderRadius: 11, marginBottom: 10 },
+  statusTile: { padding: spacing.md, backgroundColor: colors.background, borderRadius: 11, marginBottom: 10 },
   statusHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  statusLabel: { fontFamily: 'Inter', color: '#64748B', fontSize: 12 },
-  statusValue: { fontFamily: 'Inter', color: '#0F172A', fontSize: 24, fontWeight: '800', marginTop: 7 },
-  warning: { color: '#D97706' },
+  statusLabel: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.sm },
+  statusValue: { fontFamily: typography.family, color: colors.text, fontSize: typography.size.display, fontWeight: typography.weight.extrabold, marginTop: 7 },
+  warning: { color: colors.warning },
 
-  loading: { padding: 28, borderRadius: 14, alignItems: 'center', gap: 9, backgroundColor: '#FFFFFF' },
-  muted: { fontFamily: 'Inter', color: '#64748B', fontSize: 13 },
-  error: { backgroundColor: '#FEF2F2', padding: 12, borderRadius: 10 },
-  errorText: { fontFamily: 'Inter', color: '#B91C1C', fontSize: 12 },
+  loading: { padding: 28, borderRadius: radii.lg, alignItems: 'center', gap: 9, backgroundColor: colors.surface },
+  muted: { fontFamily: typography.family, color: colors.muted, fontSize: typography.size.caption },
+  error: { backgroundColor: colors.destructiveSoft, padding: spacing.md, borderRadius: radii.md },
+  errorText: { fontFamily: typography.family, color: colors.destructiveDark, fontSize: typography.size.sm },
 });
 
 export default AccountantDashboardScreen;

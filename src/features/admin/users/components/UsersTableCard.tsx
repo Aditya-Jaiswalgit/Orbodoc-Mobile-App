@@ -1,6 +1,8 @@
 // src/features/admin/users/components/UsersTableCard.tsx
+import { colors } from '../../../../theme/tokens';
 import React, { useState } from 'react';
 import { AppModal } from '../../../../components/common/AppModal';
+import { LiquidBorderSurface } from '../../../../components/common/LiquidBorderSurface';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import {
   Edit,
@@ -62,12 +64,12 @@ export function UsersTableCard({
   };
 
   return (
-    <View style={styles.cardContainer}>
+    <LiquidBorderSurface style={styles.cardContainer} radius={16}>
       {/* Header */}
       <View style={styles.cardHeader}>
         <View style={styles.titleRow}>
           <View style={styles.titleIconBg}>
-            <Users size={20} color="#27A599" />
+            <Users size={20} color={colors.primary} />
           </View>
           <Text style={styles.cardTitle}>All Users ({users.length})</Text>
         </View>
@@ -76,7 +78,7 @@ export function UsersTableCard({
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#27A599" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading users...</Text>
         </View>
       ) : users.length === 0 ? (
@@ -181,7 +183,7 @@ export function UsersTableCard({
               onPress={() =>
                 selectedUserForMenu && handleAction('edit', selectedUserForMenu)
               }>
-              <Edit size={18} color="#27A599" style={styles.menuIcon} />
+              <Edit size={18} color={colors.primary} style={styles.menuIcon} />
               <Text style={styles.menuItemText}>Edit User</Text>
             </TouchableOpacity>
 
@@ -207,7 +209,7 @@ export function UsersTableCard({
           </View>
         </TouchableOpacity>
       </AppModal>
-    </View>
+    </LiquidBorderSurface>
   );
 }
 

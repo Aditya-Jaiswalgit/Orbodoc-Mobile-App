@@ -1,3 +1,4 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import React, { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
@@ -25,6 +26,9 @@ import { StaffHeader } from '../../components/common/StaffHeader';
 import { useAuthContext } from '../../context/AuthContext';
 import { displayAmount } from '../../utils/dashboardValues';
 import { useClinicDashboard } from '../../hooks/useClinicDashboard';
+import { AnimatedLiquidBorder } from '../../components/common/AnimatedLiquidBorder';
+import { LiquidBorderTouchable } from '../../components/common/LiquidBorderSurface';
+import { createTapGestureHandlers } from '../../utils/tapGestureHandlers';
 
 interface AdminDashboardProps {
   onNavigate?: (path: string) => void;
@@ -82,7 +86,7 @@ export function AdminDashboard({
   if (loading && !monthlyAppointments && Object.keys(kpiData).length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#27A599" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Updating Clinic Dashboard...</Text>
       </View>
     );
@@ -142,10 +146,11 @@ export function AdminDashboard({
 
           {/* Today Date Card */}
           <View
-            style={[styles.todayDateCard, activeDashboardCard === 'today' && styles.interactiveCardActive]}
-            onTouchStartCapture={() => setActiveDashboardCard('today')}>
+            style={styles.todayDateCard}
+            {...createTapGestureHandlers(() => setActiveDashboardCard('today'))}>
+            <AnimatedLiquidBorder active={activeDashboardCard === 'today'} radius={16} />
             <View style={styles.todayIconBox}>
-              <CalendarDays size={20} color="#0F766E" strokeWidth={2} />
+              <CalendarDays size={20} color={colors.primaryDark} strokeWidth={2} />
             </View>
             <View style={styles.todayTextCol}>
               <View style={styles.todayBadgeRow}>
@@ -175,56 +180,60 @@ export function AdminDashboard({
         <View style={styles.kpiGrid}>
           {/* Card 1: Appointments This Month */}
           <View
-            style={[styles.kpiCardHalf, activeDashboardCard === 'kpi-appointments' && styles.interactiveCardActive]}
-            onTouchStartCapture={() => setActiveDashboardCard('kpi-appointments')}>
+            style={styles.kpiCardHalf}
+            {...createTapGestureHandlers(() => setActiveDashboardCard('kpi-appointments'))}>
+            <AnimatedLiquidBorder active={activeDashboardCard === 'kpi-appointments'} radius={14} />
             <View style={[styles.kpiIconBox, { backgroundColor: '#ECFEFF' }]}>
               <Calendar size={24} color="#0E7490" />
             </View>
             <Text style={styles.kpiCardValue}>{monthlyAppointments?.appointments ?? '—'}</Text>
             <Text style={styles.kpiCardLabel} numberOfLines={2}>Appointments This Month</Text>
-            <TouchableOpacity onPress={() => onNavigate(`/appointments?${monthRange}`)} style={{ marginTop: 6 }}>
+            <TouchableOpacity onPress={() => onNavigate(`/appointments?${monthRange}`)} style={{ marginTop: spacing.tiny }}>
               <Text style={styles.kpiActionLink}>View details ↗</Text>
             </TouchableOpacity>
           </View>
 
           {/* Card 2: Completed This Month */}
           <View
-            style={[styles.kpiCardHalf, activeDashboardCard === 'kpi-completed' && styles.interactiveCardActive]}
-            onTouchStartCapture={() => setActiveDashboardCard('kpi-completed')}>
-            <View style={[styles.kpiIconBox, { backgroundColor: '#DCFCE7' }]}>
-              <CalendarCheck size={24} color="#2EB877" />
+            style={styles.kpiCardHalf}
+            {...createTapGestureHandlers(() => setActiveDashboardCard('kpi-completed'))}>
+            <AnimatedLiquidBorder active={activeDashboardCard === 'kpi-completed'} radius={14} />
+            <View style={[styles.kpiIconBox, { backgroundColor: colors.successSoft }]}>
+              <CalendarCheck size={24} color={colors.success} />
             </View>
             <Text style={styles.kpiCardValue}>{monthlyAppointments?.completed ?? '—'}</Text>
             <Text style={styles.kpiCardLabel} numberOfLines={2}>Completed This Month</Text>
-            <TouchableOpacity onPress={() => onNavigate(`/appointments?${monthRange}&status=completed`)} style={{ marginTop: 6 }}>
+            <TouchableOpacity onPress={() => onNavigate(`/appointments?${monthRange}&status=completed`)} style={{ marginTop: spacing.tiny }}>
               <Text style={styles.kpiActionLink}>View details ↗</Text>
             </TouchableOpacity>
           </View>
 
           {/* Card 3: Cancelled This Month */}
           <View
-            style={[styles.kpiCardHalf, activeDashboardCard === 'kpi-cancelled' && styles.interactiveCardActive]}
-            onTouchStartCapture={() => setActiveDashboardCard('kpi-cancelled')}>
+            style={styles.kpiCardHalf}
+            {...createTapGestureHandlers(() => setActiveDashboardCard('kpi-cancelled'))}>
+            <AnimatedLiquidBorder active={activeDashboardCard === 'kpi-cancelled'} radius={14} />
             <View style={[styles.kpiIconBox, { backgroundColor: '#FEE2E2' }]}>
-              <CalendarX size={24} color="#EF4444" />
+              <CalendarX size={24} color={colors.destructive} />
             </View>
             <Text style={styles.kpiCardValue}>{monthlyAppointments?.cancelled ?? '—'}</Text>
             <Text style={styles.kpiCardLabel} numberOfLines={2}>Cancelled This Month</Text>
-            <TouchableOpacity onPress={() => onNavigate(`/appointments?${monthRange}&status=cancelled`)} style={{ marginTop: 6 }}>
+            <TouchableOpacity onPress={() => onNavigate(`/appointments?${monthRange}&status=cancelled`)} style={{ marginTop: spacing.tiny }}>
               <Text style={styles.kpiActionLink}>View details ↗</Text>
             </TouchableOpacity>
           </View>
 
           {/* Card 4: Revenue This Month */}
           <View
-            style={[styles.kpiCardHalf, activeDashboardCard === 'kpi-revenue' && styles.interactiveCardActive]}
-            onTouchStartCapture={() => setActiveDashboardCard('kpi-revenue')}>
+            style={styles.kpiCardHalf}
+            {...createTapGestureHandlers(() => setActiveDashboardCard('kpi-revenue'))}>
+            <AnimatedLiquidBorder active={activeDashboardCard === 'kpi-revenue'} radius={14} />
             <View style={[styles.kpiIconBox, { backgroundColor: '#F5F3FF' }]}>
               <IndianRupee size={24} color="#7C3AED" />
             </View>
             <Text style={styles.kpiCardValueSmall}>{formatCurrency(currentKpi.revenueThisMonth)}</Text>
             <Text style={styles.kpiCardLabel} numberOfLines={2}>Revenue This Month</Text>
-            <TouchableOpacity onPress={() => onNavigate(`/billing/treatment?${monthRange}`)} style={{ marginTop: 6 }}>
+            <TouchableOpacity onPress={() => onNavigate(`/billing/treatment?${monthRange}`)} style={{ marginTop: spacing.tiny }}>
               <Text style={styles.kpiActionLink}>View details ↗</Text>
             </TouchableOpacity>
           </View>
@@ -232,58 +241,63 @@ export function AdminDashboard({
 
         {/* ── 4. OPERATIONS OVERVIEW (2 TILES PER ROW GRID) ── */}
         <View
-          style={[styles.operationsCardContainer, activeDashboardCard === 'operations-overview' && styles.interactiveCardActive]}
-          onTouchStartCapture={() => setActiveDashboardCard('operations-overview')}>
-          <Text style={styles.opsTitle}>Operations Overview</Text>
-          <Text style={styles.opsSubtitle}>Live clinic status and quick access.</Text>
-
-          <View style={styles.quickAccessTag}>
-            <Text style={styles.quickAccessText}>Quick access</Text>
+          style={styles.operationsCardContainer}
+          {...createTapGestureHandlers(() => setActiveDashboardCard('operations-overview'))}>
+          <AnimatedLiquidBorder active={activeDashboardCard === 'operations-overview'} radius={18} />
+          <View style={styles.opsHeader}>
+            <View style={styles.opsHeadingCopy}>
+              <Text style={styles.opsTitle}>Operations Overview</Text>
+              <Text style={styles.opsSubtitle}>Live clinic status and quick access.</Text>
+            </View>
+            <View style={styles.quickAccessTag}>
+              <Text style={styles.quickAccessText}>Quick access</Text>
+            </View>
           </View>
 
           <View style={styles.opGrid}>
             {/* Tile 1: Active Patients */}
-            <TouchableOpacity style={[styles.opTileHalf, activeDashboardCard === 'operation-patients' && styles.interactiveCardActive]} onPressIn={() => setActiveDashboardCard('operation-patients')} onPress={() => onNavigate('/patients?status=active')}>
+            <LiquidBorderTouchable style={styles.opTileHalf} onPress={() => { setActiveDashboardCard('operation-patients'); onNavigate('/patients?status=active'); }} radius={14}>
               <View style={[styles.opSquareIcon, { backgroundColor: '#E6F4F3' }]}>
-                <Users size={24} color="#27A598" />
+                <Users size={24} color={colors.primary} />
               </View>
               <Text style={styles.opBigNumber}>{currentKpi.activePatients ?? '—'}</Text>
               <Text style={styles.opTileLabel}>Active Patients</Text>
-            </TouchableOpacity>
+            </LiquidBorderTouchable>
 
             {/* Tile 2: Low Stock Medicines */}
-            <TouchableOpacity style={[styles.opTileHalf, activeDashboardCard === 'operation-medicines' && styles.interactiveCardActive]} onPressIn={() => setActiveDashboardCard('operation-medicines')} onPress={() => onNavigate('/medicines?stock=low')}>
-              <View style={[styles.opSquareIcon, { backgroundColor: '#DCFCE7' }]}>
-                <Pill size={24} color="#2EB877" />
+            <LiquidBorderTouchable style={styles.opTileHalf} onPress={() => { setActiveDashboardCard('operation-medicines'); onNavigate('/medicines?stock=low'); }} radius={14}>
+              <View style={[styles.opSquareIcon, { backgroundColor: colors.successSoft }]}>
+                <Pill size={24} color={colors.success} />
               </View>
               <Text style={styles.opBigNumber}>{currentKpi.lowStockMedicines ?? '—'}</Text>
               <Text style={styles.opTileLabel}>Low Stock Medicines</Text>
-            </TouchableOpacity>
+            </LiquidBorderTouchable>
 
             {/* Tile 3: Pending Lab Tests */}
-            <TouchableOpacity style={[styles.opTileHalf, activeDashboardCard === 'operation-lab' && styles.interactiveCardActive]} onPressIn={() => setActiveDashboardCard('operation-lab')} onPress={() => onNavigate('/lab/tests?status=pending')}>
-              <View style={[styles.opSquareIcon, { backgroundColor: '#FEF3C7' }]}>
-                <TestTube size={24} color="#D97706" />
+            <LiquidBorderTouchable style={styles.opTileHalf} onPress={() => { setActiveDashboardCard('operation-lab'); onNavigate('/lab/tests?status=pending'); }} radius={14}>
+              <View style={[styles.opSquareIcon, { backgroundColor: colors.warningSoft }]}>
+                <TestTube size={24} color={colors.warning} />
               </View>
               <Text style={styles.opBigNumber}>{currentKpi.pendingLabTests ?? '—'}</Text>
               <Text style={styles.opTileLabel}>Pending Lab Tests</Text>
-            </TouchableOpacity>
+            </LiquidBorderTouchable>
 
             {/* Tile 4: Wallet Overview */}
-            <TouchableOpacity style={[styles.opTileHalf, activeDashboardCard === 'operation-wallet' && styles.interactiveCardActive]} onPressIn={() => setActiveDashboardCard('operation-wallet')} onPress={() => onNavigate('/wallet')}>
+            <LiquidBorderTouchable style={styles.opTileHalf} onPress={() => { setActiveDashboardCard('operation-wallet'); onNavigate('/wallet'); }} radius={14}>
               <View style={[styles.opSquareIcon, { backgroundColor: '#ECFEFF' }]}>
                 <WalletCards size={24} color="#0E7490" />
               </View>
               <Text style={styles.opBigNumberSmall}>{formatCurrency(currentKpi.walletBalance)}</Text>
               <Text style={styles.opTileLabel}>Wallet Overview</Text>
-            </TouchableOpacity>
+            </LiquidBorderTouchable>
           </View>
         </View>
 
         {/* ── 5. DAILY APPOINTMENT STATUS BAR CHART (RESPONSIVE & MODERN HOVER TOOLTIP) ── */}
         <View
-          style={[styles.chartCard, activeDashboardCard === 'appointments-chart' && styles.interactiveCardActive]}
-          onTouchStartCapture={() => setActiveDashboardCard('appointments-chart')}>
+          style={styles.chartCard}
+          {...createTapGestureHandlers(() => setActiveDashboardCard('appointments-chart'))}>
+          <AnimatedLiquidBorder active={activeDashboardCard === 'appointments-chart'} radius={12} />
           <Text style={styles.chartCardTitle}>Daily Appointment Status This Month</Text>
           {monthlyAppointments && barData.length === 0 && (
             <Text style={styles.sectionSubtitle}>No appointments this month.</Text>
@@ -383,12 +397,9 @@ export function AdminDashboard({
 
         {/* ── 6. MONTHLY REVENUE MIX DONUT CHART (RESPONSIVE & MODERN HOVER TOOLTIP) ── */}
         <View
-          style={[
-            styles.chartCard,
-            styles.revenueChartCard,
-            activeDashboardCard === 'revenue-chart' && styles.interactiveCardActive,
-          ]}
-          onTouchStartCapture={() => setActiveDashboardCard('revenue-chart')}>
+          style={[styles.chartCard, styles.revenueChartCard]}
+          {...createTapGestureHandlers(() => setActiveDashboardCard('revenue-chart'))}>
+          <AnimatedLiquidBorder active={activeDashboardCard === 'revenue-chart'} radius={12} />
           <Text style={[styles.chartCardTitle, styles.revenueChartTitle]}>Monthly Revenue Mix</Text>
           {totalRev === 0 && (
             <Text style={styles.sectionSubtitle}>
@@ -451,7 +462,7 @@ export function AdminDashboard({
                       cx={center}
                       cy={center}
                       r={radius}
-                      stroke="#E2E8F0"
+                      stroke={colors.border}
                       strokeWidth={strokeWidth}
                       fill="transparent"
                     />
@@ -507,7 +518,7 @@ export function AdminDashboard({
                   cx={center}
                   cy={center}
                   r={radius - strokeWidth / 2}
-                  fill="#FFFFFF"
+                  fill={colors.surface}
                 />
               </Svg>
             </TouchableOpacity>
@@ -540,27 +551,27 @@ export function AdminDashboard({
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#F8FAFC' },
-  scrollContainer: { flex: 1, paddingHorizontal: 16, paddingTop: 12 },
-  centerContainer: { flex: 1, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontFamily: 'Inter', color: '#6C7C93', marginTop: 10, fontSize: 14 },
+  mainContainer: { flex: 1, backgroundColor: colors.background },
+  scrollContainer: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  centerContainer: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { fontFamily: typography.family, color: colors.muted, marginTop: 10, fontSize: typography.size.body },
 
   // Greeting & Date
-  greetingSection: { marginBottom: 24, marginTop: 4 },
-  greetingTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#1C2830' },
-  greetingSubtitle: { fontFamily: 'Inter', fontSize: 16, color: '#6C7C93', marginTop: 4 },
+  greetingSection: { marginBottom: spacing.xxl, marginTop: spacing.xs },
+  greetingTitle: { fontFamily: typography.family, fontSize: typography.size.lg, fontWeight: typography.weight.bold, color: colors.foreground },
+  greetingSubtitle: { fontFamily: typography.family, fontSize: typography.size.subtitle, color: colors.muted, marginTop: spacing.xs },
   todayDateCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7FDFC',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#B2EDE5',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginTop: 16,
+    borderColor: colors.mintBorder,
+    borderRadius: radii.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    marginTop: spacing.lg,
     gap: 14,
-    shadowColor: '#0D9488',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
@@ -569,69 +580,77 @@ const styles = StyleSheet.create({
   todayIconBox: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: '#E6F7F4',
+    borderRadius: radii.lg,
+    backgroundColor: colors.mint,
     borderWidth: 1,
-    borderColor: '#CCFBF1',
+    borderColor: colors.mintBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   todayTextCol: { flex: 1 },
-  todayBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  greenDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#27A598' },
-  todayBadgeText: { fontFamily: 'Inter', fontSize: 11, fontWeight: '700', color: '#0F766E', letterSpacing: 1.6, textTransform: 'uppercase' },
-  todayDateText: { fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#1C2830' },
+  todayBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.tiny, marginBottom: spacing.xs },
+  greenDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
+  todayBadgeText: { fontFamily: typography.family, fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.primaryDark, letterSpacing: 1.6, textTransform: 'uppercase' },
+  todayDateText: { fontFamily: typography.family, fontSize: typography.size.body, fontWeight: typography.weight.semibold, color: colors.foreground },
 
   // Monthly Performance KPI Grid (2 Cards Per Row)
   sectionHeader: { marginBottom: 14 },
-  sectionTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '600', color: '#1C2830' },
-  sectionSubtitle: { fontFamily: 'Inter', fontSize: 14, color: '#6C7C93', marginTop: 2 },
+  sectionTitle: { fontFamily: typography.family, fontSize: typography.size.lg, fontWeight: typography.weight.semibold, color: colors.foreground },
+  sectionSubtitle: { fontFamily: typography.family, fontSize: typography.size.body, color: colors.muted, marginTop: 2 },
   kpiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   kpiCardHalf: {
     width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
     marginBottom: 14,
     borderWidth: 1,
     borderColor: '#DFE5EC',
     elevation: 1,
-    shadowColor: '#0F172A',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
   },
-  kpiIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  kpiCardValue: { fontFamily: 'Inter', fontSize: 24, fontWeight: '700', color: '#1C2830', marginBottom: 4 },
-  kpiCardValueSmall: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#1C2830', marginBottom: 4 },
-  kpiCardLabel: { fontFamily: 'Inter', fontSize: 14, fontWeight: '500', color: '#6C7C93', minHeight: 36 },
-  kpiActionLink: { fontFamily: 'Inter', fontSize: 12, fontWeight: '600', color: '#27A598' },
+  kpiIconBox: { width: 44, height: 44, borderRadius: radii.lg, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  kpiCardValue: { fontFamily: typography.family, fontSize: typography.size.display, fontWeight: typography.weight.bold, color: colors.foreground, marginBottom: spacing.xs },
+  kpiCardValueSmall: { fontFamily: typography.family, fontSize: typography.size.lg, fontWeight: typography.weight.bold, color: colors.foreground, marginBottom: spacing.xs },
+  kpiCardLabel: { fontFamily: typography.family, fontSize: typography.size.body, fontWeight: typography.weight.medium, color: colors.muted, minHeight: 36 },
+  kpiActionLink: { fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.semibold, color: colors.primary },
 
   // Operations Overview Grid (2 Tiles Per Row)
   operationsCardContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
     borderWidth: 1,
     borderColor: '#DFE5EC',
-    marginBottom: 24,
+    marginBottom: spacing.xxl,
   },
-  opsTitle: { fontFamily: 'Inter', fontSize: 18, fontWeight: '600', color: '#1C2830' },
-  opsSubtitle: { fontFamily: 'Inter', fontSize: 14, color: '#6C7C93', marginTop: 4, marginBottom: 12 },
+  opsTitle: { fontFamily: typography.family, fontSize: typography.size.lg, fontWeight: typography.weight.semibold, color: colors.foreground },
+  opsSubtitle: { fontFamily: typography.family, fontSize: typography.size.body, color: colors.muted, marginTop: spacing.xs, marginBottom: spacing.md },
+  opsHeader: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  opsHeadingCopy: { flex: 1, minWidth: 180 },
   quickAccessTag: {
     alignSelf: 'flex-start',
     backgroundColor: '#E6F4F3',
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     paddingVertical: 5,
-    borderRadius: 12,
-    marginBottom: 16,
+    borderRadius: radii.lg,
   },
-  quickAccessText: { fontFamily: 'Inter', color: '#27A598', fontSize: 12, fontWeight: '600' },
+  quickAccessText: { fontFamily: typography.family, color: colors.primary, fontSize: typography.size.sm, fontWeight: typography.weight.semibold },
   opGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -639,39 +658,39 @@ const styles = StyleSheet.create({
   },
   opTileHalf: {
     width: '48%',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: colors.secondary,
+    borderRadius: radii.lg,
+    paddingVertical: spacing.lg,
     paddingHorizontal: 10,
     borderWidth: 1,
     borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
-  opSquareIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  opBigNumber: { fontFamily: 'Inter', fontSize: 24, fontWeight: '700', color: '#1C2830' },
-  opBigNumberSmall: { fontFamily: 'Inter', fontSize: 18, fontWeight: '700', color: '#1C2830' },
-  opTileLabel: { fontFamily: 'Inter', fontSize: 14, color: '#6C7C93', marginTop: 4, fontWeight: '400', textAlign: 'center' },
+  opSquareIcon: { width: 44, height: 44, borderRadius: radii.lg, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+  opBigNumber: { fontFamily: typography.family, fontSize: typography.size.display, fontWeight: typography.weight.bold, color: colors.foreground },
+  opBigNumberSmall: { fontFamily: typography.family, fontSize: typography.size.lg, fontWeight: typography.weight.bold, color: colors.foreground },
+  opTileLabel: { fontFamily: typography.family, fontSize: typography.size.body, color: colors.muted, marginTop: spacing.xs, fontWeight: typography.weight.regular, textAlign: 'center' },
 
   // Charts
   chartCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
     borderWidth: 1,
     borderColor: '#DFE5EC',
-    marginBottom: 24,
+    marginBottom: spacing.xxl,
     position: 'relative',
-    shadowColor: '#1C2830',
+    shadowColor: colors.foreground,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 3,
     elevation: 1,
   },
   revenueChartCard: {
-    padding: 16,
-    borderRadius: 12,
+    padding: spacing.lg,
+    borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: '#DFE5EC',
   },
@@ -680,53 +699,53 @@ const styles = StyleSheet.create({
     borderColor: '#2DD4BF',
   },
   revenueChartTitle: {
-    fontFamily: 'Inter', fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 16,
+    fontFamily: typography.family, fontSize: typography.size.subtitle,
+    fontWeight: typography.weight.semibold,
+    marginBottom: spacing.lg,
   },
-  chartCardTitle: { fontFamily: 'Inter', fontSize: 16, fontWeight: '600', color: '#1C2830', marginBottom: 16 },
-  legendRow: { flexDirection: 'row', gap: 16, marginBottom: 20 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  chartCardTitle: { fontFamily: typography.family, fontSize: typography.size.subtitle, fontWeight: typography.weight.semibold, color: colors.foreground, marginBottom: spacing.lg },
+  legendRow: { flexDirection: 'row', gap: spacing.lg, marginBottom: spacing.xl },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.tiny },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontFamily: 'Inter', fontSize: 10, color: '#6C7C93', fontWeight: '400' },
+  legendText: { fontFamily: typography.family, fontSize: typography.size.micro, color: colors.muted, fontWeight: typography.weight.regular },
 
   // Bar Chart Grid
   barGridArea: { marginTop: 10, position: 'relative' },
   gridLineRow: { flexDirection: 'row', alignItems: 'center', height: 42 },
-  yAxisNum: { fontFamily: 'Inter', width: 16, fontSize: 10, color: '#94A3B8', textAlign: 'right', marginRight: 8 },
-  gridLine: { flex: 1, height: 1, backgroundColor: '#F1F5F9' },
-  barsRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', marginTop: -189, paddingLeft: 24 },
+  yAxisNum: { fontFamily: typography.family, width: 16, fontSize: typography.size.micro, color: colors.subtle, textAlign: 'right', marginRight: spacing.sm },
+  gridLine: { flex: 1, height: 1, backgroundColor: colors.secondary },
+  barsRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', marginTop: -189, paddingLeft: spacing.xxl },
   barCol: { alignItems: 'center', flex: 1 },
   barGroup: { height: 168, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 2 },
   barSeriesContainer: { width: 8, height: 168, justifyContent: 'flex-end' },
   barVisual: { width: 8, borderTopLeftRadius: 3, borderTopRightRadius: 3 },
-  barVisualActive: { borderWidth: 1, borderColor: '#1C2830' },
-  xAxisText: { fontFamily: 'Inter', fontSize: 10, color: '#6C7C93', marginTop: 8, fontWeight: '400', textAlign: 'center' },
-  xAxisTextActive: { color: '#1C2830', fontWeight: '600' },
+  barVisualActive: { borderWidth: 1, borderColor: colors.foreground },
+  xAxisText: { fontFamily: typography.family, fontSize: typography.size.micro, color: colors.muted, marginTop: spacing.sm, fontWeight: typography.weight.regular, textAlign: 'center' },
+  xAxisTextActive: { color: colors.foreground, fontWeight: typography.weight.semibold },
 
   // Responsive & Modern Bar Tooltip Card
   barTooltipCard: {
     position: 'absolute',
     top: -5,
     zIndex: 40,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1,
     borderColor: '#DFE5EC',
     elevation: 8,
-    shadowColor: '#0F172A',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.14,
     shadowRadius: 10,
     minWidth: 0,
   },
-  tooltipHeaderDate: { fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#1C2830', marginBottom: 6 },
-  tooltipRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 2 },
+  tooltipHeaderDate: { fontFamily: typography.family, fontSize: typography.size.body, fontWeight: typography.weight.semibold, color: colors.foreground, marginBottom: spacing.tiny },
+  tooltipRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginVertical: 2 },
   tooltipSquareDot: { width: 10, height: 10, borderRadius: 3 },
-  tooltipLabel: { fontFamily: 'Inter', fontSize: 12, color: '#6C7C93', flex: 1, flexShrink: 1 },
-  tooltipVal: { fontFamily: 'Inter', fontSize: 14, fontWeight: '600', color: '#1C2830', flexShrink: 0 },
+  tooltipLabel: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted, flex: 1, flexShrink: 1 },
+  tooltipVal: { fontFamily: typography.family, fontSize: typography.size.body, fontWeight: typography.weight.semibold, color: colors.foreground, flexShrink: 0 },
   tooltipPointerArrow: {
     position: 'absolute',
     bottom: -6,
@@ -740,7 +759,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 6,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: '#FFFFFF',
+    borderTopColor: colors.surface,
   },
 
   // Responsive Donut Chart & Tooltip
@@ -749,37 +768,37 @@ const styles = StyleSheet.create({
   donutTooltipCard: {
     position: 'absolute',
     zIndex: 40,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 9,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: spacing.tiny,
     borderWidth: 1,
     borderColor: '#DFE5EC',
     elevation: 8,
-    shadowColor: '#0F172A',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.14,
     shadowRadius: 10,
     minWidth: 150,
   },
-  donutTooltipTitle: { fontFamily: 'Inter', fontSize: 12, fontWeight: '400', color: '#6C7C93', marginBottom: 4 },
+  donutTooltipTitle: { fontFamily: typography.family, fontSize: typography.size.sm, fontWeight: typography.weight.regular, color: colors.muted, marginBottom: spacing.xs },
 
   // Breakdown Rows
-  revenueBreakdownBox: { gap: 8, marginTop: 10 },
+  revenueBreakdownBox: { gap: spacing.sm, marginTop: 10 },
   revenueRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderRadius: 7,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: colors.secondary,
   },
-  revenueLabelGroup: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 },
-  revenueRowLabel: { fontFamily: 'Inter', fontSize: 12, color: '#6C7C93', fontWeight: '400' },
-  revenueRowVal: { fontFamily: 'Inter', fontSize: 12, color: '#1C2830', fontWeight: '600' },
+  revenueLabelGroup: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minWidth: 0 },
+  revenueRowLabel: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.muted, fontWeight: typography.weight.regular },
+  revenueRowVal: { fontFamily: typography.family, fontSize: typography.size.sm, color: colors.foreground, fontWeight: typography.weight.semibold },
 });
 
 export default AdminDashboard;

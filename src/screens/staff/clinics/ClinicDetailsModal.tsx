@@ -1,5 +1,7 @@
+import { colors } from '../../../theme/tokens';
 import React from 'react';
-import { ScrollView, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { LiquidBorderScrollView } from '../../../components/common/LiquidBorderScrollView';
 import { Building2, CalendarDays, Mail, MapPin, X } from 'lucide-react-native';
 import { AppModal } from '../../../components/common/AppModal';
 import type { ClinicItem } from './clinicTypes';
@@ -28,7 +30,7 @@ export function ClinicDetailsModal({ viewClinicModal, isMobile, resolvedViewClin
                 {/* Header Banner */}
                 <View style={styles.viewClinicHeader}>
                   <View style={styles.clinicLogoSquareLarge}>
-                    <Building2 color="#27A599" size={24} />
+                    <Building2 color={colors.primary} size={24} />
                   </View>
                   <View style={styles.extractedInline65}>
                     <Text style={styles.viewClinicTitle}>
@@ -52,11 +54,11 @@ export function ClinicDetailsModal({ viewClinicModal, isMobile, resolvedViewClin
                     onPress={() => onClose()}
                     style={styles.extractedInline66}
                   >
-                    <X size={18} color="#64748B" />
+                    <X size={18} color={colors.muted} />
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView
+                <LiquidBorderScrollView
                   style={styles.extractedInline67}
                   showsVerticalScrollIndicator={true}
                   nestedScrollEnabled={true}
@@ -69,7 +71,7 @@ export function ClinicDetailsModal({ viewClinicModal, isMobile, resolvedViewClin
                     <View style={styles.sectionHeaderTitleRow}>
                       <Mail
                         size={15}
-                        color="#27A599"
+                        color={colors.primary}
                         style={styles.extractedInline7}
                       />
                       <Text style={styles.viewSectionCardTitle}>
@@ -125,7 +127,7 @@ export function ClinicDetailsModal({ viewClinicModal, isMobile, resolvedViewClin
                     <View style={styles.sectionHeaderTitleRow}>
                       <MapPin
                         size={15}
-                        color="#27A599"
+                        color={colors.primary}
                         style={styles.extractedInline7}
                       />
                       <Text style={styles.viewSectionCardTitle}>Location</Text>
@@ -202,7 +204,7 @@ export function ClinicDetailsModal({ viewClinicModal, isMobile, resolvedViewClin
                     <View style={styles.sectionHeaderTitleRow}>
                       <CalendarDays
                         size={15}
-                        color="#27A599"
+                        color={colors.primary}
                         style={styles.extractedInline7}
                       />
                       <Text style={styles.viewSectionCardTitle}>
@@ -235,7 +237,7 @@ export function ClinicDetailsModal({ viewClinicModal, isMobile, resolvedViewClin
                       </View>
                     </View>
                   </View>
-                </ScrollView>
+                </LiquidBorderScrollView>
 
                 {/* Footer */}
                 <View style={styles.viewClinicFooter}>

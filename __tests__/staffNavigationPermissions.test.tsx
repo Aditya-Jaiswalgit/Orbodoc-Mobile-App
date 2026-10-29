@@ -17,6 +17,7 @@ jest.mock('../src/components/common/StaffHeader', () => ({ StaffHeader: ({ onOpe
   const RN = require('react-native');
   return <RN.TouchableOpacity onPress={onOpenDrawer}><RN.Text>Open menu</RN.Text></RN.TouchableOpacity>;
 } }));
+jest.mock('../src/screens/common/VideoCallRoomScreen', () => ({ VideoCallRoomScreen: () => null }));
 jest.mock('../src/screens/staff/MedicineBillingScreen', () => ({ __esModule: true, default: () => {
   const RN = require('react-native'); return <RN.Text>Medicine billing screen</RN.Text>;
 } }));

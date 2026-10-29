@@ -1,3 +1,4 @@
+import { colors, radii, spacing, typography } from '../../theme/tokens';
 import React from 'react';
 import {
   View,
@@ -39,27 +40,27 @@ const VARIANT_CONFIG: Record<
 > = {
   danger: {
     icon: AlertTriangle,
-    iconColor: '#DC2626',
+    iconColor: colors.destructive,
     iconBg: '#FEE2E2',
-    confirmBtnBg: '#DC2626',
+    confirmBtnBg: colors.destructive,
   },
   warning: {
     icon: AlertCircle,
-    iconColor: '#D97706',
-    iconBg: '#FEF3C7',
-    confirmBtnBg: '#D97706',
+    iconColor: colors.warning,
+    iconBg: colors.warningSoft,
+    confirmBtnBg: colors.warning,
   },
   info: {
     icon: Info,
-    iconColor: '#27A599',
-    iconBg: '#CCFBF1',
-    confirmBtnBg: '#27A599',
+    iconColor: colors.primary,
+    iconBg: colors.mintBorder,
+    confirmBtnBg: colors.primary,
   },
   success: {
     icon: CheckCircle2,
-    iconColor: '#2EB877',
-    iconBg: '#DCFCE7',
-    confirmBtnBg: '#2EB877',
+    iconColor: colors.success,
+    iconBg: colors.successSoft,
+    confirmBtnBg: colors.success,
   },
 };
 
@@ -110,7 +111,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                   accessibilityLabel="Close confirmation dialog"
                   accessibilityRole="button"
                 >
-                  <X size={18} color="#94A3B8" />
+                  <X size={18} color={colors.subtle} />
                 </TouchableOpacity>
               </View>
 
@@ -155,7 +156,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                   activeOpacity={0.8}
                 >
                   {loading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.surface} />
                   ) : (
                     <Text style={styles.confirmBtnText}>{confirmText}</Text>
                   )}
@@ -175,16 +176,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.lg,
   },
   card: {
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 18,
     padding: 22,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#0F172A',
+    borderColor: colors.border,
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.15,
     shadowRadius: 20,
@@ -204,68 +205,68 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closeBtn: {
-    padding: 6,
-    borderRadius: 8,
+    padding: spacing.tiny,
+    borderRadius: radii.md,
   },
   title: {
-    fontFamily: 'Inter', fontSize: 20,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 8,
+    fontFamily: typography.family, fontSize: typography.size.title,
+    fontWeight: typography.weight.bold,
+    color: colors.text,
+    marginBottom: spacing.sm,
   },
   message: {
-    fontFamily: 'Inter', fontSize: 14,
-    color: '#64748B',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    color: colors.muted,
     lineHeight: 21,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   detailBox: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
+    backgroundColor: colors.background,
+    borderRadius: radii.md,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
     marginBottom: 18,
   },
   detailText: {
-    fontFamily: 'Inter', fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
+    fontFamily: typography.family, fontSize: typography.size.caption,
+    fontWeight: typography.weight.semibold,
+    color: colors.foreground,
   },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
     gap: 10,
-    marginTop: 6,
+    marginTop: spacing.tiny,
   },
   cancelBtn: {
     flex: 1,
     height: 44,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
+    borderColor: colors.border,
+    borderRadius: radii.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
   cancelBtnText: {
-    fontFamily: 'Inter', fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    fontWeight: typography.weight.semibold,
+    color: colors.muted,
   },
   confirmBtn: {
     flex: 1,
     height: 44,
-    borderRadius: 10,
+    borderRadius: radii.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
   confirmBtnText: {
-    fontFamily: 'Inter', fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontFamily: typography.family, fontSize: typography.size.body,
+    fontWeight: typography.weight.semibold,
+    color: colors.surface,
   },
   disabledBtn: {
     opacity: 0.7,

@@ -1,9 +1,11 @@
+import { colors } from '../../theme/tokens';
 import { AppModal } from '../../components/common/AppModal';
+import { useLiquidBorderScrollHandlers } from '../../components/common/LiquidBorderFocusContext';
 import { styles } from './styles/PatientsManagement.styles';
 import React, {
   useCallback, useEffect, useMemo, useRef, useState, } from 'react';
 import {
-  ActivityIndicator, FlatList, Pressable, RefreshControl, Share, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+  ActivityIndicator, FlatList, Pressable, RefreshControl, Share, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import {
   CalendarPlus,
   ClipboardList,
@@ -27,6 +29,8 @@ import {
 } from '../../components/common/PatientCardFocusContext';
 import { Pagination } from '../../components/common/Pagination';
 import { ColumnSelectorModal } from '../../components/common/ColumnSelectorModal';
+import { AnimatedLiquidBorder } from '../../components/common/AnimatedLiquidBorder';
+import { createTapGestureHandlers } from '../../utils/tapGestureHandlers';
 import { PatientModel } from '../../types/clinicTypes';
 import { useAuthContext } from '../../context/AuthContext';
 import { fetchPatientsApi } from '../../api/patientApi';
@@ -71,6 +75,7 @@ const PatientsManagementContent: React.FC<Props> = ({
   initialPatientId,
   patientMode = false,
 }) => {
+  const borderScrollHandlers = useLiquidBorderScrollHandlers();
   const { focusedCard, focusCard } = usePatientCardFocus();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { token, activeClinicId, role, permissionsMap = {} } = useAuthContext();
@@ -417,12 +422,81 @@ const PatientsManagementContent: React.FC<Props> = ({
   );
 
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const resultsHeading = (
+    <View style={styles.resultsHeading}>
+      <View style={styles.resultsTitleRow}>
+        <Users size={20} color={colors.foreground} />
+        <Text style={styles.resultsTitle}>Patients ({visiblePatients.length})</Text>
+      </View>
+    </View>
+  );
+  const renderPatientCard = (patient: PatientModel, wideLayout: boolean) => (
+    <PatientListCard
+      key={patient.id}
+      patient={patient}
+      onPress={() => openPatientDetails(patient)}
+      visibleColumns={visibleColumns}
+      canEdit={canEditPatient}
+      canManageActions={canManagePatientActions}
+      wideLayout={wideLayout}
+      onToggleStatus={() => togglePatientStatus(patient)}
+      onOpenActions={ref => {
+        focusCard(`patient-${patient.id}`);
+        ref.measureInWindow(
+          (x: number, y: number, width: number, height: number) =>
+            setActionMenu({ patient, x, y, width, height }),
+        );
+      }}
+    />
+  );
+  const mobilePatientResults = (
+    <View style={styles.patientResultsCard}>
+      <View style={styles.patientResultsHeader}>
+        <Users size={22} color={colors.foreground} />
+        <Text style={styles.patientResultsTitle}>Patients ({visiblePatients.length})</Text>
+      </View>
+      {visiblePatients.length > 0 ? (
+        visiblePatients.map(patient => renderPatientCard(patient, false))
+      ) : loading ? (
+        <View style={styles.emptyState}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.emptyTitle}>Loading patients…</Text>
+        </View>
+      ) : (
+        <View style={styles.emptyState}>
+          <View style={styles.emptyIcon}><Users size={23} color={colors.primary} /></View>
+          <Text style={styles.emptyTitle}>No patients found</Text>
+          <Text style={styles.emptySubtitle}>
+            {debouncedSearch
+              ? 'Try another name, phone number or ID.'
+              : 'Add a patient to get your clinic directory started.'}
+          </Text>
+        </View>
+      )}
+      {totalItems > 0 ? (
+        <View style={styles.paginationWrap}>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={size => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
   const listHeader = (
     <View style={styles.listHeader}>
       <View style={styles.bannerRow}>
         <View style={styles.bannerTitleBlock}>
           <View style={styles.iconBox}>
-            <Users size={24} color="#27A599" />
+            <Users size={24} color={colors.primary} />
           </View>
           <View style={styles.bannerTitleCopy}>
             <Text style={[styles.bannerTitle, windowWidth >= 640 && styles.bannerTitleWide]}>{patientMode ? 'Patients' : 'Patient Management'}</Text>
@@ -445,7 +519,7 @@ const PatientsManagementContent: React.FC<Props> = ({
               openCreateForm();
             }}
           >
-            <UserPlus size={16} color="#FFFFFF" />
+            <UserPlus size={16} color={colors.surface} />
             <Text style={styles.addButtonText}>Add Patient</Text>
           </TouchableOpacity>
         ) : null}
@@ -463,9 +537,9 @@ const PatientsManagementContent: React.FC<Props> = ({
             disabled={exporting}
           >
             {exporting ? (
-              <ActivityIndicator size="small" color="#0F172A" />
+              <ActivityIndicator size="small" color={colors.text} />
             ) : (
-              <Download size={16} color="#0F172A" />
+              <Download size={16} color={colors.text} />
             )}
             <Text style={styles.exportButtonText}>
               {exporting ? 'Exporting' : 'Export'}
@@ -490,14 +564,15 @@ const PatientsManagementContent: React.FC<Props> = ({
           style={[
             styles.searchCard,
             windowWidth >= 640 && styles.searchCardWide,
-            focusedCard === 'search' && focusedCardOutline,
           ]}
+          {...createTapGestureHandlers(() => focusCard('search'))}
         >
-          <Search size={16} color="#6C7C93" />
+          <AnimatedLiquidBorder active={focusedCard === 'search'} radius={11} />
+          <Search size={16} color={colors.muted} />
           <TextInput
             style={[styles.searchInput, windowWidth >= 640 && styles.searchInputWide]}
-            placeholder="Search name, phone or patient ID"
-            placeholderTextColor="#6C7C93"
+            placeholder="Search by patient code, name, or phone..."
+            placeholderTextColor={colors.muted}
             value={searchQuery}
             onChangeText={setSearchQuery}
             onFocus={() => focusCard('search')}
@@ -505,7 +580,7 @@ const PatientsManagementContent: React.FC<Props> = ({
           />
           {searchQuery ? (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <X size={17} color="#64748B" />
+              <X size={17} color={colors.muted} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -540,14 +615,7 @@ const PatientsManagementContent: React.FC<Props> = ({
               setCurrentPage(1);
             }}
           />
-          <View style={styles.resultsHeading}>
-            <View style={styles.resultsTitleRow}>
-              <Users size={20} color="#1C2830" />
-              <Text style={styles.resultsTitle}>
-                Patients ({visiblePatients.length})
-              </Text>
-            </View>
-          </View>
+          {windowWidth >= 768 ? resultsHeading : null}
         </>
       ) : null}
     </View>
@@ -568,49 +636,33 @@ const PatientsManagementContent: React.FC<Props> = ({
         </View>
       ) : (
         <FlatList
+          {...borderScrollHandlers}
           key={windowWidth >= 768 ? 'patient-grid' : 'patient-list'}
-          data={visiblePatients}
+          data={windowWidth >= 768 ? visiblePatients : []}
           numColumns={windowWidth >= 768 ? 2 : 1}
           columnWrapperStyle={windowWidth >= 768 ? styles.patientCardGridRow : undefined}
           keyExtractor={patient => String(patient.id)}
           contentContainerStyle={styles.content}
-          ListHeaderComponent={listHeader}
+          ListHeaderComponent={windowWidth >= 768 ? listHeader : <>{listHeader}{mobilePatientResults}</>}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => loadPatients(true)}
-              colors={['#27A599']}
-              tintColor="#27A599"
+              colors={[colors.primary]}
+              tintColor={colors.primary}
             />
           }
-          renderItem={({ item }) => (
-            <PatientListCard
-              patient={item}
-              onPress={() => openPatientDetails(item)}
-              visibleColumns={visibleColumns}
-              canEdit={canEditPatient}
-              canManageActions={canManagePatientActions}
-              wideLayout={windowWidth >= 768}
-              onToggleStatus={() => togglePatientStatus(item)}
-              onOpenActions={ref => {
-                focusCard(`patient-${item.id}`);
-                ref.measureInWindow(
-                  (x: number, y: number, width: number, height: number) =>
-                    setActionMenu({ patient: item, x, y, width, height }),
-                );
-              }}
-            />
-          )}
+          renderItem={({ item }) => renderPatientCard(item, true)}
           ListEmptyComponent={
-            loading ? (
+            windowWidth < 768 ? undefined : loading ? (
               <View style={styles.emptyState}>
-                <ActivityIndicator size="large" color="#27A599" />
+                <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={styles.emptyTitle}>Loading patients…</Text>
               </View>
             ) : (
               <View style={styles.emptyState}>
                 <View style={styles.emptyIcon}>
-                  <Users size={23} color="#27A599" />
+                  <Users size={23} color={colors.primary} />
                 </View>
                 <Text style={styles.emptyTitle}>No patients found</Text>
                 <Text style={styles.emptySubtitle}>
@@ -621,7 +673,7 @@ const PatientsManagementContent: React.FC<Props> = ({
               </View>
             )
           }
-          ListFooterComponent={
+          ListFooterComponent={windowWidth < 768 ? <View style={styles.footerSpacer} /> :
             totalItems > 0 ? (
               <View style={styles.paginationWrap}>
                 <Pagination
@@ -908,7 +960,7 @@ function PatientListCard({
     },
     {
       key: 'registrationDate',
-      label: 'Registration Date',
+      label: 'Registered On',
       value: formatDate(patient.registered_at || patient.created_at),
     },
     { key: 'status', label: 'Status', value: active ? 'Active' : 'Inactive' },
@@ -918,9 +970,10 @@ function PatientListCard({
       style={[
         styles.patientCard,
         wideLayout && styles.patientCardWide,
-        focusedCard === cardFocusId && focusedCardOutline,
       ]}
+      {...createTapGestureHandlers(() => focusCard(cardFocusId))}
     >
+      <AnimatedLiquidBorder active={focusedCard === cardFocusId} radius={8} />
       <View style={styles.patientNameRow}>
         <TouchableOpacity
           style={styles.patientIdentity}
@@ -951,7 +1004,7 @@ function PatientListCard({
             }
             accessibilityLabel={`Actions for ${patient.full_name}`}
           >
-            <MoreVertical size={17} color="#0F172A" />
+            <MoreVertical size={17} color={colors.text} />
           </TouchableOpacity>
         )}
       </View>
@@ -962,18 +1015,18 @@ function PatientListCard({
             <View key={row.key} style={styles.patientDetailRow}>
               <Text style={styles.patientDetailLabel}>{row.label}</Text>
               {row.key === 'status' && canEdit ? (
-                <Switch
-                  value={active}
-                  onValueChange={() => {
+                <TouchableOpacity
+                  style={[styles.patientStatusToggle, active ? styles.patientStatusToggleActive : styles.patientStatusToggleInactive]}
+                  onPress={() => {
                     focusCard(cardFocusId);
                     onToggleStatus();
                   }}
-                  trackColor={{ false: '#CBD5E1', true: '#059669' }}
-                  thumbColor="#FFFFFF"
-                  accessibilityLabel={`${active ? 'Deactivate' : 'Activate'} ${
-                    patient.full_name
-                  }`}
-                />
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: active }}
+                  accessibilityLabel={`${active ? 'Deactivate' : 'Activate'} ${patient.full_name}`}
+                >
+                  <View style={styles.patientStatusToggleThumb} />
+                </TouchableOpacity>
               ) : (
                 <Text style={styles.patientDetailValue} numberOfLines={1}>
                   {row.value}
@@ -1004,7 +1057,7 @@ function PatientAction({
         highlighted && styles.actionMenuItemHighlighted,
       ]}
     >
-      <Icon size={15} color={highlighted ? '#27A599' : '#334155'} />
+      <Icon size={15} color={highlighted ? colors.primary : colors.foreground} />
       <Text
         style={[
           styles.actionMenuText,

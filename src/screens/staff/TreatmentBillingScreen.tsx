@@ -1,9 +1,13 @@
 // src/screens/staff/TreatmentBillingScreen.tsx
 import { AppModal } from '../../components/common/AppModal';
+import { LiquidBorderSurface } from '../../components/common/LiquidBorderSurface';
+import { useLiquidBorderScrollHandlers } from '../../components/common/LiquidBorderFocusContext';
+import { createTapGestureHandlers } from '../../utils/tapGestureHandlers';
 import { styles } from './styles/TreatmentBilling.styles';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  ActivityIndicator, Alert, KeyboardAvoidingView, Linking, NativeModules, Platform, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions } from 'react-native';
+  ActivityIndicator, Alert, KeyboardAvoidingView, Linking, NativeModules, Platform, RefreshControl, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import {
   AlertCircle,
   Check,
@@ -29,6 +33,7 @@ import {
 import { StaffHeader } from '../../components/common/StaffHeader';
 import { PatientHeader } from '../../components/common/PatientHeader';
 import { AppToastOverlay, AppToastNotice } from '../../components/common/AppToast';
+import { colors } from '../../theme/tokens';
 import { Pagination } from '../../components/common/Pagination';
 import { ColumnSelectorModal } from '../../components/common/ColumnSelectorModal';
 import { useAuthContext } from '../../context/AuthContext';
@@ -77,8 +82,14 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
   initialBillId,
   patientMode = false,
 }) => {
+  const [billsCardActive, setBillsCardActive] = useState(false);
+  const billsCardTapHandlers = useMemo(
+    () => createTapGestureHandlers(() => setBillsCardActive(true)),
+    [],
+  );
   const { width } = useWindowDimensions();
   const isMobile = width < 640;
+  const borderScrollHandlers = useLiquidBorderScrollHandlers();
 
   const {
     token,
@@ -555,7 +566,8 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
         }}
       />}
 
-      <ScrollView
+      <LiquidBorderScrollView
+        {...borderScrollHandlers}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
@@ -564,7 +576,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => loadBills(true)}
-            colors={['#27A599']}
+            colors={[colors.primary]}
           />
         }
       >
@@ -572,7 +584,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
         <View style={[styles.bannerRow, isMobile && styles.billingBannerMobile]}>
           <View style={styles.bannerTitleBlock}>
             <View style={[styles.iconBox, isMobile && styles.pageIconMobile]}>
-              <Receipt color="#27A599" size={isMobile ? 24 : 24} />
+              <Receipt color={colors.primary} size={isMobile ? 24 : 24} />
             </View>
             <View style={styles.extractedInline2}>
               <Text style={[styles.bannerTitle, isMobile && styles.bannerTitleMobile]}>Treatment Bills</Text>
@@ -611,7 +623,14 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
         )}
 
         {/* -- BILLS TABLE / LIST CARD CONTAINER -------------------------------- */}
-        <View style={[styles.tableCardContainer, isMobile && !canAdd && styles.tableCardContainerNoCreateButton]}>
+        <View
+          {...billsCardTapHandlers}
+          style={[
+            styles.tableCardContainer,
+            isMobile && !canAdd && styles.tableCardContainerNoCreateButton,
+            billsCardActive && styles.tableCardContainerActive,
+          ]}
+        >
           {/* Card Header Bar */}
           <View style={[styles.tableHeaderBar, isMobile && styles.tableHeaderBarMobile]}>
             <View style={styles.tableHeaderLeft}>
@@ -722,11 +741,10 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
               <Text style={styles.columnsBtnText}>Columns</Text>
             </TouchableOpacity>
         </View>
-
           {/* TABLE / CARD CONTENT */}
           {loading && !refreshing ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#27A599" />
+              <ActivityIndicator size="large" color={colors.primary} />
               <Text style={styles.loadingText}>Loading bills...</Text>
             </View>
           ) : bills.length === 0 ? (
@@ -750,7 +768,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                 const pendingAmount = totalAmount - paidAmount;
 
                 return (
-                  <View key={String(bill.id)} style={styles.mobileBillCard}>
+                  <LiquidBorderSurface key={String(bill.id)} style={styles.mobileBillCard} radius={6}>
                     {/* Top Row: Bill Number & Patient Name | Status Badge */}
                     <View style={styles.cardHeaderRow}>
                       <View style={styles.billNumberBlock}>
@@ -890,7 +908,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                           onPress={() => handleViewInvoice(bill)}
                           activeOpacity={0.7}
                         >
-                          <Eye size={16} color="#27A599" />
+                          <Eye size={16} color={colors.primary} />
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -902,13 +920,13 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                         </TouchableOpacity>
                       </View>}
                     </View>
-                  </View>
+                  </LiquidBorderSurface>
                 );
               })}
             </View>
           ) : (
             /* -- DESKTOP / WIDE SCREEN HORIZONTAL TABLE VIEW -------------------- */
-            <ScrollView
+            <LiquidBorderScrollView
               horizontal
               showsHorizontalScrollIndicator={true}
               nestedScrollEnabled={true}
@@ -1106,7 +1124,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                           onPress={() => handleViewInvoice(bill)}
                           activeOpacity={0.7}
                         >
-                          <Eye size={15} color="#27A599" />
+                          <Eye size={15} color={colors.primary} />
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -1121,7 +1139,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                   );
                 })}
               </View>
-            </ScrollView>
+            </LiquidBorderScrollView>
           )}
 
           {/* Pagination Controls */}
@@ -1141,7 +1159,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
             </View>
           )}
         </View>
-      </ScrollView>
+      </LiquidBorderScrollView>
 
       {/* -- 3-DOTS ACTION POPUP MENU (Exact match with Web Screenshot 1) ---------- */}
       <AppModal
@@ -1343,13 +1361,13 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
 
             {billDetailsLoading ? (
               <View style={styles.extractedInline33}>
-                <ActivityIndicator size="large" color="#27A599" />
+                <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={styles.extractedInline34}>
                   Loading invoice details...
                 </Text>
               </View>
             ) : selectedBill ? (
-              <ScrollView style={styles.invoiceBodyScroll} contentContainerStyle={styles.invoiceBodyScrollContent}>
+              <LiquidBorderScrollView style={styles.invoiceBodyScroll} contentContainerStyle={styles.invoiceBodyScrollContent}>
                 <View style={styles.invoiceDocument}>
                 <View style={[styles.invoiceReceiptContent, isMobile && styles.invoiceReceiptContentMobile]}>
                 <View style={[styles.invoiceTopRow, isMobile && styles.invoiceTopRowMobile]}>
@@ -1614,7 +1632,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                   </Text>
                 </View>
                 </View>
-              </ScrollView>
+              </LiquidBorderScrollView>
             ) : null}
             <View style={styles.invoiceActionFooter}>
               <View style={styles.invoiceActionButtonsRow}>
@@ -1675,7 +1693,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.paymentModalScroll}>
+            <LiquidBorderScrollView contentContainerStyle={styles.paymentModalScroll}>
               <View style={styles.paymentMetaBox}>
                 <View style={styles.paymentMetaRow}>
                   <Text style={styles.paymentMetaLabel}>
@@ -1742,7 +1760,7 @@ export const TreatmentBillingScreen: React.FC<Props> = ({
                 onChangeText={setPaymentAmountInput}
                 placeholder="0.00"
               />
-            </ScrollView>
+            </LiquidBorderScrollView>
 
             <View style={styles.modalFooter}>
               <TouchableOpacity

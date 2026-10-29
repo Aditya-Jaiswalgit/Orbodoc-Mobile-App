@@ -1,3 +1,4 @@
+import { colors } from '../../theme/tokens';
 import React, { useMemo, useState } from 'react';
 import { AppModal } from '../../components/common/AppModal';
 import {
@@ -6,7 +7,6 @@ import {
   Image,
   Platform,
   RefreshControl,
-  ScrollView,
   Text as NativeText,
   TextInput,
   TouchableOpacity,
@@ -14,7 +14,11 @@ import {
   ViewStyle,
   useWindowDimensions,
 } from 'react-native';
+import { LiquidBorderScrollView } from '../../components/common/LiquidBorderScrollView';
 import { styles } from './styles/StaffVideoServices.styles';
+import { AnimatedLiquidBorder } from '../../components/common/AnimatedLiquidBorder';
+import { useLiquidBorderScrollHandlers } from '../../components/common/LiquidBorderFocusContext';
+import { createTapGestureHandlers } from '../../utils/tapGestureHandlers';
 import {
   CalendarClock,
   Download,
@@ -118,19 +122,16 @@ const tone = (status?: string) => {
   const normalized = String(status || '').toLowerCase();
   if (
     [
-      'approved',
-      'scheduled',
-      'confirmed',
       'completed',
       'complete',
+      'paid',
       'settled',
     ].includes(normalized)
   )
-    return '#047857';
-  if (normalized === 'refunded') return '#7c3aed';
+    return colors.primary;
   if (['cancelled', 'canceled', 'failed'].includes(normalized))
-    return '#b91c1c';
-  return '#b45309';
+    return colors.destructiveDark;
+  return colors.muted;
 };
 
 interface Props {
@@ -148,6 +149,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
   onOpenDrawer,
   onNavigateScreen,
 }) => {
+  const borderScrollHandlers = useLiquidBorderScrollHandlers();
   const {
     token,
     user,
@@ -167,6 +169,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
   } = useVideoServices(token, activeClinicId, false);
   const [tab, setTab] = useState<Tab>('calls');
   const [query, setQuery] = useState('');
+  const [focusedCardId, setFocusedCardId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(5);
   const [busyCallId, setBusyCallId] = useState<number | null>(null);
@@ -436,7 +439,12 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
         ? 'Video consultation'
         : 'Consultation';
     return (
-      <View key={item.id} style={styles.queueCard}>
+      <View
+        key={item.id}
+        {...createTapGestureHandlers(() => setFocusedCardId(`queue-${item.id}`))}
+        style={[styles.queueCard, focusedCardId === `queue-${item.id}` && styles.cardFocused]}
+      >
+        <AnimatedLiquidBorder active={focusedCardId === `queue-${item.id}`} radius={12} />
         <View style={styles.queueCardHeader}>
           <View style={styles.flex}>
             <Text style={styles.patient}>{item.patient_name || 'Patient'}</Text>
@@ -493,9 +501,9 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
             onPress={() => startCall(item)}
           >
             {busyCallId === item.id ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.surface} />
             ) : (
-              <PhoneCall size={17} color="#fff" />
+              <PhoneCall size={17} color={colors.surface} />
             )}
             <Text style={styles.primaryText}>
               {busyCallId === item.id ? 'Startingâ€¦' : 'Start Call'}
@@ -514,7 +522,12 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
     const refundAvailable = canRefundBill(bill);
 
     return (
-      <View key={item.id} style={styles.historyCard}>
+      <View
+        key={item.id}
+        {...createTapGestureHandlers(() => setFocusedCardId(`history-${item.id}`))}
+        style={[styles.historyCard, focusedCardId === `history-${item.id}` && styles.cardFocused]}
+      >
+        <AnimatedLiquidBorder active={focusedCardId === `history-${item.id}`} radius={12} />
         <View style={styles.historyHeader}>
           <View style={styles.flex}>
             <View style={styles.historyIdentity}>
@@ -559,7 +572,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
                 accessibilityLabel="Print bill"
                 style={styles.iconAction}
                 onPress={() => void handlePrintBill(bill)}>
-                <Printer size={17} color="#334155" />
+                <Printer size={17} color={colors.foreground} />
               </TouchableOpacity>
               <TouchableOpacity
                 accessibilityRole="button"
@@ -572,9 +585,9 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
                 onPress={() => handleBillPdf(bill)}
               >
                 {bill && pdfBusyIds.has(bill.id) ? (
-                  <ActivityIndicator color="#334155" size="small" />
+                  <ActivityIndicator color={colors.foreground} size="small" />
                 ) : (
-                  <Download size={17} color="#334155" />
+                  <Download size={17} color={colors.foreground} />
                 )}
               </TouchableOpacity>
               {bill?.id && privileged && canRefund && (
@@ -590,11 +603,11 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
                   onPress={() => refund(bill)}
                 >
                   {busyRefundId === item.id ? (
-                    <ActivityIndicator color="#334155" size="small" />
+                    <ActivityIndicator color={colors.foreground} size="small" />
                   ) : (
                     <RotateCcw
                       size={17}
-                      color={refundAvailable ? '#334155' : '#94a3b8'}
+                      color={refundAvailable ? colors.foreground : colors.subtle}
                     />
                   )}
                 </TouchableOpacity>
@@ -610,9 +623,9 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
             onPress={() => startCall(item)}
           >
             {busyCallId === item.id ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color={colors.surface} size="small" />
             ) : (
-              <PhoneCall size={16} color="#fff" />
+              <PhoneCall size={16} color={colors.surface} />
             )}
             <Text style={styles.primaryText}>Call</Text>
           </TouchableOpacity>
@@ -628,7 +641,12 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
     const due = paymentStatus.toLowerCase() === 'settled' ? 0 : total;
     const doctorName = item.doctor_name || '-';
     return (
-      <View key={item.id} style={styles.billingCard}>
+      <View
+        key={item.id}
+        {...createTapGestureHandlers(() => setFocusedCardId(`billing-${item.id}`))}
+        style={[styles.billingCard, focusedCardId === `billing-${item.id}` && styles.cardFocused]}
+      >
+        <AnimatedLiquidBorder active={focusedCardId === `billing-${item.id}`} radius={12} />
         <View style={styles.historyIdentity}>
           <View style={styles.flex}>
             <Text style={styles.patient}>{item.patient_name || 'Patient'}</Text>
@@ -640,17 +658,17 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
               {
                 backgroundColor: bill
                   ? `${tone(bill.payment_status)}14`
-                  : '#f8fafc',
+                  : colors.background,
                 borderColor: bill
                   ? `${tone(bill.payment_status)}35`
-                  : '#dbe2ea',
+                  : colors.border,
               },
             ]}
           >
             <Text
               style={[
                 styles.status,
-                { color: bill ? tone(bill.payment_status) : '#64748b' },
+                { color: bill ? tone(bill.payment_status) : colors.muted },
               ]}
             >
               {paymentStatus}
@@ -681,7 +699,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
               style={styles.secondaryButton}
               onPress={() => setSelectedBill(bill)}
             >
-              <Receipt size={15} color="#1d7c72" />
+              <Receipt size={15} color={colors.primaryDark} />
               <Text style={styles.secondaryText}>View Bill</Text>
             </TouchableOpacity>
           )}
@@ -703,14 +721,14 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
               onPress={() => refund(bill)}
             >
               {busyRefundId === item.id ? (
-                <ActivityIndicator color="#b91c1c" size="small" />
+                <ActivityIndicator color={colors.destructiveDark} size="small" />
               ) : (
                 <RotateCcw
                   size={17}
                   color={
                     paymentStatus.toLowerCase() === 'settled'
-                      ? '#b91c1c'
-                      : '#94a3b8'
+                      ? colors.destructiveDark
+                      : colors.subtle
                   }
                 />
               )}
@@ -726,9 +744,9 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
               onPress={() => startCall(item)}
             >
               {busyCallId === item.id ? (
-                <ActivityIndicator color="#fff" size="small" />
+                <ActivityIndicator color={colors.surface} size="small" />
               ) : (
-                <PhoneCall size={16} color="#fff" />
+                <PhoneCall size={16} color={colors.surface} />
               )}
               <Text style={styles.primaryText}>Call</Text>
             </TouchableOpacity>
@@ -741,7 +759,8 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
   return (
     <View style={styles.container}>
       <StaffHeader onOpenDrawer={onOpenDrawer} title="Video Services" />
-      <ScrollView
+      <LiquidBorderScrollView
+        {...borderScrollHandlers}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -749,11 +768,15 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
         }
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.hero}>
+        <View
+          {...createTapGestureHandlers(() => setFocusedCardId('hero'))}
+          style={[styles.hero, focusedCardId === 'hero' && styles.cardFocused]}
+        >
+          <AnimatedLiquidBorder active={focusedCardId === 'hero'} radius={17} />
           <Text style={styles.eyebrow}>Video Workflow</Text>
           <View style={styles.heroTitleRow}>
             <View style={styles.videoIconBox}>
-              <Video size={28} color="#27A598" strokeWidth={1.8} />
+              <Video size={28} color={colors.primary} strokeWidth={1.8} />
             </View>
             <Text style={styles.title}>Video Services</Text>
           </View>
@@ -778,7 +801,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
                 style={styles.openAppointments}
                 onPress={() => onNavigateScreen?.('appointments')}
               >
-                <CalendarClock size={16} color="#fff" />
+                <CalendarClock size={16} color={colors.surface} />
                 <Text style={styles.openAppointmentsText} numberOfLines={1}>
                   Open Appointments
                 </Text>
@@ -792,11 +815,15 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
               label="Today's Video Appointments"
               value={todayCount}
               description="All video consultations scheduled for today."
+              focused={focusedCardId === 'today'}
+              onFocus={() => setFocusedCardId('today')}
             />
             <Stat
               label="Waiting to Call"
               value={waitingCount}
               description="Appointments still ready for staff or doctor action."
+              focused={focusedCardId === 'waiting'}
+              onFocus={() => setFocusedCardId('waiting')}
             />
           </View>
           <Stat
@@ -804,6 +831,8 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
             value={money(totalCollected)}
             description={`${pendingCount} bill(s) still have pending payment.`}
             style={styles.statBottom}
+            focused={focusedCardId === 'revenue'}
+            onFocus={() => setFocusedCardId('revenue')}
           />
         </View>
         <View style={styles.tabs}>
@@ -829,7 +858,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
                 }}
                 style={[styles.tab, tab === item && styles.activeTab]}
               >
-                <Icon size={14} color={tab === item ? '#fff' : '#64748b'} />
+                <Icon size={14} color={tab === item ? colors.surface : colors.muted} />
                 <Text
                   style={[styles.tabText, tab === item && styles.activeTabText]}
                 >
@@ -839,18 +868,25 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
             );
           })}
         </View>
-        <View style={styles.search}>
-          <Search size={17} color="#64748b" />
-          <TextInput
-            value={query}
-            onChangeText={value => {
-              setQuery(value);
-              setPage(0);
-            }}
-            placeholder="Search by patient name, mobile number, patient code, doctor, appointment ID, status..."
-            placeholderTextColor="#71839d"
-            style={styles.searchInput}
-          />
+        <View
+          {...createTapGestureHandlers(() => setFocusedCardId('search'))}
+          style={[styles.searchCard, focusedCardId === 'search' && styles.cardFocused]}
+        >
+          <AnimatedLiquidBorder active={focusedCardId === 'search'} radius={16} />
+          <View style={[styles.search, focusedCardId === 'search' && styles.searchFocused]}>
+            <Search size={17} color={focusedCardId === 'search' ? colors.primary : colors.muted} />
+            <TextInput
+              value={query}
+              onChangeText={value => {
+                setQuery(value);
+                setPage(0);
+              }}
+              onFocus={() => setFocusedCardId('search')}
+              placeholder="Search by patient name, mobile number, patient code, doctor, appointment ID, status..."
+              placeholderTextColor="#71839d"
+              style={styles.searchInput}
+            />
+          </View>
         </View>
         {error ? (
           <View style={styles.errorBox}>
@@ -861,14 +897,23 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
           </View>
         ) : null}
         {loading ? (
-          <ActivityIndicator
-            style={styles.loadingIndicator}
-            color="#1d7c72"
-            size="large"
-          />
+          <View style={styles.loadingState}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={styles.loadingText}>
+              {tab === 'calls'
+                ? 'Loading video appointments...'
+                : tab === 'consultancy'
+                ? 'Loading consultation history...'
+                : 'Loading video billing...'}
+            </Text>
+          </View>
         ) : null}
         {!loading && !error && (
-          <View style={styles.queueHeading}>
+          <View
+            {...createTapGestureHandlers(() => setFocusedCardId('queue-heading'))}
+            style={[styles.queueHeading, focusedCardId === 'queue-heading' && styles.cardFocused]}
+          >
+            <AnimatedLiquidBorder active={focusedCardId === 'queue-heading'} radius={12} />
             <Text style={styles.sectionTitle}>
               {tab === 'calls'
                 ? 'Video Call Queue'
@@ -894,7 +939,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
             : paginatedRecords.map(renderBillingAppointment))}
         {!loading && !error && !activeRecords.length ? (
           <View style={styles.empty}>
-            <Video size={30} color="#1d7c72" />
+            <Video size={30} color={colors.primaryDark} />
             <Text style={styles.emptyTitle}>
               {tab === 'calls'
                 ? 'No active video calls in queue.'
@@ -968,10 +1013,10 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
           </View>
         ) : null}
         <TouchableOpacity onPress={refresh} style={styles.refresh}>
-          <RefreshCw size={15} color="#1d7c72" />
+          <RefreshCw size={15} color={colors.primaryDark} />
           <Text style={styles.refreshText}>Refresh records</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </LiquidBorderScrollView>
       <AppModal
         visible={Boolean(selectedBill)}
         animationType="slide"
@@ -998,11 +1043,11 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
                 onPress={() => setSelectedBill(null)}
                 style={styles.closeBillButton}
               >
-                <X size={21} color="#475569" />
+                <X size={21} color={colors.muted} />
               </TouchableOpacity>
             </View>
             {selectedBill && (
-              <ScrollView
+              <LiquidBorderScrollView
                 style={styles.invoiceScroll}
                 contentContainerStyle={styles.invoiceScrollContent}
               >
@@ -1198,7 +1243,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
                     you for using our service.
                   </Text>
                 </View>
-              </ScrollView>
+              </LiquidBorderScrollView>
             )}
             <View style={styles.invoiceFooterActions}>
               <TouchableOpacity
@@ -1212,7 +1257,7 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
                   style={styles.invoiceDownloadAction}
                   disabled={!selectedBill || pdfBusyIds.has(selectedBill.id)}
                   onPress={() => selectedBill && void handlePrintBill(selectedBill)}>
-                  <Printer size={16} color="#fff" />
+                  <Printer size={16} color={colors.surface} />
                   <Text style={styles.invoiceDownloadText}>Print Bill</Text>
                 </TouchableOpacity>
               )}
@@ -1228,9 +1273,9 @@ export const StaffVideoServicesScreen: React.FC<Props> = ({
                   onPress={() => selectedBill && handleBillPdf(selectedBill)}
                 >
                   {selectedBill && pdfBusyIds.has(selectedBill.id) ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color={colors.surface} size="small" />
                   ) : (
-                    <Download size={16} color="#fff" />
+                    <Download size={16} color={colors.surface} />
                   )}
                   <Text style={styles.invoiceDownloadText}>Download PDF</Text>
                 </TouchableOpacity>
@@ -1262,14 +1307,26 @@ const Stat = ({
   description,
   style,
   isHalf = false,
+  focused = false,
+  onFocus,
 }: {
   label: string;
   value: string | number;
   description: string;
   style?: ViewStyle;
   isHalf?: boolean;
+  focused?: boolean;
+  onFocus?: () => void;
 }) => (
-  <View style={[styles.stat, style]}>
+  <View
+    {...createTapGestureHandlers(() => onFocus?.())}
+    style={[
+      styles.stat,
+      style,
+      focused && styles.cardFocused,
+    ]}
+  >
+    <AnimatedLiquidBorder active={focused} radius={12} />
     <View style={isHalf ? styles.statHeader : undefined}>
       <Text style={styles.statLabel} numberOfLines={2}>
         {label}
